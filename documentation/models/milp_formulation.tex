@@ -1,0 +1,362 @@
+\section{MILP}
+
+\subsection{Sets}
+
+\begin{tabular}{l c l}
+    $\mathcal{J}$ & : & Jobs \\
+    $\mathcal{R}$ & : & Aircraft \\
+    $\mathcal{P}$ & : & Positions \\
+    $\mathcal{C}$ & : & Clients \\
+    $\mathcal{E} \subseteq \mathcal{P} \times \mathcal{P}$ & : & Blocking arcs: if $(p,p') \in \mathcal{E}$ position $p$ blocks $p'$ \\
+    $\mathcal{PREC} \subseteq \mathcal{J} \times \mathcal{J}$ & : & Job precedences: if $(j,j') \in \mathcal{PREC}$ job $j$ precedes $j'$
+\end{tabular}
+
+
+\subsection{Parameters}
+
+\begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
+    $D_j$ & : & Duration of job $j$ \\
+    % $E^J_j$ & : & Earliest start time of job $j$ \\
+    % $L^J_j$ & : & Latest finish time of job $j$ \\
+    $E_r$ & : & Earliest start time of aircraft $r$ \\
+    $L_r$ & : & Target finish time (due date) of aircraft $r$ \\
+    $R_{jr}$ & : & 1 if job $j$ is associated with aircraft $r$, 0 otherwise \\
+    $C_{rc}$ & : & 1 if aircraft $r$ is associated with client $c$, 0 otherwise \\
+    $A_{jr}$ & : & 1 if job $j$ is the first job of aircraft $r$, 0 otherwise \\
+    $\Omega_{jr}$ & : & 1 if job $j$ is the last job of aircraft $r$, 0 otherwise \\
+    $\varepsilon$ & : & Minimum separation for movements \\
+    $M$ & : & A sufficiently large constant \\
+    $W^{M}$ & : & Weight for makespan \\
+    $W^{S}$ & : & Weight for movements \\
+    $W^{D}$ & : & Weight for delays \\
+\end{longtable}
+
+The binary parameters $R_{jr}$, $A_{jr}$ and $\Omega_{jr}$ are assumed to satisfy the following consistency conditions. Each job is associated with exactly one aircraft, i.e., $\sum_{r \in \mathcal{R}} R_{jr} = 1$ for all $j \in \mathcal{J}$. For each aircraft, exactly one job is identified as the first job and exactly one as the last job, i.e., $\sum_{j \in \mathcal{J}} A_{jr} = 1$ and $\sum_{j \in \mathcal{J}} \Omega_{jr} = 1$ for all $r \in \mathcal{R}$. Moreover, the jobs identified as first or last must belong to the corresponding aircraft, i.e., $A_{jr} \le R_{jr}$ and $\Omega_{jr} \le R_{jr}$ for all $j \in \mathcal{J}$ and $r \in \mathcal{R}$.
+
+
+\subsection{Variables}
+
+\paragraph{Scheduling and assignment}
+
+\begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
+    $t^{S}_j$ & : & Start time of job $j$ \\
+    $t^{F}_j$ & : & Finish time of job $j$ \\
+    $s_r$ & : & Start time of aircraft $r$ in its assigned position, i.e., start time of the first job of aircraft $r$ \\
+    $f_r$ & : & Finish time of aircraft $r$ in its assigned position, i.e., finish time of the last job of aircraft $r$ \\
+    $y_{jp}$ & : & 1 if job $j$ is assigned to position $p$, 0 otherwise \\
+    $x_{rp}$ & : & 1 if aircraft $r$ is assigned to position $p$, 0 otherwise \\
+    $w_{jj'p}$ & : & 1 if job $j$ precedes job $j'$ in position $p$, 0 otherwise \\
+\end{longtable}
+
+\paragraph{Blocking}
+
+\begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
+    $\alpha^{in}_{rr'pp'}$ & : & 1 if the entry time of aircraft $r'$ in position $p'$ is greater than or equal to the start time of aircraft $r$ in position $p$, 0 otherwise \\
+    $\beta^{in}_{rr'pp'}$ & : & 1 if the entry time of aircraft $r'$ in position $p'$ is strictly less than the finish time of aircraft $r$ in position $p$, 0 otherwise \\
+    $u^{in}_{rr'pp'}$ & : & 1 if aircraft $r$ must be temporarily moved to allow the entry of aircraft $r'$ into position $p'$ while aircraft $r$ is present in blocking position $p$, 0 otherwise \\
+    $\alpha^{out}_{rr'pp'}$ & : & 1 if the exit time of aircraft $r'$ from position $p'$ is greater than or equal to the start time of aircraft $r$ in position $p$, 0 otherwise \\
+    $\beta^{out}_{rr'pp'}$ & : & 1 if the exit time of aircraft $r'$ from position $p'$ is strictly less than the finish time of aircraft $r$ in position $p$, 0 otherwise \\
+    $u^{out}_{rr'pp'}$ & : & 1 if aircraft $r$ must be temporarily moved to allow the exit of aircraft $r'$ from position $p'$ while aircraft $r$ is present in blocking position $p$, 0 otherwise \\
+    $n$ & : & Total number of aircraft movements induced by temporary relocations, assuming that each temporary relocation counts as two movements \\
+\end{longtable}
+
+\paragraph{Metrics and preferences}
+
+\begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
+    % $v^{P}_{spr}$ & : & 1 if aircraft $r$ is present at position $p$ in slot $s$, 0 otherwise \\
+    % $v^{A}_{spr}$ & : & 1 if presence changes between slots $s-1$ and $s$, 0 otherwise \\
+    % $v^{S}_{sp}$ & : & 1 if there is a switch at position $p$ between slots, 0 otherwise \\
+    % $v^{J}_{spj}$ & : & 1 if job $j$ is active in slot $s$, 0 otherwise \\
+    % $v^{I}_{sr}$ & : & 1 if aircraft $r$ is idle in slot $s$, 0 otherwise \\
+    % $z_{cp}$ & : & 1 if client $c$ uses position $p$, 0 otherwise \\
+    % $u_c$ & : & Soft violation of client-position policy \\
+     $v^{D}_r$ & : & Aircraft delay of aircraft $r$\\
+    % $v^{C}_c$ & : & Client delay \\
+    $m$ & : & Makespan \\
+\end{longtable}
+
+
+\subsection{Constraints}
+
+\paragraph{Assignment and timing}
+
+\begin{align}
+\sum_{p \in \mathcal{P}} x_{rp} &= 1 
+&& \forall r \in \mathcal{R} \\
+%
+y_{jp} &= x_{r p} 
+&& \forall j \in \mathcal{J}, \; p \in \mathcal{P}\; :\; R_{jr} = 1
+\end{align}
+
+
+\begin{equation}
+t^{F}_j = t^{S}_j + D_j
+\qquad \forall j \in \mathcal{J}
+\end{equation}
+
+% \begin{align}
+% t^{S}_j &\ge E^J_j && \forall j \in \mathcal{J} \\
+% t^{F}_j &\le L^J_j && \forall j \in \mathcal{J}
+% \end{align}
+
+\begin{align}
+t^S_j &\ge E_r 
+&& \forall j \in \mathcal{J}, \; r \in \mathcal{R} \; : \; A_{jr} = 1 
+% %
+% t^F_j &\le L_r 
+% && \forall j \in \mathcal{J}, \; r \in \mathcal{R} \; : \; \Omega_{jr} = 1
+\end{align}
+
+
+\begin{align}
+s_r & = \sum_{j \in \mathcal{J}} A_{jr}\, t^{S}_j
+&& \forall r \in \mathcal{R}
+\\
+f_r & = \sum_{j \in \mathcal{J}} \Omega_{jr}\, t^{F}_j
+&& \forall r \in \mathcal{R}
+\end{align}
+
+\paragraph{Precedences}
+
+\begin{equation}
+t^{S}_{j'} \ge t^{F}_j
+\qquad \forall (j,j') \in \mathcal{PREC}
+\end{equation}
+
+
+\paragraph{Non-overlap}
+
+\begin{align}
+t^{S}_{j'} \ge t^{F}_j 
+- M \left( 1 - w_{jj'p} + (1-y_{jp}) + (1-y_{j'p}) \right)
+& \qquad \forall j, j' \in \mathcal{J}, \, p \in \mathcal{P}, \, j \neq j'
+\\
+t^{S}_{j} \ge t^{F}_{j'} 
+- M \left( w_{jj'p} + (1-y_{jp}) + (1-y_{j'p}) \right)
+& \qquad \forall j, j' \in \mathcal{J}, \, p \in \mathcal{P}, \, j \neq j' \\
+w_{jj'p} + w_{j'jp} \ge y_{jp} + y_{j'p} - 1
+& \qquad \forall j, j' \in \mathcal{J}, \, p \in \mathcal{P}, \, j \neq j' \\
+w_{jj'p} + w_{j'jp} \le 1
+& \qquad \forall j, j' \in \mathcal{J}, \, p \in \mathcal{P}, \, j \neq j'
+\end{align}
+
+Avoiding aircraft to overlap.
+
+\begin{align}
+\sum_{j \in \mathcal{J}} \sum_{j' \in \mathcal{J}} \left( \Omega_{jr} A_{j'r'} w_{jj'p} + \Omega_{j'r'} A_{jr} w_{j'jp} \right) \ge x_{rp} + x_{r'p} - 1
+&& \forall r,r' \in \mathcal{R},\; r < r',\; p \in \mathcal{P}
+\label{eq:non-overlap-aircraft}
+\end{align}
+
+\paragraph{Blocking}
+
+% --- Entry Movements (Modificadas) ---
+\begin{align}
+s_{r'} &\ge s_r - M \left( 1 - \alpha^{in}_{rr'pp'} \right)
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
+s_{r'} &\le s_r - \varepsilon + M \alpha^{in}_{rr'pp'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
+s_{r'} &\le f_r - \varepsilon + M \left( 1 - \beta^{in}_{rr'pp'} \right)
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
+s_{r'} &\ge f_r - M \beta^{in}_{rr'pp'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
+u^{in}_{rr'pp'} &\le x_{rp}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
+u^{in}_{rr'pp'} &\le x_{r'p'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
+u^{in}_{rr'pp'} &\le \alpha^{in}_{rr'pp'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
+u^{in}_{rr'pp'} &\le \beta^{in}_{rr'pp'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
+u^{in}_{rr'pp'} &\ge x_{rp} + x_{r'p'} + \alpha^{in}_{rr'pp'} + \beta^{in}_{rr'pp'} - 3
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r'
+\end{align}
+
+% --- Exit Movements (Nuevas) ---
+\begin{align}
+f_{r'} &\ge s_r - M \left( 1 - \alpha^{out}_{rr'pp'} \right)
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
+f_{r'} &\le s_r - \varepsilon + M \alpha^{out}_{rr'pp'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
+f_{r'} &\le f_r - \varepsilon + M \left( 1 - \beta^{out}_{rr'pp'} \right)
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
+f_{r'} &\ge f_r - M \beta^{out}_{rr'pp'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
+u^{out}_{rr'pp'} &\le x_{rp}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
+u^{out}_{rr'pp'} &\le x_{r'p'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
+u^{out}_{rr'pp'} &\le \alpha^{out}_{rr'pp'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
+u^{out}_{rr'pp'} &\le \beta^{out}_{rr'pp'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
+u^{out}_{rr'pp'} &\ge x_{rp} + x_{r'p'} + \alpha^{out}_{rr'pp'} + \beta^{out}_{rr'pp'} - 3
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r'
+\end{align}
+
+% --- Total Movements (Modificada) ---
+\begin{align}
+n &= 2 \sum_{(p,p')\in E}\;
+\sum_{\substack{r,r' \in \mathcal{R}\\ r \neq r'}}
+\left( u^{in}_{rr'pp'} + u^{out}_{rr'pp'} \right)
+&&
+\end{align}
+
+% \paragraph{Blocking}
+
+% \textbf{Entry for $(p,p') \in \mathcal{E}$:}
+% \begin{align}
+% t^{F}_{j'} &\le t^{S}_j - \varepsilon^{I}
+% + M \left( 1 - b^{I}_{jj'pp'} + 2 - y_{jp} - y_{j'p'} \right)
+% \\
+% t^{S}_{j'} &\ge t^{S}_j + \varepsilon^{I}
+% - M \left( b^{I}_{jj'pp'} + 2 - y_{jp} - y_{j'p'} \right)
+% \end{align}
+
+% For each pair of positions $(p,p') \in E$, where position $p$ blocks access to position $p'$, these constraints enforce that the entry of a job into position $p$ is compatible with the occupation of position $p'$.
+
+% More precisely, when job $j$ is assigned to position $p$ and job $j'$ is assigned to position $p'$, i.e., $y_{jp} = y_{j'p'} = 1$, these constraints impose a disjunctive temporal ordering between the entry of $j$ into $p$ and the processing of $j'$ in $p'$. This is achieved through the binary variable $b^{I}_{jj'pp'}$, which selects one of the following alternatives:
+
+% \begin{itemize}
+%     \item Either job $j'$ finishes before job $j$ starts entering position $p$, i.e.,
+%     \[
+%     t^{F}_{j'} \le t^{S}_{j} - \varepsilon^{I},
+%     \]
+%     ensuring that the blocking position is free at the entry time.
+    
+%     \item Or job $j'$ starts sufficiently after the entry of job $j$, i.e.,
+%     \[
+%     t^{S}_{j'} \ge t^{S}_{j} + \varepsilon^{I},
+%     \]
+%     ensuring temporal separation between both operations.
+% \end{itemize}
+
+% The big-$M$ terms deactivate the constraints when at least one of the jobs is not assigned to the corresponding positions, i.e., when $y_{jp} = 0$ or $y_{j'p'} = 0$. 
+
+% Overall, these constraints guarantee that an aircraft can only enter a position if the corresponding blocking positions are not occupied at that time, thus enforcing the geometric accessibility constraints of the hangar layout.
+
+% \textbf{Exit for $(p,p') \in \mathcal{E}$:}
+% \begin{align}
+% t^{F}_{j'} &\le t^{F}_j - \varepsilon^{O}
+% + M \left( 1 - b^{O}_{jj'pp'} + 2 - y_{jp} - y_{j'p'} \right)
+% \\
+% t^{S}_{j'} &\ge t^{F}_j + \varepsilon^{O}
+% - M \left( b^{O}_{jj'pp'} + 2 - y_{jp} - y_{j'p'} \right)
+% \end{align}
+
+
+\paragraph{Delays}
+
+\begin{equation}
+v^{D}_r \ge
+\sum_{j \in \mathcal{J}} \Omega_{jr}(t^{F}_j - L_r)
+\qquad \forall r \in \mathcal{R}
+\end{equation}
+
+
+\paragraph{Makespan}
+
+\begin{equation}
+m \ge t^{F}_j
+\qquad \forall j \in \mathcal{J}
+\end{equation}
+
+\paragraph{Variable domains}
+
+\begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
+    $t^{S}_j \ge 0$ \\
+    $t^{F}_j \ge 0$ \\
+    $s_r \ge 0$ \\
+    $f_r \ge 0$ \\
+    $y_{jp} \in \{0,1\}$ \\
+    $x_{rp} \in \{0,1\}$ \\
+    $w_{jj'p} \in \{0,1\}$ \\
+    $\alpha^{in}_{rr'pp'} \in \{0,1\}$ \\
+    $\beta^{in}_{rr'pp'} \in \{0,1\}$ \\
+    $u^{in}_{rr'pp'} \in \{0,1\}$ \\
+    $\alpha^{out}_{rr'pp'} \in \{0,1\}$ \\
+    $\beta^{out}_{rr'pp'} \in \{0,1\}$ \\
+    $u^{out}_{rr'pp'} \in \{0,1\}$ \\
+    $v^{D}_r \ge 0$ \\
+    $m \ge 0$ \\
+    $n \ge 0$ \\
+\end{longtable}
+
+
+\subsection{Objective Function}
+
+\begin{align}
+\min \quad W^{M} m + W^{D} \sum_{r \in \mathcal{R}} v^{D}_{r} + W^{S} n
+\end{align}
+
+
+% \subsection{Variables for computing movements}
+
+% \begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
+%     $u^{I}_{jj'pp'}$ & : & 1 if the aircraft occupying position $p$ is temporarily moved to allow the entry of job $j'$ into position $p'$, 0 otherwise \\
+%     $u^{O}_{jj'pp'}$ & : & 1 if the aircraft occupying position $p$ is temporarily moved to allow the exit of job $j'$ from position $p'$, 0 otherwise \\
+%     $n^{\mathrm{mov}}$ & : & Total number of aircraft movements induced by temporary relocations (each relocation may count as one or two movements depending on the chosen convention)
+% \end{longtable}
+
+% \subsection{Constraints for computing movements}
+
+% \paragraph{Input movements}
+
+% \begin{align}
+% t^{F}_{j'} &\le t^{S}_{j} - \varepsilon^{I}
+% + M\Bigl(1 - b^{I}_{jj'pp'} + u^{I}_{jj'pp'} + 2 - y_{jp} - y_{j'p'}\Bigr)
+% && \forall j,j' \in \mathcal{J},\; (p,p') \in E,\; j \neq j'
+% \\
+% %
+% t^{S}_{j'} &\ge t^{S}_{j} + \varepsilon^{I}
+% - M\Bigl(b^{I}_{jj'pp'} + u^{I}_{jj'pp'} + 2 - y_{jp} - y_{j'p'}\Bigr)
+% && \forall j,j' \in \mathcal{J},\; (p,p') \in E,\; j \neq j'
+% \end{align}
+
+% \paragraph{Output movements}
+
+% \begin{align}
+% t^{F}_{j'} &\le t^{F}_{j} - \varepsilon^{O}
+% + M\Bigl(1 - b^{O}_{jj'pp'} + u^{O}_{jj'pp'} + 2 - y_{jp} - y_{j'p'}\Bigr)
+% && \forall j,j' \in \mathcal{J},\; (p,p') \in E,\; j \neq j'
+% \\
+% %
+% t^{S}_{j'} &\ge t^{F}_{j} + \varepsilon^{O}
+% - M\Bigl(b^{O}_{jj'pp'} + u^{O}_{jj'pp'} + 2 - y_{jp} - y_{j'p'}\Bigr)
+% && \forall j,j' \in \mathcal{J},\; (p,p') \in E,\; j \neq j'
+% \end{align}
+
+% \paragraph{Additional valid inequalities}
+
+% \begin{align}
+% u^{I}_{jj'pp'} &\le y_{jp}
+% && \forall j,j' \in \mathcal{J},\; (p,p') \in E,\; j \neq j'
+% \\
+% u^{I}_{jj'pp'} &\le y_{j'p'}
+% && \forall j,j' \in \mathcal{J},\; (p,p') \in E,\; j \neq j'
+% \\
+% u^{O}_{jj'pp'} &\le y_{jp}
+% && \forall j,j' \in \mathcal{J},\; (p,p') \in E,\; j \neq j'
+% \\
+% u^{O}_{jj'pp'} &\le y_{j'p'}
+% && \forall j,j' \in \mathcal{J},\; (p,p') \in E,\; j \neq j'
+% \end{align}
+
+% \paragraph{Counting movements}
+
+% \begin{align}
+% n^{\mathrm{mov}} = 
+% 2 \sum_{(p,p')\in E}
+% \sum_{\substack{j,j'\in \mathcal{J}\\ j\neq j'}}
+% \left( u^{I}_{jj'pp'} + u^{O}_{jj'pp'} \right)
+% \end{align}
+
+% \subsection{Extended objective function}
+
+% \begin{align}
+% \min \quad
+% W^{M} m
+% + W^{D} \sum_{r \in \mathcal{R}} v^{D}_{r}
+% + W^{S} n^{\mathrm{mov}}
+% \end{align}
+

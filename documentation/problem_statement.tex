@@ -1,0 +1,67 @@
+\section*{Problem Statement}
+
+\subsection*{Overall Description}
+
+The aircraft positioning problem consists of scheduling a set of maintenance jobs over a continuous time horizon while assigning aircraft to hangar positions.
+
+Each position can accommodate at most one aircraft at any time. Each aircraft must undergo a predefined set of jobs with given processing times, time windows, and precedence relations.
+
+In this variant, all jobs belonging to the same aircraft must be executed in the same position.
+
+Geometric blocking relations exist between positions: if a front position is occupied, it may prevent access to a rear position.
+
+The goal is to compute a feasible and efficient schedule minimizing operational inefficiencies such as makespan, delays, and unnecessary movements.
+
+\subsection*{Assumptions}
+
+\begin{itemize}
+    \item Aircraft movements are considered instantaneous, i.e., their duration is negligible and does not consume time in the schedule.
+    \item Aircraft can be moved at any time, even while a job is being processed.
+    % \item An aircraft can be moved into its assigned position prior to starting its first job and move later that the end of its last job.
+\end{itemize}
+
+\subsection*{Decision}
+
+The decisions to be made are:
+
+\begin{itemize}
+    \item Assign each aircraft to a single position.
+    \item Schedule the start and end times of each job.
+    \item Sequence jobs within each position.
+\end{itemize}
+
+\subsection*{Requirements}
+
+\begin{itemize}
+    \item[RQ01:] Each job must be assigned to exactly one position.
+
+    \item[RQ02:] Each aircraft must be assigned to a single position, and all its jobs must be executed in that same position.
+    
+    \item[RQ03:] The processing time of each job must be respected.
+    
+    \item[RQ04:] Aircraft-level time windows must be satisfied.
+    
+    \item[RQ05:] Precedence relations between jobs of the same aircraft must be enforced.
+    
+    \item[RQ06:] No two jobs can overlap in the same position.
+    
+    \item[RQ07:] If a position is blocked by an aircraft, that aircraft may be temporarily moved to allow access to another aircraft, but it must return to its assigned position and cannot be reassigned to a different one.
+    
+
+\end{itemize}
+
+\subsection*{Goodness Criteria}
+
+\begin{itemize}
+    \item[OF01:] Minimize the makespan of the schedule.
+    
+    \item[OF02:] Minimize total delay with respect to aircraft deadlines.
+    
+    \item[OF03:] Minimize the number of aircraft movements.
+    
+    % \item[OF04:] Minimize violations of preferred position assignments (client-position affinity).
+    
+    % \item[OF05:] Minimize idle times of aircraft.
+    
+    % \item[OF06:] Minimize unnecessary switching or instability in position usage.
+\end{itemize}
