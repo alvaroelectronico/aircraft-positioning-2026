@@ -372,12 +372,17 @@ def load_instance(filepath: str) -> dict:
         return json.load(f)
 
 
-def prepare_data(raw_data: dict) -> dict:
+def prepare_data(
+    raw_data: dict,
+    min_separation: float,
+    weight_makespan: float,
+    weight_delay: float,
+    weight_movements: float,
+) -> dict:
     """Convert JSON instance data to the Pyomo AbstractModel data dict format."""
     aircraft_data = raw_data["aircrafts"]
     job_data = raw_data["jobs"]
     hangar = raw_data["hangar"]
-    gparams = raw_data["global_parameters"]
 
     jobs = [j["id"] for j in job_data]
     aircraft = [a["id"] for a in aircraft_data]
@@ -424,11 +429,11 @@ def prepare_data(raw_data: dict) -> dict:
                 for j in jobs
                 for r in aircraft
             },
-            "pMinSeparation": {None: gparams["min_separation"]},
-            "pBigM": {None: big_m},
-            "pWeightMakespan": {None: gparams["weights"]["makespan"]},
-            "pWeightDelay": {None: gparams["weights"]["delays"]},
-            "pWeightMovements": {None: gparams["weights"]["movements"]},
+            "pMinSeparation":   {None: min_separation},
+            "pBigM":            {None: big_m},
+            "pWeightMakespan":  {None: weight_makespan},
+            "pWeightDelay":     {None: weight_delay},
+            "pWeightMovements": {None: weight_movements},
         }
     }
 
@@ -501,8 +506,15 @@ if __name__ == "__main__":
     from pyomo.environ import SolverFactory
 
     # TODO: temporary import for debugging — remove once solver pipeline is stable
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "scripts", "output_data"))
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts", "output_data"))
     from plot_schedule import plot_schedule  # noqa: E402
+
+    # ---- solver configuration ----
+    min_separation  = 10
+    weight_makespan  = 10.0
+    weight_delay     = 100.0
+    weight_movements = 1.0
+    # ------------------------------
 
     raw_data = {
         "hangar": {
@@ -527,13 +539,11 @@ if __name__ == "__main__":
             {"before": "J3", "after": "J4"},
             {"before": "J5", "after": "J6"},
         ],
-        "global_parameters": {
-            "min_separation": 10,
-            "weights": {"makespan": 10, "delays": 100.0, "movements": 1.0},
-        },
     }
 
-    instance = model.create_instance(prepare_data(raw_data))
+    instance = model.create_instance(
+        prepare_data(raw_data, min_separation, weight_makespan, weight_delay, weight_movements)
+    )
     solver = SolverFactory("gurobi")
     result = solver.solve(instance, tee=True)
     solution = get_solution(instance, result)
