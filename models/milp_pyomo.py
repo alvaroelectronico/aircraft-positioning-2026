@@ -367,11 +367,6 @@ model.obj = Objective(rule=obj_rule, sense=minimize)
 #  Data helpers
 # =================================================================
 
-def load_instance(filepath: str) -> dict:
-    with open(filepath) as f:
-        return json.load(f)
-
-
 def prepare_data(
     raw_data: dict,
     min_separation: float,
@@ -507,6 +502,8 @@ if __name__ == "__main__":
 
     # TODO: temporary import for debugging — remove once solver pipeline is stable
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts", "output_data"))
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts", "input_data"))
+    from load_instance import load_instance  # noqa: E402
     from plot_schedule import plot_schedule  # noqa: E402
 
     # ---- solver configuration ----
@@ -516,30 +513,10 @@ if __name__ == "__main__":
     weight_movements = 1.0
     # ------------------------------
 
-    raw_data = {
-        "hangar": {
-            "positions": ["P1", "P2"],
-            "blocking_arcs": [{"front": "P1", "rear": "P2"}],
-        },
-        "aircrafts": [
-            {"id": "R1", "client": "C1", "earliest_start":  0, "target_finish": 250},
-            {"id": "R2", "client": "C2", "earliest_start": 20, "target_finish": 300},
-            {"id": "R3", "client": "C3", "earliest_start":  0, "target_finish": 200},
-        ],
-        "jobs": [
-            {"id": "J1", "aircraft_id": "R1", "duration":  80, "is_first": True,  "is_last": False},
-            {"id": "J2", "aircraft_id": "R1", "duration":  60, "is_first": False, "is_last": True},
-            {"id": "J3", "aircraft_id": "R2", "duration": 100, "is_first": True,  "is_last": False},
-            {"id": "J4", "aircraft_id": "R2", "duration":  50, "is_first": False, "is_last": True},
-            {"id": "J5", "aircraft_id": "R3", "duration":  70, "is_first": True,  "is_last": False},
-            {"id": "J6", "aircraft_id": "R3", "duration":  90, "is_first": False, "is_last": True},
-        ],
-        "job_precedences": [
-            {"before": "J1", "after": "J2"},
-            {"before": "J3", "after": "J4"},
-            {"before": "J5", "after": "J6"},
-        ],
-    }
+    instance_path = os.path.join(
+        os.path.dirname(__file__), "..", "data", "scn_custom_many_tight_pl10.json"
+    )
+    raw_data = load_instance(instance_path)
 
     instance = model.create_instance(
         prepare_data(raw_data, min_separation, weight_makespan, weight_delay, weight_movements)
