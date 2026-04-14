@@ -195,8 +195,10 @@ def fcAlphaInLB(m, r, rp, p, pp):
 
 
 def fcAlphaInUB(m, r, rp, p, pp):
+    # alphaIn=0 is feasible when start[rp] <= start[r] (rp arrives simultaneously or before r).
+    # Removing -min_sep ensures simultaneous starts do not force alphaIn=1 (no spurious movement).
     return m.vAircraftStart[rp] <= (
-        m.vAircraftStart[r] - m.pMinSeparation + m.pBigM * m.vAlphaIn[r, rp, p, pp]
+        m.vAircraftStart[r] + m.pBigM * m.vAlphaIn[r, rp, p, pp]
     )
 
 
@@ -245,8 +247,10 @@ def fcAlphaOutLB(m, r, rp, p, pp):
 
 
 def fcAlphaOutUB(m, r, rp, p, pp):
+    # alphaOut=0 is feasible when finish[rp] <= start[r] (rp exits simultaneously with r's arrival).
+    # Removing -min_sep ensures simultaneous finish/start do not force alphaOut=1.
     return m.vAircraftFinish[rp] <= (
-        m.vAircraftStart[r] - m.pMinSeparation + m.pBigM * m.vAlphaOut[r, rp, p, pp]
+        m.vAircraftStart[r] + m.pBigM * m.vAlphaOut[r, rp, p, pp]
     )
 
 
@@ -468,8 +472,8 @@ def get_solution(instance, result) -> dict:
         jobs = [
             {
                 "id":     j,
-                "start":  round(instance.vStartTime[j](),  2),
-                "finish": round(instance.vFinishTime[j](), 2),
+                "start":  round(instance.vStartTime[j](),  4),
+                "finish": round(instance.vFinishTime[j](), 4),
             }
             for j in instance.sJobs
             if instance.pJobAircraft[j, r] == 1
@@ -477,8 +481,8 @@ def get_solution(instance, result) -> dict:
         aircraft_list.append({
             "id":       r,
             "position": position,
-            "start":    round(instance.vAircraftStart[r](),  2),
-            "finish":   round(instance.vAircraftFinish[r](), 2),
+            "start":    round(instance.vAircraftStart[r](),  4),
+            "finish":   round(instance.vAircraftFinish[r](), 4),
             "delay":    round(instance.vDelay[r](),          2),
             "jobs":     jobs,
         })
@@ -503,8 +507,9 @@ if __name__ == "__main__":
     # TODO: temporary import for debugging — remove once solver pipeline is stable
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts", "output_data"))
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts", "input_data"))
-    from load_instance import load_instance  # noqa: E402
-    from plot_schedule import plot_schedule  # noqa: E402
+    from load_instance import load_instance      # noqa: E402
+    from plot_schedule import plot_schedule      # noqa: E402
+    from check_solution import check_solution, print_check  # noqa: E402
 
     # ---- solver configuration ----
     min_separation  = 10
@@ -522,7 +527,17 @@ if __name__ == "__main__":
         prepare_data(raw_data, min_separation, weight_makespan, weight_delay, weight_movements)
     )
     solver = SolverFactory("gurobi")
+    # NoRelHeurTime: seconds spent on heuristics BEFORE solving the LP relaxation.
+    # Gurobi runs primal heuristics aggressively on the original MIP without first
+    # solving the root relaxation, which is effective when feasibility matters more
+    # than tight bounds.
+    solver.options["NoRelHeurTime"] = 10
+    solver.options["MIPGap"]        = 10
     result = solver.solve(instance, tee=True)
     solution = get_solution(instance, result)
     print(json.dumps(solution, indent=2))
+
+    report = check_solution(solution, raw_data)
+    print_check(report)
+
     plot_schedule(solution)

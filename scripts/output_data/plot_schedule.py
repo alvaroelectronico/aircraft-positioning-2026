@@ -24,6 +24,8 @@ def plot_schedule(solution: dict, output_path: str | None = None) -> None:
 
     fig, ax = plt.subplots(figsize=(12, max(3, len(positions) * 1.5)))
 
+    patch_data: dict = {}  # Rectangle patch -> job metadata for hover tooltips
+
     for aircraft in aircraft_list:
         r = aircraft["id"]
         p = aircraft["position"]
@@ -31,10 +33,17 @@ def plot_schedule(solution: dict, output_path: str | None = None) -> None:
         color = color_map[r]
 
         for job in aircraft["jobs"]:
-            start = job["start"]
-            duration = job["finish"] - job["start"]
-            ax.barh(y, duration, left=start, height=0.5, color=color,
-                    edgecolor="white", linewidth=0.8)
+            start  = job["start"]
+            finish = job["finish"]
+            duration = finish - start
+            container = ax.barh(y, duration, left=start, height=0.5, color=color,
+                                edgecolor="white", linewidth=0.8)
+            patch_data[container[0]] = {
+                "job_id":   job["id"],
+                "aircraft": r,
+                "start":    start,
+                "finish":   finish,
+            }
             ax.text(start + duration / 2, y, job["id"],
                     ha="center", va="center", fontsize=8, color="white", fontweight="bold")
 
@@ -55,6 +64,24 @@ def plot_schedule(solution: dict, output_path: str | None = None) -> None:
     ]
     ax.legend(handles=legend_handles, loc="upper right")
     ax.invert_yaxis()
+
+    # Hover tooltips: show job id, start and finish on mouse-over
+    try:
+        import mplcursors
+        cursor = mplcursors.cursor(list(patch_data.keys()), hover=True)
+
+        @cursor.connect("add")
+        def on_add(sel):
+            data = patch_data[sel.artist]
+            sel.annotation.set_text(
+                f"{data['job_id']}  ({data['aircraft']})\n"
+                f"Start:  {data['start']}\n"
+                f"Finish: {data['finish']}"
+            )
+            sel.annotation.get_bbox_patch().set(facecolor="lightyellow", alpha=0.9)
+
+    except ImportError:
+        pass  # mplcursors not installed — run: pip install mplcursors
 
     plt.tight_layout()
     if output_path:

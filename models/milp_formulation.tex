@@ -51,10 +51,10 @@ The binary parameters $R_{jr}$, $A_{jr}$ and $\Omega_{jr}$ are assumed to satisf
 \paragraph{Blocking}
 
 \begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
-    $\alpha^{in}_{rr'pp'}$ & : & 1 if the entry time of aircraft $r'$ in position $p'$ is greater than or equal to the start time of aircraft $r$ in position $p$, 0 otherwise \\
+    $\alpha^{in}_{rr'pp'}$ & : & 1 if the entry time of aircraft $r'$ into position $p'$ is \emph{strictly greater than} the start time of aircraft $r$ in position $p$ (i.e.\ $r$ was already present when $r'$ arrived); 0 if $r'$ arrives simultaneously with or before $r$ \\
     $\beta^{in}_{rr'pp'}$ & : & 1 if the entry time of aircraft $r'$ in position $p'$ is strictly less than the finish time of aircraft $r$ in position $p$, 0 otherwise \\
     $u^{in}_{rr'pp'}$ & : & 1 if aircraft $r$ must be temporarily moved to allow the entry of aircraft $r'$ into position $p'$ while aircraft $r$ is present in blocking position $p$, 0 otherwise \\
-    $\alpha^{out}_{rr'pp'}$ & : & 1 if the exit time of aircraft $r'$ from position $p'$ is greater than or equal to the start time of aircraft $r$ in position $p$, 0 otherwise \\
+    $\alpha^{out}_{rr'pp'}$ & : & 1 if the exit time of aircraft $r'$ from position $p'$ is \emph{strictly greater than} the start time of aircraft $r$ in position $p$ (i.e.\ $r$ was already present when $r'$ departed); 0 if $r'$ departs simultaneously with or before $r$ arrives \\
     $\beta^{out}_{rr'pp'}$ & : & 1 if the exit time of aircraft $r'$ from position $p'$ is strictly less than the finish time of aircraft $r$ in position $p$, 0 otherwise \\
     $u^{out}_{rr'pp'}$ & : & 1 if aircraft $r$ must be temporarily moved to allow the exit of aircraft $r'$ from position $p'$ while aircraft $r$ is present in blocking position $p$, 0 otherwise \\
     $n$ & : & Total number of aircraft movements induced by temporary relocations, assuming that each temporary relocation counts as two movements \\
@@ -154,7 +154,7 @@ Avoiding aircraft to overlap.
 \begin{align}
 s_{r'} &\ge s_r - M \left( 1 - \alpha^{in}_{rr'pp'} \right)
 && \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-s_{r'} &\le s_r - \varepsilon + M \alpha^{in}_{rr'pp'}
+s_{r'} &\le s_r + M \alpha^{in}_{rr'pp'}
 && \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
 s_{r'} &\le f_r - \varepsilon + M \left( 1 - \beta^{in}_{rr'pp'} \right)
 && \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
@@ -176,7 +176,7 @@ u^{in}_{rr'pp'} &\ge x_{rp} + x_{r'p'} + \alpha^{in}_{rr'pp'} + \beta^{in}_{rr'p
 \begin{align}
 f_{r'} &\ge s_r - M \left( 1 - \alpha^{out}_{rr'pp'} \right)
 && \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-f_{r'} &\le s_r - \varepsilon + M \alpha^{out}_{rr'pp'}
+f_{r'} &\le s_r + M \alpha^{out}_{rr'pp'}
 && \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
 f_{r'} &\le f_r - \varepsilon + M \left( 1 - \beta^{out}_{rr'pp'} \right)
 && \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
@@ -194,7 +194,7 @@ u^{out}_{rr'pp'} &\ge x_{rp} + x_{r'p'} + \alpha^{out}_{rr'pp'} + \beta^{out}_{r
 && \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r'
 \end{align}
 
-% --- Total Movements (Modificada) ---
+% --- Total Movements ---
 \begin{align}
 n &= 2 \sum_{(p,p')\in E}\;
 \sum_{\substack{r,r' \in \mathcal{R}\\ r \neq r'}}
@@ -244,6 +244,16 @@ n &= 2 \sum_{(p,p')\in E}\;
 % - M \left( b^{O}_{jj'pp'} + 2 - y_{jp} - y_{j'p'} \right)
 % \end{align}
 
+
+\begin{remark}
+The upper-bound constraints on $\alpha^{in}$ and $\alpha^{out}$ use $s_r$ (without the $-\varepsilon$ offset that appears in earlier formulations).
+In the original formulation, the upper bound read $s_{r'} \le s_r - \varepsilon + M\alpha^{in}$, which forced $\alpha^{in}=1$ whenever $s_{r'} \in (s_r-\varepsilon,\, s_r]$, including the case $s_{r'} = s_r$.
+This incorrectly counted a movement even when both aircraft enter their positions simultaneously, since in that case $r'$ can be positioned in $p'$ before $r$ occupies $p$ and no temporary relocation is needed.
+
+The corrected upper bound $s_{r'} \le s_r + M\alpha^{in}$ sets $\alpha^{in}=0$ as feasible whenever $s_{r'} \le s_r$, so simultaneous arrivals ($s_{r'} = s_r$) no longer trigger a blocking event.
+The same reasoning applies to $\alpha^{out}$: when $f_{r'} = s_r$ the exit of $r'$ and the arrival of $r$ coincide, so no movement is required, and the corrected bound $f_{r'} \le s_r + M\alpha^{out}$ allows $\alpha^{out}=0$ in that case.
+The minimum-separation parameter $\varepsilon$ is retained in the $\beta$ constraints, which govern the temporal window during which a relocation is operationally necessary.
+\end{remark}
 
 \paragraph{Delays}
 
