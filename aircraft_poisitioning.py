@@ -23,7 +23,8 @@ Define a class, named Application, with the following features:
     * configure_solver (calls de configure solver of the above class)
     * solve (calls the solve in the above class)
     * get solution (calls the get solution in the above class)
-    * chech solution (calls the script check solution)
+    * check solution (calls the script check solution)
+    * plot solution (calls the script in plot_schedule)
 
 The objective is to define here everything that is common to no matter what solving method we are using and calling whatever is specific acording to the selected solver
 '''
