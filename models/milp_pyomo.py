@@ -512,10 +512,10 @@ if __name__ == "__main__":
     from check_solution import check_solution, print_check  # noqa: E402
 
     # ---- solver configuration ----
-    min_separation  = 10
-    weight_makespan  = 10.0
-    weight_delay     = 100.0
-    weight_movements = 1.0
+    min_separation  = 0.001
+    weight_makespan  = 100
+    weight_delay     = 10.0
+    weight_movements = 1
     # ------------------------------
 
     instance_path = os.path.join(
@@ -535,7 +535,7 @@ if __name__ == "__main__":
     solver.options["MIPGap"]        = 10
     result = solver.solve(instance, tee=True)
     solution = get_solution(instance, result)
-    print(json.dumps(solution, indent=2))
+    # print(json.dumps(solution, indent=2))
 
     report = check_solution(solution, raw_data)
     print_check(report)
