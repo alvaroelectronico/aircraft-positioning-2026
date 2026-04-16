@@ -20,12 +20,22 @@ Usage
 Solver contract
 ---------------
 Any solver passed to Application must expose:
+    name:                      str   (property) — short identifier, e.g. "milp"
     configure_solver(**kwargs) -> None
     solve(instance_data: dict) -> dict   # returns solution dict
+    get_config()               -> dict   # full config (model params + backend options)
+
+    Recognised generic keys for configure_solver (all solvers must honour them):
+        time_limit_s : float | None  — wall-clock time limit in seconds (None = no limit)
+                                       translated internally to the backend-specific option
 """
 from __future__ import annotations
 
+import csv
+import datetime
+import json
 import sys
+import time
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -52,9 +62,11 @@ class Application:
     """
 
     def __init__(self, solver) -> None:
-        self.instance: dict | None = None   # raw instance data; filled by read_data()
-        self.solution: dict | None = None   # solution dict;     filled by solve()
+        self.instance: dict | None = None        # raw instance data; filled by read_data()
+        self.solution: dict | None = None        # solution dict;     filled by solve()
         self._solver = solver
+        self._instance_name: str | None = None   # stem of the loaded file, e.g. "scn_X"
+        self._solve_time_s:  float | None = None # wall-clock seconds spent in solve()
 
     # ------------------------------------------------------------------
     # Data
@@ -69,6 +81,7 @@ class Application:
             Path to a ``.json`` or ``.xlsx`` instance file.
         """
         path = Path(path)
+        self._instance_name = path.stem
         if path.suffix == ".json":
             self.instance = load_json(path)
         else:
@@ -81,8 +94,11 @@ class Application:
     def configure_solver(self, **kwargs) -> None:
         """Forward configuration kwargs to the solver.
 
-        Model parameters (min_separation, weight_*) and backend options
-        (e.g. NoRelHeurTime, MIPGap) are both accepted here and dispatched
+        Generic parameters (handled by every solver):
+            time_limit_s (float | None): wall-clock time limit in seconds.
+
+        Model parameters (min_separation, weight_*) and backend-specific options
+        (e.g. NoRelHeurTime, MIPGap for Gurobi) are also accepted and dispatched
         by the solver itself.
         """
         self._solver.configure_solver(**kwargs)
@@ -91,7 +107,9 @@ class Application:
         """Solve the loaded instance and store the solution internally."""
         if self.instance is None:
             raise RuntimeError("No instance loaded. Call read_data() first.")
+        t0 = time.perf_counter()
         self.solution = self._solver.solve(self.instance)
+        self._solve_time_s = round(time.perf_counter() - t0, 3)
 
     def get_solution(self) -> dict:
         """Return the solution dict.
@@ -129,13 +147,84 @@ class Application:
             raise RuntimeError("No solution to plot. Call solve() first.")
         plot_schedule(self.solution)
 
+    def save_solution(self, solutions_dir: str | Path | None = None) -> Path:
+        """Persist the solution to disk and update the results summary.
+
+        Two files are written / updated:
+
+        * ``<solutions_dir>/<instance>__<solver>__<timestamp>.json``
+          Full record: metadata + complete solution dict.
+
+        * ``<solutions_dir>/results.csv``
+          One row per run with the key metrics — easy to load with pandas
+          for cross-method / cross-instance comparisons.
+
+        Parameters
+        ----------
+        solutions_dir:
+            Directory where files are written.
+            Defaults to ``<project_root>/data/solutions/``.
+
+        Returns
+        -------
+        Path
+            Path to the JSON file that was written.
+        """
+        if self.solution is None or self.instance is None:
+            raise RuntimeError("No solution to save. Call solve() first.")
+
+        solutions_dir = Path(solutions_dir) if solutions_dir else _ROOT / "data" / "solutions"
+        solutions_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp   = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        solver_name = getattr(self._solver, "name", type(self._solver).__name__.lower())
+        config      = self._solver.get_config() if hasattr(self._solver, "get_config") else {}
+
+        # ---- JSON (full record) ----------------------------------------
+        record = {
+            "instance":     self._instance_name,
+            "solver":       solver_name,
+            "config":       config,
+            "timestamp":    timestamp,
+            "solve_time_s": self._solve_time_s,
+            **self.solution,
+        }
+        json_path = solutions_dir / f"{self._instance_name}__{solver_name}__{timestamp}.json"
+        with open(json_path, "w", encoding="utf-8") as fh:
+            json.dump(record, fh, indent=2)
+
+        # ---- CSV (summary row) -----------------------------------------
+        metrics = self.solution["metrics"]
+        row = {
+            "instance":     self._instance_name,
+            "solver":       solver_name,
+            "timestamp":    timestamp,
+            "solve_time_s": self._solve_time_s,
+            "status":       self.solution["status"],
+            "objective":    self.solution["objective"],
+            "makespan":     metrics["makespan"],
+            "movements":    metrics["movements"],
+            "total_delay":  metrics["total_delay"],
+            "config":       json.dumps(config),
+        }
+        csv_path = solutions_dir / "results.csv"
+        write_header = not csv_path.exists()
+        with open(csv_path, "a", newline="", encoding="utf-8") as fh:
+            writer = csv.DictWriter(fh, fieldnames=list(row.keys()))
+            if write_header:
+                writer.writeheader()
+            writer.writerow(row)
+
+        print(f"Solution saved : {json_path}")
+        print(f"Results updated: {csv_path}")
+        return json_path
+
 
 # =============================================================================
 #  __main__ — top-level entry point
 # =============================================================================
 
 if __name__ == "__main__":
-    import json
     from milp_solver import MILPSolver  # noqa: E402
 
     _instance_path = (
@@ -155,6 +244,6 @@ if __name__ == "__main__":
         MIPGap=10,
     )
     app.solve()
-    print(json.dumps(app.get_solution(), indent=2))
+    app.save_solution()
     app.check_solution()
     app.plot_solution()

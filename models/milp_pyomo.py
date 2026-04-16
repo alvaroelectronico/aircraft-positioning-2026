@@ -507,15 +507,15 @@ if __name__ == "__main__":
     # TODO: temporary import for debugging — remove once solver pipeline is stable
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts", "output_data"))
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts", "input_data"))
-    from load_instance import load_instance      # noqa: E402
+    from instance_io import load_json as load_instance  # noqa: E402
     from plot_schedule import plot_schedule      # noqa: E402
     from check_solution import check_solution, print_check  # noqa: E402
 
     # ---- solver configuration ----
     min_separation  = 0.001
-    weight_makespan  = 100
-    weight_delay     = 10.0
-    weight_movements = 1
+    weight_makespan  = 1
+    weight_delay     = 10
+    weight_movements = 10
     # ------------------------------
 
     instance_path = os.path.join(
@@ -532,10 +532,10 @@ if __name__ == "__main__":
     # solving the root relaxation, which is effective when feasibility matters more
     # than tight bounds.
     solver.options["NoRelHeurTime"] = 10
-    solver.options["MIPGap"]        = 10
+    solver.options["MIPGap"]        = 0.05
     result = solver.solve(instance, tee=True)
     solution = get_solution(instance, result)
-    # print(json.dumps(solution, indent=2))
+    print(json.dumps(solution, indent=2))
 
     report = check_solution(solution, raw_data)
     print_check(report)

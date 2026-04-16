@@ -475,7 +475,7 @@ if __name__ == "__main__":
     sys.path.insert(
         0, os.path.join(os.path.dirname(__file__), "..", "input_data")
     )
-    from load_instance import load_instance  # noqa: E402
+    from instance_io import load_json as load_instance  # noqa: E402
 
     if len(sys.argv) != 3:
         print(

@@ -25,7 +25,16 @@ from milp_pyomo import model as _abstract_model, prepare_data, get_solution  # n
 
 # Keys consumed by this class as model parameters; everything else is forwarded
 # verbatim to the backend solver (e.g. Gurobi options).
-_MODEL_KEYS = frozenset({"min_separation", "weight_makespan", "weight_delay", "weight_movements"})
+# Keys consumed by this class; everything else is forwarded verbatim to the backend.
+# time_limit_s is a generic key (set via Application); it is translated to the
+# backend-specific option (TimeLimit for Gurobi) inside solve().
+_MODEL_KEYS = frozenset({
+    "min_separation",
+    "weight_makespan",
+    "weight_delay",
+    "weight_movements",
+    "time_limit_s",
+})
 
 
 class MILPSolver:
@@ -42,6 +51,7 @@ class MILPSolver:
         "weight_makespan":  10.0,
         "weight_delay":     100.0,
         "weight_movements": 1.0,
+        "time_limit_s":     None,   # None = no limit
     }
 
     def __init__(self, backend: str = "gurobi") -> None:
@@ -63,6 +73,15 @@ class MILPSolver:
                 self._model_params[key] = value
             else:
                 self._solver_options[key] = value
+
+    @property
+    def name(self) -> str:
+        """Short identifier used in filenames and the results table."""
+        return "milp"
+
+    def get_config(self) -> dict:
+        """Return the full configuration (model params + backend options)."""
+        return {**self._model_params, **self._solver_options}
 
     def solve(self, instance_data: dict) -> dict:
         """Solve *instance_data* and return the solution dict.
@@ -90,6 +109,8 @@ class MILPSolver:
         solver = SolverFactory(self._backend)
         for k, v in self._solver_options.items():
             solver.options[k] = v
+        if self._model_params["time_limit_s"] is not None:
+            solver.options["TimeLimit"] = self._model_params["time_limit_s"]
         result = solver.solve(instance, tee=True)
         return get_solution(instance, result)
 
@@ -103,7 +124,7 @@ if __name__ == "__main__":
 
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts", "input_data"))
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts", "output_data"))
-    from load_instance import load_instance                    # noqa: E402
+    from instance_io import load_json as load_instance         # noqa: E402
     from check_solution import check_solution, print_check    # noqa: E402
     from plot_schedule import plot_schedule                    # noqa: E402
 
@@ -111,7 +132,7 @@ if __name__ == "__main__":
         sys.argv[1]
         if len(sys.argv) > 1
         else os.path.join(
-            os.path.dirname(__file__), "..", "data", "scn_custom_many_tight_pl10"
+            os.path.dirname(__file__), "..", "data", "scn_many-medium_seed12_P5_pl20.json"
         )
     )
 
@@ -119,7 +140,7 @@ if __name__ == "__main__":
 
     _solver = MILPSolver(backend="gurobi")
     _solver.configure_solver(
-        min_separation=10,
+        min_separation=1,
         weight_makespan=10.0,
         weight_delay=100.0,
         weight_movements=1.0,
