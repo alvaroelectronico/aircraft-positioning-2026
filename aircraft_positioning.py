@@ -225,24 +225,47 @@ class Application:
 # =============================================================================
 
 if __name__ == "__main__":
-    from milp_solver import MILPSolver  # noqa: E402
+    import argparse
 
-    _instance_path = (
-        sys.argv[1]
-        if len(sys.argv) > 1
-        else str(_ROOT / "data" / "scn_custom_many_tight_pl10.json")
-    )
+    _parser = argparse.ArgumentParser(description="Aircraft positioning solver")
+    _parser.add_argument("instance", nargs="?",
+                         default=str(_ROOT / "data" / "scn_custom_many_tight_pl10.json"),
+                         help="Path to the instance file (.json or .xlsx)")
+    _parser.add_argument("--solver", choices=["milp", "constructive"], default="milp",
+                         help="Solver to use (default: milp)")
+    _parser.add_argument("--time-limit", type=float, default=None,
+                         help="Wall-clock time limit in seconds")
+    _args = _parser.parse_args()
 
-    app = Application(solver=MILPSolver())
-    app.read_data(_instance_path)
-    app.configure_solver(
-        min_separation=10,
-        weight_makespan=10.0,
-        weight_delay=100.0,
-        weight_movements=1.0,
-        NoRelHeurTime=10,
-        MIPGap=10,
-    )
+    if _args.solver == "milp":
+        from milp_solver import MILPSolver  # noqa: E402
+        _solver = MILPSolver()
+        _solver_config = dict(
+            min_separation=10,
+            weight_makespan=10.0,
+            weight_delay=100.0,
+            weight_movements=1.0,
+            NoRelHeurTime=10,
+            MIPGap=10,
+        )
+    else:
+        from constructive_heuristic import ConstructiveHeuristic  # noqa: E402
+        _solver = ConstructiveHeuristic()
+        _solver_config = dict(
+            min_separation=10,
+            weight_makespan=10.0,
+            weight_delay=100.0,
+            weight_movements=1.0,
+            alpha=0.3,
+            seed=None,
+        )
+
+    if _args.time_limit is not None:
+        _solver_config["time_limit_s"] = _args.time_limit
+
+    app = Application(solver=_solver)
+    app.read_data(_args.instance)
+    app.configure_solver(**_solver_config)
     app.solve()
     app.save_solution()
     app.check_solution()

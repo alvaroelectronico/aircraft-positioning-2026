@@ -513,13 +513,13 @@ if __name__ == "__main__":
 
     # ---- solver configuration ----
     min_separation  = 0.001
-    weight_makespan  = 1
-    weight_delay     = 10
-    weight_movements = 10
+    weight_makespan  = 10
+    weight_delay     = 100
+    weight_movements = 1
     # ------------------------------
 
     instance_path = os.path.join(
-        os.path.dirname(__file__), "..", "data", "scn_custom_many_tight_pl10.json"
+        os.path.dirname(__file__), "..", "data", "scn_many-medium_seed12_P5_pl20.json"
     )
     raw_data = load_instance(instance_path)
 
@@ -533,6 +533,7 @@ if __name__ == "__main__":
     # than tight bounds.
     solver.options["NoRelHeurTime"] = 10
     solver.options["MIPGap"]        = 0.05
+    solver.options["TimeLimit"] = 60
     result = solver.solve(instance, tee=True)
     solution = get_solution(instance, result)
     print(json.dumps(solution, indent=2))

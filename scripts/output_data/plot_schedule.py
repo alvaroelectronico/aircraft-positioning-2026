@@ -91,6 +91,13 @@ def plot_schedule(solution: dict, output_path: str | None = None) -> None:
         plt.show()
 
 
+def plot_from_json(path: str, output_path: str | None = None) -> None:
+    """Load a solution JSON from *path* and display its Gantt chart."""
+    with open(path, encoding="utf-8") as f:
+        solution = json.load(f)
+    plot_schedule(solution, output_path=output_path)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("solution", help="Path to solution JSON file")

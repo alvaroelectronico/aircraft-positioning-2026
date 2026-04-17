@@ -1,0 +1,129 @@
+{
+  "instance": "scn_few-loose_seed1_P3_pl5",
+  "solver": "milp",
+  "config": {
+    "min_separation": 10.0,
+    "weight_makespan": 10.0,
+    "weight_delay": 100.0,
+    "weight_movements": 1.0,
+    "time_limit_s": 60,
+    "MIPGap": 0.05,
+    "NoRelHeurTime": 10
+  },
+  "timestamp": "20260417_180721",
+  "solve_time_s": 0.438,
+  "status": "optimal",
+  "objective": 312.2,
+  "metrics": {
+    "makespan": 31.22,
+    "movements": 0,
+    "total_delay": 0.0
+  },
+  "aircraft": [
+    {
+      "id": "R1",
+      "position": "P1",
+      "start": 2.23,
+      "finish": 31.22,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J1-1",
+          "start": 2.23,
+          "finish": 14.69
+        },
+        {
+          "id": "J1-2",
+          "start": 20.23,
+          "finish": 31.22
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "position": "P4",
+      "start": 0.0,
+      "finish": 21.22,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J2-1",
+          "start": 0.0,
+          "finish": 6.09
+        },
+        {
+          "id": "J2-2",
+          "start": 8.5,
+          "finish": 21.22
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "position": "P5",
+      "start": 0.0,
+      "finish": 31.22,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J3-1",
+          "start": 0.0,
+          "finish": 8.39
+        },
+        {
+          "id": "J3-2",
+          "start": 8.39,
+          "finish": 20.13
+        },
+        {
+          "id": "J3-3",
+          "start": 20.13,
+          "finish": 31.22
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "position": "P3",
+      "start": 0.0,
+      "finish": 21.22,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J4-1",
+          "start": 0.0,
+          "finish": 10.88
+        },
+        {
+          "id": "J4-2",
+          "start": 11.13,
+          "finish": 21.22
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "position": "P2",
+      "start": 2.23,
+      "finish": 31.22,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J5-1",
+          "start": 2.23,
+          "finish": 10.02
+        },
+        {
+          "id": "J5-2",
+          "start": 13.16,
+          "finish": 22.67
+        },
+        {
+          "id": "J5-3",
+          "start": 22.67,
+          "finish": 31.22
+        }
+      ]
+    }
+  ]
+}
