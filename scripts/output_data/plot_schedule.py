@@ -52,11 +52,32 @@ def plot_schedule(solution: dict, output_path: str | None = None) -> None:
     ax.set_yticklabels(positions)
     ax.set_xlabel("Time")
     ax.set_ylabel("Position")
+
     metrics = solution["metrics"]
-    ax.set_title(
-        f"Aircraft schedule  |  makespan={metrics['makespan']}  "
-        f"movements={metrics['movements']}  delay={metrics['total_delay']}"
+    instance = solution.get("instance", "")
+    label    = solution.get("label") or solution.get("solver", "")
+    obj      = solution.get("objective", "")
+
+    # Config params: skip implementation-detail keys, format compactly
+    _SKIP = {"log_enabled"}
+    config = solution.get("config", {})
+    config_str = "  ".join(
+        f"{k}={v}" for k, v in config.items() if k not in _SKIP
     )
+
+    line1_parts = [p for p in [instance, label] if p]
+    line1_parts += [f"obj={obj}"] if obj != "" else []
+    line1 = "   |   ".join(line1_parts)
+
+    line2 = (
+        f"makespan={metrics['makespan']}  "
+        f"movements={metrics['movements']}  "
+        f"delay={metrics['total_delay']}"
+    )
+    if config_str:
+        line2 += f"   |   {config_str}"
+
+    ax.set_title(f"{line1}\n{line2}", fontsize=9)
 
     # Legend
     legend_handles = [

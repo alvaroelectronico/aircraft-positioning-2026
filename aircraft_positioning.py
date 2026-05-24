@@ -11,7 +11,7 @@ Usage
     from solvers.milp_solver import MILPSolver
 
     app = Application(solver=MILPSolver())
-    app.read_data("data/instance.json")
+    app.read_data("data/instances/instance.json")
     app.configure_solver(NoRelHeurTime=10, MIPGap=10)
     app.solve()
     app.check_solution()
@@ -147,12 +147,16 @@ class Application:
             raise RuntimeError("No solution to plot. Call solve() first.")
         plot_schedule(self.solution)
 
-    def save_solution(self, solutions_dir: str | Path | None = None) -> Path:
+    def save_solution(
+        self,
+        solutions_dir: str | Path | None = None,
+        label: str | None = None,
+    ) -> Path:
         """Persist the solution to disk and update the results summary.
 
         Two files are written / updated:
 
-        * ``<solutions_dir>/<instance>__<solver>__<timestamp>.json``
+        * ``<solutions_dir>/<instance>__<label>__<timestamp>.json``
           Full record: metadata + complete solution dict.
 
         * ``<solutions_dir>/results.csv``
@@ -164,6 +168,10 @@ class Application:
         solutions_dir:
             Directory where files are written.
             Defaults to ``<project_root>/data/solutions/``.
+        label:
+            Experiment label used in the filename and the CSV ``solver``
+            column.  Falls back to the solver's own ``name`` attribute (or
+            its class name) when not provided.
 
         Returns
         -------
@@ -178,18 +186,20 @@ class Application:
 
         timestamp   = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         solver_name = getattr(self._solver, "name", type(self._solver).__name__.lower())
+        file_label  = label if label is not None else solver_name
         config      = self._solver.get_config() if hasattr(self._solver, "get_config") else {}
 
         # ---- JSON (full record) ----------------------------------------
         record = {
             "instance":     self._instance_name,
             "solver":       solver_name,
+            "label":        file_label,
             "config":       config,
             "timestamp":    timestamp,
             "solve_time_s": self._solve_time_s,
             **self.solution,
         }
-        json_path = solutions_dir / f"{self._instance_name}__{solver_name}__{timestamp}.json"
+        json_path = solutions_dir / f"{self._instance_name}__{file_label}__{timestamp}.json"
         with open(json_path, "w", encoding="utf-8") as fh:
             json.dump(record, fh, indent=2)
 
@@ -198,6 +208,7 @@ class Application:
         row = {
             "instance":     self._instance_name,
             "solver":       solver_name,
+            "label":        file_label,
             "timestamp":    timestamp,
             "solve_time_s": self._solve_time_s,
             "status":       self.solution["status"],
@@ -217,6 +228,18 @@ class Application:
 
         print(f"Solution saved : {json_path}")
         print(f"Results updated: {csv_path}")
+
+        # ---- LOG (written only when the solver produced one) -----------
+        if hasattr(self._solver, "get_log"):
+            log_lines = self._solver.get_log()
+            if log_lines:
+                logs_dir = _ROOT / "data" / "logs_heuristic"
+                logs_dir.mkdir(parents=True, exist_ok=True)
+                log_path = logs_dir / f"{json_path.stem}.log"
+                with open(log_path, "w", encoding="utf-8") as fh:
+                    fh.write("\n".join(log_lines) + "\n")
+                print(f"Log saved      : {log_path}")
+
         return json_path
 
 
@@ -229,7 +252,7 @@ if __name__ == "__main__":
 
     _parser = argparse.ArgumentParser(description="Aircraft positioning solver")
     _parser.add_argument("instance", nargs="?",
-                         default=str(_ROOT / "data" / "scn_custom_many_tight_pl10.json"),
+                         default=str(_ROOT / "data" / "instances" / "scn_custom_many_tight_pl10.json"),
                          help="Path to the instance file (.json or .xlsx)")
     _parser.add_argument("--solver", choices=["milp", "constructive"], default="milp",
                          help="Solver to use (default: milp)")

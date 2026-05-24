@@ -186,6 +186,39 @@ def fcNonOverlapAircraft(m, r, rp, p):
     )
 
 
+def fcSamePositionDeltaOrder1(m, r, rp, p):
+    # If r precedes r' at position p: start[r'] >= finish[r] + delta.
+    # q_r_rp = 1  iff the last job of r is ordered before the first job of r' at p.
+    q_r_rp = sum(
+        m.pLastJob[j, r] * m.pFirstJob[jp, rp] * m.vJobOrder[j, jp, p]
+        for j in m.sJobs
+        for jp in m.sJobs
+        if j != jp
+    )
+    return m.vAircraftStart[rp] >= (
+        m.vAircraftFinish[r] + m.pMinSeparation
+        - m.pBigM * (1 - q_r_rp)
+        - m.pBigM * (1 - m.vAircraftPosition[r, p])
+        - m.pBigM * (1 - m.vAircraftPosition[rp, p])
+    )
+
+
+def fcSamePositionDeltaOrder2(m, r, rp, p):
+    # If r' precedes r at position p: start[r] >= finish[r'] + delta.
+    q_rp_r = sum(
+        m.pLastJob[j, rp] * m.pFirstJob[jp, r] * m.vJobOrder[j, jp, p]
+        for j in m.sJobs
+        for jp in m.sJobs
+        if j != jp
+    )
+    return m.vAircraftStart[r] >= (
+        m.vAircraftFinish[rp] + m.pMinSeparation
+        - m.pBigM * (1 - q_rp_r)
+        - m.pBigM * (1 - m.vAircraftPosition[r, p])
+        - m.pBigM * (1 - m.vAircraftPosition[rp, p])
+    )
+
+
 # -- Blocking: entry --
 
 def fcAlphaInLB(m, r, rp, p, pp):
@@ -209,7 +242,14 @@ def fcBetaInUB(m, r, rp, p, pp):
 
 
 def fcBetaInLB(m, r, rp, p, pp):
-    return m.vAircraftStart[rp] >= m.vAircraftFinish[r] - m.pBigM * m.vBetaIn[r, rp, p, pp]
+    # Guard with position variables: constraint only binding when r is at p and rp is at pp.
+    # Without the guard, the LB forces betaIn=0 → start[rp] ≥ finish[r] even when the
+    # aircraft are not at the relevant blocking positions, creating spurious infeasibility
+    # when finish[r] - min_sep < start[rp] < finish[r] (no valid betaIn exists).
+    return m.vAircraftStart[rp] >= m.vAircraftFinish[r] \
+        - m.pBigM * m.vBetaIn[r, rp, p, pp] \
+        - m.pBigM * (1 - m.vAircraftPosition[r, p]) \
+        - m.pBigM * (1 - m.vAircraftPosition[rp, pp])
 
 
 def fcUInUB1(m, r, rp, p, pp):
@@ -261,9 +301,12 @@ def fcBetaOutUB(m, r, rp, p, pp):
 
 
 def fcBetaOutLB(m, r, rp, p, pp):
-    return m.vAircraftFinish[rp] >= (
-        m.vAircraftFinish[r] - m.pBigM * m.vBetaOut[r, rp, p, pp]
-    )
+    # Same position guard as fcBetaInLB: without it, betaOut=0 forces finish[rp] ≥ finish[r]
+    # for ALL aircraft pairs, not only those actually at the blocking positions.
+    return m.vAircraftFinish[rp] >= m.vAircraftFinish[r] \
+        - m.pBigM * m.vBetaOut[r, rp, p, pp] \
+        - m.pBigM * (1 - m.vAircraftPosition[r, p]) \
+        - m.pBigM * (1 - m.vAircraftPosition[rp, pp])
 
 
 def fcUOutUB1(m, r, rp, p, pp):
@@ -327,6 +370,8 @@ model.cNonOverlapOrder2 = Constraint(model.sJobPairsOrdered, rule=fcNonOverlapOr
 model.cNonOverlapConsistencyLB = Constraint(model.sJobPairsUnordered, rule=fcNonOverlapConsistencyLB)
 model.cNonOverlapConsistencyUB = Constraint(model.sJobPairsUnordered, rule=fcNonOverlapConsistencyUB)
 model.cNonOverlapAircraft = Constraint(model.sAircraftPairsPosition, rule=fcNonOverlapAircraft)
+model.cSamePositionDeltaOrder1 = Constraint(model.sAircraftPairsPosition, rule=fcSamePositionDeltaOrder1)
+model.cSamePositionDeltaOrder2 = Constraint(model.sAircraftPairsPosition, rule=fcSamePositionDeltaOrder2)
 
 model.cAlphaInLB = Constraint(model.sBlockingTuples, rule=fcAlphaInLB)
 model.cAlphaInUB = Constraint(model.sBlockingTuples, rule=fcAlphaInUB)
@@ -487,9 +532,17 @@ def get_solution(instance, result) -> dict:
             "jobs":     jobs,
         })
 
+    obj_val   = instance.obj()
+    obj_bound = getattr(result.problem, "lower_bound", None)
+    if obj_bound is not None and obj_val is not None and abs(obj_val) > 1e-10:
+        mip_gap = round(abs(obj_val - obj_bound) / abs(obj_val), 6)
+    else:
+        mip_gap = None
+
     return {
         "status":    str(result.solver.termination_condition),
-        "objective": round(instance.obj(), 2),
+        "objective": round(obj_val, 2),
+        "mip_gap":   mip_gap,
         "metrics": {
             "makespan":    round(instance.vMakespan(),   2),
             "movements":   int(round(instance.vMovements())),
@@ -519,7 +572,7 @@ if __name__ == "__main__":
     # ------------------------------
 
     instance_path = os.path.join(
-        os.path.dirname(__file__), "..", "data", "scn_many-medium_seed12_P5_pl20.json"
+        os.path.dirname(__file__), "..", "data", "instances", "scn_many-medium_seed12_P5_pl20.json"
     )
     raw_data = load_instance(instance_path)
 

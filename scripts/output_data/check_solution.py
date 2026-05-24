@@ -49,6 +49,22 @@ Return schema of check_solution()
             ],
             "detail": str,
         },
+        "RQ08": {
+            "pass":                  bool,
+            "num_violations":        int,    # pairs with gap < delta
+            "min_same_pos_gap":      float,  # smallest observed gap (None if no pairs)
+            "worst_violation":       float,  # largest shortfall below delta (0 if none)
+            "violations":            [       # one entry per violating pair
+                {
+                    "position":  str,
+                    "first":     str,   # aircraft id finishing first
+                    "second":    str,   # aircraft id starting second
+                    "gap":       float, # S_second - F_first
+                    "shortfall": float, # delta - gap
+                }
+            ],
+            "detail": str,
+        },
     }
 }
 """
@@ -404,6 +420,61 @@ def check_solution(solution: dict, instance: dict) -> dict:
     if rq07_failures:
         all_pass = False
 
+    # ------------------------------------------------------------------ #
+    #  RQ08 — Minimum separation between consecutive aircraft at the      #
+    #          same position: S_next >= F_prev + delta                    #
+    # ------------------------------------------------------------------ #
+    min_sep = instance.get("min_separation", 10.0)
+
+    rq08_violations: list[dict] = []
+    min_gap: float | None = None
+
+    for pos, occupants in position_occupancy.items():
+        if len(occupants) < 2:
+            continue
+        sorted_occ = sorted(occupants, key=lambda x: x[1])  # sort by start
+        for i in range(len(sorted_occ) - 1):
+            r_id,  _, r_finish  = sorted_occ[i]
+            rp_id, rp_start, _  = sorted_occ[i + 1]
+            gap = rp_start - r_finish
+            if min_gap is None or gap < min_gap:
+                min_gap = gap
+            if gap < min_sep - TOL:
+                rq08_violations.append({
+                    "position":  pos,
+                    "first":     r_id,
+                    "second":    rp_id,
+                    "gap":       gap,
+                    "shortfall": min_sep - gap,
+                })
+
+    worst_violation = max((v["shortfall"] for v in rq08_violations), default=0.0)
+    rq08_pass = len(rq08_violations) == 0
+
+    results["RQ08"] = {
+        "pass":             rq08_pass,
+        "num_violations":   len(rq08_violations),
+        "min_same_pos_gap": min_gap,
+        "worst_violation":  worst_violation,
+        "violations":       rq08_violations,
+        "detail": (
+            (
+                f"All consecutive same-position pairs separated by >= {min_sep} min "
+                f"(min gap = {min_gap:.2f})."
+                if min_gap is not None
+                else "No consecutive same-position pairs to check."
+            )
+            if rq08_pass
+            else (
+                f"{len(rq08_violations)} separation violation(s) detected "
+                f"(delta={min_sep}, worst shortfall={worst_violation:.2f}, "
+                f"min gap={min_gap:.2f})."
+            )
+        ),
+    }
+    if not rq08_pass:
+        all_pass = False
+
     return {
         "compliant":    all_pass,
         "requirements": results,
@@ -451,6 +522,16 @@ def print_check(report: dict, indent: int = 4) -> None:
                         f"{pad}       {m['blocker']} moves out of {m['blocker_position']}, "
                         f"then returns to {m['returns_to']}  "
                         f"(+{m['movements_generated']} movements)"
+                    )
+        elif rq_id == "RQ08":
+            print(f"{pad}{info['detail']}")
+            if info["violations"]:
+                print(f"{pad}Violations:")
+                for v in info["violations"]:
+                    print(
+                        f"{pad}  Position {v['position']}: "
+                        f"{v['first']} → {v['second']}  "
+                        f"gap={v['gap']:.2f}  shortfall={v['shortfall']:.2f}"
                     )
         else:
             print(f"{pad}{info['detail']}")

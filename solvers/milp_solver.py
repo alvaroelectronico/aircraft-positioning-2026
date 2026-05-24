@@ -34,6 +34,7 @@ _MODEL_KEYS = frozenset({
     "weight_delay",
     "weight_movements",
     "time_limit_s",
+    "fix_positions_from",   # solution dict: fix vAircraftPosition from topology solution
 })
 
 
@@ -106,6 +107,16 @@ class MILPSolver:
             self._model_params["weight_movements"],
         )
         instance = _abstract_model.create_instance(data)
+
+        fix_sol = self._model_params.get("fix_positions_from")
+        if fix_sol is not None:
+            pos_map = {ac["id"]: ac["position"] for ac in fix_sol["aircraft"]}
+            for (r, p) in instance.vAircraftPosition:
+                if pos_map.get(r) == p:
+                    instance.vAircraftPosition[r, p].fix(1)
+                else:
+                    instance.vAircraftPosition[r, p].fix(0)
+
         solver = SolverFactory(self._backend)
         for k, v in self._solver_options.items():
             solver.options[k] = v
@@ -132,7 +143,7 @@ if __name__ == "__main__":
         sys.argv[1]
         if len(sys.argv) > 1
         else os.path.join(
-            os.path.dirname(__file__), "..", "data", "scn_many-medium_seed12_P5_pl20.json"
+            os.path.dirname(__file__), "..", "data", "instances", "scn_many-medium_seed12_P5_pl20.json"
         )
     )
 

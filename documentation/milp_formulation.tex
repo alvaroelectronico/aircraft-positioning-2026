@@ -158,7 +158,7 @@ s_{r'} &\le s_r + M \alpha^{in}_{rr'pp'}
 && \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
 s_{r'} &\le f_r - \varepsilon + M \left( 1 - \beta^{in}_{rr'pp'} \right)
 && \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-s_{r'} &\ge f_r - M \beta^{in}_{rr'pp'}
+s_{r'} &\ge f_r - M \beta^{in}_{rr'pp'} - M(1-x_{rp}) - M(1-x_{r'p'})
 && \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
 u^{in}_{rr'pp'} &\le x_{rp}
 && \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
@@ -180,7 +180,7 @@ f_{r'} &\le s_r + M \alpha^{out}_{rr'pp'}
 && \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
 f_{r'} &\le f_r - \varepsilon + M \left( 1 - \beta^{out}_{rr'pp'} \right)
 && \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-f_{r'} &\ge f_r - M \beta^{out}_{rr'pp'}
+f_{r'} &\ge f_r - M \beta^{out}_{rr'pp'} - M(1-x_{rp}) - M(1-x_{r'p'})
 && \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
 u^{out}_{rr'pp'} &\le x_{rp}
 && \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
@@ -253,6 +253,22 @@ This incorrectly counted a movement even when both aircraft enter their position
 The corrected upper bound $s_{r'} \le s_r + M\alpha^{in}$ sets $\alpha^{in}=0$ as feasible whenever $s_{r'} \le s_r$, so simultaneous arrivals ($s_{r'} = s_r$) no longer trigger a blocking event.
 The same reasoning applies to $\alpha^{out}$: when $f_{r'} = s_r$ the exit of $r'$ and the arrival of $r$ coincide, so no movement is required, and the corrected bound $f_{r'} \le s_r + M\alpha^{out}$ allows $\alpha^{out}=0$ in that case.
 The minimum-separation parameter $\varepsilon$ is retained in the $\beta$ constraints, which govern the temporal window during which a relocation is operationally necessary.
+\end{remark}
+
+\begin{remark}
+The lower-bound constraints on $\beta^{in}$ and $\beta^{out}$ include the position-guard terms $-M(1-x_{rp})-M(1-x_{r'p'})$.
+
+Without these guards, the constraint
+\[
+  s_{r'} \ge f_r - M\beta^{in}_{rr'pp'}
+\]
+applies to \emph{all} aircraft pairs regardless of their actual position assignment.
+When $\beta^{in}=0$ it forces $s_{r'} \ge f_r$, and when $\beta^{in}=1$ the upper bound imposes $s_{r'} \le f_r - \varepsilon$.
+If $f_r - \varepsilon < s_{r'} < f_r$ (i.e.\ $r'$ starts within the separation window of $r$), neither value of $\beta^{in}$ is feasible—even when $r$ and $r'$ are assigned to completely different positions that share no blocking relationship.
+This spurious infeasibility prevents the solver from finding position assignments where one aircraft's start time falls within another aircraft's separation window, even when those aircraft are not at the blocking positions $(p,p')$.
+
+The position guards $-M(1-x_{rp})-M(1-x_{r'p'})$ relax the lower bound to $-\infty$ whenever $r$ is not at $p$ or $r'$ is not at $p'$, so the constraint is only binding when both aircraft are actually placed at the relevant blocking positions.
+The same correction applies to $\beta^{out}$.
 \end{remark}
 
 \paragraph{Delays}
