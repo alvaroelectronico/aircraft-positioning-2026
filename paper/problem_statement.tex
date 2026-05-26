@@ -1,0 +1,111 @@
+% ==============================================================================
+\section{Problem Statement}
+\label{sec:problem}
+% ==============================================================================
+
+We model a hangar as a directed graph $G = (\calP, \calA)$, where
+$\calP = \{p_1, \dots, p_P\}$ is the finite set of \emph{maintenance positions}
+and $\calA \subseteq \calP \times \calP$ is a set of \emph{blocking arcs}.  An
+arc $(p, p') \in \calA$ means that position $p$ (\emph{front}) physically
+blocks access to position $p'$ (\emph{rear}): an aircraft at position $p'$
+cannot enter or leave the hangar without temporarily displacing the aircraft
+at position $p$.  In practice $G$ is acyclic, so a position cannot block
+itself transitively, and we define the \emph{blocking load} of a position as
+$\ell(p) = |\{q \in \calP : p \text{ can reach } q \text{ in } G\}|$.  A
+higher blocking load means that aircraft at $p$ can obstruct more other
+positions, making $p$ topologically \emph{central}.
+
+\begin{definition}[Blocking arc]
+  An arc $(p, p') \in \calA$ induces an \emph{entry movement} whenever an
+  aircraft arrives at position $p'$ while another aircraft is being serviced
+  at position $p$, and an \emph{exit movement} whenever an aircraft departs
+  from position $p'$ while another aircraft is still at position $p$.  Each
+  movement contributes 2 to the movement count, one for the displacement of
+  the front aircraft and one for its return.
+\end{definition}
+
+Let $\calR = \{r_1, \dots, r_R\}$ be the set of aircraft.  Each aircraft
+$r \in \calR$ requires a fixed amount of maintenance work of total
+duration $D_r > 0$, which we treat as atomic: while $r$ occupies a
+position, the position is busy for exactly $D_r$ time units in a single
+uninterrupted block.\footnote{In practice the maintenance work consists of
+an ordered sequence of jobs, and the per-job timings can be reconstructed
+deterministically once the aircraft start time is known
+(see \S\ref{sec:milp}).  Because the operationally relevant quantities
+(makespan, delay, blocking interactions) depend only on the aggregated
+aircraft block, the problem can be stated entirely at the aircraft level.}
+Each aircraft has an \emph{earliest start} $E_r \ge 0$ before which work
+cannot begin and a \emph{target finish} $L_r > E_r$ beyond which
+completion incurs delay.
+
+A solution to the AHPP makes two coupled decisions.  At the assignment
+level, it sends each aircraft $r$ to exactly one position
+$\pi(r) \in \calP$.  At the scheduling level, it fixes a start time
+$s_r \ge 0$ for every aircraft, from which the finish time follows as
+$f_r = s_r + D_r$.
+
+Any solution must satisfy the following requirements.  Every aircraft is
+\emph{assigned to exactly one position}, and a position handles its
+aircraft \emph{sequentially}: when two aircraft $r$ and $r'$ are assigned
+to the same position, their occupancy intervals $[s_r, f_r]$ and
+$[s_{r'}, f_{r'}]$ must not overlap and a minimum separation
+$\varepsilon > 0$ must elapse between the finish of one and the start of
+the next.  Each aircraft's start time must respect its
+\emph{earliest-start time window}, $s_r \ge E_r$.
+
+The blocking-arc structure imposes the final family of requirements.  For
+every arc $(p, p') \in \calA$ and every pair of aircraft $r, r'$ with
+$\pi(r) = p$ and $\pi(r') = p'$, an entry movement is incurred if $r'$
+arrives at the rear position while $r$ is still being serviced at the
+front, that is, if $s_r \le s_{r'} \le f_r - \varepsilon$; analogously,
+an exit movement is incurred whenever $r'$ departs from the rear while
+$r$ is still at the front, that is, if $s_r \le f_{r'} \le f_r -
+\varepsilon$.  Each such event triggers a temporary relocation of the
+front aircraft and is counted as two movements (displacement plus return).
+
+\paragraph{Single $\varepsilon$ for two roles.}
+The parameter $\varepsilon$ plays the same physical role in both of the
+requirements above: it is the time needed to tow an aircraft in or out of
+a hangar slot.  This primitive operation has the same duration whether it
+is performed as a turnaround between two consecutive maintenance slots at
+one position --- the role of $\varepsilon$ in the separation requirement
+--- or as a temporary displacement of the front aircraft to free a
+blocked rear position --- the role of $\varepsilon$ in the
+$f_r - \varepsilon$ margin of the blocking conditions.  We therefore
+treat the two appearances as a single parameter.  Throughout this work
+all temporal magnitudes are expressed in days; for the reported benchmark
+we use $\varepsilon = 0.5$ days, an indicative half-day allowance for
+this primitive towing operation.  The value is recorded in each instance
+file, so that experiments on hangars with different operational rhythms
+can use a different $\varepsilon$ without changing the model.
+
+The objective is a weighted combination of three criteria,
+\begin{equation}
+  \label{eq:obj}
+  \min \;\; W^M \cdot m
+        \;+\; W^D \cdot \sum_{r \in \calR} v^D_r
+        \;+\; W^S \cdot n,
+\end{equation}
+where $m = \max_{r \in \calR} f_r$ is the makespan,
+$v^D_r = \max(0,\, f_r - L_r)$ is the delay of aircraft $r$, $n$ counts
+the blocking movements induced above, and $W^M, W^D, W^S \ge 0$ are
+user-defined weights.
+
+\begin{remark}
+  Throughout the experiments we adopt as default
+  $(W^M, W^D, W^S) = (0.1, 1.0, 10)$, which encodes the operational
+  priority order \emph{movements $\succ$ delay $\succ$ makespan}.
+  Section~\ref{sec:experiments} also evaluates a delay-priority profile
+  $(1, 10, 0.1)$ and a makespan-priority profile $(10, 0.1, 1)$ to expose
+  the sensitivity of the solutions to this choice.
+\end{remark}
+
+The AHPP is $\mathcal{NP}$-hard, since it subsumes the single-machine
+weighted-completion-time scheduling problem with arbitrary release dates,
+which is already $\mathcal{NP}$-hard~\citep{Lenstra1977}; the additional
+position-assignment layer and the blocking-arc constraints further enlarge
+the search space.  For a benchmark instance with $P = 5$ positions and
+$R = 10$ aircraft, the MILP formulation of \S\ref{sec:milp} involves
+several thousand binary variables and an order of magnitude more
+constraints; at $R = 30$ these grow by an additional order of magnitude,
+motivating the heuristic approaches of \S\ref{sec:approaches}.

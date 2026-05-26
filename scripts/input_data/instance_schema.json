@@ -3,9 +3,14 @@
   "title": "Aircraft Positioning Instance",
   "description": "Schema for an aircraft positioning problem instance",
   "type": "object",
-  "required": ["hangar", "aircrafts", "jobs", "job_precedences"],
+  "required": ["hangar", "aircrafts", "jobs", "job_precedences", "min_separation"],
   "additionalProperties": false,
   "properties": {
+    "min_separation": {
+      "type": "number",
+      "description": "Tow-in/tow-out time epsilon: minimum separation between consecutive aircraft at the same position and safety margin in the blocking conditions",
+      "minimum": 0
+    },
     "hangar": {
       "type": "object",
       "description": "Hangar layout definition",

@@ -1,0 +1,71 @@
+% ==============================================================================
+\section{Introduction}
+\label{sec:intro}
+% ==============================================================================
+
+Aircraft maintenance hangars represent critical bottlenecks in airline
+operations.  Every hour an aircraft spends waiting for a maintenance slot
+translates directly into revenue loss and schedule disruption.  Yet the spatial
+organisation of maintenance positions is rarely treated as a first-class
+optimisation problem: planners typically rely on experience-based rules or
+simple priority queues, leaving significant performance improvements untapped.
+
+The core difficulty arises from the \emph{blocking structure} of the hangar.
+In a typical configuration, aircraft parked in \emph{front} positions physically
+obstruct the entry and exit of aircraft parked in \emph{rear} positions behind
+them.  Whenever a rear-position aircraft needs to enter or leave while a
+front-position aircraft is being serviced, at least one \emph{manoeuvring
+movement}---towing or pushing the front aircraft out of the way---is required.
+Such movements are time-consuming, require ground-crew coordination, and carry a
+risk of damage.  Minimising them is therefore a hard operational concern, not
+merely a secondary objective.
+
+Formally, the \emph{aircraft hangar positioning problem} (AHPP) requires
+simultaneously deciding (1) which \emph{position} in the hangar to assign
+each arriving aircraft to and (2) when to \emph{schedule} its maintenance
+block within that position, subject to earliest-start and target-finish
+time-windows, minimum separation times between consecutive aircraft at the
+same position, and blocking-arc constraints that link the schedules of
+aircraft at spatially related positions.  Each aircraft is treated as a
+single uninterrupted maintenance block of known total duration: the
+operationally relevant quantities (makespan, delays, blocking interactions)
+depend only on this aggregated block, and the internal sequence of
+maintenance steps of each aircraft can be reconstructed deterministically
+once its start time is fixed.
+
+The AHPP belongs to the broad family of combined assignment and scheduling
+problems.  It combines elements of the \emph{resource-constrained project
+scheduling problem} (RCPSP)~\citep{Blazewicz1983}, classical
+\emph{machine scheduling with blocking}~\citep{Hall1996}, and
+\emph{layout-dependent sequence-dependent set-up times}~\citep{Pinedo2016}.
+What distinguishes the AHPP from these antecedents is the
+\emph{directed blocking-arc graph}: the interference between two aircraft is
+asymmetric (front blocks rear, not vice versa), it depends on the positions
+assigned, and it generates movements that are themselves part of the objective
+function rather than merely set-up penalties.
+
+The contributions of this paper are the following.  We introduce a precise
+graph-based model of hangar topology built on \emph{blocking arcs} and a
+formal definition of the entry and exit movements they induce
+(\S\ref{sec:problem}).  On top of this model we present a compact
+mixed-integer linear programming formulation in which blocking movements
+are encoded through a six-binary indicator that captures both entry and
+exit interactions (\S\ref{sec:milp}).  To overcome the limited scalability
+of the exact formulation we propose a topology-aware GRASP that uses a
+\emph{blocking-load} score per position to bias heavy aircraft away from
+topologically central positions, with multi-start diversification, together
+with a fixed-assignment scheduler (FAS) that re-optimises timing given a
+fixed or partially fixed position assignment, and a composition strategy
+that guarantees the final solution is never inferior to the topology
+heuristic alone (\S\ref{sec:approaches}).  Finally, we design a systematic
+benchmark with six hangar topologies---from fully independent to maximally
+constrained---three slack levels, and four fleet sizes up to 30 aircraft,
+comprising 120 instances that permit a controlled analysis of algorithm
+behaviour (\S\ref{sec:experiments}).
+
+The rest of the paper is organized as follows.
+Section~\ref{sec:problem} formally defines the AHPP.
+Section~\ref{sec:milp} presents the MILP formulation.
+Section~\ref{sec:approaches} describes the heuristic solving approaches.
+Section~\ref{sec:experiments} reports the computational benchmark.
+Section~\ref{sec:conclusions} concludes and outlines future directions.

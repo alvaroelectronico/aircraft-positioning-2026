@@ -70,6 +70,9 @@ class ConstructiveHeuristic:
         return self._log_lines
 
     def solve(self, instance_data: dict) -> dict:
+        # Per-instance epsilon overrides the config fallback.
+        if "min_separation" in instance_data:
+            self._params["min_separation"] = float(instance_data["min_separation"])
         rng = random.Random(self._params["seed"])
         time_limit  = self._params["time_limit_s"]
         log_enabled = bool(self._params.get("log_enabled", False))

@@ -1,0 +1,112 @@
+\documentclass[a4paper,11pt]{article}
+
+% ── Encoding & fonts ───────────────────────────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+
+% ── Maths ──────────────────────────────────────────────────────────────────────
+\usepackage{amsmath,amssymb,amsthm}
+
+% ── Layout ─────────────────────────────────────────────────────────────────────
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% ── Tables & figures ───────────────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{rotating}
+\usepackage{pdflscape}
+\usepackage{placeins}
+
+% ── Algorithms ─────────────────────────────────────────────────────────────────
+\usepackage[ruled,linesnumbered]{algorithm2e}
+
+% ── Hyperlinks & references ────────────────────────────────────────────────────
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{natbib}
+
+% ── Misc ───────────────────────────────────────────────────────────────────────
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{microtype}
+
+% ── Custom commands ────────────────────────────────────────────────────────────
+\newcommand{\calP}{\mathcal{P}}        % positions
+\newcommand{\calA}{\mathcal{A}}        % blocking arcs
+\newcommand{\calR}{\mathcal{R}}        % aircraft
+\newcommand{\calJ}{\mathcal{J}}        % jobs
+\newcommand{\calE}{\mathcal{E}}        % job precedences
+\newcommand{\calC}{\mathcal{C}}        % clients
+\newcommand{\calB}{\mathcal{B}}        % blocking tuples
+\newcommand{\NR}{\mathbb{R}_{\geq 0}}  % non-negative reals
+\newcommand{\NZ}{\mathbb{Z}_{\geq 0}}  % non-negative integers
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+% ── Title ──────────────────────────────────────────────────────────────────────
+\title{\textbf{Aircraft Hangar Positioning: A Mixed-Integer Programming Model
+and Heuristic Solving Approaches}}
+
+% \author{%
+%   Álvaro García\\
+%   \small Baobab Soluciones, Madrid, Spain\\
+%   \small \texttt{alvaro.garcia@baobabsoluciones.es}
+% }
+
+\date{\today}
+
+% ==============================================================================
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We study the \emph{aircraft hangar positioning problem} (AHPP): given a hangar
+with a set of maintenance positions connected by directed \emph{blocking arcs},
+a fleet of aircraft each with a known total maintenance duration, and
+time-window constraints on start and finish, assign every aircraft to exactly
+one position and schedule its maintenance block so as to minimise a weighted
+combination of total delay, makespan, and manoeuvring movements.  The
+blocking-arc structure captures physical constraints: an aircraft in a
+\emph{front} position obstructs entry to and exit from a \emph{rear} position,
+incurring costly movements whenever the occupancy windows of the two aircraft
+overlap.  We present a compact mixed-integer linear programming (MILP)
+formulation, expressed at the aircraft level so that each aircraft is treated
+as a single uninterrupted maintenance block, together with two complementary
+heuristic approaches: a topology-aware GRASP that steers heavy aircraft away
+from high-load positions, and a fixed-assignment scheduler that re-optimises
+timing given a position assignment.  Combining these in a \emph{safe pipeline}
+always yields a solution at least as good as any individual component.
+Computational experiments on 120 benchmark instances covering six hangar
+topologies, three slack levels, and up to 30 aircraft show that the heuristic
+pipeline consistently outperforms the exact solver within a 60-second budget
+as soon as the fleet grows beyond the regime in which the exact solver is
+competitive, while the exact solver closes the gap on the smallest instances.
+\end{abstract}
+
+\bigskip
+\noindent\textbf{Keywords:} aircraft hangar scheduling; mixed-integer linear
+programming; GRASP heuristic; blocking arc constraints; maintenance planning.
+
+% ==============================================================================
+\input{intro}
+\input{literature_review}
+\input{problem_statement}
+\input{milp_aircraft}
+\input{solving_approaches}
+\input{computational_results}
+\input{conclusions}
+
+% ==============================================================================
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

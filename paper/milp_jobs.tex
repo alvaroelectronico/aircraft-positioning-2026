@@ -1,0 +1,223 @@
+% ==============================================================================
+\section{MILP Formulation}
+\label{sec:milp}
+% ==============================================================================
+
+We now present a mixed-integer linear programming formulation of the AHPP.
+The model is implemented in Pyomo~\citep{Bynum2021} and solved with
+Gurobi~\citep{Gurobi2023}.  Throughout this section parameters are written
+with upper-case Latin letters and decision variables with lower-case Latin
+letters, with Greek letters reserved for fixed scalar constants such as the
+minimum separation $\varepsilon$ and the big-$M$ relaxation $M$.
+
+\subsection*{Sets}
+
+\begin{tabular}{@{}l@{\quad}p{0.78\textwidth}@{}}
+  $\calP$
+    & maintenance positions \\
+  $\calR$
+    & aircraft \\
+  $\calJ$
+    & jobs; $\calJ_r \subseteq \calJ$ denotes the jobs of aircraft $r$ \\
+  $\calA \subseteq \calP \times \calP$
+    & blocking arcs $(p, p')$: position $p$ blocks position $p'$ \\
+  $\calE \subseteq \calJ \times \calJ$
+    & job precedences $(j, j')$: job $j$ must finish before $j'$ starts \\
+\end{tabular}
+
+\subsection*{Parameters}
+
+\begin{tabular}{@{}l@{\quad}p{0.78\textwidth}@{}}
+  $D_j$
+    & processing time of job $j$ \\
+  $E_r$
+    & earliest start time of aircraft $r$ \\
+  $L_r$
+    & target finish time (due date) of aircraft $r$ \\
+  $R_{jr}$
+    & $1$ if job $j$ belongs to aircraft $r$, $0$ otherwise \\
+  $A_{jr}$
+    & $1$ if job $j$ is the first job of aircraft $r$, $0$ otherwise \\
+  $\Omega_{jr}$
+    & $1$ if job $j$ is the last job of aircraft $r$, $0$ otherwise \\
+  $\varepsilon$
+    & tow-in / tow-out time, used both as separation between consecutive
+      aircraft at the same position and as the safety margin
+      $f_r - \varepsilon$ in the blocking conditions; per-instance value
+      read from the input \\
+  $H^{UB}$
+    & technical upper bound on every aircraft start and finish time,
+      $H^{UB} = \max_{r \in \calR} E_r + \sum_{r \in \calR} D_r +
+      (|\calR| - 1)\varepsilon$ \\
+  $M$
+    & big-$M$ constant; we take $M = H^{UB} + \varepsilon$ \\
+  $W^M, W^D, W^S$
+    & weights for makespan, total delay, and movements \\
+\end{tabular}
+
+\smallskip
+\noindent
+The binary parameters $R_{jr}, A_{jr}, \Omega_{jr}$ are assumed
+consistent: every job belongs to exactly one aircraft
+($\sum_r R_{jr} = 1$ for all $j$), every aircraft has exactly one first
+and one last job ($\sum_j A_{jr} = \sum_j \Omega_{jr} = 1$ for all $r$),
+and first/last jobs of $r$ must belong to $r$ ($A_{jr}, \Omega_{jr} \le
+R_{jr}$).
+
+\subsection*{Variables}
+
+\paragraph{Scheduling and assignment.}
+Continuous variables $t^S_j, t^F_j \in \NR$ are the start and finish
+times of job $j$, and $s_r, f_r \in \NR$ are the start and finish times
+of aircraft $r$ at its assigned position.  The binary variables are
+$x_{rp}$ (1 if aircraft $r$ is assigned to position $p$),
+$y_{jp}$ (1 if job $j$ is assigned to $p$), and $w_{jj'p}$ (1 if job $j$
+precedes job $j'$ at position $p$).
+
+\paragraph{Blocking.}
+For every pair of distinct aircraft $r \ne r'$ and every blocking arc
+$(p, p') \in \calA$, we introduce six binary variables.  On the entry
+side, $\alpha^{\mathrm{in}}_{rr'pp'} = 1$ iff $s_{r'} > s_r$,
+$\beta^{\mathrm{in}}_{rr'pp'} = 1$ iff $s_{r'} \le f_r - \varepsilon$, and
+$u^{\mathrm{in}}_{rr'pp'} = 1$ iff the entry of $r'$ at $p'$ forces
+displacing $r$ at $p$.  The exit-side variables
+$\alpha^{\mathrm{out}}_{rr'pp'}, \beta^{\mathrm{out}}_{rr'pp'},
+u^{\mathrm{out}}_{rr'pp'}$ are defined symmetrically by replacing $s_{r'}$
+with $f_{r'}$ in the conditions above.
+
+\paragraph{Objective.}
+The makespan $m \in \NR$, the per-aircraft delay $v^D_r \in \NR$, and the
+total number of movements $n \in \NZ$ collect the three components of the
+objective.
+
+\subsection*{Constraints}
+
+To keep the constraints compact, we abbreviate the universal quantifiers
+$\forall j \ne j' \in \calJ,\, p \in \calP$ by $(\ast)$ and
+$\forall r \ne r' \in \calR,\, (p, p') \in \calA$ by $(\dagger)$.
+The full model is:
+\begin{align}
+  \sum_{p \in \calP} x_{rp} &= 1
+    && \forall r \in \calR \label{eq:assign}\\
+  y_{jp} &= x_{rp}
+    && \forall j \in \calJ,\, r \in \calR,\, p \in \calP : R_{jr} = 1
+    \label{eq:linkage}\\
+  t^F_j &= t^S_j + D_j
+    && \forall j \in \calJ \label{eq:finish}\\
+  s_r &= \sum_{j \in \calJ} A_{jr}\, t^S_j
+    && \forall r \in \calR \label{eq:srdef}\\
+  f_r &= \sum_{j \in \calJ} \Omega_{jr}\, t^F_j
+    && \forall r \in \calR \label{eq:frdef}\\
+  t^S_j &\ge E_r
+    && \forall j \in \calJ,\, r \in \calR : A_{jr} = 1
+    \label{eq:earlystart}\\
+  t^S_{j'} &\ge t^F_j
+    && \forall (j, j') \in \calE \label{eq:prec}\\
+  t^S_{j'} &\ge t^F_j
+              - M\bigl(1 - w_{jj'p} + (1 - y_{jp}) + (1 - y_{j'p})\bigr)
+    && (\ast) \label{eq:nonov1}\\
+  t^S_{j}  &\ge t^F_{j'}
+              - M\bigl(w_{jj'p} + (1 - y_{jp}) + (1 - y_{j'p})\bigr)
+    && (\ast) \label{eq:nonov2}\\
+  w_{jj'p} + w_{j'jp} &\ge y_{jp} + y_{j'p} - 1
+    && (\ast) \label{eq:nonov3}\\
+  w_{jj'p} + w_{j'jp} &\le 1
+    && (\ast) \label{eq:nonov4}\\
+  \sum_{j, j' \in \calJ}\!
+    \bigl(\Omega_{jr} A_{j'r'} w_{jj'p}
+        &+ \Omega_{j'r'} A_{jr} w_{j'jp}\bigr) \notag\\
+    &\ge x_{rp} + x_{r'p} - 1
+    && \forall r < r' \in \calR,\, p \in \calP \label{eq:nonov-ac}\\
+  s_{r'} &\ge s_r - M\bigl(1 - \alpha^{\mathrm{in}}_{rr'pp'}\bigr)
+    && (\dagger) \label{eq:alphaInLB}\\
+  s_{r'} &\le s_r + M\,\alpha^{\mathrm{in}}_{rr'pp'}
+    && (\dagger) \label{eq:alphaInUB}\\
+  s_{r'} &\le f_r - \varepsilon
+              + M\bigl(1 - \beta^{\mathrm{in}}_{rr'pp'}\bigr)
+    && (\dagger) \label{eq:betaInUB}\\
+  s_{r'} &\ge f_r - M\,\beta^{\mathrm{in}}_{rr'pp'} \notag\\
+         &\quad - M(1 - x_{rp}) - M(1 - x_{r'p'})
+    && (\dagger) \label{eq:betaInLB}\\
+  u^{\mathrm{in}}_{rr'pp'} &\le \min\{x_{rp},\, x_{r'p'},\,
+                                   \alpha^{\mathrm{in}}_{rr'pp'},\,
+                                   \beta^{\mathrm{in}}_{rr'pp'}\}
+    && (\dagger) \label{eq:uInUB}\\
+  u^{\mathrm{in}}_{rr'pp'} &\ge x_{rp} + x_{r'p'} \notag\\
+                           &\quad + \alpha^{\mathrm{in}}_{rr'pp'}
+                           + \beta^{\mathrm{in}}_{rr'pp'} - 3
+    && (\dagger) \label{eq:uInLB}\\
+  f_{r'} &\ge s_r - M\bigl(1 - \alpha^{\mathrm{out}}_{rr'pp'}\bigr)
+    && (\dagger) \label{eq:alphaOutLB}\\
+  f_{r'} &\le s_r + M\,\alpha^{\mathrm{out}}_{rr'pp'}
+    && (\dagger) \label{eq:alphaOutUB}\\
+  f_{r'} &\le f_r - \varepsilon
+              + M\bigl(1 - \beta^{\mathrm{out}}_{rr'pp'}\bigr)
+    && (\dagger) \label{eq:betaOutUB}\\
+  f_{r'} &\ge f_r - M\,\beta^{\mathrm{out}}_{rr'pp'} \notag\\
+         &\quad - M(1 - x_{rp}) - M(1 - x_{r'p'})
+    && (\dagger) \label{eq:betaOutLB}\\
+  u^{\mathrm{out}}_{rr'pp'} &\le \min\{x_{rp},\, x_{r'p'},\,
+                                    \alpha^{\mathrm{out}}_{rr'pp'},\,
+                                    \beta^{\mathrm{out}}_{rr'pp'}\}
+    && (\dagger) \label{eq:uOutUB}\\
+  u^{\mathrm{out}}_{rr'pp'} &\ge x_{rp} + x_{r'p'} \notag\\
+                            &\quad + \alpha^{\mathrm{out}}_{rr'pp'}
+                            + \beta^{\mathrm{out}}_{rr'pp'} - 3
+    && (\dagger) \label{eq:uOut}\\
+  n &= 2 \!\!\sum_{(p,p') \in \calA}
+         \sum_{\substack{r, r' \in \calR\\ r \ne r'}}
+         \bigl(u^{\mathrm{in}}_{rr'pp'} + u^{\mathrm{out}}_{rr'pp'}\bigr)
+    && \label{eq:movements}\\
+  v^D_r &\ge \sum_{j \in \calJ} \Omega_{jr}\, t^F_j - L_r
+    && \forall r \in \calR \label{eq:delay}\\
+  m &\ge t^F_j
+    && \forall j \in \calJ \label{eq:makespan}
+\end{align}
+
+Constraint~\eqref{eq:assign} forces each aircraft to occupy exactly one
+position, and \eqref{eq:linkage} propagates this assignment from aircraft
+to their jobs through the link parameter $R_{jr}$; the duration of each
+job is encoded in \eqref{eq:finish}, while
+\eqref{eq:srdef}--\eqref{eq:frdef} collapse the start and finish times of
+each aircraft onto its first and last job using the parameters
+$A_{jr}$ and $\Omega_{jr}$, and \eqref{eq:earlystart} pushes the
+aircraft's earliest-start window onto that first job.  Internal job
+precedences are imposed by \eqref{eq:prec}.  Non-overlap at a position
+is enforced in two layers: at the job level,
+\eqref{eq:nonov1}--\eqref{eq:nonov2} use the ordering binary $w_{jj'p}$
+to choose the disjunction direction, while
+\eqref{eq:nonov3}--\eqref{eq:nonov4} guarantee that whenever two jobs
+share a position exactly one direction is active and that both cannot
+hold simultaneously; at the aircraft level, \eqref{eq:nonov-ac} closes
+the gap by requiring that whenever two aircraft share a position the
+last job of one is ordered before the first job of the other.  The
+entry-blocking block defines two binary indicators and combines them:
+\eqref{eq:alphaInLB}--\eqref{eq:alphaInUB} make
+$\alpha^{\mathrm{in}}_{rr'pp'}$ equal to $1$ iff $s_{r'} > s_r$, while
+\eqref{eq:betaInUB}--\eqref{eq:betaInLB} make
+$\beta^{\mathrm{in}}_{rr'pp'}$ equal to $1$ iff $s_{r'}$ falls in the
+servicing window of $r$, the position guards
+$-M(1 - x_{rp}) - M(1 - x_{r'p'})$ in \eqref{eq:betaInLB} switching the
+constraint off whenever the blocking placement does not actually hold;
+\eqref{eq:uInUB}--\eqref{eq:uInLB} then set
+$u^{\mathrm{in}}_{rr'pp'}$ to the conjunction
+$x_{rp} \wedge x_{r'p'} \wedge \alpha^{\mathrm{in}}_{rr'pp'} \wedge
+\beta^{\mathrm{in}}_{rr'pp'}$, so an entry movement is counted iff both
+aircraft are at the relevant blocking positions and $r'$ enters during
+the servicing window of $r$.  The exit-blocking block
+\eqref{eq:alphaOutLB}--\eqref{eq:uOut} mirrors the entry block with
+$f_{r'}$ in place of $s_{r'}$.  Finally, \eqref{eq:movements} aggregates
+all entry and exit indicators into the movement count $n$, with the
+factor $2$ accounting for displacement plus return;
+\eqref{eq:delay} lower-bounds the positive delay of each aircraft by
+$f_r - L_r$; and \eqref{eq:makespan} lower-bounds the makespan by every
+job finish time.
+
+\subsection*{Objective}
+\begin{equation}
+  \min \quad W^M\, m
+         \;+\; W^D \sum_{r \in \calR} v^D_r
+         \;+\; W^S\, n.
+  \label{eq:milpobj}
+\end{equation}
+

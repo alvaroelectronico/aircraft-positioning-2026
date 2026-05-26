@@ -40,8 +40,13 @@ from aircraft_positioning import Application                 # noqa: E402  (also
 #  INSTANCES — edit this list or use a glob pattern
 # =============================================================================
 
-INSTANCE_PATHS: list[Path] = sorted((_ROOT / "data" / "experiment_instances").glob("scn_*.json")) + \
-                              sorted((_ROOT / "data" / "experiment_instances" / "instances_202605").glob("scn_*.json"))
+# Canonical layout: data/instances_202605/<config>/<config>_seed{N}.json.
+# Earlier flat layouts (data/experiment_instances/...) are no longer
+# scanned automatically; legacy validation files there are kept for
+# reference but not auto-discovered.
+INSTANCE_PATHS: list[Path] = sorted(
+    (_ROOT / "data" / "instances_202605").glob("scn_*/scn_*.json"),
+)
 
 
 # =============================================================================
@@ -771,14 +776,33 @@ def _format_summary(out: io.StringIO, summary: list[dict]) -> None:
     out.write(f"  {'-'*(len(header)-2)}\n")
 
     for r in ok:
-        status  = str(r["status"])[:10]
-        gap_val = r.get("mip_gap")
-        gap_str = f"{gap_val*100:7.2f}%" if gap_val is not None else "       -"
+        status   = str(r["status"])[:10]
+        gap_val  = r.get("mip_gap")
+        gap_str  = f"{gap_val*100:7.2f}%" if gap_val is not None else "       -"
+        # A "no feasible solution found" row (MILP build/solve timeout
+        # with the synthetic dict, or anything else lacking a real
+        # objective) renders numerics as "-" so the aggregator can skip
+        # them and downstream readers don't mistake a synthetic 0.0 for
+        # a real zero objective.
+        no_sol = (
+            r["status"] is None
+            or str(r["status"]).strip().startswith(("feasible solution not found", "infeasible"))
+            or r["objective"] is None
+        )
+        if no_sol:
+            obj_s   = f"{'-':>10}"
+            mks_s   = f"{'-':>9}"
+            dly_s   = f"{'-':>9}"
+            mov_s   = f"{'-':>4}"
+        else:
+            obj_s   = f"{r['objective']:>10.2f}"
+            mks_s   = f"{r['makespan']:>9.2f}"
+            dly_s   = f"{r['total_delay']:>9.2f}"
+            mov_s   = f"{r['movements']:>4}"
         out.write(
             f"  {r['instance']:<{w_inst}}  {r['experiment']:<{w_exp}}  "
-            f"{status:<10}  {r['objective']:>10.2f}  "
-            f"{r['makespan']:>9.2f}  {r['total_delay']:>9.2f}  "
-            f"{r['movements']:>4}  {gap_str}  {r['solve_time_s']:>8.1f}\n"
+            f"{status:<10}  {obj_s}  {mks_s}  {dly_s}  {mov_s}  {gap_str}  "
+            f"{r['solve_time_s']:>8.1f}\n"
         )
 
     if failed:
@@ -849,24 +873,23 @@ if __name__ == "__main__":
     #  RUN CONFIGURATION
     #  Edit the two variables below, then run with "Run in Terminal".
     #
-    #  INST_FILTER : comma-separated substrings to match instance filenames,
-    #                or "" / None to run all instances in experiment_instances/.
-    #                Examples:
-    #                  ""                                   → all 5 instances
-    #                  "scn_heavy-tight_seed1"              → R=30 only
-    #                  "scn_many-medium_seed1,scn_heavy-tight_seed1" → R=20+R=30
+    #  INST_FILTER : comma-separated substrings to match instance stems
+    #                (e.g. "_seed2" picks up scn_<config>_seed2 across all
+    #                configurations).  "" / None runs every instance under
+    #                data/experiment_instances and data/instances_202605.
     #
-    #  EXP_FILTER  : comma-separated substrings to match experiment labels,
-    #                or "" / None to run the default EXPERIMENTS list.
-    #                Examples:
-    #                  ""                                   → default 8 experiments
-    #                  "milp_baseline,topology_ms"          → MILP + multi-start
-    #                  "topology_ms"                        → ms3, ms6, ms12 only
-    #                  "topology_seed"                      → 12-seed study
+    #  EXP_FILTER  : comma-separated EXACT experiment labels (no substring
+    #                match) so "milp_baseline" does not also pull in
+    #                "milp_baseline_heur".  "" / None runs the default
+    #                EXPERIMENTS list.
+    #
+    #  Current preset: seed7 run of the main four methods × three weight
+    #  profiles (12 experiments, no _heur variants), matching the seed1
+    #  batch in data/logs/seed1_main_methods_*.log.
     # ==========================================================================
 
-    INST_FILTER: str = "_P5_R"                                                                                           # ← edit here
-    EXP_FILTER:  str = "milp_baseline,topology_ms6,fas_on_topo,safe_pipeline,milp_baseline_heur,topology_ms6_heur,fas_on_topo_heur,safe_pipeline_heur,milp_baseline_wB,topology_ms6_wB,fas_on_topo_wB,safe_pipeline_wB,milp_baseline_wC,topology_ms6_wC,fas_on_topo_wC,safe_pipeline_wC"  # ← edit here
+    INST_FILTER: str = "_seed7"                                                                                          # ← edit here
+    EXP_FILTER:  str = "milp_baseline,topology_ms6,fas_on_topo,safe_pipeline,milp_baseline_wB,topology_ms6_wB,fas_on_topo_wB,safe_pipeline_wB,milp_baseline_wC,topology_ms6_wC,fas_on_topo_wC,safe_pipeline_wC"  # ← edit here
 
     # ------------------------------------------------------------------
     # Resolution — do not edit below this line
@@ -876,19 +899,19 @@ if __name__ == "__main__":
     inst_filter = sys.argv[1] if len(sys.argv) > 1 else INST_FILTER or None
     exp_filter  = sys.argv[2] if len(sys.argv) > 2 else EXP_FILTER  or None
 
-    # inst_filter supports comma-separated patterns
+    # inst_filter supports comma-separated substring patterns
     if inst_filter:
         _patterns = [p.strip() for p in inst_filter.split(",")]
         instances = [p for p in INSTANCE_PATHS if any(pat in p.stem for pat in _patterns)]
     else:
         instances = INSTANCE_PATHS
 
-    # Select from all experiment lists based on exp_filter
+    # exp_filter uses EXACT label matching (labels are unique strings,
+    # substring would inadvertently pull "_heur"/"_wB"/"_wC" siblings).
     _all_experiments = EXPERIMENTS + SEED_EXPERIMENTS + MULTISTART_EXPERIMENTS
     if exp_filter:
-        _patterns_exp = [e.strip() for e in exp_filter.split(",")]
-        experiments = [e for e in _all_experiments
-                       if any(pat in e["label"] for pat in _patterns_exp)]
+        _wanted = {e.strip() for e in exp_filter.split(",")}
+        experiments = [e for e in _all_experiments if e["label"] in _wanted]
     else:
         experiments = EXPERIMENTS
 

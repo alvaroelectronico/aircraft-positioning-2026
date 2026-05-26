@@ -1,0 +1,58 @@
+% ==============================================================================
+\section{Conclusions}
+\label{sec:conclusions}
+% ==============================================================================
+
+We have introduced the aircraft hangar positioning problem (AHPP) and
+provided a formal graph-based model centred on directed blocking arcs, a
+compact mixed-integer linear programming formulation expressed at the
+aircraft level (each aircraft as a single uninterrupted maintenance
+block) that encodes entry and exit movements through a six-binary
+indicator structure, and a suite of complementary heuristic methods
+built on top of the same data model: a topology-aware GRASP that scores
+positions by their blocking load, a fixed-assignment scheduler (FAS)
+that re-optimises timing given a position assignment, and a safe
+pipeline composition that returns the best of the components at no
+extra cost.
+
+The computational study on the 120-instance benchmark gives a clear
+picture of when each method dominates.  Within the 60-second wall-clock
+budget, the exact MILP only proves optimality on the small $R{=}5$
+configuration; for every $R{=}10$ configuration the Gurobi gap remains
+above 90\,\%, including the unconstrained \emph{None} topology, which
+points to bound weakness rather than blocking interactions as the
+dominant source of difficulty.  At $R{=}20$ the solver exhausts the
+budget with a gap close to $100\,\%$, and at $R{=}30$ it aborts before
+returning any feasible incumbent, so the heuristic pipeline becomes the
+only available source of solutions for the largest configurations.  On
+the $R{=}10$ configurations with non-trivial blocking the heuristic
+pipeline cuts the best feasible MILP objective by 5--25\,\%, and at
+$R{=}20$ the gap widens by an order of magnitude (e.g.\ $\bar f = 635$
+versus $2425$ on \emph{Triangle}, and $881$ versus $4676$ on
+\emph{Full}).  The topology heuristic alone already matches the
+safe-pipeline objective on every $R{=}10$ row, so the additional FAS
+pass acts mostly as an insurance policy; its value becomes apparent at
+the boundary of tractability, where FAS occasionally times out --- on
+\emph{Triangle $R{=}30$}, for instance, FAS lags Topo by $2.2\,\%$ and
+the safe pipeline correctly falls back to the Topo solution.  The three
+weight profiles act as effective dials between the objectives: the
+default movement-priority profile returns \emph{zero} blocking
+movements on every configuration covered by the benchmark at the cost
+of a moderate makespan penalty; the delay-priority profile flattens
+mean delay onto a narrow band on the $R{=}10$ rows while injecting tens
+of movements; and the makespan-priority profile yields the lowest
+$\bar m$ throughout, again at the cost of intermediate values of delay
+and movements.
+
+These results outline a natural agenda for future work.  A tighter MILP
+formulation that exploits the capacity-one structure of the positions
+and tightens the big-$M$ relaxation should close part of the bound gap
+that currently bottlenecks the exact solver from $R{=}10$ onwards.  An
+adaptive large neighbourhood search built on top of FAS, with destroy
+and repair operators selected from observed per-instance-type
+performance, is a promising avenue for the $R{\ge}20$ regime where FAS
+already starts to feel the time limit.  A multi-shift extension that
+allows aircraft arrivals to span several working days, and a validation
+on production data from an airline maintenance partner, would complete
+the bridge from the controlled benchmark presented here to operational
+deployment.

@@ -38,6 +38,9 @@ model.pClientAircraft = Param(model.sAircraft, model.sClients, within=Binary)
 model.pFirstJob = Param(model.sJobs, model.sAircraft, within=Binary)
 model.pLastJob = Param(model.sJobs, model.sAircraft, within=Binary)
 model.pMinSeparation = Param(within=NonNegativeReals)
+# Technical horizon H^{UB}: upper bound on every aircraft start/finish.
+model.pHorizonUB = Param(within=NonNegativeReals)
+# Big-M constant: H^{UB} + epsilon, so big-M deactivations are tight.
 model.pBigM = Param(within=NonNegativeReals)
 model.pWeightMakespan = Param(within=NonNegativeReals)
 model.pWeightDelay = Param(within=NonNegativeReals)
@@ -80,10 +83,18 @@ model.sBlockingTuples = Set(
 )
 
 # --- Variables ---
-model.vStartTime = Var(model.sJobs, domain=NonNegativeReals)
-model.vFinishTime = Var(model.sJobs, domain=NonNegativeReals)
-model.vAircraftStart = Var(model.sAircraft, domain=NonNegativeReals)
-model.vAircraftFinish = Var(model.sAircraft, domain=NonNegativeReals)
+# Aircraft start/finish (and per-job start/finish) are bounded above by
+# pHorizonUB = H^{UB}; this tightens the LP relaxation.  The big-M
+# constant pBigM = H^{UB} + epsilon (set in prepare_data) is slightly
+# larger so big-M deactivations remain valid.
+def _time_bounds(m, *_):
+    return (0.0, m.pHorizonUB)
+
+
+model.vStartTime = Var(model.sJobs, domain=NonNegativeReals, bounds=_time_bounds)
+model.vFinishTime = Var(model.sJobs, domain=NonNegativeReals, bounds=_time_bounds)
+model.vAircraftStart = Var(model.sAircraft, domain=NonNegativeReals, bounds=_time_bounds)
+model.vAircraftFinish = Var(model.sAircraft, domain=NonNegativeReals, bounds=_time_bounds)
 model.vJobPosition = Var(model.sJobs, model.sPositions, domain=Binary)
 model.vAircraftPosition = Var(model.sAircraft, model.sPositions, domain=Binary)
 model.vJobOrder = Var(model.sJobPairsOrdered, domain=Binary)
@@ -423,10 +434,17 @@ def prepare_data(
     weight_delay: float,
     weight_movements: float,
 ) -> dict:
-    """Convert JSON instance data to the Pyomo AbstractModel data dict format."""
+    """Convert JSON instance data to the Pyomo AbstractModel data dict format.
+
+    ``min_separation`` is read from ``raw_data['min_separation']`` when
+    present; otherwise the argument value is used as a fallback.
+    """
     aircraft_data = raw_data["aircrafts"]
     job_data = raw_data["jobs"]
     hangar = raw_data["hangar"]
+    # Per-instance epsilon wins over the argument fallback.
+    if "min_separation" in raw_data:
+        min_separation = float(raw_data["min_separation"])
 
     jobs = [j["id"] for j in job_data]
     aircraft = [a["id"] for a in aircraft_data]
@@ -437,10 +455,20 @@ def prepare_data(
 
     job_by_id = {j["id"]: j for j in job_data}
     aircraft_by_id = {a["id"]: a for a in aircraft_data}
-    big_m = (
-        max(aircraft_by_id[r]["target_finish"] for r in aircraft)
-        + sum(job_by_id[j]["duration"] for j in jobs)
-    )
+    # Technical upper bound H^{UB}: makespan of the worst-case sequential
+    # schedule that processes every aircraft on a single position, starting
+    # at the latest earliest-start.  Used to bound the time variables.
+    # Big-M is set to H^{UB} + epsilon so constraints with a +epsilon
+    # offset (sequencing, beta lower bounds) are fully deactivated when
+    # their guard binaries are inactive.
+    n_ac = len(aircraft)
+    max_es = max((aircraft_by_id[r]["earliest_start"] for r in aircraft), default=0.0)
+    ac_durations = {
+        r: sum(job_by_id[j]["duration"] for j in jobs if job_by_id[j]["aircraft_id"] == r)
+        for r in aircraft
+    }
+    horizon_ub = max_es + sum(ac_durations.values()) + max(0, n_ac - 1) * min_separation
+    big_m = horizon_ub + min_separation
 
     return {
         None: {
@@ -474,6 +502,7 @@ def prepare_data(
                 for r in aircraft
             },
             "pMinSeparation":   {None: min_separation},
+            "pHorizonUB":       {None: horizon_ub},
             "pBigM":            {None: big_m},
             "pWeightMakespan":  {None: weight_makespan},
             "pWeightDelay":     {None: weight_delay},

@@ -1,0 +1,141 @@
+% ==============================================================================
+\section{Solving Approaches}
+\label{sec:approaches}
+% ==============================================================================
+
+The MILP of \S\ref{sec:milp} is exact but its size grows quickly with the
+number of aircraft and blocking arcs.  We therefore develop three
+complementary methods---a topology-aware GRASP, a fixed-assignment
+scheduler, and a safe pipeline composition---that operate at different
+abstraction levels: the GRASP works on the position assignment, the
+fixed-assignment scheduler refines the timing given an assignment, and the
+safe pipeline combines them.
+
+% ------------------------------------------------------------------------------
+\subsection{Topology-Aware GRASP}
+\label{sec:topo_heuristic}
+% ------------------------------------------------------------------------------
+
+The driving observation behind this method is that assigning a heavy
+aircraft (large $D_r$) to a position with high outgoing blocking degree
+forces its long occupancy window to overlap with aircraft serviced behind
+it, triggering movements.  We formalise this through the
+\emph{blocking load} of a position:
+\[
+  \ell(p) = |\{q \in \calP : p \text{ reaches } q \text{ in } G\}|,
+\]
+i.e.\ the number of positions that lie downstream of $p$ in the
+blocking-arc graph.  The construction step penalises each candidate pair
+$(r, p)$ proportionally to $D_r \cdot \ell(p)$, steering heavy aircraft
+towards positions with low (ideally zero) blocking load.
+
+Given the cost function
+\[
+  c(r, p) = W^D \hat{v}^D_r + W^M \hat{m}
+            + W^S \hat{n}_{rp} + W^T D_r \ell(p),
+\]
+in which hatted quantities are estimated by a fast greedy scheduler and
+$W^T$ is the topology penalty weight, the heuristic constructs a feasible
+solution by biased-random greedy insertion, then improves it through a
+local-search portfolio.  Diversification is obtained by restarting from
+independent random seeds.  Algorithm~\ref{alg:topo} states the full
+procedure.
+
+\begin{algorithm}[htbp]
+\DontPrintSemicolon
+\KwIn{Instance $I$, weights $(W^M, W^D, W^S, W^T)$,
+      RCL parameter $\alpha$, time budget $T$, number of starts $n_s$.}
+\KwOut{Best solution $z^*$ found.}
+$z^* \leftarrow +\infty$; $T_s \leftarrow T / n_s$\;
+\For{$k = 1, \ldots, n_s$}{
+  $\mathcal{U} \leftarrow \calR$ sorted by $D_r$ descending\;
+  \While{$\mathcal{U} \neq \emptyset$}{
+    evaluate $c(r, p)$ for all $(r, p) \in \mathcal{U} \times \calP_{\text{free}}$\;
+    $\text{RCL} \leftarrow \{(r, p) : c(r, p) \le c_{\min} + \alpha (c_{\max} - c_{\min})\}$\;
+    pick $(r, p)$ uniformly from $\text{RCL}$ and commit it; remove $r$ from $\mathcal{U}$\;
+  }
+  $z \leftarrow$ schedule with current assignment\;
+  \Repeat{no operator improves $z$ \emph{or} slice $T_s$ exhausted}{
+    apply best of: single-move, 2-opt swap, intra-position reorder,
+                   perturb-and-rebuild\;
+  }
+  \If{$z < z^*$}{$z^* \leftarrow z$}
+}
+\Return $z^*$\;
+\caption{Topology-aware GRASP with multi-start ($n_s$ restarts).}
+\label{alg:topo}
+\end{algorithm}
+
+The single-move and 2-opt swap operators reassign one or two aircraft to
+alternative positions; the intra-position reorder swaps the service
+sequence of two aircraft sharing a position; the perturb-and-rebuild
+kick forces a random reassignment of a small subset before re-running the
+schedule with the same position map.  All operators are $O(R^2)$ or
+cheaper, so the local-search phase converges within the slice budget.
+
+% ------------------------------------------------------------------------------
+\subsection{Fixed-Assignment Scheduler (FAS)}
+\label{sec:fas}
+% ------------------------------------------------------------------------------
+
+Given a fixed position assignment $\pi : \calR \to \calP$, the AHPP reduces
+to a pure scheduling problem: find aircraft start times $\{s_r\}$ that
+minimise the objective \eqref{eq:milpobj} subject to the constraints
+\eqref{eq:dur}--\eqref{eq:uOut}, with every $x_{rp}$ replaced by the
+constant $\mathbf{1}[\pi(r) = p]$.  Two simplifications follow.  The
+$O(RP)$ assignment binaries disappear, and the position-guard factors in
+the blocking constraints collapse to known scalars; the blocking-pair
+enumeration therefore shrinks from $O(R^2 |\calA| P^2)$ to
+$O(R^2 |\calA|)$.  Job-level timings are recovered from $s_r$ by walking
+the precedence chain, exactly as in \S\ref{sec:job_recovery}.  The
+resulting model is encoded directly in \texttt{gurobipy}, bypassing the
+Pyomo layer.
+
+Algorithm~\ref{alg:fas} summarises the procedure.  A multi-candidate
+extension allows a small set of positions $\kappa(r) \supseteq \{\pi(r)\}$
+for each aircraft, recovering a fraction of the full assignment problem
+while keeping the model tractable.  In that variant the candidate set is
+non-trivial only for the $K = 4$ aircraft with the highest score
+$\sigma(r) = v^D_r + 0.5 \cdot \mathbf{1}[f_r \approx m]$, and is built as
+the union of their primary position and the positions they occupy in
+$K = 10$ diverse topology assignments produced by 1-second GRASP runs.
+
+\begin{algorithm}[htbp]
+\DontPrintSemicolon
+\KwIn{Instance $I$, assignment $\pi$ (optionally candidate sets $\kappa$),
+      time budget $T$.}
+\KwOut{Best feasible schedule found within $T$.}
+\If{candidates $\kappa$ provided}{$\mathcal{Y} \leftarrow \{x_{rp} : p \in \kappa(r)\}$}
+\Else{$\mathcal{Y} \leftarrow \emptyset$ \emph{(all $x_{rp}$ fixed to $\pi$)}}
+build reduced model with aggregated blocks $[s_r, s_r + D_r]$
+       and variables $\mathcal{Y}$\;
+solve with Gurobi under time limit $T$\;
+recover job start times $t^S_j$ from $s_r$ along each precedence chain\;
+\Return resulting schedule\;
+\caption{Fixed-Assignment Scheduler (FAS) with optional multi-candidate.}
+\label{alg:fas}
+\end{algorithm}
+
+% ------------------------------------------------------------------------------
+\subsection{Safe Pipeline}
+\label{sec:safe_pipeline}
+% ------------------------------------------------------------------------------
+
+The two preceding methods can be run in sequence: the GRASP produces a
+position assignment, and FAS refines its timing.  Their relative quality
+is instance-dependent, since neither dominates the other for every
+configuration.  The \emph{safe pipeline} therefore returns the best
+objective achieved by any of the component methods:
+\[
+  z^* = \min_{h \in \mathcal{H}} z_h,
+  \qquad \mathcal{H} = \{\texttt{topology\_ms6},\ \texttt{fas\_on\_topo}\},
+\]
+optionally extended with \texttt{fas\_2cand}.  Since each component
+already stores its solution in a shared cache, the pipeline performs no
+additional optimisation; its cost is a single comparison.
+
+\begin{proposition}
+The safe pipeline objective satisfies $z^* \le z_h$ for every
+$h \in \mathcal{H}$; in particular $z^* \le z_{\texttt{topology\_ms6}}$,
+so the pipeline never degrades the GRASP result.
+\end{proposition}

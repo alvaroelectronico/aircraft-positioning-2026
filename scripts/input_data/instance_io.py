@@ -164,6 +164,9 @@ def read_xlsx(xlsx_path: str | Path) -> dict:
             })
 
     data = {
+        # Default tow-in/tow-out time (epsilon); xlsx scenarios do not carry
+        # this value, so we fall back to the convention used in the paper.
+        "min_separation": 0.5,
         "hangar":          HANGAR,
         "aircrafts":       aircrafts,
         "jobs":            jobs,

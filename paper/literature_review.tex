@@ -1,0 +1,144 @@
+% ==============================================================================
+\section{Related Work}
+\label{sec:related}
+% ==============================================================================
+
+The AHPP lies at the intersection of four research streams that we briefly
+review here: aircraft hangar maintenance scheduling with spatial layout,
+broader aircraft maintenance scheduling at the fleet or line level,
+airport ground operations and stand or gate allocation, and methodological
+precedents from MILP scheduling with time-window or blocking constraints
+and from GRASP metaheuristics for combined assignment and scheduling
+problems.  The first stream is the closest in application domain and
+supplies our main point of comparison; the second positions the AHPP
+within aircraft maintenance optimisation at large; the third provides
+adjacent airport assignment and recovery models; the fourth contributes
+the modelling and algorithmic toolkit.  We do not address long-term
+aircraft maintenance routing or check scheduling, which decide when
+aircraft enter maintenance over a planning horizon; the AHPP starts from
+a set of accepted maintenance requests and optimises their
+spatial-temporal placement inside a single hangar.
+
+The closest body of work is the line of MILP formulations for the
+integrated hangar maintenance scheduling and layout problem.
+\citet{Qin2017} introduce the first MILP that couples maintenance
+scheduling and multi-period parking layout with non-overlapping
+constraints between aircraft.  Building on that line, \citet{Qin2018}
+develop a two-stage exact-heuristic procedure for aircraft parking
+stand allocation that trades off expected revenue against safety
+distance, and \citet{Qin2018b} extend it with revised No-Fit Polygons
+and a family of heuristic-based valid inequalities for the safety-margin
+objective.  \citet{Qin2019} broaden the view to joint maintenance
+scheduling and parking under a hangar with time-varying capacity and
+blocking along taxi routes, proposing an event-based discrete-time MILP
+and a rolling-horizon heuristic for large instances, and
+\citet{Qin2020} integrate scheduling, layout, movement trajectories and
+multi-skill technician assignment under an MRO outsourcing mode through
+a two-stage decomposition.  More recently, the preprint of
+\citet{Pazhooh2025} proposes a continuous-time MILP for integrated
+hangar scheduling and layout, reporting substantial computational
+improvements over previous event-based formulations and experiments on
+larger instances.  These works share with the AHPP the
+assign-and-schedule decision structure but model the spatial
+interactions through geometric primitives --- No-Fit Polygons for
+non-overlapping placement, taxi-route capacities, safety distances, or
+overlap of continuous-time windows --- so that the operational impact
+of moving an aircraft is captured indirectly via route feasibility,
+parking-plan feasibility, or movement-path constraints, rather than as
+an explicit cost term induced by an asymmetric, directed relation
+between positions.
+
+Stepping out of the hangar but staying in aircraft maintenance,
+\citet{Shaukat2020} formulate the line maintenance scheduling problem
+as a MIP that places maintenance work in the layovers between scheduled
+flights through integrated exact and sequential heuristic approaches;
+\citet{Witteman2021} cast multi-year task allocation across an
+airline's fleet as a time-constrained variable-sized bin-packing
+problem and solve 45-aircraft instances with a worst-fit-decreasing
+heuristic; and \citet{TorresSanchez2020} provide a multi-objective
+MILP that integrates airline fleet maintenance scheduling with tail
+assignment and workshop capacity over 30-day horizons with 529
+aircraft and eight workshops.  These works tackle rich temporal and
+resource structures at the fleet or network scale but abstract away
+the within-hangar geometry that drives the AHPP: positions are pooled
+into workshop capacities or maintenance slots, not laid out as a graph
+of directed blocking relationships.  The AHPP is therefore
+complementary, operating at the operational time scale of a single
+hangar.
+
+At the broader scale of airport ground operations, the systematic
+review of \citet{Dahanayaka2026} surveys 199 articles on gate and stand
+allocation, turnaround scheduling, workforce assignment, and surface
+movement.  Among the relevant models, \citet{Guepet2015} solve the
+airport stand allocation problem with both an exact MILP and spatial
+and time decomposition heuristics; their setting is the closest
+methodological cousin to the AHPP --- aircraft-to-position assignment
+plus timing, with shadow restrictions and tow movements as soft
+objective terms --- and their two major European airport datasets
+illustrate the same exact-versus-decomposition trade-off that drives
+our solver portfolio.  \citet{Asadi2021} formulate the gate-assignment
+schedule-recovery problem with constrained resources;
+\citet{Evler2021a, Evler2021b} extend the approach to recover airline
+ground operations under uncertain arrival times; and \citet{Yao2024}
+couple stand allocation with ground-support-vehicle scheduling.  All
+these works share with the AHPP the aircraft-to-position assignment
+layer and the soft-time-window machinery, but operate at the apron
+level with shared servicing resources rather than on a hangar with
+directed blocking between maintenance positions.
+
+The AHPP also draws on a broader literature on MILP scheduling with
+time windows and blocking-like interactions outside the airport
+domain.  \citet{Mao2018} address multi-degree and multi-hoist cyclic
+scheduling with time windows, where hoists share a track and must
+avoid spatial collisions; their disjunctive-time-window approach is
+structurally similar to our blocking-arc constraints.
+\citet{Lee2024} model multi-satellite mission and communication
+scheduling as a MILP with time-window and conflict constraints, and
+\citet{Baya2022} apply MILP to a grain facility with shared storage
+capacity.  None of these works expresses interference as a directed
+asymmetric relation tied to a position-assignment decision, but they
+illustrate the modelling techniques --- time windows, conflict graphs,
+big-$M$ disjunctions --- that the AHPP combines.  On the algorithmic
+side, the topology-aware heuristic developed in this paper is a Greedy
+Randomized Adaptive Search Procedure; its foundations go back to
+\citet{Feo1995} and are surveyed in the annotated bibliographies of
+\citet{FestaResende2002, FestaResende2009}.  Closer to our setting,
+\citet{Wang2024} attack a yard-crane scheduling problem with dynamic
+assignment of input/output points using construction and local-search
+operators that mirror our coupling between position selection and
+start-time choice, and \citet{Ferone2018} provide the methodological
+basis for the biased-randomisation step in our $\alpha$-controlled
+restricted candidate list.
+
+Against this background, the present paper contributes along two
+fronts.  On the \emph{modelling} side, it abstracts the hangar layout
+as a directed blocking-arc graph on maintenance positions, making the
+asymmetry between front and rear --- and its dependence on the
+assignment decision --- an explicit feature of the problem rather than
+an indirect consequence of taxi routes, safety distances, or
+geometric overlap as captured by No-Fit Polygons
+\citep{Qin2018, Qin2018b, Qin2019, Qin2020, Pazhooh2025}.  The entry
+and exit manoeuvres induced by this graph then become an optimisable
+objective component through a compact six-binary indicator structure,
+so that movements are minimised jointly with delay and makespan
+through user-defined weights, rather than appearing only as
+feasibility side-effects of capacities or distances.
+
+On the \emph{algorithmic} side, the paper combines an aircraft-level
+MILP --- where each aircraft is a single uninterrupted maintenance
+block --- with a topology-aware GRASP and a fixed-assignment scheduler
+glued together by a safe pipeline that returns the best solution found
+by its components.  The exact solver is competitive on small
+instances, in line with the scale at which the formulations of
+\citet{Guepet2015, Shaukat2020, Pazhooh2025} also close to optimality,
+while the safe pipeline takes over as the fleet size grows: the
+crossover between exact and heuristic methods in our benchmark sits
+near $R = 14$ aircraft for a 60-second wall-clock budget, consistent
+with the $14$--$25$-aircraft threshold reported across the hangar
+literature for exact MILP optimality \citep{Pazhooh2025, Guepet2015,
+Shaukat2020, Qin2019}.  Rather than competing directly with
+general continuous-time layout formulations on their own benchmark
+classes, the focus is on a topology-driven blocking abstraction and on
+a fast solver portfolio that delivers high-quality feasible solutions
+on a controlled benchmark of congested hangar layouts, in the regime
+where the exact solver leaves large optimality gaps.

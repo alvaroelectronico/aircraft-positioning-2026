@@ -1,0 +1,195 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (16 experiments)
+==================================================================
+  Shared parameters:
+    time_limit_s=60               MIPGap=0.0
+
+  Per-experiment parameters:
+  Label               Solver                    weight_makespan  weight_delay  weight_movements  NoRelHeurTime  alpha  weight_topology  n_starts  seed
+  ----------------------------------------------------------------------------------------------------------------------------------------------------
+  milp_baseline       MILPSolver                0.1              1             10                0              —      —                —         —   
+  topology_ms6        TopologyHeuristic         0.1              1             10                0              0.3    1                6         1   
+  fas_on_topo         FixedAssignmentScheduler  0.1              1             10                0              —      —                —         —   
+  safe_pipeline       FixedAssignmentScheduler  0.1              1             10                0              —      —                —         —   
+  milp_baseline_heur  MILPSolver                0.1              1             10                30             —      —                —         —   
+  topology_ms6_heur   TopologyHeuristic         0.1              1             10                30             0.3    1                6         1   
+  fas_on_topo_heur    FixedAssignmentScheduler  0.1              1             10                30             —      —                —         —   
+  safe_pipeline_heur  FixedAssignmentScheduler  0.1              1             10                30             —      —                —         —   
+  milp_baseline_wB    MILPSolver                1                10            0.1               0              —      —                —         —   
+  topology_ms6_wB     TopologyHeuristic         1                10            0.1               0              0.3    1                6         1   
+  fas_on_topo_wB      FixedAssignmentScheduler  1                10            0.1               0              —      —                —         —   
+  safe_pipeline_wB    FixedAssignmentScheduler  1                10            0.1               0              —      —                —         —   
+  milp_baseline_wC    MILPSolver                10               0.1           1                 0              —      —                —         —   
+  topology_ms6_wC     TopologyHeuristic         10               0.1           1                 0              0.3    1                6         1   
+  fas_on_topo_wC      FixedAssignmentScheduler  10               0.1           1                 0              —      —                —         —   
+  safe_pipeline_wC    FixedAssignmentScheduler  10               0.1           1                 0              —      —                —         —   
+==================================================================
+
+
+
+==================================================================
+  SUMMARY  —  160 ok  /  0 failed  /  160 total
+==================================================================
+  Instance                     Experiment          Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  -----------------------------------------------------------------------------------------------------------------------
+  scn_easy_loose_P5_R4_seed1   milp_baseline       optimal           1.00      10.00       0.00     0     0.00%       0.2
+  scn_easy_loose_P5_R4_seed1   topology_ms6        topology (        1.00       9.96       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed1   fas_on_topo         optimal           1.72      17.22       0.00     0     0.13%       0.0
+  scn_easy_loose_P5_R4_seed1   safe_pipeline       topology (        1.00       9.96       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed1   milp_baseline_heur  optimal           1.00      10.00       0.00     0     0.00%      30.4
+  scn_easy_loose_P5_R4_seed1   topology_ms6_heur   topology (        1.00       9.96       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed1   fas_on_topo_heur    optimal           1.72      17.22       0.00     0     0.13%       0.0
+  scn_easy_loose_P5_R4_seed1   safe_pipeline_heur  topology (        1.00       9.96       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed1   milp_baseline_wB    optimal          10.00      10.00       0.00     0     0.00%       0.2
+  scn_easy_loose_P5_R4_seed1   topology_ms6_wB     topology (        9.96       9.96       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed1   fas_on_topo_wB      optimal          17.22      17.22       0.00     0     0.02%       0.0
+  scn_easy_loose_P5_R4_seed1   safe_pipeline_wB    topology (        9.96       9.96       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed1   milp_baseline_wC    optimal         100.00      10.00       0.00     0     0.00%       0.2
+  scn_easy_loose_P5_R4_seed1   topology_ms6_wC     topology (       99.56       9.96       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed1   fas_on_topo_wC      optimal         172.23      17.22       0.00     0     0.00%       0.0
+  scn_easy_loose_P5_R4_seed1   safe_pipeline_wC    topology (       99.56       9.96       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed10  milp_baseline       optimal           1.00      10.00       0.00     0     0.00%       0.4
+  scn_easy_loose_P5_R4_seed10  topology_ms6        topology (        0.79       7.87       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed10  fas_on_topo         optimal           1.45      14.53       0.00     0     0.22%       0.0
+  scn_easy_loose_P5_R4_seed10  safe_pipeline       topology (        0.79       7.87       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed10  milp_baseline_heur  optimal           1.00      10.00       0.00     0     0.00%      30.6
+  scn_easy_loose_P5_R4_seed10  topology_ms6_heur   topology (        0.79       7.87       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed10  fas_on_topo_heur    optimal           1.45      14.53       0.00     0     0.22%       0.0
+  scn_easy_loose_P5_R4_seed10  safe_pipeline_heur  topology (        0.79       7.87       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed10  milp_baseline_wB    optimal          10.00      10.00       0.00     0     0.00%       0.4
+  scn_easy_loose_P5_R4_seed10  topology_ms6_wB     topology (        7.87       7.87       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed10  fas_on_topo_wB      optimal          14.53      14.53       0.00     0     0.01%       0.0
+  scn_easy_loose_P5_R4_seed10  safe_pipeline_wB    topology (        7.87       7.87       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed10  milp_baseline_wC    optimal         100.00      10.00       0.00     0     0.00%       0.5
+  scn_easy_loose_P5_R4_seed10  topology_ms6_wC     topology (       78.71       7.87       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed10  fas_on_topo_wC      optimal         145.32      14.53       0.00     0     0.00%       0.0
+  scn_easy_loose_P5_R4_seed10  safe_pipeline_wC    topology (       78.71       7.87       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed2   milp_baseline       optimal           1.00      10.00       0.00     0     0.00%       0.5
+  scn_easy_loose_P5_R4_seed2   topology_ms6        topology (        0.98       9.80       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed2   fas_on_topo         optimal           1.86      18.62       0.00     0     0.13%       0.0
+  scn_easy_loose_P5_R4_seed2   safe_pipeline       topology (        0.98       9.80       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed2   milp_baseline_heur  optimal           1.00      10.00       0.00     0     0.00%      30.7
+  scn_easy_loose_P5_R4_seed2   topology_ms6_heur   topology (        0.98       9.80       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed2   fas_on_topo_heur    optimal           1.86      18.62       0.00     0     0.13%       0.0
+  scn_easy_loose_P5_R4_seed2   safe_pipeline_heur  topology (        0.98       9.80       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed2   milp_baseline_wB    optimal          10.00      10.00       0.00     0     0.00%       0.4
+  scn_easy_loose_P5_R4_seed2   topology_ms6_wB     topology (        9.80       9.80       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed2   fas_on_topo_wB      optimal          15.27      15.27       0.00     0     0.02%       0.0
+  scn_easy_loose_P5_R4_seed2   safe_pipeline_wB    topology (        9.80       9.80       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed2   milp_baseline_wC    optimal         100.00      10.00       0.00     0     0.00%       0.5
+  scn_easy_loose_P5_R4_seed2   topology_ms6_wC     topology (       98.02       9.80       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed2   fas_on_topo_wC      optimal         152.73      15.27       0.00     0     0.00%       0.0
+  scn_easy_loose_P5_R4_seed2   safe_pipeline_wC    topology (       98.02       9.80       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed3   milp_baseline       optimal           0.94       9.38       0.00     0     0.00%       0.3
+  scn_easy_loose_P5_R4_seed3   topology_ms6        topology (        0.79       7.94       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed3   fas_on_topo         optimal           1.38      13.80       0.00     0     0.01%       0.0
+  scn_easy_loose_P5_R4_seed3   safe_pipeline       topology (        0.79       7.94       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed3   milp_baseline_heur  optimal           0.94       9.38       0.00     0     0.00%      30.7
+  scn_easy_loose_P5_R4_seed3   topology_ms6_heur   topology (        0.79       7.94       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed3   fas_on_topo_heur    optimal           1.38      13.80       0.00     0     0.01%       0.0
+  scn_easy_loose_P5_R4_seed3   safe_pipeline_heur  topology (        0.79       7.94       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed3   milp_baseline_wB    optimal           9.38       9.38       0.00     0     0.00%       0.3
+  scn_easy_loose_P5_R4_seed3   topology_ms6_wB     topology (        7.94       7.94       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed3   fas_on_topo_wB      optimal          13.80      13.80       0.00     0     0.01%       0.0
+  scn_easy_loose_P5_R4_seed3   safe_pipeline_wB    topology (        7.94       7.94       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed3   milp_baseline_wC    optimal          93.83       9.38       0.00     0     0.00%       0.3
+  scn_easy_loose_P5_R4_seed3   topology_ms6_wC     topology (       79.39       7.94       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed3   fas_on_topo_wC      optimal         137.99      13.80       0.00     0     0.00%       0.0
+  scn_easy_loose_P5_R4_seed3   safe_pipeline_wC    topology (       79.39       7.94       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed4   milp_baseline       optimal           1.14      11.36       0.00     0     0.00%       0.1
+  scn_easy_loose_P5_R4_seed4   topology_ms6        topology (        1.14      11.36       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed4   fas_on_topo         optimal           1.14      11.36       0.00     0     0.32%       0.0
+  scn_easy_loose_P5_R4_seed4   safe_pipeline       topology (        1.14      11.36       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed4   milp_baseline_heur  optimal           1.14      11.36       0.00     0     0.00%       0.2
+  scn_easy_loose_P5_R4_seed4   topology_ms6_heur   topology (        1.14      11.36       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed4   fas_on_topo_heur    optimal           1.14      11.36       0.00     0     0.32%       0.0
+  scn_easy_loose_P5_R4_seed4   safe_pipeline_heur  topology (        1.14      11.36       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed4   milp_baseline_wB    optimal          11.36      11.36       0.00     0     0.00%       0.2
+  scn_easy_loose_P5_R4_seed4   topology_ms6_wB     topology (       11.36      11.36       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed4   fas_on_topo_wB      optimal          11.36      11.36       0.00     0     0.03%       0.0
+  scn_easy_loose_P5_R4_seed4   safe_pipeline_wB    optimal          11.36      11.36       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed4   milp_baseline_wC    optimal         113.63      11.36       0.00     0     0.00%       0.2
+  scn_easy_loose_P5_R4_seed4   topology_ms6_wC     topology (      113.63      11.36       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed4   fas_on_topo_wC      optimal         113.63      11.36       0.00     0     0.00%       0.0
+  scn_easy_loose_P5_R4_seed4   safe_pipeline_wC    topology (      113.63      11.36       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed5   milp_baseline       optimal           0.88       8.85       0.00     0     0.00%       0.3
+  scn_easy_loose_P5_R4_seed5   topology_ms6        topology (        0.77       7.73       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed5   fas_on_topo         optimal           0.93       9.26       0.00     0     0.42%       0.0
+  scn_easy_loose_P5_R4_seed5   safe_pipeline       topology (        0.77       7.73       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed5   milp_baseline_heur  optimal           0.88       8.85       0.00     0     0.00%      30.4
+  scn_easy_loose_P5_R4_seed5   topology_ms6_heur   topology (        0.77       7.73       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed5   fas_on_topo_heur    optimal           0.93       9.26       0.00     0     0.42%       0.0
+  scn_easy_loose_P5_R4_seed5   safe_pipeline_heur  topology (        0.77       7.73       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed5   milp_baseline_wB    optimal           8.85       8.85       0.00     0     0.00%       0.5
+  scn_easy_loose_P5_R4_seed5   topology_ms6_wB     topology (        7.73       7.73       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed5   fas_on_topo_wB      optimal           9.26       9.26       0.00     0     0.01%       0.0
+  scn_easy_loose_P5_R4_seed5   safe_pipeline_wB    topology (        7.73       7.73       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed5   milp_baseline_wC    optimal          88.47       8.85       0.00     0     0.00%       0.3
+  scn_easy_loose_P5_R4_seed5   topology_ms6_wC     topology (       77.32       7.73       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed5   fas_on_topo_wC      optimal          92.61       9.26       0.00     0     0.00%       0.0
+  scn_easy_loose_P5_R4_seed5   safe_pipeline_wC    topology (       77.32       7.73       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed6   milp_baseline       optimal           1.16      11.57       0.00     0     0.00%       0.2
+  scn_easy_loose_P5_R4_seed6   topology_ms6        topology (        1.16      11.57       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed6   fas_on_topo         optimal           1.24      12.42       0.00     0     0.14%       0.0
+  scn_easy_loose_P5_R4_seed6   safe_pipeline       topology (        1.16      11.57       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed6   milp_baseline_heur  optimal           1.16      11.57       0.00     0     0.00%       0.2
+  scn_easy_loose_P5_R4_seed6   topology_ms6_heur   topology (        1.16      11.57       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed6   fas_on_topo_heur    optimal           1.24      12.42       0.00     0     0.14%       0.0
+  scn_easy_loose_P5_R4_seed6   safe_pipeline_heur  topology (        1.16      11.57       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed6   milp_baseline_wB    optimal          11.57      11.57       0.00     0     0.00%       0.2
+  scn_easy_loose_P5_R4_seed6   topology_ms6_wB     topology (       11.57      11.57       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed6   fas_on_topo_wB      optimal          12.42      12.42       0.00     0     0.02%       0.0
+  scn_easy_loose_P5_R4_seed6   safe_pipeline_wB    topology (       11.57      11.57       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed6   milp_baseline_wC    optimal         115.72      11.57       0.00     0     0.00%       0.2
+  scn_easy_loose_P5_R4_seed6   topology_ms6_wC     topology (      115.72      11.57       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed6   fas_on_topo_wC      optimal         124.17      12.42       0.00     0     0.00%       0.0
+  scn_easy_loose_P5_R4_seed6   safe_pipeline_wC    topology (      115.72      11.57       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed7   milp_baseline       optimal           1.00      10.00       0.00     0     0.00%       0.5
+  scn_easy_loose_P5_R4_seed7   topology_ms6        topology (        0.83       8.25       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed7   fas_on_topo         optimal           1.58      15.79       0.00     0     0.04%       0.0
+  scn_easy_loose_P5_R4_seed7   safe_pipeline       topology (        0.83       8.25       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed7   milp_baseline_heur  optimal           1.00      10.00       0.00     0     0.00%      30.5
+  scn_easy_loose_P5_R4_seed7   topology_ms6_heur   topology (        0.83       8.25       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed7   fas_on_topo_heur    optimal           1.58      15.79       0.00     0     0.04%       0.0
+  scn_easy_loose_P5_R4_seed7   safe_pipeline_heur  topology (        0.83       8.25       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed7   milp_baseline_wB    optimal          10.00      10.00       0.00     0     0.00%       0.4
+  scn_easy_loose_P5_R4_seed7   topology_ms6_wB     topology (        8.25       8.25       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed7   fas_on_topo_wB      optimal          15.79      15.79       0.00     0     0.03%       0.0
+  scn_easy_loose_P5_R4_seed7   safe_pipeline_wB    topology (        8.25       8.25       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed7   milp_baseline_wC    optimal         100.00      10.00       0.00     0     0.00%       0.3
+  scn_easy_loose_P5_R4_seed7   topology_ms6_wC     topology (       82.54       8.25       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed7   fas_on_topo_wC      optimal         157.94      15.79       0.00     0     0.00%       0.0
+  scn_easy_loose_P5_R4_seed7   safe_pipeline_wC    topology (       82.54       8.25       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed8   milp_baseline       optimal           1.12      11.21       0.00     0     0.00%       0.2
+  scn_easy_loose_P5_R4_seed8   topology_ms6        topology (        1.12      11.21       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed8   fas_on_topo         optimal           1.12      11.21       0.00     0     0.07%       0.0
+  scn_easy_loose_P5_R4_seed8   safe_pipeline       optimal           1.12      11.21       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed8   milp_baseline_heur  optimal           1.12      11.21       0.00     0     0.00%       0.2
+  scn_easy_loose_P5_R4_seed8   topology_ms6_heur   topology (        1.12      11.21       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed8   fas_on_topo_heur    optimal           1.12      11.21       0.00     0     0.07%       0.0
+  scn_easy_loose_P5_R4_seed8   safe_pipeline_heur  optimal           1.12      11.21       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed8   milp_baseline_wB    optimal          11.21      11.21       0.00     0     0.00%       0.2
+  scn_easy_loose_P5_R4_seed8   topology_ms6_wB     topology (       11.21      11.21       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed8   fas_on_topo_wB      optimal          11.21      11.21       0.00     0     0.02%       0.0
+  scn_easy_loose_P5_R4_seed8   safe_pipeline_wB    topology (       11.21      11.21       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed8   milp_baseline_wC    optimal         112.08      11.21       0.00     0     0.00%       0.2
+  scn_easy_loose_P5_R4_seed8   topology_ms6_wC     topology (      112.08      11.21       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed8   fas_on_topo_wC      optimal         112.08      11.21       0.00     0     0.00%       0.0
+  scn_easy_loose_P5_R4_seed8   safe_pipeline_wC    topology (      112.08      11.21       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed9   milp_baseline       optimal           1.00      10.00       0.00     0     0.00%       0.2
+  scn_easy_loose_P5_R4_seed9   topology_ms6        topology (        0.93       9.25       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed9   fas_on_topo         optimal           2.54      17.51       0.79     0     0.02%       0.0
+  scn_easy_loose_P5_R4_seed9   safe_pipeline       topology (        0.93       9.25       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed9   milp_baseline_heur  optimal           1.00      10.00       0.00     0     0.00%      30.5
+  scn_easy_loose_P5_R4_seed9   topology_ms6_heur   topology (        0.93       9.25       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed9   fas_on_topo_heur    optimal           2.54      17.51       0.79     0     0.02%       0.0
+  scn_easy_loose_P5_R4_seed9   safe_pipeline_heur  topology (        0.93       9.25       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed9   milp_baseline_wB    optimal          10.00      10.00       0.00     0     0.00%       0.2
+  scn_easy_loose_P5_R4_seed9   topology_ms6_wB     topology (        9.25       9.25       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed9   fas_on_topo_wB      optimal          13.91      13.91       0.00     0     0.02%       0.0
+  scn_easy_loose_P5_R4_seed9   safe_pipeline_wB    topology (        9.25       9.25       0.00     0         -       0.0
+  scn_easy_loose_P5_R4_seed9   milp_baseline_wC    optimal         100.00      10.00       0.00     0     0.00%       0.4
+  scn_easy_loose_P5_R4_seed9   topology_ms6_wC     topology (       92.52       9.25       0.00     0         -      60.0
+  scn_easy_loose_P5_R4_seed9   fas_on_topo_wC      optimal         139.07      13.91       0.00     0     0.00%       0.0
+  scn_easy_loose_P5_R4_seed9   safe_pipeline_wC    topology (       92.52       9.25       0.00     0         -       0.0
+==================================================================

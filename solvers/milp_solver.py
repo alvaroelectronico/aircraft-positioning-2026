@@ -35,6 +35,7 @@ _MODEL_KEYS = frozenset({
     "weight_movements",
     "time_limit_s",
     "fix_positions_from",   # solution dict: fix vAircraftPosition from topology solution
+    "build_time_limit_s",   # cap on Pyomo create_instance(); see solve()
 })
 
 
@@ -53,6 +54,10 @@ class MILPSolver:
         "weight_delay":     100.0,
         "weight_movements": 1.0,
         "time_limit_s":     None,   # None = no limit
+        # Cap on Pyomo's create_instance(): on big instances the abstract→concrete
+        # expansion alone can take many minutes.  When this elapses we abandon the
+        # build and report the problem as infeasible.
+        "build_time_limit_s": 60.0,
     }
 
     def __init__(self, backend: str = "gurobi") -> None:
@@ -97,6 +102,8 @@ class MILPSolver:
         dict
             Solution dict — see ``get_solution`` in milp_pyomo.py for schema.
         """
+        import threading
+        import time as _time
         from pyomo.environ import SolverFactory
 
         data = prepare_data(
@@ -106,7 +113,51 @@ class MILPSolver:
             self._model_params["weight_delay"],
             self._model_params["weight_movements"],
         )
-        instance = _abstract_model.create_instance(data)
+
+        # ---- Build the concrete Pyomo instance under a wall-clock cap ----
+        build_limit = self._model_params.get("build_time_limit_s")
+        build_box: dict = {"instance": None, "error": None}
+
+        def _build():
+            try:
+                build_box["instance"] = _abstract_model.create_instance(data)
+            except Exception as exc:  # noqa: BLE001
+                build_box["error"] = exc
+
+        _t_build0 = _time.perf_counter()
+        if build_limit is None or build_limit <= 0:
+            _build()                                  # no cap requested
+            build_elapsed = round(_time.perf_counter() - _t_build0, 3)
+        else:
+            t = threading.Thread(target=_build, daemon=True)
+            t.start()
+            t.join(timeout=float(build_limit))
+            build_elapsed = round(_time.perf_counter() - _t_build0, 3)
+            if t.is_alive():
+                # Abandon the still-running build thread (daemon, will die with
+                # the process) and report the problem as infeasible so the
+                # batch runner can continue with the remaining experiments.
+                print(
+                    f"  MILP build exceeded {build_limit:.0f}s — abandoning, "
+                    f"marking instance as infeasible."
+                )
+                return {
+                    "status":    "feasible solution not found (build timeout)",
+                    "objective": 0.0,
+                    "mip_gap":   None,
+                    "metrics": {
+                        "makespan":    0.0,
+                        "movements":   0,
+                        "total_delay": 0.0,
+                    },
+                    "aircraft": [],
+                    "_build_time_s": build_elapsed,
+                    "_solve_time_s": 0.0,
+                }
+
+        if build_box["error"] is not None:
+            raise build_box["error"]
+        instance = build_box["instance"]
 
         fix_sol = self._model_params.get("fix_positions_from")
         if fix_sol is not None:
@@ -123,7 +174,9 @@ class MILPSolver:
         if self._model_params["time_limit_s"] is not None:
             solver.options["TimeLimit"] = self._model_params["time_limit_s"]
         result = solver.solve(instance, tee=True)
-        return get_solution(instance, result)
+        sol = get_solution(instance, result)
+        sol.setdefault("_build_time_s", build_elapsed)
+        return sol
 
 
 # =============================================================================

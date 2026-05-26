@@ -1,0 +1,197 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (16 experiments)
+==================================================================
+  Shared parameters:
+    time_limit_s=60               MIPGap=0.0
+
+  Per-experiment parameters:
+  Label               Solver                    weight_makespan  weight_delay  weight_movements  NoRelHeurTime  alpha  weight_topology  n_starts  seed
+  ----------------------------------------------------------------------------------------------------------------------------------------------------
+  milp_baseline       MILPSolver                0.1              1             10                0              —      —                —         —   
+  topology_ms6        TopologyHeuristic         0.1              1             10                0              0.3    1                6         1   
+  fas_on_topo         FixedAssignmentScheduler  0.1              1             10                0              —      —                —         —   
+  safe_pipeline       FixedAssignmentScheduler  0.1              1             10                0              —      —                —         —   
+  milp_baseline_heur  MILPSolver                0.1              1             10                30             —      —                —         —   
+  topology_ms6_heur   TopologyHeuristic         0.1              1             10                30             0.3    1                6         1   
+  fas_on_topo_heur    FixedAssignmentScheduler  0.1              1             10                30             —      —                —         —   
+  safe_pipeline_heur  FixedAssignmentScheduler  0.1              1             10                30             —      —                —         —   
+  milp_baseline_wB    MILPSolver                1                10            0.1               0              —      —                —         —   
+  topology_ms6_wB     TopologyHeuristic         1                10            0.1               0              0.3    1                6         1   
+  fas_on_topo_wB      FixedAssignmentScheduler  1                10            0.1               0              —      —                —         —   
+  safe_pipeline_wB    FixedAssignmentScheduler  1                10            0.1               0              —      —                —         —   
+  milp_baseline_wC    MILPSolver                10               0.1           1                 0              —      —                —         —   
+  topology_ms6_wC     TopologyHeuristic         10               0.1           1                 0              0.3    1                6         1   
+  fas_on_topo_wC      FixedAssignmentScheduler  10               0.1           1                 0              —      —                —         —   
+  safe_pipeline_wC    FixedAssignmentScheduler  10               0.1           1                 0              —      —                —         —   
+==================================================================
+
+
+
+==================================================================
+  SUMMARY  —  159 ok  /  1 failed  /  160 total
+==================================================================
+  Instance                          Experiment          Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  ----------------------------------------------------------------------------------------------------------------------------
+  scn_two_rows_tight_P5_R10_seed1   milp_baseline       maxTimeLim      117.85      43.67     113.49     0    98.36%      64.4
+  scn_two_rows_tight_P5_R10_seed1   topology_ms6        topology (      116.07      42.42     111.83     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed1   fas_on_topo         optimal         116.07      42.42     111.83     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed1   safe_pipeline       topology (      116.07      42.42     111.83     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed1   milp_baseline_heur  maxTimeLim      121.25      43.67     116.89     0    98.41%      65.8
+  scn_two_rows_tight_P5_R10_seed1   topology_ms6_heur   topology (      116.07      42.42     111.83     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed1   fas_on_topo_heur    optimal         116.07      42.42     111.83     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed1   safe_pipeline_heur  topology (      116.07      42.42     111.83     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed1   milp_baseline_wB    maxTimeLim     1269.90      42.81     122.67     4    98.48%      70.9
+  scn_two_rows_tight_P5_R10_seed1   topology_ms6_wB     topology (     1154.62      42.42     111.18     4         -      60.0
+  scn_two_rows_tight_P5_R10_seed1   fas_on_topo_wB      optimal        1174.27      43.67     113.02     4     0.00%       0.1
+  scn_two_rows_tight_P5_R10_seed1   safe_pipeline_wB    topology (     1154.62      42.42     111.18     4         -       0.0
+  scn_two_rows_tight_P5_R10_seed1   milp_baseline_wC    maxTimeLim      422.60      41.06     119.87     0    54.25%      66.7
+  scn_two_rows_tight_P5_R10_seed1   topology_ms6_wC     topology (      421.76      41.01     117.03     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed1   fas_on_topo_wC      optimal         421.76      41.01     117.03     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed1   safe_pipeline_wC    optimal         421.76      41.01     117.03     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed10  milp_baseline       maxTimeLim      128.85      45.72     124.28     0    98.58%      67.0
+  scn_two_rows_tight_P5_R10_seed10  topology_ms6        topology (      118.92      43.67     114.55     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed10  fas_on_topo         optimal         119.52      43.67     115.15     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed10  safe_pipeline       topology (      118.92      43.67     114.55     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed10  milp_baseline_heur  maxTimeLim      127.57      43.67     123.20     0    98.57%      70.9
+  scn_two_rows_tight_P5_R10_seed10  topology_ms6_heur   topology (      119.00      44.43     114.55     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed10  fas_on_topo_heur    optimal         119.60      44.43     115.15     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed10  safe_pipeline_heur  topology (      119.00      44.43     114.55     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed10  milp_baseline_wB    maxTimeLim     1187.01      42.45     114.42     4    98.46%      67.4
+  scn_two_rows_tight_P5_R10_seed10  topology_ms6_wB     topology (     1168.49      42.45     112.56     4         -      60.0
+  scn_two_rows_tight_P5_R10_seed10  fas_on_topo_wB      optimal        1176.91      42.45     113.41     4     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed10  safe_pipeline_wB    topology (     1168.49      42.45     112.56     4         -       0.0
+  scn_two_rows_tight_P5_R10_seed10  milp_baseline_wC    maxTimeLim      429.90      41.64     115.38     2    57.57%      67.6
+  scn_two_rows_tight_P5_R10_seed10  topology_ms6_wC     topology (      419.36      40.73     120.73     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed10  fas_on_topo_wC      optimal         419.36      40.73     120.73     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed10  safe_pipeline_wC    optimal         419.36      40.73     120.73     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed2   milp_baseline       maxTimeLim      125.35      45.18     120.84     0    98.43%      69.5
+  scn_two_rows_tight_P5_R10_seed2   topology_ms6        topology (      119.90      44.21     115.48     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed2   fas_on_topo         optimal         120.16      44.21     115.74     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed2   safe_pipeline       topology (      119.90      44.21     115.48     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed2   milp_baseline_heur  maxTimeLim      202.87      87.48     194.12     0    99.03%      66.4
+  scn_two_rows_tight_P5_R10_seed2   topology_ms6_heur   topology (      119.45      44.21     115.03     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed2   fas_on_topo_heur    optimal         119.71      44.21     115.29     0     0.00%       0.1
+  scn_two_rows_tight_P5_R10_seed2   safe_pipeline_heur  topology (      119.45      44.21     115.03     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed2   milp_baseline_wB    maxTimeLim     1152.83      44.21     110.80     6    98.30%      66.4
+  scn_two_rows_tight_P5_R10_seed2   topology_ms6_wB     topology (     1186.47      43.49     114.26     4         -      60.0
+  scn_two_rows_tight_P5_R10_seed2   fas_on_topo_wB      optimal        1174.47      43.49     113.06     4     0.00%       0.1
+  scn_two_rows_tight_P5_R10_seed2   safe_pipeline_wB    optimal        1174.47      43.49     113.06     4         -       0.0
+  scn_two_rows_tight_P5_R10_seed2   milp_baseline_wC    maxTimeLim      426.38      41.24     119.47     2    53.97%      69.9
+  scn_two_rows_tight_P5_R10_seed2   topology_ms6_wC     topology (      423.19      40.73     119.33     4         -      60.0
+  scn_two_rows_tight_P5_R10_seed2   fas_on_topo_wC      optimal         448.02      43.16     123.75     4     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed2   safe_pipeline_wC    topology (      423.19      40.73     119.33     4         -       0.0
+  scn_two_rows_tight_P5_R10_seed3   milp_baseline       maxTimeLim      139.32      55.03     133.82     0    98.44%      66.3
+  scn_two_rows_tight_P5_R10_seed3   topology_ms6        topology (      118.62      45.93     114.02     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed3   fas_on_topo         optimal         118.62      45.93     114.02     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed3   safe_pipeline       topology (      118.62      45.93     114.02     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed3   milp_baseline_heur  maxTimeLim      144.11      62.35     137.88     0    98.49%      69.0
+  scn_two_rows_tight_P5_R10_seed3   topology_ms6_heur   topology (      118.53      45.06     114.02     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed3   fas_on_topo_heur    optimal         118.53      45.06     114.02     0     0.00%       0.1
+  scn_two_rows_tight_P5_R10_seed3   safe_pipeline_heur  topology (      118.53      45.06     114.02     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed3   milp_baseline_wB    maxTimeLim     1281.81      56.53     122.49     4    98.30%      66.4
+  scn_two_rows_tight_P5_R10_seed3   topology_ms6_wB     topology (     1158.11      45.06     111.22     8         -      60.0
+  scn_two_rows_tight_P5_R10_seed3   fas_on_topo_wB      optimal        1212.56      45.21     116.67     6     0.00%       0.1
+  scn_two_rows_tight_P5_R10_seed3   safe_pipeline_wB    topology (     1158.11      45.06     111.22     8         -       0.0
+  scn_two_rows_tight_P5_R10_seed3   milp_baseline_wC    maxTimeLim      454.84      44.15     113.13     2    52.13%      66.3
+  scn_two_rows_tight_P5_R10_seed3   topology_ms6_wC     topology (      447.25      43.34     118.59     2         -      60.0
+  scn_two_rows_tight_P5_R10_seed3   fas_on_topo_wC      optimal         447.25      43.34     118.59     2     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed3   safe_pipeline_wC    topology (      447.25      43.34     118.59     2         -       0.0
+  scn_two_rows_tight_P5_R10_seed4   milp_baseline       maxTimeLim      131.49      45.61     126.93     0    98.52%      70.1
+  scn_two_rows_tight_P5_R10_seed4   topology_ms6        topology (      121.02      45.18     116.50     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed4   fas_on_topo         optimal         121.02      45.18     116.50     0     0.00%       0.1
+  scn_two_rows_tight_P5_R10_seed4   safe_pipeline       topology (      121.02      45.18     116.50     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed4   milp_baseline_heur  maxTimeLim      143.54      48.56     138.69     0    98.64%      66.5
+  scn_two_rows_tight_P5_R10_seed4   topology_ms6_heur   topology (      119.93      46.36     115.30     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed4   fas_on_topo_heur    optimal         119.93      46.36     115.30     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed4   safe_pipeline_heur  optimal         119.93      46.36     115.30     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed4   milp_baseline_wB    maxTimeLim     1309.79      47.86     126.17     2    98.51%      66.2
+  scn_two_rows_tight_P5_R10_seed4   topology_ms6_wB     topology (     1192.88      45.15     114.69     8         -      60.0
+  scn_two_rows_tight_P5_R10_seed4   fas_on_topo_wB      optimal        1214.96      45.18     116.92     6     0.00%       0.1
+  scn_two_rows_tight_P5_R10_seed4   safe_pipeline_wB    topology (     1192.88      45.15     114.69     8         -       0.0
+  scn_two_rows_tight_P5_R10_seed4   milp_baseline_wC    maxTimeLim      464.41      45.18     126.50     0    57.96%      70.9
+  scn_two_rows_tight_P5_R10_seed4   topology_ms6_wC     topology (      450.41      43.65     119.33     2         -      60.0
+  scn_two_rows_tight_P5_R10_seed4   fas_on_topo_wC      optimal         449.97      43.65     114.93     2     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed4   safe_pipeline_wC    optimal         449.97      43.65     114.93     2         -       0.0
+  scn_two_rows_tight_P5_R10_seed5   milp_baseline       maxTimeLim      112.65      41.49     108.50     0    98.45%      66.4
+  scn_two_rows_tight_P5_R10_seed5   topology_ms6        topology (      111.84      42.47     107.59     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed5   fas_on_topo         optimal         111.84      42.47     107.59     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed5   safe_pipeline       topology (      111.84      42.47     107.59     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed5   milp_baseline_heur  maxTimeLim      134.50      45.26     129.97     0    98.70%      66.5
+  scn_two_rows_tight_P5_R10_seed5   topology_ms6_heur   topology (      111.84      42.47     107.59     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed5   fas_on_topo_heur    optimal         111.84      42.47     107.59     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed5   safe_pipeline_heur  topology (      111.84      42.47     107.59     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed5   milp_baseline_wB    maxTimeLim     1274.93      44.94     122.98     2    98.63%      69.3
+  scn_two_rows_tight_P5_R10_seed5   topology_ms6_wB     topology (     1105.97      42.33     106.32     4         -      60.0
+  scn_two_rows_tight_P5_R10_seed5   fas_on_topo_wB      optimal        1170.16      42.33     112.74     4     0.00%       0.1
+  scn_two_rows_tight_P5_R10_seed5   safe_pipeline_wB    topology (     1105.97      42.33     106.32     4         -       0.0
+  scn_two_rows_tight_P5_R10_seed5   milp_baseline_wC    maxTimeLim      419.65      40.52     125.01     2    58.31%      66.2
+  scn_two_rows_tight_P5_R10_seed5   topology_ms6_wC     topology (      408.67      39.74     112.16     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed5   fas_on_topo_wC      optimal         408.67      39.75     112.16     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed5   safe_pipeline_wC    topology (      408.67      39.74     112.16     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed6   milp_baseline       maxTimeLim      129.66      44.33     125.23     0    98.64%      67.0
+  scn_two_rows_tight_P5_R10_seed6   topology_ms6        topology (      122.52      41.87     118.33     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed6   fas_on_topo         optimal         122.52      41.87     118.33     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed6   safe_pipeline       topology (      122.52      41.87     118.33     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed6   milp_baseline_heur  maxTimeLim      136.27      44.57     131.81     0    98.70%      69.3
+  scn_two_rows_tight_P5_R10_seed6   topology_ms6_heur   topology (      123.98      42.79     119.70     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed6   fas_on_topo_heur    optimal         123.98      42.79     119.70     0     0.00%       0.1
+  scn_two_rows_tight_P5_R10_seed6   safe_pipeline_heur  topology (      123.98      42.79     119.70     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed6   milp_baseline_wB    maxTimeLim     1456.55      58.45     139.79     2    98.79%      66.0
+  scn_two_rows_tight_P5_R10_seed6   topology_ms6_wB     topology (     1215.47      41.87     117.32     4         -      60.0
+  scn_two_rows_tight_P5_R10_seed6   fas_on_topo_wB      optimal        1215.47      41.87     117.32     4     0.00%       0.1
+  scn_two_rows_tight_P5_R10_seed6   safe_pipeline_wB    optimal        1215.47      41.87     117.32     4         -       0.0
+  scn_two_rows_tight_P5_R10_seed6   milp_baseline_wC    maxTimeLim      431.11      41.89     121.74     0    59.02%      65.9
+  scn_two_rows_tight_P5_R10_seed6   topology_ms6_wC     topology (      429.62      41.79     117.60     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed6   fas_on_topo_wC      optimal         429.62      41.79     117.60     0     0.00%       0.2
+  scn_two_rows_tight_P5_R10_seed6   safe_pipeline_wC    topology (      429.62      41.79     117.60     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed7   milp_baseline       maxTimeLim      127.71      46.13     123.10     0    98.41%      80.8
+  scn_two_rows_tight_P5_R10_seed7   topology_ms6        topology (      118.97      45.07     114.46     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed7   fas_on_topo         optimal         118.97      45.07     114.46     0     0.00%       0.1
+  scn_two_rows_tight_P5_R10_seed7   safe_pipeline       topology (      118.97      45.07     114.46     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed7   milp_baseline_heur  maxTimeLim      156.44      69.91     149.45     0    98.70%      69.1
+  scn_two_rows_tight_P5_R10_seed7   topology_ms6_heur   topology (      118.97      45.07     114.46     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed7   fas_on_topo_heur    optimal         118.97      45.07     114.46     0     0.00%       0.1
+  scn_two_rows_tight_P5_R10_seed7   safe_pipeline_heur  topology (      118.97      45.07     114.46     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed7   milp_baseline_wB    maxTimeLim     1149.56      45.76     110.34     4    98.23%      74.3
+  scn_two_rows_tight_P5_R10_seed7   topology_ms6_wB     topology (     1152.12      43.62     110.81     4         -      60.0
+  scn_two_rows_tight_P5_R10_seed7   fas_on_topo_wB      optimal        1153.28      43.62     110.93     4     0.00%       0.1
+  scn_two_rows_tight_P5_R10_seed7   safe_pipeline_wB    topology (     1152.12      43.62     110.81     4         -       0.0
+  scn_two_rows_tight_P5_R10_seed7   milp_baseline_wC    maxTimeLim      442.72      42.87     120.56     2    54.00%      81.1
+  scn_two_rows_tight_P5_R10_seed7   topology_ms6_wC     topology (      418.53      40.64     121.61     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed7   fas_on_topo_wC      optimal         418.43      40.64     120.63     0     0.00%       0.1
+  scn_two_rows_tight_P5_R10_seed7   safe_pipeline_wC    optimal         418.43      40.64     120.63     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed8   milp_baseline       maxTimeLim      151.61      57.98     145.81     0    98.72%      75.6
+  scn_two_rows_tight_P5_R10_seed8   topology_ms6        topology (      114.76      42.03     110.56     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed8   fas_on_topo         optimal         114.76      42.03     110.56     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed8   safe_pipeline       topology (      114.76      42.03     110.56     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed8   milp_baseline_heur  maxTimeLim      138.01      55.82     132.42     0    98.60%      71.2
+  scn_two_rows_tight_P5_R10_seed8   topology_ms6_heur   topology (      115.67      45.11     111.16     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed8   fas_on_topo_heur    optimal         115.67      45.11     111.16     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed8   safe_pipeline_heur  topology (      115.67      45.11     111.16     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed8   milp_baseline_wB    maxTimeLim     1356.18      61.45     129.45     2    98.57%      67.2
+  scn_two_rows_tight_P5_R10_seed8   topology_ms6_wB     topology (     1117.78      41.34     107.58     6         -      60.0
+  scn_two_rows_tight_P5_R10_seed8   fas_on_topo_wB      optimal        1149.36      41.34     110.76     4     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed8   safe_pipeline_wB    topology (     1117.78      41.34     107.58     6         -       0.0
+  scn_two_rows_tight_P5_R10_seed8   milp_baseline_wC    maxTimeLim      426.58      40.97     128.53     4    54.63%      67.2
+  scn_two_rows_tight_P5_R10_seed8   topology_ms6_wC     topology (      413.22      39.92     120.20     2         -      60.0
+  scn_two_rows_tight_P5_R10_seed8   fas_on_topo_wC      optimal         413.40      39.92     122.03     2     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed8   safe_pipeline_wC    topology (      413.22      39.92     120.20     2         -       0.0
+  scn_two_rows_tight_P5_R10_seed9   milp_baseline       maxTimeLim      116.73      46.50     112.08     0    98.22%      70.4
+  scn_two_rows_tight_P5_R10_seed9   topology_ms6        topology (      117.39      45.20     112.87     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed9   fas_on_topo         optimal         117.39      45.20     112.87     0     0.00%       0.1
+  scn_two_rows_tight_P5_R10_seed9   safe_pipeline       optimal         117.39      45.20     112.87     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed9   topology_ms6_heur   topology (      118.95      43.70     114.58     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed9   fas_on_topo_heur    optimal         118.95      43.70     114.58     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed9   safe_pipeline_heur  topology (      118.95      43.70     114.58     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed9   milp_baseline_wB    maxTimeLim     1340.20      47.35     129.26     2    98.45%      67.9
+  scn_two_rows_tight_P5_R10_seed9   topology_ms6_wB     topology (     1117.41      43.58     107.34     4         -      60.0
+  scn_two_rows_tight_P5_R10_seed9   fas_on_topo_wB      optimal        1158.83      43.58     111.48     4     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed9   safe_pipeline_wB    topology (     1117.41      43.58     107.34     4         -       0.0
+  scn_two_rows_tight_P5_R10_seed9   milp_baseline_wC    maxTimeLim      444.97      42.82     147.60     2    53.24%      66.3
+  scn_two_rows_tight_P5_R10_seed9   topology_ms6_wC     topology (      425.27      41.01     111.37     4         -      60.0
+  scn_two_rows_tight_P5_R10_seed9   fas_on_topo_wC      optimal         423.51      41.08     106.76     2     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed9   safe_pipeline_wC    optimal         423.51      41.08     106.76     2         -       0.0
+
+  Failed runs:
+    x scn_two_rows_tight_P5_R10_seed9  ·  milp_baseline_heur  ->  Cannot load a SolverResults object with bad status: aborted
+==================================================================

@@ -1,0 +1,219 @@
+% ==============================================================================
+\section{MILP Formulation}
+\label{sec:milp}
+% ==============================================================================
+
+We now present a mixed-integer linear programming formulation of the AHPP
+aligned with the aircraft-level view of \S\ref{sec:problem}: each aircraft
+$r$ is treated as a single atomic block $[s_r,\, s_r + D_r]$ with total
+processing time $D_r$ taken from the instance data, and all blocking
+interactions are expressed in terms of the aircraft start and finish
+times $s_r, f_r$.  Once an optimal $(s_r^\star, x_{rp}^\star)$ is
+obtained, the underlying per-job timings of each aircraft can be
+reconstructed deterministically by walking the precedence chain of its
+maintenance work, as described in \S\ref{sec:job_recovery}.  The model is
+implemented in Pyomo~\citep{Bynum2021} and solved with
+Gurobi~\citep{Gurobi2023}.
+
+Throughout this section parameters are written with upper-case Latin
+letters and decision variables with lower-case Latin letters, with Greek
+letters reserved for fixed scalar constants such as the minimum
+separation $\varepsilon$ and the big-$M$ relaxation $M$.
+
+\subsection*{Sets}
+
+\begin{tabular}{@{}l@{\quad}p{0.78\textwidth}@{}}
+  $\calP$
+    & maintenance positions \\
+  $\calR$
+    & aircraft \\
+  $\calA \subseteq \calP \times \calP$
+    & blocking arcs $(p, p')$: position $p$ blocks position $p'$ \\
+\end{tabular}
+
+\subsection*{Parameters}
+
+\begin{tabular}{@{}l@{\quad}p{0.78\textwidth}@{}}
+  $D_r$
+    & total processing time of aircraft $r$ (sum of its job durations) \\
+  $E_r$
+    & earliest start time of aircraft $r$ \\
+  $L_r$
+    & target finish time (due date) of aircraft $r$; soft, completion
+      beyond $L_r$ is penalised but not forbidden \\
+  $\varepsilon$
+    & tow-in / tow-out time, used both as separation between consecutive
+      aircraft at the same position and as the safety margin
+      $f_r - \varepsilon$ in the blocking conditions; per-instance value
+      read from the input \\
+  $H^{UB}$
+    & technical upper bound on every aircraft start and finish time,
+      $H^{UB} = \max_{r \in \calR} E_r + \sum_{r \in \calR} D_r +
+      (|\calR| - 1)\varepsilon$ \\
+  $M$
+    & big-$M$ constant; we take $M = H^{UB} + \varepsilon$ \\
+  $W^M, W^D, W^S$
+    & weights for makespan, total delay, and movements \\
+\end{tabular}
+
+\smallskip
+\noindent
+The bound $H^{UB}$ is valid because the schedule that processes every
+aircraft sequentially on a single position, starting at $\max_r E_r$ and
+inserting a separation of $\varepsilon$ between consecutive aircraft, is
+feasible and has makespan exactly $H^{UB}$.  This provides a valid
+modelling horizon for the MILP without imposing an operational horizon
+on the benchmark.  With $s_r, f_r \in [0, H^{UB}]$, taking $M = H^{UB} +
+\varepsilon$ is sufficient to relax the sequencing constraints when
+their guard binaries are inactive: the residual right-hand side in
+\eqref{eq:sep} (resp.\ \eqref{eq:betaInLB}, \eqref{eq:betaOutLB}) is at
+most $f_r + \varepsilon - M \le 0$, so the corresponding constraint
+becomes vacuous.  The same value also relaxes the blocking indicator
+constraints whenever any of their position or comparison guards are not
+active.
+
+\subsection*{Variables}
+
+\paragraph{Assignment and timing.}
+Continuous variables $s_r, f_r \in [0,\, H^{UB}]$ are the start and
+finish times of aircraft $r$ at its assigned position.  The binary
+variables are $x_{rp}$ (1 if aircraft $r$ is assigned to position $p$)
+and $q_{rr'p}$ (1 if aircraft $r$ precedes aircraft $r'$ at position
+$p$).
+
+\paragraph{Blocking.}
+For every pair of distinct aircraft $r \ne r'$ and every blocking arc
+$(p, p') \in \calA$, we introduce six binary variables.  On the entry
+side, $\alpha^{\mathrm{in}}_{rr'pp'} = 1$ iff $s_{r'} > s_r$,
+$\beta^{\mathrm{in}}_{rr'pp'} = 1$ iff $s_{r'} \le f_r - \varepsilon$, and
+$u^{\mathrm{in}}_{rr'pp'} = 1$ iff the entry of $r'$ at $p'$ forces
+displacing $r$ at $p$.  The exit-side variables
+$\alpha^{\mathrm{out}}_{rr'pp'}, \beta^{\mathrm{out}}_{rr'pp'},
+u^{\mathrm{out}}_{rr'pp'}$ are defined symmetrically by replacing $s_{r'}$
+with $f_{r'}$ in the conditions above.
+
+\paragraph{Objective.}
+The makespan $m \in \NR$, the per-aircraft delay $v^D_r \in \NR$, and the
+total number of movements $n \in \NZ$ collect the three components of the
+objective.
+
+\subsection*{Constraints}
+
+To keep the constraints compact, we abbreviate the universal quantifiers
+$\forall r \ne r' \in \calR,\, (p, p') \in \calA$ by $(\dagger)$ and
+$\forall r \ne r' \in \calR,\, p \in \calP$ (same-position pair) by
+$(\ddagger)$.  The full model is:
+\begin{align}
+  \sum_{p \in \calP} x_{rp} &= 1
+    && \forall r \in \calR \label{eq:assign}\\
+  f_r &= s_r + D_r
+    && \forall r \in \calR \label{eq:dur}\\
+  s_r &\ge E_r
+    && \forall r \in \calR \label{eq:earlystart}\\
+  s_{r'} &\ge f_r + \varepsilon
+              - M(1 - q_{rr'p}) \notag\\
+         &\quad - M(1 - x_{rp}) - M(1 - x_{r'p})
+    && (\ddagger) \label{eq:sep}\\
+  q_{rr'p} + q_{r'rp} &\ge x_{rp} + x_{r'p} - 1
+    && \forall r < r' \in \calR,\, p \in \calP \label{eq:ordLB}\\
+  q_{rr'p} + q_{r'rp} &\le 1
+    && \forall r < r' \in \calR,\, p \in \calP \label{eq:ordUB}\\
+  s_{r'} &\ge s_r - M\bigl(1 - \alpha^{\mathrm{in}}_{rr'pp'}\bigr)
+    && (\dagger) \label{eq:alphaInLB}\\
+  s_{r'} &\le s_r + M\,\alpha^{\mathrm{in}}_{rr'pp'}
+    && (\dagger) \label{eq:alphaInUB}\\
+  s_{r'} &\le f_r - \varepsilon
+              + M\bigl(1 - \beta^{\mathrm{in}}_{rr'pp'}\bigr)
+    && (\dagger) \label{eq:betaInUB}\\
+  s_{r'} &\ge f_r - M\,\beta^{\mathrm{in}}_{rr'pp'} \notag\\
+         &\quad - M(1 - x_{rp}) - M(1 - x_{r'p'})
+    && (\dagger) \label{eq:betaInLB}\\
+  u^{\mathrm{in}}_{rr'pp'} &\le \min\{x_{rp},\, x_{r'p'},\,
+                                   \alpha^{\mathrm{in}}_{rr'pp'},\,
+                                   \beta^{\mathrm{in}}_{rr'pp'}\}
+    && (\dagger) \label{eq:uInUB}\\
+  u^{\mathrm{in}}_{rr'pp'} &\ge x_{rp} + x_{r'p'} \notag\\
+                           &\quad + \alpha^{\mathrm{in}}_{rr'pp'}
+                           + \beta^{\mathrm{in}}_{rr'pp'} - 3
+    && (\dagger) \label{eq:uInLB}\\
+  f_{r'} &\ge s_r - M\bigl(1 - \alpha^{\mathrm{out}}_{rr'pp'}\bigr)
+    && (\dagger) \label{eq:alphaOutLB}\\
+  f_{r'} &\le s_r + M\,\alpha^{\mathrm{out}}_{rr'pp'}
+    && (\dagger) \label{eq:alphaOutUB}\\
+  f_{r'} &\le f_r - \varepsilon
+              + M\bigl(1 - \beta^{\mathrm{out}}_{rr'pp'}\bigr)
+    && (\dagger) \label{eq:betaOutUB}\\
+  f_{r'} &\ge f_r - M\,\beta^{\mathrm{out}}_{rr'pp'} \notag\\
+         &\quad - M(1 - x_{rp}) - M(1 - x_{r'p'})
+    && (\dagger) \label{eq:betaOutLB}\\
+  u^{\mathrm{out}}_{rr'pp'} &\le \min\{x_{rp},\, x_{r'p'},\,
+                                    \alpha^{\mathrm{out}}_{rr'pp'},\,
+                                    \beta^{\mathrm{out}}_{rr'pp'}\}
+    && (\dagger) \label{eq:uOutUB}\\
+  u^{\mathrm{out}}_{rr'pp'} &\ge x_{rp} + x_{r'p'} \notag\\
+                            &\quad + \alpha^{\mathrm{out}}_{rr'pp'}
+                            + \beta^{\mathrm{out}}_{rr'pp'} - 3
+    && (\dagger) \label{eq:uOut}\\
+  n &= 2 \!\!\sum_{(p,p') \in \calA}
+         \sum_{\substack{r, r' \in \calR\\ r \ne r'}}
+         \bigl(u^{\mathrm{in}}_{rr'pp'} + u^{\mathrm{out}}_{rr'pp'}\bigr)
+    && \label{eq:movements}\\
+  v^D_r &\ge f_r - L_r
+    && \forall r \in \calR \label{eq:delay}\\
+  m &\ge f_r
+    && \forall r \in \calR \label{eq:makespan}
+\end{align}
+
+Constraints \eqref{eq:assign}--\eqref{eq:earlystart} pin each aircraft to
+a single position, link its finish time to the duration parameter $D_r$,
+and enforce the earliest-start window.  The same-position block
+\eqref{eq:sep}--\eqref{eq:ordUB} uses the ordering binary $q_{rr'p}$ to
+select the disjunction direction whenever two aircraft share a position:
+\eqref{eq:sep} forces $s_{r'} \ge f_r + \varepsilon$ when $q_{rr'p} = 1$
+and both $r, r'$ are at $p$ (the position guards relax the constraint
+otherwise), while \eqref{eq:ordLB}--\eqref{eq:ordUB} guarantee that
+exactly one direction is active when the position is shared and that
+both directions cannot hold simultaneously.  The entry-blocking block
+defines two indicators and combines them:
+\eqref{eq:alphaInLB}--\eqref{eq:alphaInUB} make
+$\alpha^{\mathrm{in}}_{rr'pp'} = 1$ iff $s_{r'} > s_r$, while
+\eqref{eq:betaInUB}--\eqref{eq:betaInLB} make
+$\beta^{\mathrm{in}}_{rr'pp'} = 1$ iff $s_{r'}$ falls inside the
+servicing window of $r$, with the position guards
+$-M(1 - x_{rp}) - M(1 - x_{r'p'})$ in \eqref{eq:betaInLB} switching the
+constraint off whenever the blocking placement does not actually hold;
+\eqref{eq:uInUB}--\eqref{eq:uInLB} then set $u^{\mathrm{in}}_{rr'pp'}$ to
+the conjunction $x_{rp} \wedge x_{r'p'} \wedge
+\alpha^{\mathrm{in}}_{rr'pp'} \wedge \beta^{\mathrm{in}}_{rr'pp'}$, so an
+entry movement is counted iff both aircraft are at the relevant blocking
+positions and $r'$ enters during the servicing window of $r$.  The
+exit-blocking block \eqref{eq:alphaOutLB}--\eqref{eq:uOut} mirrors the
+entry block with $f_{r'}$ in place of $s_{r'}$.  Finally,
+\eqref{eq:movements} aggregates all entry and exit indicators into the
+movement count $n$ (the factor $2$ accounts for displacement plus
+return), \eqref{eq:delay} lower-bounds the positive delay of each
+aircraft by $f_r - L_r$, and \eqref{eq:makespan} lower-bounds the
+makespan by every aircraft finish time.
+
+\subsection*{Objective}
+\begin{equation}
+  \min \quad W^M\, m
+         \;+\; W^D \sum_{r \in \calR} v^D_r
+         \;+\; W^S\, n.
+  \label{eq:milpobj}
+\end{equation}
+
+\subsection{Job-level recovery}
+\label{sec:job_recovery}
+
+The atomic-block view of \S\ref{sec:problem} is sufficient for the
+optimisation model itself.  In deployment, however, the maintenance work
+of each aircraft typically consists of an ordered sequence of jobs
+$j^r_1, j^r_2, \ldots$ with individual durations summing to $D_r$.  Given
+an aircraft-level solution $(s_r^\star, x_{rp}^\star)$, those per-job
+start times are recovered deterministically by walking the chain: the
+first job of $r$ starts at $s_r^\star$, and each subsequent job starts at
+the finish of its predecessor.  Since none of the constraints above
+involve individual job times, this recovery is loss-free: every feasible
+aircraft-level solution yields a unique per-job schedule with the same
+makespan, total delay, and movement count.

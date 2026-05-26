@@ -1,0 +1,322 @@
+% ==============================================================================
+\section{Computational Experiments}
+\label{sec:experiments}
+% ==============================================================================
+
+This section describes the benchmark design and instance generation procedure.
+Detailed numerical results will be presented in subsequent sections once the
+full experimental run is complete.
+
+% ------------------------------------------------------------------------------
+\subsection{Benchmark Design}
+\label{sec:benchmark_design}
+% ------------------------------------------------------------------------------
+
+The benchmark is designed to isolate the effect of four axes of variation:
+\begin{enumerate}
+  \item \textbf{Topology} (six levels): the structure of the blocking-arc graph
+        $G = (\calP, \calA)$.
+  \item \textbf{Fleet size} (four levels): $R \in \{5, 10, 20, 30\}$ aircraft.
+  \item \textbf{Slack} (three levels): how much temporal headroom aircraft have
+        between their processing time and their time window.
+  \item \textbf{Maximum constraint density}: a hard large-scale configuration
+        that combines maximum blocking with a large fleet.
+\end{enumerate}
+
+All instances use $P = 5$ hangar positions.  The benchmark comprises
+12 configurations, each replicated with 10 independently seeded random
+instances, yielding \textbf{120 instances} in total.
+Table~\ref{tab:benchmark_matrix} shows the full specification.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Benchmark specification: 12 configurations $\times$ 10 seeds
+           $= 120$ instances.  All instances use $P = 5$ positions.}
+  \label{tab:benchmark_matrix}
+  \begin{tabular}{llcccl}
+    \toprule
+    Axis & Topology & $R$ & Slack & Seeds & Purpose \\
+    \midrule
+    \multirow{6}{*}{Topology}
+      & None         & 10 & tight  & 1--10 & Baseline (no blocking) \\
+      & Chain        & 10 & tight  & 1--10 & Linear blocking \\
+      & Hub          & 10 & tight  & 1--10 & Star topology \\
+      & Triangle     & 10 & tight  & 1--10 & Classic hangar layout \\
+      & Two rows     & 10 & tight  & 1--10 & Parallel rows \\
+      & Full         & 10 & tight  & 1--10 & Maximum blocking \\
+    \midrule
+    \multirow{3}{*}{Size}
+      & Triangle & 5  & tight  & 1--10 & Small (MILP-tractable) \\
+      & Triangle & 20 & tight  & 1--10 & Medium (heuristic regime) \\
+      & Triangle & 30 & tight  & 1--10 & Large \\
+    \midrule
+    \multirow{2}{*}{Slack}
+      & Triangle & 10 & loose  & 1--10 & Relaxed time windows \\
+      & Triangle & 10 & medium & 1--10 & Moderate time windows \\
+    \midrule
+    Hard large
+      & Full & 20 & tight  & 1--10 & Dense + large \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ------------------------------------------------------------------------------
+\subsection{Instance Generation}
+\label{sec:instance_gen}
+% ------------------------------------------------------------------------------
+
+For each configuration of Table~\ref{tab:benchmark_matrix}, the 10 random
+seeds drive a deterministic generator that produces the hangar topology,
+the fleet of aircraft, and their associated jobs and time windows.  We
+describe each step below.
+
+\subsubsection{Hangar topology families}
+
+Each instance is built on top of one of six canonical blocking-arc graphs
+that together span the full spectrum from fully independent to maximally
+constrained hangars; this is the source of the topology axis in
+Table~\ref{tab:benchmark_matrix}.  In all cases positions are labelled
+$\{P1, \dots, P5\}$ in arrival order.  The \emph{None} topology takes
+$\calA = \emptyset$, leaving all positions independent and serving as a
+baseline with no blocking interactions.  The \emph{Chain} topology
+arranges positions in a linear row, $\calA = \{(p_i, p_{i+1}) : 1 \le i < P\}$,
+so that each position blocks the next; this represents a single-file
+hangar.  The \emph{Hub} topology designates an \emph{aisle} position $p_1$
+that blocks all others, $\calA = \{(p_1, p_k) : k \ne 1\}$, modelling a
+star layout in which one slot guards the access to the rest.  The
+\emph{Triangle} topology turns the last three positions into a transitive
+triangle, $\calA = \{(a, b), (a, c), (b, c)\}$ with $\{a, b, c\}$ the rear
+trio, reproducing the layout of the facility that originally motivated
+this study.  The \emph{Two rows} topology splits positions into a front
+and a rear half and pairs them position-by-position, modelling parallel
+rows in which only the front aircraft obstructs its corresponding rear
+one.  Finally, the \emph{Full} topology takes every ordered pair as a
+blocking arc, $\calA = \{(p_i, p_j) : i < j\}$, providing the maximally
+constrained extreme.
+
+These six families were chosen so that each one isolates a distinct
+qualitative feature of the blocking graph---no blocking, sequential
+blocking, star blocking, transitive blocking, paired blocking, and dense
+blocking---while keeping the number of positions fixed at $P = 5$.  The
+resulting topology axis is therefore a controlled probe of how the
+blocking structure, independently of fleet size and time-window tightness,
+influences the difficulty of the AHPP and the relative performance of the
+solving methods.
+
+\subsubsection{Aircraft and job generation}
+
+Processing times, earliest starts and due dates are sampled on an
+integer-day grid; the only fractional quantity in the model is the
+tow-in/tow-out time $\varepsilon$ (\S\ref{sec:problem}), which is recorded
+in each instance file and fixed at $\varepsilon = 0.5$ days throughout
+the reported benchmark.  No \emph{operational} horizon is imposed: only
+makespan and delay enter the objective, so any feasible schedule can be
+expressed in finite time without an operational upper bound.  The MILP
+formulation does use a technical upper bound $H^{UB}$ (defined in
+\S\ref{sec:milp}) solely to bound the time variables and calibrate the
+big-$M$ constants, but $H^{UB}$ is derived from the instance data rather
+than fixed at instance generation, so it is a property of the solver
+model and not of the benchmark itself.
+
+Given a configuration with $R$ aircraft and a task-count range
+$[n_{\min}, n_{\max}]$, each aircraft $r$ is generated as follows.  Its
+number of jobs is drawn as
+$n_r \sim \mathrm{Uniform}\{n_{\min}, \ldots, n_{\max}\}$ and the
+processing time of each job is sampled independently from the discrete
+uniform $D_j \sim \mathrm{Uniform}\{3, 4, 5, 6, 7, 8\}$ days (mean $5.5$,
+standard deviation $\approx 1.7$).  The total processing time of the
+aircraft is the integer sum
+$D_r = \sum_{j \in \calJ_r} D_j$ days.  The earliest start is sampled
+uniformly as $E_r \sim \mathrm{Uniform}\{0, \ldots, S\}$ days with arrival
+spread $S = \lceil R\,\bar p/P\rceil$ and $\bar p = 5.5$; this scales
+naturally with the fleet size and the number of positions without
+introducing an operational horizon.  Given the slack ratio $\rho$ of
+Table~\ref{tab:slack}, the target finish is set to
+$L_r = E_r + D_r + \max\!\bigl(1,\,\lceil \rho\, D_r\rceil\bigr)$ days,
+which guarantees a strictly positive integer-day margin over the
+processing block.  Each aircraft is labelled with one of
+$n_c = \max(2, \min(6, \lfloor R/2 \rfloor))$ client identifiers, which
+are kept in the schema to support priority extensions but do not enter
+the present objective.  The jobs of each aircraft are linked into a
+strict linear precedence chain
+$j^r_1 \to j^r_2 \to \cdots \to j^r_{n_r}$, and all random draws are
+controlled by the seed so each instance is fully reproducible from its
+configuration and seed value.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Slack level definitions.  $\rho$ is the ratio of post-window
+           slack to total aircraft duration $D_r$, applied as
+           $L_r = E_r + D_r + \max(1, \lceil \rho D_r \rceil)$.}
+  \label{tab:slack}
+  \begin{tabular}{lc}
+    \toprule
+    Level & $\rho$ \\
+    \midrule
+    Loose  & 0.80 \\
+    Medium & 0.35 \\
+    Tight  & 0.05 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ------------------------------------------------------------------------------
+\subsection{Experimental Setup}
+\label{sec:exp_setup}
+% ------------------------------------------------------------------------------
+
+All MILP and FAS components were modelled with Pyomo~\citep{Bynum2021}
+and solved with Gurobi~11~\citep{Gurobi2023}; the topology-aware GRASP
+was implemented in plain Python.  Experiments were run on a workstation
+with an Intel Core i9 processor (16 cores, 32 threads, 3.5\,GHz base
+clock), 32\,GB of RAM, and Windows~11 as the operating system.  Each run
+was given a wall-clock time limit of \textbf{60 seconds}.
+Table~\ref{tab:methods} lists the four methods evaluated, derived from
+the algorithms of \S\ref{sec:approaches}.
+Each method is run under three weight profiles:
+default $(W^M, W^D, W^S) = (0.1, 1.0, 10)$ (movement-priority),
+delay-priority $(1, 10, 0.1)$, and makespan-priority $(10, 0.1, 1)$.
+This yields $4 \times 3 = 12$ solver configurations, applied to all 120
+instances, for a total of \textbf{1\,440 runs}.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Solving methods evaluated in the benchmark.}
+  \label{tab:methods}
+  \begin{tabular}{llll}
+    \toprule
+    Label & Method & Solver & Notes \\
+    \midrule
+    \texttt{milp\_baseline}
+      & Full MILP
+      & Gurobi (via Pyomo)
+      & Exact; 60\,s limit \\
+    \texttt{topology\_ms6}
+      & GRASP, $n_s{=}6$
+      & Custom
+      & 10\,s per start \\
+    \texttt{fas\_on\_topo}
+      & FAS on topology assignment
+      & Gurobi (direct)
+      & 60\,s; fixed $\pi$ \\
+    \texttt{safe\_pipeline}
+      & Best of \{topology, FAS\}
+      & ---
+      & Zero extra cost \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ------------------------------------------------------------------------------
+\subsection{Results}
+\label{sec:results}
+% ------------------------------------------------------------------------------
+
+We report mean values over the six random seeds available for each
+configuration at the time of writing (the full ten-seed run is in progress).  The
+analysis is organised around four questions: (i) up to what size is the MILP
+provably optimal within the time budget, (ii) how the four methods compare on
+the resulting feasible solutions, (iii) how the gap between the heuristic
+pipeline and the exact solver evolves across instance types, and
+(iv) how the chosen weight profile shapes the trade-off between makespan,
+delay, and movements.
+
+\subsubsection{Reach of the exact MILP}
+
+Table~\ref{tab:res_milp_opt} reports the MILP outcome under the 60\,s
+budget.  The exact solver only closes the $R{=}5$ configuration to
+optimality (in about $4$\,s on average).  On every $R{=}10$ configuration
+the search exhausts the budget with an average Gurobi gap above 95\,\%
+--- the gap remains high even on the unconstrained \emph{None} topology
+($96.2\,\%$), indicating that bound weakness, rather than blocking
+interactions, is what stalls branch-and-bound.  On the medium-size
+configurations ($R{=}20$, both triangle and full topologies) the solver
+overruns the 60\,s wall clock by a factor of two to three (an artefact
+of Gurobi's post-timeout cleanup) and still ends with a gap close to
+$100\,\%$; moreover, on five of the six seeds Gurobi aborts before
+returning any feasible incumbent (for both Triangle and Full $R{=}20$),
+so each $R{=}20$ MILP row aggregates a single usable run.  At $R{=}30$
+the model either aborts or exceeds the one-minute Pyomo build cap on
+every seed, so no MILP row can be reported for that size; the heuristic
+pipeline is therefore the only available source of solutions for the
+largest configuration.
+
+\input{tables/res_milp_opt}
+
+\subsubsection{Per-method means by configuration}
+
+Table~\ref{tab:res_default} aggregates the four methods under the
+default profile $(W^M, W^D, W^S) = (0.1, 1, 10)$.  Three observations
+stand out.  First, on every $R{=}10$ configuration with non-trivial
+blocking the heuristic pipeline finishes well below the best feasible
+MILP solution found within the budget: \textbf{Safe} reduces $\bar f$ by
+$20$--$40\,\%$ over \textbf{MILP} on Chain, Hub, Triangle, Two rows and
+Full, while on the unconstrained \emph{None} topology the two methods
+are practically tied ($107.2$ versus $109.3$).  Within a 60\,s budget
+the heuristic therefore dominates the exact solver on the constrained
+topologies and matches it on the trivial one.  Second, the gap widens
+sharply with the fleet size: on \emph{Triangle $R{=}20$} \textbf{Safe}
+returns $\bar f = 677$ against \textbf{MILP}'s $2425$, and on
+\emph{Full $R{=}20$} the gap is $963$ versus $4676$, both more than
+three times apart.  Third, the topology heuristic alone (\textbf{Topo})
+already matches the safe-pipeline value on most $R{=}10$ rows; on
+\emph{Chain}, \emph{Two rows}, \emph{Hub} and \emph{Full} a single FAS
+pass shaves a few percent off Topo, and on \emph{Triangle $R{=}30$}
+\textbf{Safe} ends below both Topo and FAS in the mean because it
+picks the per-seed minimum --- this is by construction and illustrates
+the value of the safe-pipeline composition.
+
+\input{tables/res_default}
+
+\subsubsection{Relative gap to the best solution}
+
+To compare methods on a common scale we compute, for each instance, the
+\emph{relative gap} of each method to the best objective achieved by the
+four methods on that instance.  The gaps in
+Table~\ref{tab:res_method_gap} confirm that, within the 60\,s budget,
+the exact solver is the worst performer on every configuration with
+non-trivial blocking: from $24\,\%$ on \emph{Triangle $R{=}10$} up to
+$40\,\%$ on \emph{Hub $R{=}10$} and $79\,\%$ on \emph{Full $R{=}10$},
+and dramatic gaps on the larger instances ($282\,\%$ on
+\emph{Triangle $R{=}20$}, $431\,\%$ on \emph{Full $R{=}20$}), driven by
+the very weak feasible incumbents Gurobi returns at the time limit.
+\textbf{Topo} alone stays below $7\,\%$ on every $R{=}10$ tight
+configuration and below $4\,\%$ at $R{=}20$; \textbf{FAS} closes the
+residual gap to $0\,\%$ in every case except \emph{Triangle $R{=}30$},
+where Topo and FAS each win on some seeds and only the Safe pipeline
+attains $0\,\%$ throughout.  Two apparent outliers stand out: every
+method sits at $41.6\,\%$ on \emph{Triangle $R{=}10$, loose}, and at
+$5.2\,\%$ on \emph{Triangle $R{=}5$} (Topo/FAS/Safe).  Both come from
+seeds whose best objective is close to zero, so even tiny absolute
+deviations translate to large relative gaps; the absolute differences
+in Table~\ref{tab:res_default} remain well within a few units.
+
+\input{tables/res_method_gap}
+
+\subsubsection{Weight-profile sensitivity}
+
+Table~\ref{tab:res_weights} isolates the effect of the three weight
+profiles on the structure of the safe-pipeline solutions.  Under the
+default, movement-priority profile, the safe pipeline returns
+essentially zero blocking movements on every configuration covered by
+the benchmark --- the only non-zero entries are residuals of
+$\bar n{=}1.0$ on \emph{Chain $R{=}10$}, $\bar n{=}0.3$ on
+\emph{Full $R{=}10$}, $\bar n{=}1.7$ on \emph{Triangle $R{=}30$} and
+$\bar n{=}2.0$ on the dense \emph{Full $R{=}20$} --- at the cost of a
+moderate makespan penalty: e.g.\ $\bar m{=}86.3$ on
+\emph{Full $R{=}10$} versus $62.4$ under wC, and $\bar m{=}170.3$ on
+\emph{Full $R{=}20$} versus $119.8$.  Switching to the delay-priority
+profile (wB) collapses the mean delay onto a narrow band ---
+$\bar v^D \approx 100.7$ on every $R{=}10$ tight row regardless of
+topology --- but injects $6$--$45$ blocking movements per instance.
+The makespan-priority profile (wC) flattens $\bar m$ to about
+$62.3$--$62.4$ on every $R{=}10$ tight row at the price of
+$3$--$28$ movements and intermediate delay.  The three profiles
+therefore act as effective dials between the objectives, and the
+default profile is the appropriate choice when the operational
+priority is to keep aircraft in the assigned slot for the whole
+servicing window.
+
+\input{tables/res_weights}
+
+\FloatBarrier
