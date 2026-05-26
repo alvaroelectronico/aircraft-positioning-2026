@@ -1,0 +1,48 @@
+========================================================================
+  Topology-Aware Heuristic — run summary
+========================================================================
+  Instance aircraft : 10
+  Positions         : ['P1', 'P2', 'P3', 'P4', 'P5']
+  Blocking load     : P1=0  P2=0  P3=2  P4=1  P5=0
+
+  Parameters:
+    time_limit_s: 60
+    min_separation: 10.0
+    weight_makespan: 0.1
+    weight_delay: 1.0
+    weight_movements: 10
+    weight_topology: 1.0
+    alpha: 0.3
+    seed: None
+    log_enabled: True
+    MIPGap: 0.0
+    NoRelHeurTime: 0
+
+========================================================================
+  Iterations: 1124
+  Best objective: 17.1010
+  Makespan: 72.7200   Delay: 9.8290   Movements: 0
+========================================================================
+
+  Improvement log:
+  iter=1  t=0.00s  obj=25.08  makespan=73.37  delay=17.74  mov=0  *
+  iter=13  t=0.28s  obj=24.03  makespan=73.37  delay=16.69  mov=0  *
+  iter=183  t=7.16s  obj=20.34  makespan=68.40  delay=13.50  mov=0  *
+  iter=721  t=36.07s  obj=17.44  makespan=67.02  delay=10.74  mov=0  *
+  iter=991  t=53.02s  obj=17.10  makespan=72.72  delay=9.83  mov=0  *
+
+========================================================================
+  Best solution — aircraft assignments:
+  ID      Pos    load   duration     start    finish    delay
+  --------------------------------------------------------
+  R3      P3        2      16.05      0.00     16.05     0.00
+  R2      P5        0      25.44      0.00     25.44     0.00
+  R1      P4        1      21.52      0.00     21.52     0.00
+  R8      P1        0       7.74     13.02     20.75     0.00
+  R10     P2        0       9.26     18.84     28.10     0.00
+  R7      P1        0      21.55     30.75     52.30     0.00
+  R5      P4        1      20.40     31.52     51.92     0.00
+  R4      P3        2      20.17     31.52     51.69     0.00
+  R9      P2        0      27.15     38.10     65.25     0.00
+  R6      P5        0      20.80     51.92     72.72     9.83
+========================================================================

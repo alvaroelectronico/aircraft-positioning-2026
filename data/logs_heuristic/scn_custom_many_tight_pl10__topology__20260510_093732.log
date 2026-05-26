@@ -1,0 +1,46 @@
+========================================================================
+  Topology-Aware Heuristic — run summary
+========================================================================
+  Instance aircraft : 10
+  Positions         : ['P1', 'P2', 'P3', 'P4', 'P5']
+  Blocking load     : P1=0  P2=0  P3=2  P4=1  P5=0
+
+  Parameters:
+    time_limit_s: 60
+    min_separation: 10.0
+    weight_makespan: 0.1
+    weight_delay: 1.0
+    weight_movements: 10
+    weight_topology: 1.0
+    alpha: 0.3
+    seed: None
+    log_enabled: True
+    MIPGap: 0.0
+    NoRelHeurTime: 0
+
+========================================================================
+  Iterations: 966
+  Best objective: 16.9280
+  Makespan: 62.5900   Delay: 10.6690   Movements: 0
+========================================================================
+
+  Improvement log:
+  iter=1  t=0.00s  obj=37.55  makespan=77.25  delay=29.83  mov=0  *
+  iter=5  t=0.33s  obj=24.03  makespan=73.37  delay=16.69  mov=0  *
+  iter=156  t=9.83s  obj=16.93  makespan=62.59  delay=10.67  mov=0  *
+
+========================================================================
+  Best solution — aircraft assignments:
+  ID      Pos    load   duration     start    finish    delay
+  --------------------------------------------------------
+  R3      P3        2      16.05      0.00     16.05     0.00
+  R2      P5        0      25.44      0.00     25.44     0.00
+  R1      P4        1      21.52      0.00     21.52     0.00
+  R5      P2        0      20.40      6.51     26.91     0.00
+  R8      P1        0       7.74     13.02     20.75     0.00
+  R10     P1        0       9.26     30.75     40.02    10.13
+  R9      P5        0      27.15     35.44     62.59     0.00
+  R4      P3        2      20.17     35.44     55.61     0.54
+  R7      P4        1      21.55     35.44     56.99     0.00
+  R6      P2        0      20.80     36.91     57.71     0.00
+========================================================================

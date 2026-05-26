@@ -1,0 +1,49 @@
+========================================================================
+  Topology-Aware Heuristic — run summary
+========================================================================
+  Instance aircraft : 10
+  Positions         : ['P1', 'P2', 'P3', 'P4', 'P5']
+  Blocking load     : P1=0  P2=0  P3=2  P4=1  P5=0
+
+  Parameters:
+    time_limit_s: 60
+    min_separation: 10.0
+    weight_makespan: 0.1
+    weight_delay: 1.0
+    weight_movements: 10
+    weight_topology: 1.0
+    alpha: 0.3
+    seed: None
+    log_enabled: True
+    MIPGap: 0.0
+    NoRelHeurTime: 0
+
+========================================================================
+  Iterations: 89
+  Best objective: 17.1887
+  Makespan: 62.9370   Delay: 10.8950   Movements: 0
+========================================================================
+
+  Improvement log:
+  iter=1  t=0.06s  obj=38.39  makespan=77.02  delay=30.69  mov=0  *
+  iter=3  t=4.36s  obj=31.79  makespan=72.72  delay=24.52  mov=0  *
+  iter=7  t=7.12s  obj=26.56  makespan=77.39  delay=18.82  mov=0  *
+  iter=15  t=11.27s  obj=26.21  makespan=68.40  delay=19.37  mov=0  *
+  iter=18  t=15.36s  obj=18.98  makespan=62.94  delay=12.69  mov=0  *
+  iter=51  t=39.22s  obj=17.19  makespan=62.94  delay=10.89  mov=0  *
+
+========================================================================
+  Best solution — aircraft assignments:
+  ID      Pos    load   duration     start    finish    delay
+  --------------------------------------------------------
+  R2      P5        0      25.44      0.00     25.44     0.00
+  R1      P1        0      21.52      0.00     21.52     0.00
+  R3      P4        1      16.05      4.71     20.75     0.00
+  R4      P2        0      20.17      5.62     25.79     0.00
+  R8      P3        2       7.74     13.02     20.75     0.00
+  R10     P1        0       9.26     31.52     40.78    10.89
+  R7      P5        0      21.55     35.44     56.99     0.00
+  R5      P3        2      20.40     35.44     55.84     0.00
+  R6      P4        1      20.80     35.44     56.24     0.00
+  R9      P2        0      27.15     35.79     62.94     0.00
+========================================================================

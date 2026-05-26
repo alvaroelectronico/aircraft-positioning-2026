@@ -1,0 +1,65 @@
+========================================================================
+  Topology-Aware Heuristic — run summary
+========================================================================
+  Instance aircraft : 20
+  Positions         : ['P1', 'P2', 'P3', 'P4', 'P5']
+  Blocking load     : P1=0  P2=0  P3=2  P4=1  P5=0
+
+  Parameters:
+    time_limit_s: 60
+    min_separation: 10.0
+    weight_makespan: 0.1
+    weight_delay: 1.0
+    weight_movements: 10
+    weight_topology: 1.0
+    alpha: 0.3
+    seed: None
+    log_enabled: True
+    MIPGap: 0.0
+    NoRelHeurTime: 0
+
+========================================================================
+  Iterations: 178
+  Best objective: 239.6420
+  Makespan: 111.0100   Delay: 228.5410   Movements: 0
+========================================================================
+
+  Improvement log:
+  iter=1  t=0.00s  obj=370.95  makespan=127.53  delay=358.19  mov=0  *
+  iter=2  t=0.24s  obj=318.01  makespan=123.49  delay=305.66  mov=0  *
+  iter=4  t=0.55s  obj=294.87  makespan=111.44  delay=283.72  mov=0  *
+  iter=5  t=0.72s  obj=289.60  makespan=106.46  delay=278.96  mov=0  *
+  iter=7  t=1.37s  obj=283.27  makespan=116.82  delay=271.58  mov=0  *
+  iter=16  t=3.35s  obj=281.64  makespan=105.15  delay=271.12  mov=0  *
+  iter=33  t=7.29s  obj=278.94  makespan=115.77  delay=267.36  mov=0  *
+  iter=34  t=7.71s  obj=265.69  makespan=108.04  delay=254.88  mov=0  *
+  iter=37  t=8.65s  obj=252.11  makespan=113.84  delay=240.73  mov=0  *
+  iter=57  t=15.78s  obj=246.97  makespan=105.88  delay=236.39  mov=0  *
+  iter=122  t=38.59s  obj=245.44  makespan=113.84  delay=234.06  mov=0  *
+  iter=161  t=53.95s  obj=239.64  makespan=111.01  delay=228.54  mov=0  *
+
+========================================================================
+  Best solution — aircraft assignments:
+  ID      Pos    load   duration     start    finish    delay
+  --------------------------------------------------------
+  R1      P1        0      18.30      0.00     18.30     0.00
+  R2      P5        0      15.20      0.00     15.20     0.00
+  R7      P4        1      13.93      1.21     15.14     0.00
+  R6      P2        0      17.28      1.33     18.61     0.00
+  R12     P3        2       5.78      8.13     13.91     0.00
+  R8      P5        0      15.47     25.20     40.67     0.00
+  R9      P4        1      12.59     25.20     37.79     0.00
+  R16     P3        2       6.63     25.20     31.83     0.00
+  R4      P1        0      16.65     28.30     44.95     0.00
+  R10     P2        0      11.87     28.61     40.48     0.00
+  R18     P3        2       8.07     41.83     49.90    13.23
+  R15     P2        0      13.77     50.48     64.25     3.64
+  R11     P5        0      29.10     50.67     79.77     6.78
+  R14     P4        1      21.00     50.67     71.67     6.39
+  R3      P1        0      24.82     54.95     79.77    10.76
+  R20     P3        2       9.78     59.90     69.68    28.65
+  R17     P2        0      22.10     74.25     96.35    20.63
+  R13     P4        1      21.38     81.67    103.05    44.12
+  R19     P3        2       9.19     81.67     90.86    50.25
+  R5      P1        0      21.24     89.77    111.01    44.08
+========================================================================

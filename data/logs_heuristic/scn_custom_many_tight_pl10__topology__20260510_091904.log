@@ -1,0 +1,47 @@
+========================================================================
+  Topology-Aware Heuristic — run summary
+========================================================================
+  Instance aircraft : 10
+  Positions         : ['P1', 'P2', 'P3', 'P4', 'P5']
+  Blocking load     : P1=0  P2=0  P3=2  P4=1  P5=0
+
+  Parameters:
+    time_limit_s: 60
+    min_separation: 10.0
+    weight_makespan: 0.1
+    weight_delay: 1.0
+    weight_movements: 10
+    weight_topology: 1.0
+    alpha: 0.3
+    seed: None
+    log_enabled: True
+    MIPGap: 0.0
+    NoRelHeurTime: 0
+
+========================================================================
+  Iterations: 1175
+  Best objective: 15.0830
+  Makespan: 65.2500   Delay: 8.5580   Movements: 0
+========================================================================
+
+  Improvement log:
+  iter=1  t=0.00s  obj=31.25  makespan=83.37  delay=22.91  mov=0  *
+  iter=3  t=0.12s  obj=25.08  makespan=73.37  delay=17.74  mov=0  *
+  iter=14  t=0.87s  obj=24.03  makespan=73.37  delay=16.69  mov=0  *
+  iter=473  t=24.90s  obj=15.08  makespan=65.25  delay=8.56  mov=0  *
+
+========================================================================
+  Best solution — aircraft assignments:
+  ID      Pos    load   duration     start    finish    delay
+  --------------------------------------------------------
+  R3      P2        0      16.05      0.00     16.05     0.00
+  R2      P5        0      25.44      2.66     28.10     0.00
+  R4      P4        1      20.17      7.93     28.10     0.00
+  R8      P1        0       7.74     13.02     20.75     0.00
+  R10     P3        2       9.26     18.84     28.10     0.00
+  R6      P2        0      20.80     26.05     46.85     0.00
+  R7      P1        0      21.55     30.75     52.30     0.00
+  R1      P4        1      21.52     38.10     59.62     8.56
+  R9      P5        0      27.15     38.10     65.25     0.00
+  R5      P3        2      20.40     38.10     58.50     0.00
+========================================================================
