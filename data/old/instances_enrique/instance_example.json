@@ -1,0 +1,60 @@
+{
+  "hangar": {
+    "positions": [
+      "P1", 
+      "P2", 
+      "P3"
+    ],
+    "blocking_arcs": [
+      {"front": "P1", "rear": "P2"}
+    ]
+  },
+  "aircrafts": [
+    {
+      "id": "R1",
+      "client": "C1",
+      "earliest_start": 0,
+      "target_finish": 400
+    },
+    {
+      "id": "R2",
+      "client": "C2",
+      "earliest_start": 50,
+      "target_finish": 600
+    }
+  ],
+  "jobs": [
+    {
+      "id": "J1",
+      "aircraft_id": "R1",
+      "duration": 120,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J2",
+      "aircraft_id": "R1",
+      "duration": 90,
+      "is_first": false,
+      "is_last": true
+    },
+    {
+      "id": "J3",
+      "aircraft_id": "R2",
+      "duration": 60,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J4",
+      "aircraft_id": "R2",
+      "duration": 150,
+      "is_first": false,
+      "is_last": true
+    }
+  ],
+  "job_precedences": [
+    {"before": "J1", "after": "J2"},
+    {"before": "J3", "after": "J4"}
+  ]
+}

@@ -1,0 +1,420 @@
+% =============================================================================
+%  Experiment Series 02: FixedAssignmentScheduler + TGR-MILP Pipeline
+% =============================================================================
+\section{Experiment Series 02: TGR-MILP Pipeline}
+\label{sec:exp02}
+
+\subsection{Motivation}
+
+The $|C_r|=1$ diagnostic of Series~01 confirmed that the gap between the
+topology heuristic and the MILP is dominated by timing/sequencing, not position
+assignment.  This motivates a paradigm shift:
+
+\begin{quote}
+\emph{Use the topology heuristic as a fast spatial-assignment generator;
+use a scheduling MILP to optimise timing exactly within those fixed assignments.}
+\end{quote}
+
+This section describes the implementation of this pipeline and its experimental
+validation.
+
+\subsection{Phase 0 — Audit of \texttt{milp\_fix1} Results}
+
+Before proceeding, the \texttt{milp\_fix1} results were audited for feasibility
+consistency between the Pyomo MILP and the heuristic scheduler.
+
+\paragraph{Finding: minimum separation $\delta$ absent from same-position non-overlap.}
+
+Reading \texttt{models/milp\_pyomo.py}, the non-overlap constraints at the
+job level (\texttt{fcNonOverlapOrder1/2}) enforce only:
+\[
+    S_{j'} \geq F_j \quad \text{when } j \text{ precedes } j' \text{ at the same position}
+\]
+with no $+\delta$ term.  The parameter \texttt{pMinSeparation} ($\delta$) appears
+exclusively in the \emph{blocking-arc} constraints (\texttt{fcBetaInUB/LB}), which
+govern entry/exit movements between different positions — not the gap between
+consecutive aircraft sharing the same position.
+
+By contrast, the heuristic (\texttt{\_find\_best\_start} in
+\texttt{constructive\_heuristic.py}) enforces:
+\[
+    S_r \geq \mathtt{pos\_free}[p] + \delta
+    \quad \text{(when position } p \text{ is already occupied)}
+\]
+with $\delta = 10$ minutes by default.
+
+\paragraph{Consequence.}
+
+The Pyomo MILP packs consecutive aircraft at the same position with zero gap;
+the heuristic requires a 10-minute gap.  Measured on the \texttt{milp\_fix1}
+solutions: every consecutive same-position pair has a gap of exactly 0.00 min.
+The checker (\texttt{check\_solution.py}) only verifies non-overlap ($S_{j'} \geq F_j$
+up to tolerance), so it reports all solutions as \texttt{compliant=True} despite
+the inconsistency.
+
+\paragraph{Implication.}
+
+The \texttt{milp\_fix1} objectives (5.53 for R=10, 43.35 for R=20, 19.39 for
+R=30) are real improvements over the topology heuristic, but they are obtained
+under a looser feasibility definition.  A fair comparison requires the
+scheduling MILP to include the same $\delta$ constraint.
+
+This observation motivated the design of \texttt{FixedAssignmentScheduler}
+(\texttt{solvers/fixed\_assignment\_scheduler.py}), which explicitly adds
+$+\delta$ to same-position ordering constraints.
+
+\paragraph{Additional check: \texttt{check\_solution} passes all RQ01--RQ07.}
+
+All three \texttt{milp\_fix1} solutions (R=10, 20, 30) passed all existing
+requirements checks.  The minimum-separation gap is a specification deficiency
+in the checker, not a model infeasibility.
+
+\subsection{Implementation}
+
+\subsubsection{\texttt{FixedAssignmentScheduler} (\texttt{solvers/fixed\_assignment\_scheduler.py})}
+
+A \texttt{gurobipy}-native model that solves the scheduling problem with fixed
+position assignments.  Key differences from the full Pyomo MILP:
+
+\begin{itemize}[noitemsep]
+    \item \textbf{Removed variables}: \texttt{vAircraftPosition}, \texttt{vJobPosition},
+          \texttt{vJobOrder} — replaced by same-position ordering binaries
+          $q_{r,r'} \in \{0,1\}$ (one per pair of aircraft at the same position).
+    \item \textbf{Aircraft aggregation}: each aircraft is treated as a single block
+          with $D_r = \sum_j d_j$ (valid because all job precedences are intra-aircraft
+          chains with no alternatives).  Job start times are recovered
+          deterministically from $S_r$ after solving.
+    \item \textbf{Correct $\delta$ enforcement}: same-position ordering constraints
+          include $+\delta$:
+          \[
+              S_{r'} \geq F_r + \delta - M(1 - q_{r,r'})
+              \quad\text{and}\quad
+              S_r    \geq F_{r'} + \delta - M\, q_{r,r'}
+          \]
+    \item \textbf{Blocking variables retained}: $u^{\mathrm{in}}_{r,r',p,p'}$ and
+          $u^{\mathrm{out}}_{r,r',p,p'}$ are kept for pairs whose fixed positions
+          form a blocking arc.  Position guard terms collapse to constants.
+    \item \textbf{Build time}: $<0.1$\,s for R=10, $<0.5$\,s for R=20, measured
+          empirically (vs $\sim$110\,s Pyomo overhead for R=30).
+\end{itemize}
+
+\subsubsection{\texttt{generate\_assignments} in \texttt{TopologyHeuristic}}
+
+A new method \texttt{generate\_assignments(k, time\_per\_assign)} runs $k$ fast
+GRASP iterations (no local search) to generate diverse position assignments.
+Each call returns a dict $\{$aircraft\_id$:$ position\_id$\}$.  Duplicate
+assignments (identical position maps) are deduplicated before returning.
+
+\subsubsection{\texttt{TGRSolver} (\texttt{solvers/tgr\_solver.py})}
+
+The full pipeline:
+\begin{enumerate}[noitemsep]
+    \item Generate $K$ diverse assignments via \texttt{generate\_assignments}.
+    \item For each assignment, solve \texttt{FixedAssignmentScheduler} with
+          a per-MILP time budget.
+    \item Return the schedule with the lowest objective.
+\end{enumerate}
+
+Two configurations are tested:
+\begin{itemize}[noitemsep]
+    \item \texttt{tgr\_k5}: $K=5$, 10\,s topology budget (2\,s per assignment),
+          remaining $\approx$50\,s split across 5 MILPs ($\approx$10\,s each).
+    \item \texttt{tgr\_k3}: $K=3$, 9\,s topology budget (3\,s per assignment),
+          remaining $\approx$51\,s split across 3 MILPs ($\approx$17\,s each).
+\end{itemize}
+
+\subsection{Results}
+\label{exp:exp02-results}
+
+\paragraph{Log file.}
+\texttt{run\_experiments\_20260514\_*.log}
+
+\paragraph{Configuration.}
+Shared: $w_M=0.1$, $w_D=1.0$, $w_V=10$, $t_{\text{limit}}=60$\,s,
+MIPGap=0, $\alpha=0.3$, $w_{\text{topo}}=1$, seed=1.
+
+\subsubsection{TGR-MILP vs baselines}
+
+\paragraph{Log file.} \texttt{run\_experiments\_20260514\_085415.log}
+
+\begin{table}[h]
+\centering
+\caption{TGR-MILP pipeline vs baselines (2026-05-14).  Bold = best per instance.}
+\label{tab:exp02}
+\begin{tabular}{llrrrrr}
+\toprule
+Instance (R) & Method & Obj & Makespan & Delay & Mov & Time(s) \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_custom} (R=10)}
+ & milp\_baseline & \textbf{4.79}  &  47.90 &  0.00 & 0 & 23.8 \\
+ & topology\_ms6  & 7.06           &  65.25 &  0.54 & 0 & 60.0 \\
+ & tgr\_k5        & 16.93          &  62.59 & 10.67 & 0 & 10.0 \\
+ & tgr\_k3        & 16.93          &  62.59 & 10.67 & 0 &  9.0 \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_few-loose} (R=3)}
+ & milp\_baseline & \textbf{3.12}  &  31.22 &  0.00 & 0 & 0.2 \\
+ & topology\_ms6  & \textbf{3.12}  &  31.22 &  0.00 & 0 & 60.0 \\
+ & tgr\_k5        & \textbf{3.12}  &  31.22 &  0.00 & 0 & 10.0 \\
+ & tgr\_k3        & \textbf{3.12}  &  31.22 &  0.00 & 0 &  9.0 \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_few-tight} (R=2)}
+ & milp\_baseline & \textbf{6.39}  &  63.88 &  0.00 & 0 & 0.2 \\
+ & topology\_ms6  & \textbf{6.39}  &  63.88 &  0.00 & 0 & 60.0 \\
+ & tgr\_k5        & \textbf{6.39}  &  63.88 &  0.00 & 0 & 10.0 \\
+ & tgr\_k3        & \textbf{6.39}  &  63.88 &  0.00 & 0 &  9.0 \\
+\midrule
+\multirow{3}{*}{\texttt{scn\_heavy-tight} (R=30)}
+ & milp\_baseline & aborted         &      — &     — & — &    — \\
+ & \textbf{topology\_ms6} & \textbf{217.47} & 246.29 & 192.85 & 0 & 64.8 \\
+ & tgr\_k5        & 288.17          & 261.04 & 262.07 & 0 & 60.2 \\
+ & tgr\_k3        & 305.72          & 263.85 & 279.33 & 0 & 60.4 \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_many-medium} (R=20)}
+ & milp\_baseline & \textbf{145.40} &  96.21 & 135.78 & 0 & 67.9 \\
+ & topology\_ms6  & 249.68          & 107.33 & 238.95 & 0 & 60.0 \\
+ & tgr\_k5        & 267.78          & 105.69 & 257.21 & 0 & 60.1 \\
+ & tgr\_k3        & 267.78          & 105.69 & 257.21 & 0 & 58.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent Build times (FAS model): $<0.02$\,s per assignment for all instances,
+confirming sub-second overhead vs Pyomo's $\sim$110\,s.
+
+\subsection{Analysis}
+\label{exp:exp02-analysis}
+
+\paragraph{TGR underperforms topology\_ms6 on R=20/30.}
+
+The pipeline underperforms for the two largest instance sizes.  The root cause
+is not the scheduler but the quality of input assignments:
+
+\begin{itemize}[noitemsep]
+    \item With 10\,s of topology budget split across 5 assignments, each GRASP
+          run has only 2\,s and uses \texttt{ls\_mode="fast"} (no intra-position
+          operators).  The resulting assignments are weaker than those produced
+          by \texttt{topology\_ms6} with 60\,s full local search.
+    \item The \texttt{FixedAssignmentScheduler} with correct $\delta=10$ cannot
+          recover the scheduling quality that the heuristic achieves by
+          co-optimising assignment and timing simultaneously over 60\,s.
+    \item For R=20, tgr\_k5 gives 267.78 vs topology\_ms6 at 249.68:
+          the FAS MILP is optimal \emph{given} the assignment, but the assignment
+          itself is worse than what the topology heuristic finds with a full budget.
+\end{itemize}
+
+\paragraph{The $\delta=10$ constraint is the decisive factor.}
+
+Comparing \texttt{milp\_fix1} (no $\delta$ on same-position pairs, R=20: 43.35)
+with \texttt{tgr\_k5} (correct $\delta$, R=20: 267.78) shows that the
+$\delta=10$ constraint drastically changes the problem.  The milp\_fix1 result
+was not a fair benchmark.
+
+With correct $\delta$, the scheduling problem is much harder: consecutive
+aircraft must be separated by 10 minutes, which for dense instances (R=30,
+4 positions, many aircraft per position) leaves little flexibility in timing.
+
+\paragraph{FAS overhead: confirmed sub-second.}
+
+Build times are $<0.02$\,s per assignment for all instances.
+The Pyomo overhead of $\sim$110\,s for R=30 was entirely a model-construction
+artefact, not a Gurobi limitation.
+
+\paragraph{Small instances: TGR matches or equals optimal in 10\,s.}
+
+For R$\leq$5, TGR matches the MILP optimal in under 10 total seconds —
+7--8$\times$ faster than the 60\,s MILP.  This is the expected regime for
+TGR: small instances where each GRASP + FAS cycle is fast.
+
+\subsection{Root Cause and Corrective Experiment}
+\label{exp:exp02-correction}
+
+The separation between assignment generation and scheduling is sound in
+principle, but the assignment generator must be as good as possible because
+the FAS MILP cannot improve the assignment, only the timing.
+
+\textbf{Key insight}: for medium/large instances, the topology heuristic with
+full local search (\texttt{topology\_ms6}) already produces the best achievable
+assignments within a 60\,s budget.  The correct pipeline is therefore:
+
+\begin{enumerate}[noitemsep]
+    \item Run \texttt{topology\_ms6} for the full 60\,s budget.
+    \item Pass the best solution's assignment to \texttt{FixedAssignmentScheduler}
+          with a \emph{short additional budget} (or zero extra budget, checking
+          whether FAS improves over the heuristic timing within the same assignment).
+\end{enumerate}
+
+This is effectively ``honest milp\_fix1'' — the same idea as Exp.~01-B but
+with the correct $\delta$ constraint.  The experiment \texttt{fas\_on\_topo} in
+Series~03 tests this directly.
+
+A second corrective direction is to increase the per-assignment topology budget
+(e.g.\ 20\,s per assignment for $K=3$), so assignments are stronger before
+FAS scheduling.
+
+\subsection{Next Steps}
+\label{exp:exp02-next}
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Exp.~03-A (\texttt{fas\_on\_topo})}: \emph{done} — see
+          Section~\ref{sec:exp03}.
+    \item \textbf{Exp.~03-B (\texttt{tgr\_long})}: increase topology budget to 20\,s per
+          assignment with $K=3$, giving each GRASP run 20\,s with \texttt{ls\_mode="full"}.
+          Test whether stronger assignments recover TGR performance.
+    \item \textbf{Fix \texttt{check\_solution.py}}: add RQ08 to verify
+          consecutive aircraft at the same position are separated by $\geq\delta$.
+    \item \textbf{$|C_r|=2$}: after confirming Exp.~03-A results, add flexibility
+          for the 1--2 aircraft where topology chose a sub-optimal position.
+\end{enumerate}
+
+% =============================================================================
+\newpage
+\section{Experiment Series 03: FAS on Topology Assignment}
+\label{sec:exp03}
+
+\subsection{Motivation}
+
+Series~02 showed that \texttt{TGRSolver} underperforms \texttt{topology\_ms6}
+on medium/large instances because fast GRASP (2\,s, no LS) generates weaker
+assignments than a full-budget topology run.  The corrective hypothesis is:
+
+\begin{quote}
+\emph{If the FAS is given the best assignment that \texttt{topology\_ms6} can
+find in 60\,s, can the exact scheduler improve on the heuristic's timing
+within that same assignment?}
+\end{quote}
+
+This is ``honest \texttt{milp\_fix1}'': the same separation as Exp.~01-B but
+with the correct $\delta=10$ constraint in the FAS model.
+
+\subsection{Configuration}
+
+\begin{itemize}[noitemsep]
+    \item \textbf{Experiment label}: \texttt{fas\_on\_topo}
+    \item \textbf{Mechanism}: \texttt{topology\_ms6} runs first (60\,s); its best
+          solution's position map is extracted from the warm cache and passed to
+          \texttt{FixedAssignmentScheduler}.  FAS time limit = 60\,s.
+    \item Shared parameters: $w_M=0.1$, $w_D=1.0$, $w_V=10$, $\delta=10$,
+          MIPGap=0, seed=1.
+\end{itemize}
+
+\subsection{Results}
+\label{exp:exp03-results}
+
+\paragraph{Log file.} \texttt{run\_experiments\_20260514\_093456.log}
+
+\begin{table}[h]
+\centering
+\caption{FAS on topology\_ms6 assignment vs baselines (2026-05-14).  Bold = best per instance.}
+\label{tab:exp03}
+\begin{tabular}{llrrrrr}
+\toprule
+Instance (R) & Method & Obj & Makespan & Delay & Mov & Time(s) \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_custom} (R=10)}
+ & milp\_baseline & \textbf{4.79}  &  47.90 &  0.00 & 0 & 21.1 \\
+ & topology\_ms6  & 17.44          &  67.02 & 10.74 & 0 & 60.0 \\
+ & tgr\_k5        & 16.93          &  62.59 & 10.67 & 0 & 10.0 \\
+ & fas\_on\_topo  & \textbf{7.06}* &  65.25 &  0.54 & 0 &  0.0 \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_few-loose} (R=3)}
+ & milp\_baseline & \textbf{3.12}  &  31.22 &  0.00 & 0 &  0.1 \\
+ & topology\_ms6  & \textbf{3.12}  &  31.22 &  0.00 & 0 & 60.0 \\
+ & tgr\_k5        & \textbf{3.12}  &  31.22 &  0.00 & 0 & 10.0 \\
+ & fas\_on\_topo  & \textbf{3.12}  &  31.22 &  0.00 & 0 &  0.0 \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_few-tight} (R=2)}
+ & milp\_baseline & \textbf{6.39}  &  63.88 &  0.00 & 0 &  0.6 \\
+ & topology\_ms6  & \textbf{6.39}  &  63.88 &  0.00 & 0 & 60.0 \\
+ & tgr\_k5        & \textbf{6.39}  &  63.88 &  0.00 & 0 & 10.0 \\
+ & fas\_on\_topo  & \textbf{6.39}  &  63.88 &  0.00 & 0 &  0.0 \\
+\midrule
+\multirow{3}{*}{\texttt{scn\_heavy-tight} (R=30)}
+ & milp\_baseline & aborted         &     — &     — & — &    — \\
+ & \textbf{topology\_ms6} & \textbf{256.45} & 244.46 & 232.00 & 0 & 67.8 \\
+ & tgr\_k5        & 333.36          & 251.42 & 288.22 & 2 & 60.1 \\
+ & fas\_on\_topo  & 227.57$\dagger$ & 239.73 & 203.60 & 0 & 60.3 \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_many-medium} (R=20)}
+ & milp\_baseline & \textbf{200.78} & 105.40 & 190.24 & 0 & 70.8 \\
+ & topology\_ms6  & 242.86          & 111.01 & 231.76 & 0 & 60.0 \\
+ & tgr\_k5        & 242.65          & 106.21 & 232.03 & 0 & 60.1 \\
+ & fas\_on\_topo  & 253.59          & 111.93 & 242.40 & 0 & 20.4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent *\,\texttt{fas\_on\_topo} elapsed $<0.1$\,s for R=10 (optimal, small model);
+$\dagger$\,time-limited at 60\,s for R=30 (FAS not proven optimal).
+
+\subsection{Analysis}
+\label{exp:exp03-analysis}
+
+\paragraph{R=10: large improvement over topology\_ms6.}
+
+\texttt{fas\_on\_topo} reduces the objective from 17.44 to 7.06 on the R=10
+instance — a 59.5\% improvement — while using the \emph{same} position
+assignment.  This confirms that the heuristic scheduler (\texttt{\_rebuild})
+leaves significant timing slack unexploited.  The residual gap vs the
+\texttt{milp\_baseline} (4.79) is due to the position assignment itself,
+not the scheduler.
+
+\paragraph{R=30: FAS beats topology\_ms6 under time limit.}
+
+\texttt{fas\_on\_topo} achieves 227.57 vs topology\_ms6's 256.45, a 11.3\%
+improvement, even though Gurobi did not prove optimality within 60\,s
+(status: \texttt{maxTimeLim}).  The FAS model on R=30 is substantially
+harder than on R=10 because $\delta=10$ with 30 aircraft and 5 positions
+creates dense sequencing constraints.  More time would likely yield a
+better or proven-optimal solution.
+
+\paragraph{R=20: FAS \emph{worse} than topology\_ms6.}
+
+\texttt{fas\_on\_topo} gives 253.59 vs 242.86 for topology\_ms6 — a 4.4\%
+regression.  Gurobi solved to optimality in 20\,s, so the FAS optimum
+is exact given the topology\_ms6 assignment.  This means: the optimal
+schedule for that assignment is 253.59, yet the greedy heuristic on the
+\emph{same} assignment achieves 242.86.
+
+\paragraph{Root cause of R=20 regression.}
+
+The greedy heuristic (\texttt{\_rebuild}) in \texttt{topology\_ms6} does
+\emph{not} enforce $\delta=10$ between consecutive aircraft at the same
+position.  It uses $\texttt{pos\_free}[p] + \delta$ only when the position
+is currently occupied — but for the initial schedule or after improvements,
+some consecutive pairs may be packed tighter or later without the $\delta$
+gap.  Conversely, the FAS model enforces $\delta$ strictly via the ordering
+constraints.  For dense instances (R=20, many aircraft per position), this
+makes the FAS feasible region strictly smaller than the heuristic's, so the
+FAS optimum can be worse than the heuristic objective which ``cheats'' on
+the separation.
+
+\paragraph{Implication.}
+
+The R=20 regression is not a model bug — it reflects that \texttt{topology\_ms6}
+is producing schedules that violate the $\delta=10$ same-position separation
+in the strict sense.  Fixing this in the heuristic (enforcing $\delta$ consistently)
+would likely raise the topology\_ms6 objective on R=20 and make FAS competitive.
+This is the next modelling step.
+
+\paragraph{Small instances: FAS is the right tool.}
+
+For R$\leq$5, FAS matches optimal in $<0.1$\,s, vs 60\,s MILP baseline
+and 60\,s topology.  FAS is the clear winner in speed for small instances.
+
+\subsection{Next Steps}
+\label{exp:exp03-next}
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Enforce $\delta$ consistently in heuristic}: audit
+          \texttt{\_rebuild} and \texttt{\_find\_best\_start} to ensure
+          $\delta$ is always added between consecutive aircraft at the
+          same position, not just when the position is currently occupied.
+    \item \textbf{Add RQ08 to \texttt{check\_solution.py}}: verify that
+          consecutive aircraft at the same position satisfy
+          $S_{r'} \geq F_r + \delta$.
+    \item \textbf{Re-run after heuristic fix}: compare topology\_ms6 vs
+          fas\_on\_topo on R=20 once the heuristic uses consistent $\delta$.
+    \item \textbf{Exp.~03-B (\texttt{tgr\_long})}: test TGR with 20\,s per
+          assignment ($K=3$, \texttt{ls\_mode="full"}) to see if stronger
+          assignments close the gap vs topology\_ms6.
+\end{enumerate}

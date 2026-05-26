@@ -1,0 +1,120 @@
+{
+  "instance": "scn_few-loose_seed11_P3_pl5",
+  "solver": "topology",
+  "label": "topology_ms6",
+  "config": {
+    "time_limit_s": 60,
+    "min_separation": 10.0,
+    "weight_makespan": 0.1,
+    "weight_delay": 1.0,
+    "weight_movements": 10,
+    "weight_topology": 1.0,
+    "alpha": 0.3,
+    "seed": 1,
+    "n_starts": 6,
+    "log_enabled": false,
+    "MIPGap": 0.0,
+    "NoRelHeurTime": 0
+  },
+  "timestamp": "20260514_143813",
+  "solve_time_s": 60.004,
+  "status": "topology (8519 iterations)",
+  "objective": 3.6554,
+  "metrics": {
+    "makespan": 36.554,
+    "movements": 0,
+    "total_delay": 0.0
+  },
+  "aircraft": [
+    {
+      "id": "R2",
+      "position": "P4",
+      "start": 0.0,
+      "finish": 13.67,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J2-1",
+          "start": 0.0,
+          "finish": 13.67
+        }
+      ]
+    },
+    {
+      "id": "R1",
+      "position": "P1",
+      "start": 0.0,
+      "finish": 14.08,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J1-1",
+          "start": 0.0,
+          "finish": 14.08
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "position": "P5",
+      "start": 0.0,
+      "finish": 29.24,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J3-1",
+          "start": 0.0,
+          "finish": 9.11
+        },
+        {
+          "id": "J3-2",
+          "start": 9.11,
+          "finish": 17.53
+        },
+        {
+          "id": "J3-3",
+          "start": 17.53,
+          "finish": 29.24
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "position": "P3",
+      "start": 0.0,
+      "finish": 9.83,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J4-1",
+          "start": 0.0,
+          "finish": 9.83
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "position": "P2",
+      "start": 7.684,
+      "finish": 36.554,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J5-1",
+          "start": 7.684,
+          "finish": 12.144
+        },
+        {
+          "id": "J5-2",
+          "start": 12.144,
+          "finish": 26.844
+        },
+        {
+          "id": "J5-3",
+          "start": 26.844,
+          "finish": 36.554
+        }
+      ]
+    }
+  ]
+}

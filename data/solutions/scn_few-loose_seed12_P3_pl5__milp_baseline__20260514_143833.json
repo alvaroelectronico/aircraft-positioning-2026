@@ -1,0 +1,110 @@
+{
+  "instance": "scn_few-loose_seed12_P3_pl5",
+  "solver": "milp",
+  "label": "milp_baseline",
+  "config": {
+    "min_separation": 10.0,
+    "weight_makespan": 0.1,
+    "weight_delay": 1.0,
+    "weight_movements": 10,
+    "time_limit_s": 60,
+    "MIPGap": 0.0,
+    "NoRelHeurTime": 0
+  },
+  "timestamp": "20260514_143833",
+  "solve_time_s": 0.362,
+  "status": "optimal",
+  "objective": 2.54,
+  "metrics": {
+    "makespan": 25.36,
+    "movements": 0,
+    "total_delay": 0.0
+  },
+  "aircraft": [
+    {
+      "id": "R1",
+      "position": "P2",
+      "start": 0.0,
+      "finish": 25.36,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J1-1",
+          "start": 0.0,
+          "finish": 13.14
+        },
+        {
+          "id": "J1-2",
+          "start": 13.14,
+          "finish": 25.36
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "position": "P3",
+      "start": 0.0,
+      "finish": 12.17,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J2-1",
+          "start": 0.0,
+          "finish": 12.17
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "position": "P4",
+      "start": 0.0,
+      "finish": 14.5,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J3-1",
+          "start": 0.0,
+          "finish": 6.38
+        },
+        {
+          "id": "J3-2",
+          "start": 6.38,
+          "finish": 14.5
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "position": "P5",
+      "start": 0.0,
+      "finish": 15.72,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J4-1",
+          "start": 0.0,
+          "finish": 6.04
+        },
+        {
+          "id": "J4-2",
+          "start": 6.04,
+          "finish": 15.72
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "position": "P1",
+      "start": 0.0,
+      "finish": 9.93,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J5-1",
+          "start": 0.0,
+          "finish": 9.93
+        }
+      ]
+    }
+  ]
+}

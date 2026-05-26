@@ -1,0 +1,185 @@
+\babel@toc {english}{}\relax 
+\contentsline {section}{\numberline {1}Problem Statement}{4}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Context}{4}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Input Data}{4}{subsection.1.2}%
+\contentsline {paragraph}{Aircraft.}{4}{section*.2}%
+\contentsline {paragraph}{Jobs.}{4}{section*.3}%
+\contentsline {paragraph}{Hangar topology.}{4}{section*.4}%
+\contentsline {paragraph}{Separation.}{4}{section*.5}%
+\contentsline {subsection}{\numberline {1.3}Decisions}{4}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}Objective Function}{4}{subsection.1.4}%
+\contentsline {subsection}{\numberline {1.5}Blocking Movements}{5}{subsection.1.5}%
+\contentsline {subsection}{\numberline {1.6}Feasibility}{5}{subsection.1.6}%
+\contentsline {section}{\numberline {2}MILP Formulation}{6}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Sets}{6}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Parameters}{6}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Decision Variables}{6}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Objective}{7}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Constraints}{7}{subsection.2.5}%
+\contentsline {paragraph}{Assignment and timing.}{7}{section*.6}%
+\contentsline {paragraph}{Precedences.}{7}{section*.7}%
+\contentsline {paragraph}{Non-overlap within a position (disjunctive scheduling).}{7}{section*.8}%
+\contentsline {paragraph}{Blocking movement indicators.}{8}{section*.9}%
+\contentsline {paragraph}{KPI aggregation.}{8}{section*.10}%
+\contentsline {subsection}{\numberline {2.6}Model Size}{8}{subsection.2.6}%
+\contentsline {subsection}{\numberline {2.7}Solver Configuration}{8}{subsection.2.7}%
+\contentsline {section}{\numberline {3}Constructive Heuristic}{9}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Overview}{9}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Algorithm}{9}{subsection.3.2}%
+\contentsline {paragraph}{Joint pair selection.}{9}{section*.11}%
+\contentsline {subsection}{\numberline {3.3}Construction Scoring}{9}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Local Search}{10}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}ILS Perturbation}{10}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}Parameters}{10}{subsection.3.6}%
+\contentsline {subsection}{\numberline {3.7}Complexity}{11}{subsection.3.7}%
+\contentsline {section}{\numberline {4}Large Neighbourhood Search (LNS)}{12}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Overview}{12}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Algorithm}{13}{subsection.4.2}%
+\contentsline {paragraph}{Accept correctness.}{13}{section*.12}%
+\contentsline {subsection}{\numberline {4.3}Initialisation}{14}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Destroy Strategies}{14}{subsection.4.4}%
+\contentsline {subsubsection}{\numberline {4.4.1}Adaptive LNS (\texttt {destroy = alns})}{14}{subsubsection.4.4.1}%
+\contentsline {subsubsection}{\numberline {4.4.2}Space-Time Cluster Destroy (\texttt {cluster})}{15}{subsubsection.4.4.2}%
+\contentsline {subsection}{\numberline {4.5}Repair Operators}{15}{subsection.4.5}%
+\contentsline {subsubsection}{\numberline {4.5.1}Exhaustive Repair ($k \leq k_{\text {exact}}$)}{15}{subsubsection.4.5.1}%
+\contentsline {subsubsection}{\numberline {4.5.2}GRASP Repair ($k > k_{\text {exact}}$, \texttt {repair = grasp})}{15}{subsubsection.4.5.2}%
+\contentsline {subsubsection}{\numberline {4.5.3}Sub-MILP Repair ($k > k_{\text {exact}}$, \texttt {repair = submilp / auto})}{15}{subsubsection.4.5.3}%
+\contentsline {paragraph}{Fallback monitoring.}{15}{section*.13}%
+\contentsline {subsection}{\numberline {4.6}Schedule Rebuild}{15}{subsection.4.6}%
+\contentsline {subsection}{\numberline {4.7}Local Search}{15}{subsection.4.7}%
+\contentsline {subsection}{\numberline {4.8}Parameters}{16}{subsection.4.8}%
+\contentsline {subsection}{\numberline {4.9}Complexity and Iteration Throughput}{16}{subsection.4.9}%
+\contentsline {section}{\numberline {5}Topology-Aware Heuristic}{17}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Motivation}{17}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Topological Pre-computation}{17}{subsection.5.2}%
+\contentsline {paragraph}{Blocking load.}{17}{section*.14}%
+\contentsline {paragraph}{Aircraft slack.}{17}{section*.15}%
+\contentsline {paragraph}{Urgency factor.}{17}{section*.16}%
+\contentsline {subsection}{\numberline {5.3}Algorithm}{18}{subsection.5.3}%
+\contentsline {paragraph}{Sequential construction.}{18}{section*.17}%
+\contentsline {subsection}{\numberline {5.4}Topology Penalty}{18}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}Adaptive GRASP Alpha}{18}{subsection.5.5}%
+\contentsline {subsection}{\numberline {5.6}Construction Order and Noise Injection}{19}{subsection.5.6}%
+\contentsline {subsection}{\numberline {5.7}LNS Perturbation Kicks}{19}{subsection.5.7}%
+\contentsline {subsection}{\numberline {5.8}Bounded Local Search}{19}{subsection.5.8}%
+\contentsline {paragraph}{Operators 1–3 (position assignment, $O(nP)$ per pass).}{19}{section*.18}%
+\contentsline {paragraph}{Operators 4–7 (intra-position sequencing, $O(n^2 P)$ per pass).}{19}{section*.19}%
+\contentsline {subsection}{\numberline {5.9}Parameters}{20}{subsection.5.9}%
+\contentsline {subsection}{\numberline {5.10}Assignment Generator (\texttt {generate\_assignments})}{20}{subsection.5.10}%
+\contentsline {paragraph}{Rationale.}{20}{section*.20}%
+\contentsline {subsection}{\numberline {5.11}Relationship to Other Methods and Ablation Variants}{21}{subsection.5.11}%
+\contentsline {section}{\numberline {6}Fixed-Assignment Scheduler}{22}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Motivation}{22}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Model}{22}{subsection.6.2}%
+\contentsline {paragraph}{Variables.}{22}{section*.21}%
+\contentsline {paragraph}{Constraints.}{22}{section*.22}%
+\contentsline {paragraph}{Objective.}{23}{section*.23}%
+\contentsline {subsection}{\numberline {6.3}Implementation}{23}{subsection.6.3}%
+\contentsline {paragraph}{Job chain recovery.}{23}{section*.24}%
+\contentsline {paragraph}{Interface.}{23}{section*.25}%
+\contentsline {subsection}{\numberline {6.4}Parameters}{23}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}Movement Counting Difference vs Topology Heuristic}{23}{subsection.6.5}%
+\contentsline {subsection}{\numberline {6.6}Model Size and Build Time}{24}{subsection.6.6}%
+\contentsline {section}{\numberline {7}TGR-MILP Solver}{25}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Motivation}{25}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Algorithm}{25}{subsection.7.2}%
+\contentsline {paragraph}{Time budget split.}{25}{section*.26}%
+\contentsline {subsection}{\numberline {7.3}Implementation}{25}{subsection.7.3}%
+\contentsline {paragraph}{Deduplication.}{25}{section*.27}%
+\contentsline {paragraph}{Best-solution selection.}{25}{section*.28}%
+\contentsline {subsection}{\numberline {7.4}Observed Performance}{25}{subsection.7.4}%
+\contentsline {subsection}{\numberline {7.5}Parameters}{26}{subsection.7.5}%
+\contentsline {section}{\numberline {8}Experiment Series 01: Topology Calibration and TGR-MILP}{27}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Motivation and Research Questions}{27}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Implementation}{27}{subsection.8.2}%
+\contentsline {paragraph}{Topology calibration.}{27}{section*.29}%
+\contentsline {paragraph}{Fix-position diagnostic (\texttt {milp\_fix1}).}{27}{section*.30}%
+\contentsline {subsection}{\numberline {8.3}Results}{27}{subsection.8.3}%
+\contentsline {paragraph}{Log file.}{27}{section*.31}%
+\contentsline {paragraph}{Configuration.}{27}{section*.32}%
+\contentsline {subsubsection}{\numberline {8.3.1}Exp.~01-A — Topology Calibration (two-speed LS + size-adaptive starts)}{27}{subsubsection.8.3.1}%
+\contentsline {subsubsection}{\numberline {8.3.2}Exp.~01-B — $|C_r|=1$ Fix-Position Diagnostic (\texttt {milp\_fix1})}{27}{subsubsection.8.3.2}%
+\contentsline {subsection}{\numberline {8.4}Analysis}{28}{subsection.8.4}%
+\contentsline {paragraph}{The gap is almost entirely in timing, not position assignment.}{28}{section*.35}%
+\contentsline {paragraph}{Implication: TGR-MILP is the correct next step.}{28}{section*.36}%
+\contentsline {paragraph}{R=30 timing issue.}{28}{section*.37}%
+\contentsline {paragraph}{Topology regression on R=10 — partially resolved.}{29}{section*.38}%
+\contentsline {subsection}{\numberline {8.5}Next Steps}{29}{subsection.8.5}%
+\contentsline {section}{\numberline {9}Experiment Series 02: TGR-MILP Pipeline}{30}{section.9}%
+\contentsline {subsection}{\numberline {9.1}Motivation}{30}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}Phase 0 — Audit of \texttt {milp\_fix1} Results}{30}{subsection.9.2}%
+\contentsline {paragraph}{Finding: minimum separation $\delta $ absent from same-position non-overlap.}{30}{section*.39}%
+\contentsline {paragraph}{Consequence.}{30}{section*.40}%
+\contentsline {paragraph}{Implication.}{30}{section*.41}%
+\contentsline {paragraph}{Additional check: \texttt {check\_solution} passes all RQ01--RQ07.}{30}{section*.42}%
+\contentsline {subsection}{\numberline {9.3}Implementation}{30}{subsection.9.3}%
+\contentsline {subsubsection}{\numberline {9.3.1}\texttt {FixedAssignmentScheduler} (\texttt {solvers/fixed\_assignment\_scheduler.py})}{30}{subsubsection.9.3.1}%
+\contentsline {subsubsection}{\numberline {9.3.2}\texttt {generate\_assignments} in \texttt {TopologyHeuristic}}{31}{subsubsection.9.3.2}%
+\contentsline {subsubsection}{\numberline {9.3.3}\texttt {TGRSolver} (\texttt {solvers/tgr\_solver.py})}{31}{subsubsection.9.3.3}%
+\contentsline {subsection}{\numberline {9.4}Results}{31}{subsection.9.4}%
+\contentsline {paragraph}{Log file.}{31}{section*.43}%
+\contentsline {paragraph}{Configuration.}{31}{section*.44}%
+\contentsline {subsubsection}{\numberline {9.4.1}TGR-MILP vs baselines}{31}{subsubsection.9.4.1}%
+\contentsline {paragraph}{Log file.}{31}{section*.45}%
+\contentsline {subsection}{\numberline {9.5}Analysis}{31}{subsection.9.5}%
+\contentsline {paragraph}{TGR underperforms topology\_ms6 on R=20/30.}{31}{section*.47}%
+\contentsline {paragraph}{The $\delta =10$ constraint is the decisive factor.}{32}{section*.48}%
+\contentsline {paragraph}{FAS overhead: confirmed sub-second.}{32}{section*.49}%
+\contentsline {paragraph}{Small instances: TGR matches or equals optimal in 10\,s.}{32}{section*.50}%
+\contentsline {subsection}{\numberline {9.6}Root Cause and Corrective Experiment}{33}{subsection.9.6}%
+\contentsline {subsection}{\numberline {9.7}Next Steps}{33}{subsection.9.7}%
+\contentsline {section}{\numberline {10}Experiment Series 03: FAS on Topology Assignment}{34}{section.10}%
+\contentsline {subsection}{\numberline {10.1}Motivation}{34}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}Configuration}{34}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}Results}{34}{subsection.10.3}%
+\contentsline {paragraph}{Log file.}{34}{section*.51}%
+\contentsline {subsection}{\numberline {10.4}Analysis}{35}{subsection.10.4}%
+\contentsline {paragraph}{R=10: large improvement over topology\_ms6.}{35}{section*.53}%
+\contentsline {paragraph}{R=30: FAS beats topology\_ms6 under time limit.}{35}{section*.54}%
+\contentsline {paragraph}{R=20: FAS \emph {worse} than topology\_ms6.}{35}{section*.55}%
+\contentsline {paragraph}{Root cause of R=20 regression.}{35}{section*.56}%
+\contentsline {paragraph}{Implication.}{35}{section*.57}%
+\contentsline {paragraph}{Small instances: FAS is the right tool.}{35}{section*.58}%
+\contentsline {subsection}{\numberline {10.5}Next Steps}{35}{subsection.10.5}%
+\contentsline {section}{\numberline {11}Experiment Series 04: Strict-$\delta $ Baselines}{36}{section.11}%
+\contentsline {subsection}{\numberline {11.1}Motivation}{36}{subsection.11.1}%
+\contentsline {subsection}{\numberline {11.2}Configuration}{36}{subsection.11.2}%
+\contentsline {subsection}{\numberline {11.3}Results}{36}{subsection.11.3}%
+\contentsline {paragraph}{Log file.}{36}{section*.59}%
+\contentsline {subsection}{\numberline {11.4}Analysis}{36}{subsection.11.4}%
+\contentsline {paragraph}{Impact of correcting $\delta $ in the MILP baseline.}{36}{section*.61}%
+\contentsline {paragraph}{Topology heuristic is now the strongest method for R=20/30.}{36}{section*.62}%
+\contentsline {paragraph}{FAS on topology assignment: R=20 regression resolved.}{37}{section*.63}%
+\contentsline {paragraph}{R=30: fas\_on\_topo nearly matches topology\_ms6.}{37}{section*.64}%
+\contentsline {paragraph}{Small instances: all methods find the same optimum.}{37}{section*.65}%
+\contentsline {subsection}{\numberline {11.5}Summary of Corrections Applied (2026-05-14)}{37}{subsection.11.5}%
+\contentsline {subsection}{\numberline {11.6}Root Cause of fas\_on\_topo $>$ topology on R=20}{38}{subsection.11.6}%
+\contentsline {subsection}{\numberline {11.7}Next Steps}{38}{subsection.11.7}%
+\contentsline {section}{\numberline {12}Experiment Series 05: Safe Pipeline and \texttt {fas\_2cand}}{39}{section.12}%
+\contentsline {subsection}{\numberline {12.1}Motivation}{39}{subsection.12.1}%
+\contentsline {subsection}{\numberline {12.2}Configuration}{39}{subsection.12.2}%
+\contentsline {subsection}{\numberline {12.3}Results}{39}{subsection.12.3}%
+\contentsline {subsection}{\numberline {12.4}Analysis}{40}{subsection.12.4}%
+\contentsline {paragraph}{safe\_pipeline guarantees no regression.}{40}{section*.67}%
+\contentsline {paragraph}{fas\_2cand improves R=10 significantly.}{40}{section*.68}%
+\contentsline {paragraph}{fas\_2cand is time-limited and worse for R=20/30.}{40}{section*.69}%
+\contentsline {paragraph}{Topology result for R=30 improved dramatically vs Series~04.}{40}{section*.70}%
+\contentsline {subsection}{\numberline {12.5}Experiment Ordering Fix}{40}{subsection.12.5}%
+\contentsline {subsection}{\numberline {12.6}Summary}{40}{subsection.12.6}%
+\contentsline {subsection}{\numberline {12.7}Next Steps}{40}{subsection.12.7}%
+\contentsline {section}{\numberline {13}Experiment Series 06: Full Comparative Benchmark}{42}{section.13}%
+\contentsline {subsection}{\numberline {13.1}Motivation}{42}{subsection.13.1}%
+\contentsline {subsection}{\numberline {13.2}Configuration}{42}{subsection.13.2}%
+\contentsline {subsection}{\numberline {13.3}Results by Instance Family}{42}{subsection.13.3}%
+\contentsline {subsubsection}{\numberline {13.3.1}Small instances: \texttt {scn\_few-tight} ($R=2$, 12 seeds) and \texttt {scn\_few-loose} ($R=3$, 12 seeds)}{42}{subsubsection.13.3.1}%
+\contentsline {subsubsection}{\numberline {13.3.2}\texttt {scn\_custom} ($R=10$--$20$, six payload levels pl10--pl20)}{42}{subsubsection.13.3.2}%
+\contentsline {subsubsection}{\numberline {13.3.3}\texttt {scn\_heavy-tight} ($R=30$, 8 seeds)}{42}{subsubsection.13.3.3}%
+\contentsline {subsubsection}{\numberline {13.3.4}\texttt {scn\_many-medium} ($R=20$, 12 seeds)}{42}{subsubsection.13.3.4}%
+\contentsline {subsection}{\numberline {13.4}Analysis}{43}{subsection.13.4}%
+\contentsline {paragraph}{safe\_pipeline is the overall best method for $R\geq 20$.}{43}{section*.74}%
+\contentsline {paragraph}{fas\_on\_topo reversal at R=30.}{43}{section*.75}%
+\contentsline {paragraph}{MILP baseline loses all practical value for $R\geq 14$.}{43}{section*.76}%
+\contentsline {paragraph}{tgr\_k5 is inconsistent.}{43}{section*.77}%
+\contentsline {paragraph}{fas\_2cand only reliable for $R\leq 12$.}{44}{section*.78}%
+\contentsline {subsection}{\numberline {13.5}Summary Table}{44}{subsection.13.5}%
+\contentsline {subsection}{\numberline {13.6}Next Steps}{44}{subsection.13.6}%

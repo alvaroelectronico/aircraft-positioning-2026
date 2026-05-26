@@ -1,0 +1,297 @@
+% =============================================================================
+%  Section: Large Neighbourhood Search
+% =============================================================================
+\section{Large Neighbourhood Search (LNS)}
+\label{sec:lns}
+
+\subsection{Overview}
+
+The LNS solver (\texttt{solvers/lns\_solver.py}) iterates a
+\textbf{destroy–repair–accept} cycle.  Starting from a good initial solution,
+it repeatedly removes a subset of aircraft (\emph{destroy}), re-optimises
+their position assignments (\emph{repair}), and accepts the result if it
+improves the incumbent.
+
+Three repair operators are available:
+\begin{itemize}[noitemsep]
+    \item \emph{Exhaustive repair} — enumerate all $|\mathcal{P}|^k$
+          combinations when $k \leq k_{\text{exact}}$.
+    \item \emph{GRASP repair} — $n_{\text{grasp\_repair}}$ randomised
+          re-insertions for high iteration throughput.
+    \item \emph{Sub-MILP repair} — compact \texttt{gurobipy} model solved
+          exactly for the $k$ free aircraft; yields maximum quality per call.
+\end{itemize}
+
+The destroy strategy is selected either statically (e.g.\ \texttt{mixed},
+\texttt{cluster}) or \emph{adaptively} via \textbf{ALNS} (Adaptive LNS),
+which maintains per-strategy weights updated by a reward signal after each
+iteration.
+
+\subsection{Algorithm}
+
+\begin{algorithm}[H]
+\caption{Large Neighbourhood Search (LNS / ALNS)}
+\begin{algorithmic}[1]
+\If{\texttt{warm\_solution} provided}
+    \State $s_0 \leftarrow \texttt{warm\_solution}$   \Comment{e.g.\ from TopologyHeuristic}
+\Else
+    \State $s_0 \leftarrow \text{ConstructiveHeuristic}(t_{\text{init}})$
+\EndIf
+\State $s^* \leftarrow \text{LocalSearch}(s_0,\; \texttt{max\_passes} = \max(5,\lfloor R/2\rfloor))$
+\State $s_{\text{cur}} \leftarrow s^*$
+\If{destroy $=$ \texttt{alns}}
+    \State Initialise weights $w_d \leftarrow 1$ for each $d \in \mathcal{D}_{\text{alns}}$
+\EndIf
+\While{time budget not exhausted}
+    \State $k \sim \mathcal{U}[k_{\min}, k_{\max}]$
+    \State $d^* \leftarrow$ selected destroy strategy (roulette if ALNS, else static)
+    \State $\mathcal{R}_{\text{del}} \leftarrow \text{Destroy}(s_{\text{cur}}, k, d^*)$
+    \If{$k \leq k_{\text{exact}}$}
+        \State $s \leftarrow \text{ExhaustiveRepair}(\mathcal{R}_{\text{del}})$
+    \ElsIf{gurobipy available \textbf{and} \texttt{repair} $\in$ \{\texttt{submilp}, \texttt{auto}\}}
+        \State $s \leftarrow \text{SubMILPRepair}(\mathcal{R}_{\text{del}})$
+        \If{$s = \emptyset$} $s \leftarrow \text{GRASPRepair}(\mathcal{R}_{\text{del}})$ \EndIf
+    \Else
+        \State $s \leftarrow \text{GRASPRepair}(\mathcal{R}_{\text{del}})$
+    \EndIf
+    \State $s_{\text{rb}} \leftarrow \text{Rebuild}(s)$   \Comment{greedy schedule from position assignment}
+    \If{$z(s_{\text{rb}}) < z(s_{\text{cur}})$}   \Comment{compare rebuild quality — not trial quality}
+        \State $s_{\text{cur}} \leftarrow s_{\text{rb}}$
+        \If{$z(s_{\text{rb}}) < z(s^*)$}
+            \State $s^* \leftarrow \text{LocalSearch}(s_{\text{rb}})$   \Comment{convergent polish on global best}
+            \State Update ALNS weight: global-best reward
+        \Else
+            \State Update ALNS weight: local-improvement reward
+        \EndIf
+    \Else
+        \State Update ALNS weight: no-improvement reward
+    \EndIf
+    \If{no improvement for \texttt{restart\_every} iterations}
+        \State $s_{\text{cur}} \leftarrow \text{ConstructiveHeuristic}()$
+              + $\text{LocalSearch}(\cdot,\;\texttt{max\_passes})$
+    \EndIf
+\EndWhile
+\State \Return $s^*$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Accept correctness.}
+The repair step may produce a trial solution $s$ whose objective is computed
+from an optimised schedule (GRASP or Gurobi).  The actual schedule stored in
+$s_{\text{cur}}$ is obtained by \texttt{Rebuild}, a greedy procedure that
+processes aircraft in earliest-start order.  Because Rebuild may yield a
+different (potentially worse) objective than the trial, the accept condition
+uses \emph{Rebuild quality}, not trial quality.  Using the trial quality for
+acceptance but storing the Rebuild result would silently degrade $s_{\text{cur}}$
+over many iterations.
+
+\subsection{Initialisation}
+
+Two warm-start modes are supported:
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{External warm solution.}  If \texttt{warm\_solution} is
+          passed in \texttt{params}, it is used directly as the starting point.
+          This allows, for example, the topology heuristic to seed the LNS
+          with a high-quality initial solution rather than spending budget on
+          an internal constructive run.
+    \item \textbf{Internal constructive run.}  Otherwise, the LNS spends
+          $t_{\text{init}} = \min(10\text{ s},\; 0.15 \cdot t_{\text{limit}})$
+          running the Constructive Heuristic (Section~\ref{sec:constructive})
+          with $\alpha = 0.7$.
+\end{enumerate}
+
+After obtaining $s_0$, a \textbf{bounded local search} is applied with
+$\texttt{max\_passes} = \max(5,\; \lfloor R/2 \rfloor)$.  The cap prevents
+the initial polish from consuming the entire time budget on large instances
+(e.g.\ $R=30$, where an unbounded convergent search can take tens of seconds).
+The same bound is applied to local searches triggered by restarts.
+
+\subsection{Destroy Strategies}
+\label{sec:destroy}
+
+The destroy operator selects $k$ aircraft to remove from the current solution.
+Six strategies are available:
+
+\begin{center}
+\begin{tabular}{lp{8.5cm}}
+\toprule
+Strategy & Description \\
+\midrule
+\texttt{worst} & Remove the $k$ aircraft with the largest individual delays
+    $\Delta_r$. \\
+\texttt{most\_blocking} & Score each aircraft by the number of active blocking
+    arcs it participates in; remove the $k$ highest-scoring aircraft. \\
+\texttt{random} & Uniform random selection. \\
+\texttt{mixed} & Use \texttt{most\_blocking} when total delay $\approx 0$;
+    otherwise use \texttt{worst}. \\
+\texttt{cluster} & Space-time cluster destroy
+    (see Section~\ref{sec:cluster-destroy}). \\
+\texttt{mixed\_cluster} & Use \texttt{most\_blocking} when total delay $\approx 0$;
+    otherwise use \texttt{cluster}. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection{Adaptive LNS (\texttt{destroy = alns})}
+\label{sec:alns}
+
+When \texttt{destroy = alns}, the solver maintains a weight $w_d \geq 0$ for
+each strategy $d$ in
+$\mathcal{D}_{\text{alns}} = \{\texttt{worst},\;\texttt{most\_blocking},\;\texttt{cluster}\}$.
+At the start of each iteration, a strategy is sampled by roulette:
+\begin{equation}
+    P(\text{select } d) = \frac{w_d}{\sum_{d'} w_{d'}}
+    \label{eq:alns-roulette}
+\end{equation}
+After each iteration, the weight of the selected strategy is updated with
+exponential smoothing:
+\begin{equation}
+    w_d \;\leftarrow\; (1 - \lambda)\,w_d \;+\; \lambda\,\rho
+    \label{eq:alns-update}
+\end{equation}
+where $\lambda = 0.85$ is the learning rate and $\rho$ is the reward:
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Event & Reward $\rho$ \\
+\midrule
+Repair improved global best $s^*$ & 3.0 \\
+Repair improved current solution only & 1.0 \\
+No improvement (rebuild $\geq s_{\text{cur}}$) & 0.0 \\
+\bottomrule
+\end{tabular}
+\end{center}
+All weights are initialised to $1.0$.  Final weights are printed at the end of
+each run for diagnostics.
+
+\subsubsection{Space-Time Cluster Destroy (\texttt{cluster})}
+\label{sec:cluster-destroy}
+
+The \texttt{cluster} strategy identifies a real bottleneck — a specific place
+and time where several aircraft compete for the same corridor — and destroys
+the entire involved neighbourhood simultaneously.
+
+\begin{algorithm}[H]
+\caption{Space-Time Cluster Destroy}
+\begin{algorithmic}[1]
+\State \textbf{Seed selection (roulette)}:
+    weight $r$ as $(\Delta_r + 1) \cdot (\text{bs}(r) + 1)$;
+    sample one aircraft $r^*$.
+\State \textbf{Spatial cluster}:
+    $\mathcal{P}^* \leftarrow \{p_{r^*}\}
+    \cup \{p' : (p_{r^*}, p') \in \mathcal{B}\}
+    \cup \{p' : (p', p_{r^*}) \in \mathcal{B}\}$
+\State \textbf{Temporal filter} with margin $= 0.5 \cdot \bar{D}$:
+    $\mathcal{C} \leftarrow \{r \in \mathcal{R}
+    : p_r \in \mathcal{P}^*
+    \;\wedge\; s_r < t_{f}^* + \text{margin}
+    \;\wedge\; f_r > t_{s}^* - \text{margin}\}$
+\State Rank $\mathcal{C}$ by $(\Delta_r + \text{bs}(r))$ descending; take top $k$.
+\State If $|\mathcal{C}| < k$, fill remainder with highest-$\Delta_r$ aircraft outside $\mathcal{C}$.
+\State \Return $k$ selected aircraft IDs.
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Repair Operators}
+
+\subsubsection{Exhaustive Repair ($k \leq k_{\text{exact}}$)}
+
+All $|\mathcal{P}|^k$ position combinations are enumerated.  For each
+combination, a complete schedule is rebuilt (\texttt{\_rebuild}) and the
+combination minimising the objective is selected.  For default settings
+($k_{\text{exact}} = 4$, $|\mathcal{P}| = 5$) this evaluates at most
+$5^4 = 625$ combinations per iteration.
+
+\subsubsection{GRASP Repair ($k > k_{\text{exact}}$, \texttt{repair = grasp})}
+
+$n_{\text{grasp\_repair}}$ (default 12) random trials are performed.  Each
+trial uses the GRASP construction from Section~\ref{sec:constructive} to
+re-insert $\mathcal{R}_{\text{free}}$ into the partial schedule defined by
+$\mathcal{R}_{\text{fix}}$.  The best trial is kept.
+
+\subsubsection{Sub-MILP Repair ($k > k_{\text{exact}}$, \texttt{repair = submilp / auto})}
+\label{sec:lns-submilp}
+
+When Gurobi is available, the sub-MILP repair replaces GRASP repair with an
+\emph{exact} solve of a compact subproblem.  A fresh \texttt{gurobipy} model
+is built containing only the $k$ free aircraft; fixed aircraft appear as
+time-window constraints on position occupancy intervals.  A module-level
+\texttt{gurobipy.Env} is created once at import time to amortise the
+$\sim$0.5\,s startup cost.
+
+\paragraph{Fallback monitoring.}
+After each run, the solver prints the sub-MILP call statistics:
+\begin{center}
+\texttt{sub-MILP calls=N  feasible=M (XX\%)  fallback\_grasp=K}
+\end{center}
+If the feasibility rate falls below 50\%, a warning is emitted recommending
+a reduction of \texttt{k\_max} or an increase of \texttt{repair\_time\_s}.
+
+\subsection{Schedule Rebuild}
+
+Given a position assignment $\{(r, p_r)\}_{r \in \mathcal{R}}$,
+\texttt{\_rebuild} computes start times by processing aircraft in
+earliest-start order (or an explicit order if provided — used by the
+intra-position adjacent-swap in local search):
+\[
+    t_s(r) = \max\bigl(e_r,\; \text{pos\_free}[p] + \delta,\;
+    t_s^{\text{block}}\bigr)
+\]
+
+\subsection{Local Search}
+
+Two invocations of the local search occur:
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Initial and restart polish:} bounded search with
+          $\texttt{max\_passes} = \max(5, \lfloor R/2 \rfloor)$.
+          Prevents the first polish from consuming the entire time budget on
+          large instances.
+    \item \textbf{Global-best polish:} convergent search (unbounded), fired
+          only when a repair strictly improves the global best $s^*$.
+          Repairs that only improve $s_{\text{cur}}$ are accepted without
+          local search, preserving iteration budget.
+\end{enumerate}
+
+Both invocations use single-move and 2-opt swap operators (first-improvement).
+
+\subsection{Parameters}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Parameter & Default & Description \\
+\midrule
+\texttt{time\_limit\_s} & 60 & Total budget (seconds) \\
+\texttt{min\_separation} & 10.0 & Minimum gap between aircraft \\
+\texttt{weight\_makespan} & 0.1 & $w_M$ \\
+\texttt{weight\_delay} & 1.0 & $w_D$ \\
+\texttt{weight\_movements} & 10 & $w_V$ \\
+\texttt{k\_min} & 2 & Minimum destroy size \\
+\texttt{k\_max} & 8 & Maximum destroy size \\
+\texttt{k\_exact} & 4 & Threshold for exhaustive vs.\ GRASP/sub-MILP repair \\
+\texttt{n\_grasp\_repair} & 12 & GRASP repair trials when $k > k_{\text{exact}}$ \\
+\texttt{destroy} & \texttt{alns} & Destroy strategy \\
+\texttt{repair} & \texttt{auto} & Repair: \texttt{grasp} $|$ \texttt{submilp} $|$ \texttt{auto} \\
+\texttt{repair\_time\_s} & 0.2 & Gurobi time budget per sub-MILP call (s) \\
+\texttt{restart\_every} & 50 & Restart after $N$ non-improving iterations \\
+\texttt{warm\_solution} & None & External solution injected as warm start \\
+\texttt{seed} & None & Random seed \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Complexity and Iteration Throughput}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Repair mode & Cost per iteration & Typical iters / 60\,s \\
+\midrule
+Exhaustive ($k \leq k_{\text{exact}}$) & $O(|\mathcal{P}|^k)$ rebuilds & — (always used) \\
+GRASP ($k > k_{\text{exact}}$) & $O(n_{\text{grasp}} \cdot R \cdot |\mathcal{P}|)$ & $\sim$200–400 \\
+Sub-MILP ($k > k_{\text{exact}}$) & Gurobi MIP, $\leq$ \texttt{repair\_time\_s} & $\sim$100–300 \\
+\bottomrule
+\end{tabular}
+\end{center}

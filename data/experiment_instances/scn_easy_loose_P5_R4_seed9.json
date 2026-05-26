@@ -1,0 +1,149 @@
+{
+  "hangar": {
+    "positions": [
+      "P1",
+      "P2",
+      "P3",
+      "P4",
+      "P5"
+    ],
+    "blocking_arcs": [
+      {
+        "front": "P3",
+        "rear": "P4"
+      },
+      {
+        "front": "P3",
+        "rear": "P5"
+      },
+      {
+        "front": "P4",
+        "rear": "P5"
+      }
+    ]
+  },
+  "aircrafts": [
+    {
+      "id": "R1",
+      "client": "C2",
+      "earliest_start": 2.318,
+      "target_finish": 13.875
+    },
+    {
+      "id": "R2",
+      "client": "C2",
+      "earliest_start": 0.0,
+      "target_finish": 16.726
+    },
+    {
+      "id": "R3",
+      "client": "C1",
+      "earliest_start": 0.0,
+      "target_finish": 17.978
+    },
+    {
+      "id": "R4",
+      "client": "C2",
+      "earliest_start": 0.061,
+      "target_finish": 14.575
+    }
+  ],
+  "jobs": [
+    {
+      "id": "J1-1",
+      "aircraft_id": "R1",
+      "duration": 3.267,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J1-2",
+      "aircraft_id": "R1",
+      "duration": 1.178,
+      "is_first": false,
+      "is_last": true
+    },
+    {
+      "id": "J2-1",
+      "aircraft_id": "R2",
+      "duration": 2.502,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J2-2",
+      "aircraft_id": "R2",
+      "duration": 3.474,
+      "is_first": false,
+      "is_last": false
+    },
+    {
+      "id": "J2-3",
+      "aircraft_id": "R2",
+      "duration": 3.276,
+      "is_first": false,
+      "is_last": true
+    },
+    {
+      "id": "J3-1",
+      "aircraft_id": "R3",
+      "duration": 0.764,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J3-2",
+      "aircraft_id": "R3",
+      "duration": 4.551,
+      "is_first": false,
+      "is_last": false
+    },
+    {
+      "id": "J3-3",
+      "aircraft_id": "R3",
+      "duration": 2.948,
+      "is_first": false,
+      "is_last": true
+    },
+    {
+      "id": "J4-1",
+      "aircraft_id": "R4",
+      "duration": 3.306,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J4-2",
+      "aircraft_id": "R4",
+      "duration": 2.277,
+      "is_first": false,
+      "is_last": true
+    }
+  ],
+  "job_precedences": [
+    {
+      "before": "J1-1",
+      "after": "J1-2"
+    },
+    {
+      "before": "J2-1",
+      "after": "J2-2"
+    },
+    {
+      "before": "J2-2",
+      "after": "J2-3"
+    },
+    {
+      "before": "J3-1",
+      "after": "J3-2"
+    },
+    {
+      "before": "J3-2",
+      "after": "J3-3"
+    },
+    {
+      "before": "J4-1",
+      "after": "J4-2"
+    }
+  ]
+}

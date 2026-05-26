@@ -1,0 +1,200 @@
+% =============================================================================
+%  Experiment Series 04: Strict-δ Baselines
+% =============================================================================
+\newpage
+\section{Experiment Series 04: Strict-$\delta$ Baselines}
+\label{sec:exp04}
+
+\subsection{Motivation}
+
+All results in Series~01--03 used an inconsistent feasibility definition:
+the Pyomo MILP did not enforce the minimum separation $\delta=10$\,min between
+consecutive aircraft at the same position, while the topology heuristic and
+FAS did.  This made direct objective comparisons invalid.
+
+Two fixes were applied on 2026-05-14:
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{RQ08 added to \texttt{check\_solution.py}}: verifies
+          $S_{r'} \geq F_r + \delta$ for every consecutive same-position pair.
+          Audit confirmed \texttt{topology\_ms6} passes RQ08 on all instances
+          ($\min\,\text{gap} = 10.00$ exactly).  The MILP baseline (pre-fix)
+          would have violated RQ08.
+    \item \textbf{MILP Pyomo corrected}: two new constraints added to
+          \texttt{models/milp\_pyomo.py} (see equations~\eqref{eq:same-pos-delta-1}
+          and~\eqref{eq:same-pos-delta-2} in Section~\ref{sec:milp}):
+          \begin{align*}
+              S_{r'} &\geq F_r + \delta - M(1-q_{rr'p}) - M(1-x_{rp}) - M(1-x_{r'p}) \\
+              S_r    &\geq F_{r'} + \delta - M(1-q_{r'rp}) - M(1-x_{rp}) - M(1-x_{r'p})
+          \end{align*}
+          The model size increases by $2|\mathcal{A}^2 \times \mathcal{P}|$
+          rows (e.g.\ 14326 → 14776 for $R=10$, 45271 → 47171 for $R=20$).
+\end{enumerate}
+
+\subsection{Configuration}
+
+Shared: $w_M=0.1$, $w_D=1.0$, $w_V=10$, $t_{\text{limit}}=60$\,s,
+MIPGap=0, $\delta=10$, $\alpha=0.3$, $w_{\text{topo}}=1$, seed=1.
+
+All four methods (\texttt{milp\_baseline}, \texttt{topology\_ms6},
+\texttt{tgr\_k5}, \texttt{fas\_on\_topo}) now operate under the same
+feasibility definition.
+
+\subsection{Results}
+\label{exp:exp04-results}
+
+\paragraph{Log file.} \texttt{run\_experiments\_20260514\_110159.log}
+
+\begin{table}[h]
+\centering
+\caption{Strict-$\delta$ baselines (2026-05-14).  All solutions pass RQ01--RQ08.
+Bold = best per instance.}
+\label{tab:exp04}
+\begin{tabular}{llrrrrr}
+\toprule
+Instance (R) & Method & Obj & Makespan & Delay & Mov & Time(s) \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_custom} (R=10)}
+ & milp\_baseline & \textbf{5.87}  &  58.67 &  0.00 & 0 & 28.3 \\
+ & topology\_ms6  & 17.10          &  72.72 &  9.83 & 0 & 60.0 \\
+ & tgr\_k5        & 16.93          &  62.59 & 10.67 & 0 & 10.1 \\
+ & fas\_on\_topo  & \textbf{7.06}* &  65.25 &  0.54 & 0 &  0.0 \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_few-loose} (R=3)}
+ & milp\_baseline & \textbf{3.12}  &  31.22 &  0.00 & 0 &  0.3 \\
+ & topology\_ms6  & \textbf{3.12}  &  31.22 &  0.00 & 0 & 60.0 \\
+ & tgr\_k5        & \textbf{3.12}  &  31.22 &  0.00 & 0 & 10.0 \\
+ & fas\_on\_topo  & \textbf{3.12}  &  31.22 &  0.00 & 0 &  0.0 \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_few-tight} (R=2)}
+ & milp\_baseline & \textbf{6.39}  &  63.88 &  0.00 & 0 &  0.4 \\
+ & topology\_ms6  & \textbf{6.39}  &  63.88 &  0.00 & 0 & 60.0 \\
+ & tgr\_k5        & \textbf{6.39}  &  63.88 &  0.00 & 0 & 10.0 \\
+ & fas\_on\_topo  & \textbf{6.39}  &  63.88 &  0.00 & 0 &  0.0 \\
+\midrule
+\multirow{3}{*}{\texttt{scn\_heavy-tight} (R=30)}
+ & milp\_baseline & aborted         &     — &     — & — &    — \\
+ & \textbf{topology\_ms6} & \textbf{225.51} & 247.74 & 200.73 & 0 & 81.4 \\
+ & tgr\_k5        & 254.90          & 251.11 & 229.79 & 0 & 60.1 \\
+ & fas\_on\_topo  & 224.24$\dagger$ & 247.74 & 199.46 & 0 & 60.2 \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_many-medium} (R=20)}
+ & milp\_baseline & 334.75$\dagger$ & 122.91 & 322.46 & 0 & 71.7 \\
+ & \textbf{topology\_ms6}  & \textbf{236.06} & 111.01 & 224.96 & 0 & 60.0 \\
+ & tgr\_k5        & 267.78          & 105.69 & 257.21 & 0 & 60.1 \\
+ & fas\_on\_topo  & \textbf{247.86} & 111.01 & 236.76 & 0 & 13.3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent *\,\texttt{fas\_on\_topo} elapsed $<0.1$\,s for R=10 (optimal, small model).
+$\dagger$\,time-limited at 60\,s (not proven optimal).
+
+\subsection{Analysis}
+\label{exp:exp04-analysis}
+
+\paragraph{Impact of correcting $\delta$ in the MILP baseline.}
+
+The MILP baseline objective increases substantially with the $\delta$ correction:
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+Instance & Old (no $\delta$) & New (strict $\delta$) \\
+\midrule
+R=10 & 4.79 (opt) & 5.87 (opt) \\
+R=20 & 200.78 (tLim) & 334.75 (tLim) \\
+R=30 & aborted & aborted \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+For R=20, the strict MILP is dramatically harder: the incumbent found within
+60\,s is 334.75, worse than \texttt{topology\_ms6} at 236.06.  This is
+expected: the $\delta$ separation creates tight sequencing constraints with
+many aircraft per position, making the MIP tree much harder to prune.
+
+\paragraph{Topology heuristic is now the strongest method for R=20/30.}
+
+Under strict $\delta$, \texttt{topology\_ms6} (236.06 for R=20, 225.51 for
+R=30) is the best feasible method within 60\,s for medium and large instances.
+The MILP baseline no longer provides a useful upper reference for R$\geq$20.
+
+\paragraph{FAS on topology assignment: R=20 regression resolved.}
+
+In Series~03 (pre-fix), \texttt{fas\_on\_topo} gave 253.59 vs topology's
+242.86 for R=20 — apparently worse.  Under strict $\delta$, topology gives
+236.06 and \texttt{fas\_on\_topo} gives 247.86 — still worse, confirming
+that the regression persists.  Root cause: FAS models blocking arcs at
+aircraft-block level ($D_r = \sum d_j$), which is more conservative than
+the topology heuristic's job-by-job blocking evaluation.  This is a
+modelling gap in FAS, not a feasibility bug (see
+Section~\ref{sec:fas-modelling-diff}).
+
+\paragraph{R=30: fas\_on\_topo nearly matches topology\_ms6.}
+
+Under strict $\delta$, \texttt{fas\_on\_topo} achieves 224.24 vs
+topology's 225.51 for R=30 — effectively equal, with FAS not yet proven
+optimal within 60\,s.  FAS uses the same position assignment as the
+topology solution; any remaining gap is due to the blocking-arc conservatism
+noted above.
+
+\paragraph{Small instances: all methods find the same optimum.}
+
+For R$\leq$5, all four methods achieve the same objective under strict $\delta$,
+consistent with prior results.
+
+\subsection{Summary of Corrections Applied (2026-05-14)}
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{RQ08} added to \texttt{scripts/output\_data/check\_solution.py}.
+          Unit tests in \texttt{scripts/tests/test\_rq08.py} (6 cases, all pass).
+    \item \textbf{MILP Pyomo}: \texttt{cSamePositionDeltaOrder1/2} constraints
+          added to \texttt{models/milp\_pyomo.py}.
+    \item \textbf{Topology heuristic}: confirmed passes RQ08 with
+          $\min\,\text{gap} = 10.00$ on all instances — no code change needed.
+    \item \textbf{FAS model}: passes RQ08 by design (explicit ordering constraints
+          with $+\delta$).  Known conservatism in blocking-arc modelling documented
+          in Section~\ref{sec:fas-modelling-diff}.
+\end{enumerate}
+
+\subsection{Root Cause of fas\_on\_topo $>$ topology on R=20}
+\label{exp:exp04-fas-gap}
+
+Code audit (2026-05-14) found that the gap is \emph{not} due to job-level vs
+aircraft-level blocking windows — both solvers use $D_r = \sum_j d_j$.
+The actual cause is a movement-counting discrepancy:
+
+\begin{itemize}[noitemsep]
+    \item \texttt{\_count\_movements} (checker + heuristic cost): strict
+          inequalities $S_r < S_{r'} < F_r$ and $S_r < F_{r'} < F_r$.
+    \item FAS $u^{\mathrm{in}}$ indicator: $S_r \leq S_{r'} \leq F_r - \delta$
+          (non-strict at lower bound, extra $-\delta$ at upper bound).
+\end{itemize}
+
+Consequence: FAS optimises for its own movement count (not the checker's).
+With $w_V = 10$, FAS may add up to 20 units of extra delay to avoid one
+``ghost'' movement that the checker would not count.
+
+Both solutions in Series~04 show $\texttt{mov}=0$ by the checker, but FAS
+chose a different aircraft ordering at shared positions to avoid its
+internal movement penalties, increasing delay (topology=238.95 vs
+fas=245.00 for R=20 in this run).
+
+\subsection{Next Steps}
+\label{exp:exp04-next}
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Pipeline seguro topology$\to$FAS} (implemented 2026-05-14):
+          return $\min(\text{topology}, \text{fas\_on\_topo})$.
+          Guarantees FAS never degrades the result regardless of counting
+          differences.  See Series~05.
+    \item \textbf{$|C_r|=2$ selectivo} (implemented 2026-05-14):
+          extend FAS to accept a list of position candidates per aircraft.
+          Candidates = union of positions across 10 \texttt{generate\_assignments}
+          runs.  Attacks the residual gap R=10.  See Series~05.
+    \item \textbf{Align FAS movement counting with checker}: use strict
+          inequalities and remove $-\delta$ from upper bound of $\beta^{\mathrm{in}}$.
+    \item \textbf{tgr\_long}: test TGR with 20\,s per assignment
+          ($K=3$, \texttt{ls\_mode="full"}) to recover performance on R=20/30.
+\end{enumerate}

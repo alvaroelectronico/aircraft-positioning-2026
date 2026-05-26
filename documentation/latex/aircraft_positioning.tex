@@ -1,0 +1,76 @@
+% =============================================================================
+%  Aircraft Positioning in a Hangar — Technical Documentation
+% =============================================================================
+\documentclass[11pt, a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{multirow}
+
+\geometry{margin=2.5cm}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!60!black,
+    citecolor=blue!60!black,
+    urlcolor=blue!60!black,
+}
+
+\title{\textbf{Aircraft Positioning in a Hangar}\\
+       \large Technical Documentation of the Optimisation Model and Solution Methods}
+\author{Baobab Soluciones}
+\date{\today}
+
+% =============================================================================
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+% =============================================================================
+\input{problem_statement}
+\newpage
+
+\input{milp_formulation}
+\newpage
+
+\input{constructive_heuristic}
+\newpage
+
+\input{lns_solver}
+\newpage
+
+\input{topology_heuristic}
+\newpage
+
+\input{fixed_assignment_scheduler}
+\newpage
+
+\input{tgr_solver}
+\newpage
+
+% \input{experiments}
+% \newpage
+
+\input{experiment_plan_01}
+\newpage
+
+\input{experiment_plan_02}
+\newpage
+
+\input{experiment_plan_03}
+
+\input{experiment_plan_04}
+
+\end{document}

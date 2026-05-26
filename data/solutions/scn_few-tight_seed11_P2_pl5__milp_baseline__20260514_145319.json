@@ -1,0 +1,145 @@
+{
+  "instance": "scn_few-tight_seed11_P2_pl5",
+  "solver": "milp",
+  "label": "milp_baseline",
+  "config": {
+    "min_separation": 10.0,
+    "weight_makespan": 0.1,
+    "weight_delay": 1.0,
+    "weight_movements": 10,
+    "time_limit_s": 60,
+    "MIPGap": 0.0,
+    "NoRelHeurTime": 0
+  },
+  "timestamp": "20260514_145319",
+  "solve_time_s": 0.354,
+  "status": "optimal",
+  "objective": 7.27,
+  "metrics": {
+    "makespan": 72.69,
+    "movements": 0,
+    "total_delay": 0.0
+  },
+  "aircraft": [
+    {
+      "id": "R1",
+      "position": "P1",
+      "start": 9.211,
+      "finish": 42.261,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J1-1",
+          "start": 9.211,
+          "finish": 25.971
+        },
+        {
+          "id": "J1-2",
+          "start": 25.971,
+          "finish": 42.261
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "position": "P3",
+      "start": 16.56,
+      "finish": 37.73,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J2-1",
+          "start": 16.56,
+          "finish": 26.77
+        },
+        {
+          "id": "J2-2",
+          "start": 26.77,
+          "finish": 37.73
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "position": "P5",
+      "start": 16.56,
+      "finish": 72.694,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J3-1",
+          "start": 16.56,
+          "finish": 30.55
+        },
+        {
+          "id": "J3-2",
+          "start": 46.284,
+          "finish": 58.084
+        },
+        {
+          "id": "J3-3",
+          "start": 58.084,
+          "finish": 72.694
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "position": "P4",
+      "start": 16.56,
+      "finish": 72.694,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J4-1",
+          "start": 16.56,
+          "finish": 22.09
+        },
+        {
+          "id": "J4-2",
+          "start": 29.174,
+          "finish": 46.654
+        },
+        {
+          "id": "J4-3",
+          "start": 46.654,
+          "finish": 58.314
+        },
+        {
+          "id": "J4-4",
+          "start": 58.314,
+          "finish": 72.694
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "position": "P2",
+      "start": 22.224,
+      "finish": 72.694,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J5-1",
+          "start": 22.224,
+          "finish": 32.894
+        },
+        {
+          "id": "J5-2",
+          "start": 32.894,
+          "finish": 46.514
+        },
+        {
+          "id": "J5-3",
+          "start": 46.514,
+          "finish": 61.404
+        },
+        {
+          "id": "J5-4",
+          "start": 61.404,
+          "finish": 72.694
+        }
+      ]
+    }
+  ]
+}

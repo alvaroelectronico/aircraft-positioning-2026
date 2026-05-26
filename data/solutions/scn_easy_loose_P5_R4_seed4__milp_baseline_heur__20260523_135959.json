@@ -1,0 +1,107 @@
+{
+  "instance": "scn_easy_loose_P5_R4_seed4",
+  "solver": "milp",
+  "label": "milp_baseline_heur",
+  "config": {
+    "min_separation": 10.0,
+    "weight_makespan": 0.1,
+    "weight_delay": 1.0,
+    "weight_movements": 10,
+    "time_limit_s": 60,
+    "MIPGap": 0.0,
+    "NoRelHeurTime": 30
+  },
+  "timestamp": "20260523_135959",
+  "solve_time_s": 0.214,
+  "status": "optimal",
+  "objective": 1.14,
+  "mip_gap": 0.0,
+  "metrics": {
+    "makespan": 11.36,
+    "movements": 0,
+    "total_delay": 0.0
+  },
+  "aircraft": [
+    {
+      "id": "R1",
+      "position": "P4",
+      "start": 0.0,
+      "finish": 11.363,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J1-1",
+          "start": 0.0,
+          "finish": 2.808
+        },
+        {
+          "id": "J1-2",
+          "start": 2.808,
+          "finish": 7.638
+        },
+        {
+          "id": "J1-3",
+          "start": 7.638,
+          "finish": 11.363
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "position": "P1",
+      "start": 1.303,
+      "finish": 6.78,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J2-1",
+          "start": 1.303,
+          "finish": 3.617
+        },
+        {
+          "id": "J2-2",
+          "start": 3.617,
+          "finish": 6.78
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "position": "P3",
+      "start": 0.0,
+      "finish": 10.0,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J3-1",
+          "start": 0.0,
+          "finish": 3.259
+        },
+        {
+          "id": "J3-2",
+          "start": 5.267,
+          "finish": 10.0
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "position": "P2",
+      "start": 0.0,
+      "finish": 6.836,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J4-1",
+          "start": 0.0,
+          "finish": 1.358
+        },
+        {
+          "id": "J4-2",
+          "start": 1.358,
+          "finish": 6.836
+        }
+      ]
+    }
+  ]
+}

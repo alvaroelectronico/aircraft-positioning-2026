@@ -1,0 +1,81 @@
+# **Optimización de posicionamiento en hangares y operaciones en tierra:** literatura relevante
+
+Tu abstract se sitúa en la intersección de: (i) planificación de mantenimiento en hangares con bloqueo físico, (ii) modelos MILP de programación con ventanas de tiempo, y (iii) metaheurísticas tipo GRASP. Los trabajos listados cubren directamente estos tres ejes y pueden servir como base para tu revisión.
+
+## **Modelos MILP para planificación en hangares y MRO**
+
+- **Hangar maintenance scheduling + layout con bloqueo**: Qin et al. modelan conjuntamente planificación de mantenimiento y planes de aparcamiento, considerando capacidad variable del hangar y bloqueo en rutas de rodaje; proponen un MILP discreto y un enfoque de horizonte rodante para grandes instancias  (Qin et al., 2019).  
+- **Planificación integrada mantenimiento–layout–personal**: otro trabajo de Qin et al. formula un MILP que integra horarios, asignación de posiciones, trayectorias de movimiento y asignación de técnicos multi‑habilidad, resuelto con un enfoque de dos etapas  (Qin et al., 2020).  
+- **Asignación de puestos de estacionamiento con seguridad**: Qin et al. abordan selección de pedidos de mantenimiento y plan de aparcamiento maximiza beneficio y seguridad (distancias mínimas entre aeronaves) mediante MIP y heurístico  (Qin et al., 2018).  
+- **MILP continuo para scheduling+layout de hangar**: Farhang Pazhooh y Shams proponen un MILP de tiempo continuo altamente eficiente para ubicar y calendarizar aeronaves, enfocado en throughput y bloqueo espacial‑temporal  (Pazhooh & Shemirani, 2025).
+
+### Problemas afines con ventanas de tiempo y recursos
+
+Varios trabajos de MILP con ventanas de tiempo y restricciones de colisión en otros dominios (satélites  (Lee et al., 2024; Wang et al., 2024), líneas automáticas  (Mao et al., 2018), producción  (Bayá et al., 2022)) proporcionan ideas de modelado (redes tiempo‑espacio, conflictos de ventanas, etc.).
+
+## **GRASP y metaheurísticas relacionadas**
+
+- Bibliografías anotadas de **GRASP** cubren fundamentos, variantes y múltiples aplicaciones en scheduling, routing, transporte aéreo y planificación de mantenimiento  (Festa & Resende, 2002; Festa & Resende, 2009).  
+- Aplicaciones específicas de GRASP a scheduling: job shop  (Hery & Loewenstern, 2001)y scheduling de grúas de patio con asignación dinámica de puntos I/O  (Wang et al., 2024), con construcción y búsqueda local adaptadas a restricciones de movimiento y tiempos de liberación/vencimiento.  
+- Mejoras del marco GRASP (randomización sesgada, simulación para versiones estocásticas) en problemas de taller, ruteo y localización  (Ferone et al., 2018)son relevantes para tu GRASP “topology‑aware”.
+
+### Tabla: Temas clave y referencias útiles
+
+| Tema | Enfoque | Citaciones |
+|------|---------|-----------|
+| Hangar MRO con bloqueo/layout | MILP discreto/continuo, descomposición |  (Qin et al., 2019; Qin et al., 2020; Pazhooh & Shemirani, 2025; Qin et al., 2018)|
+| Programación con ventanas de tiempo | MILP, redes tiempo‑espacio |  (Lee et al., 2024; Wang et al., 2024; Mao et al., 2018; Bayá et al., 2022)|
+| GRASP en scheduling/transporte | Bibliografías y casos de routing/scheduling |  (Festa & Resende, 2002; Festa & Resende, 2009; Hery & Loewenstern, 2001; Wang et al., 2024; Ferone et al., 2018)|
+| Operaciones en tierra / stands | Optimización stands, turnaround, recursos |  (Dahanayaka et al., 2026; Chen et al., 2018; Evler et al., 2021; Asadi et al., 2021; Yao et al., 2024; Evler et al., 2021)|
+
+**Figure 1:** Principales líneas de literatura relacionadas con el AHPP
+
+## **Operaciones de aeropuerto y asignación de stands/gates**
+
+- Revisión sistemática de 199 artículos sobre operaciones en tierra (asignación de puertas/stands, turnaround, workforce, movimientos en superficie)  (Dahanayaka et al., 2026).  
+- Modelos de asignación de stands/gates y programación de turnaround con recursos limitados y recuperación de horario  (Chen et al., 2018; Evler et al., 2021; Asadi et al., 2021; Yao et al., 2024; Evler et al., 2021), útiles para comparar objetivos (retraso, makespan, movimientos/towings) y técnicas (MIP, metaheurísticas, NSGA‑II, etc.).
+
+## **Conclusión**
+
+Para tu revisión, el núcleo debería ser la familia de modelos de Qin et al. y el MILP continuo de Farhang Pazhooh y Shams sobre scheduling+layout en hangares  (Qin et al., 2019; Qin et al., 2020; Pazhooh & Shemirani, 2025; Qin et al., 2018), conectados con la literatura general de MILP con ventanas de tiempo  (Lee et al., 2024; Wang et al., 2024; Mao et al., 2018; Bayá et al., 2022). Como base metodológica para tu GRASP y el pipeline híbrido, apóyate en las bibliografías y aplicaciones de GRASP  (Festa & Resende, 2002; Ferone et al., 2018; Festa & Resende, 2009; Hery & Loewenstern, 2001)y en trabajos de operaciones en tierra y asignación de stands/gates  (Dahanayaka et al., 2026; Chen et al., 2018; Evler et al., 2021; Asadi et al., 2021; Yao et al., 2024; Evler et al., 2021)para posicionar tu problema dentro del ecosistema de operaciones aeroportuarias.
+ 
+_These search results were found and analyzed using Consensus, an AI-powered search engine for research. Try it at https://consensus.app. © 2026 Consensus NLP, Inc. Personal, non-commercial use only; redistribution requires copyright holders’ consent._
+ 
+## References
+ 
+Asadi, E., Schultz, M., & Fricke, H. (2021). Optimal schedule recovery for the aircraft gate assignment with constrained resources. *Comput. Ind. Eng., 162*, 107682. https://doi.org/10.1016/j.cie.2021.107682
+ 
+Bayá, G., Canale, E., Nesmachnow, S., Robledo, F., & Sartor, P. (2022). Production Optimization in a Grain Facility through Mixed-Integer Linear Programming. *Applied Sciences*. https://doi.org/10.3390/app12168212
+ 
+Chen, X., Reinelt, G., Dai, G., & Spitz, A. (2018). A Mixed Integer Linear Programming Model for Multi-Satellite Scheduling. *ArXiv, abs/1811.12114*.   
+ 
+Dahanayaka, M., Prak, D., & Mes, M. (2026). From gate to runway: A systematic review of airport ground operations optimization. *Journal of Air Transport Management*. https://doi.org/10.1016/j.jairtraman.2026.103013
+ 
+Evler, J., Asadi, E., Preis, H., & Fricke, H. (2021). Airline ground operations: Schedule recovery optimization approach with constrained resources. *Transportation Research Part C: Emerging Technologies*. https://doi.org/10.1016/j.trc.2021.103129
+ 
+Evler, J., Asadi, E., Preis, H., & Fricke, H. (2021). Airline ground operations: Optimal schedule recovery with uncertain arrival times. *Journal of Air Transport Management, 92*, 102021. https://doi.org/10.1016/j.jairtraman.2021.102021
+ 
+Ferone, D., Gruler, A., Festa, P., & Juan, A. (2018). Enhancing and extending the classical GRASP framework with biased randomisation and simulation. *Journal of the Operational Research Society, 70*, 1362 - 1375. https://doi.org/10.1080/01605682.2018.1494527
+ 
+Festa, P., & Resende, M. (2002). Grasp: An Annotated Bibliography. 325-367. https://doi.org/10.1007/978-1-4615-1507-4_15
+ 
+Festa, P., & Resende, M. (2009). An annotated bibliography of GRASP-Part II: Applications. *Int. Trans. Oper. Res., 16*, 131-172. https://doi.org/10.1111/j.1475-3995.2009.00664.x
+ 
+Hery, W., & Loewenstern, D. (2001). A GRASP FOR JOB SHOP SCHEDULING.
+ 
+Lee, M., Yu, S., Kwon, K., Lee, M., Lee, J., & Kim, H. (2024). Mixed-Integer Linear Programming Model for Scheduling Missions and Communications of Multiple Satellites. *Aerospace*. https://doi.org/10.3390/aerospace11010083
+ 
+Mao, Y., Tang, Q., Li, Z., & Zhang, L. (2018). Mixed-integer linear programming method for multi-degree and multi-hoist cyclic scheduling with time windows. *Engineering Optimization, 50*, 1978 - 1995. https://doi.org/10.1080/0305215x.2017.1418865
+ 
+Pazhooh, S., & Shemirani, H. (2025). An Efficient Continuous-Time MILP for Integrated Aircraft Hangar Scheduling and Layout.
+ 
+Qin, Y., Wang, Z., Chan, F., Chung, S., & Qu, T. (2019). A mathematical model and algorithms for the aircraft hangar maintenance scheduling problem. *Applied Mathematical Modelling*. https://doi.org/10.1016/j.apm.2018.11.008
+ 
+Qin, Y., Zhang, J., Chan, F., Chung, S., Niu, B., & Qu, T. (2020). A two-stage optimization approach for aircraft hangar maintenance planning and staff assignment problems under MRO outsourcing mode. *Comput. Ind. Eng., 146*, 106607. https://doi.org/10.1016/j.cie.2020.106607
+ 
+Qin, Y., Chan, F., Chung, S., Qu, T., & Niu, B. (2018). Aircraft parking stand allocation problem with safety consideration for independent hangar maintenance service providers. *Comput. Oper. Res., 91*, 225-236. https://doi.org/10.1016/j.cor.2017.10.001
+ 
+Wang, H., Villa, F., Vallada, E., & Ruiz, R. (2024). Solving the yard crane scheduling problem with dynamic assignment of input/output points. *Comput. Oper. Res., 173*, 106853. https://doi.org/10.1016/j.cor.2024.106853
+ 
+Yao, M., Hu, M., Yin, J., Su, J., & Yin, M. (2024). A Two-Stage Optimization Model for Airport Stand Allocation and Ground Support Vehicle Scheduling. *Applied Sciences*. https://doi.org/10.3390/app142311407
+ 

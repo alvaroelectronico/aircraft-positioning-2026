@@ -1,0 +1,100 @@
+% =============================================================================
+%  TGR-MILP Solver
+% =============================================================================
+\section{TGR-MILP Solver}
+\label{sec:tgr-solver}
+
+\subsection{Motivation}
+
+The topology heuristic (Section~\ref{sec:topology}) produces good position
+assignments quickly but uses a greedy scheduler (\texttt{\_rebuild}) to
+determine aircraft timing.  The Fixed-Assignment Scheduler
+(Section~\ref{sec:fas}) can optimise timing exactly for any given
+assignment, but relies on the quality of that assignment.
+
+\texttt{TGRSolver} (Topology-Guided Restricted MILP) combines both:
+it generates $K$ diverse position assignments via fast GRASP and schedules
+each one exactly with the FAS, returning the best result.
+
+\subsection{Algorithm}
+
+\begin{algorithm}[h]
+\caption{TGRSolver}
+\begin{algorithmic}[1]
+\Require instance data, $K$, $t_{\mathrm{topo}}$, $t_{\mathrm{MILP}}$
+\State $\mathcal{A} \leftarrow
+    \texttt{TopologyHeuristic.generate\_assignments}(K,\;
+    t_{\mathrm{topo}} / K)$
+\State $\mathcal{S} \leftarrow \emptyset$
+\For{each assignment $a \in \mathcal{A}$}
+    \State $s \leftarrow \texttt{FixedAssignmentScheduler.solve}(a,\;
+           t_{\mathrm{MILP}})$
+    \State $\mathcal{S} \leftarrow \mathcal{S} \cup \{s\}$
+\EndFor
+\Return $\arg\min_{s \in \mathcal{S}} \mathrm{obj}(s)$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Time budget split.}
+With a total budget $T$:
+\[
+    t_{\mathrm{topo}} + K \cdot t_{\mathrm{MILP}} \leq T.
+\]
+The default configurations tested are:
+\begin{itemize}[noitemsep]
+    \item \textbf{\texttt{tgr\_k5}}: $K=5$, $t_{\mathrm{topo}}=10$\,s
+          (2\,s per assignment), $t_{\mathrm{MILP}}=10$\,s per FAS.
+          Total = 60\,s.
+    \item \textbf{\texttt{tgr\_k3}}: $K=3$, $t_{\mathrm{topo}}=9$\,s
+          (3\,s per assignment), $t_{\mathrm{MILP}}\approx17$\,s per FAS.
+          Total = 60\,s.
+\end{itemize}
+
+\subsection{Implementation}
+
+Implemented in \texttt{solvers/tgr\_solver.py} as class \texttt{TGRSolver}.
+The solver is compatible with the \texttt{Application} interface via
+\texttt{configure\_solver(**kwargs)}.
+
+\paragraph{Deduplication.}
+Assignments are deduplicated before scheduling: two assignments are
+identical if every aircraft maps to the same position.  Only unique
+assignments are passed to the FAS, so the effective number of MILP solves
+may be less than $K$.
+
+\paragraph{Best-solution selection.}
+The solution with the lowest objective value across all FAS runs is
+returned.  Infeasible or error runs are excluded.
+
+\subsection{Observed Performance}
+
+Results from Experiment Series~02 (Section~\ref{exp:exp02-results})
+show that \texttt{tgr\_k5} matches or beats the MILP baseline for small
+instances ($R \leq 5$) in under 10\,s.  For medium/large instances
+($R \geq 20$), TGR underperforms \texttt{topology\_ms6} because the
+2\,s per-assignment GRASP (with \texttt{ls\_mode="fast"}) generates
+weaker assignments than a full 60\,s topology run with local search.
+
+The corrective approach — running \texttt{topology\_ms6} for the full
+budget and passing its best assignment to FAS — is evaluated as
+\texttt{fas\_on\_topo} in Experiment Series~03
+(Section~\ref{exp:exp03-results}).
+
+\subsection{Parameters}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Parameter & Default & Description \\
+\midrule
+\texttt{n\_assignments}   & 5    & $K$: number of assignments to generate \\
+\texttt{time\_topology\_s} & 10.0 & Total topology budget (shared across $K$ runs) \\
+\texttt{time\_per\_milp\_s} & 10.0 & FAS time limit per assignment \\
+\texttt{min\_separation}  & 10.0 & $\delta$ passed to FAS \\
+\texttt{weight\_makespan} & 0.1  & $w_M$ \\
+\texttt{weight\_delay}    & 1.0  & $w_D$ \\
+\texttt{weight\_movements}& 10   & $w_V$ \\
+\texttt{seed}             & 1    & Base seed for topology GRASP \\
+\bottomrule
+\end{tabular}
+\end{center}

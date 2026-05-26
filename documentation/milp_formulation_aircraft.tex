@@ -1,0 +1,208 @@
+\section{MILP — aircraft-level formulation}
+
+This section gives the aircraft-level reformulation of the MILP.  The key
+observation is that all blocking interactions depend only on the aircraft
+start time $s_r$ and finish time $f_r$, never on the individual job
+timings $t^S_j, t^F_j$.  Because the jobs of each aircraft form a strict
+linear precedence chain, the job timings can be recovered deterministically
+from $s_r$ once it is fixed.  Consequently, the job concept disappears
+from the optimisation model: each aircraft is treated as a single block
+$[s_r,\, s_r + D_r]$ with $D_r = \sum_{j \in \mathcal{J}_r} D_j$ computed
+offline from the instance data.
+
+\subsection{Sets}
+
+\begin{tabular}{l c l}
+    $\mathcal{R}$ & : & Aircraft \\
+    $\mathcal{P}$ & : & Positions \\
+    $\mathcal{E} \subseteq \mathcal{P} \times \mathcal{P}$ & : & Blocking arcs: if $(p,p') \in \mathcal{E}$ position $p$ blocks $p'$ \\
+\end{tabular}
+
+\subsection{Parameters}
+
+\begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
+    $D_r$ & : & Total processing time of aircraft $r$ (sum of its job durations, computed offline) \\
+    $E_r$ & : & Earliest start time of aircraft $r$ \\
+    $L_r$ & : & Target finish time (due date) of aircraft $r$ \\
+    $\varepsilon$ & : & Minimum separation between consecutive aircraft at the same position \\
+    $M$ & : & A sufficiently large constant \\
+    $W^{M}$ & : & Weight for makespan \\
+    $W^{S}$ & : & Weight for movements \\
+    $W^{D}$ & : & Weight for delays \\
+\end{longtable}
+
+\subsection{Variables}
+
+\paragraph{Assignment and timing}
+
+\begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
+    $s_r$ & : & Start time of aircraft $r$ in its assigned position \\
+    $f_r$ & : & Finish time of aircraft $r$ in its assigned position \\
+    $x_{rp}$ & : & 1 if aircraft $r$ is assigned to position $p$, 0 otherwise \\
+    $q_{rr'p}$ & : & 1 if aircraft $r$ precedes $r'$ at position $p$, 0 otherwise \\
+\end{longtable}
+
+\paragraph{Blocking}
+
+\begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
+    $\alpha^{in}_{rr'pp'}$ & : & 1 if the entry time of $r'$ in $p'$ is strictly greater than the start of $r$ in $p$, 0 otherwise \\
+    $\beta^{in}_{rr'pp'}$ & : & 1 if the entry time of $r'$ in $p'$ is strictly less than the finish of $r$ in $p$, 0 otherwise \\
+    $u^{in}_{rr'pp'}$ & : & 1 if $r$ must be temporarily moved to allow the entry of $r'$ into $p'$ while $r$ is at $p$, 0 otherwise \\
+    $\alpha^{out}_{rr'pp'}$ & : & 1 if the exit time of $r'$ from $p'$ is strictly greater than the start of $r$ in $p$, 0 otherwise \\
+    $\beta^{out}_{rr'pp'}$ & : & 1 if the exit time of $r'$ from $p'$ is strictly less than the finish of $r$ in $p$, 0 otherwise \\
+    $u^{out}_{rr'pp'}$ & : & 1 if $r$ must be temporarily moved to allow the exit of $r'$ from $p'$ while $r$ is at $p$, 0 otherwise \\
+    $n$ & : & Total number of aircraft movements induced by temporary relocations (each relocation counts as two movements) \\
+\end{longtable}
+
+\paragraph{Metrics}
+
+\begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
+    $v^{D}_r$ & : & Delay of aircraft $r$\\
+    $m$ & : & Makespan \\
+\end{longtable}
+
+\subsection{Constraints}
+
+\paragraph{Assignment and timing}
+
+\begin{align}
+\sum_{p \in \mathcal{P}} x_{rp} &= 1
+&& \forall r \in \mathcal{R} \\
+f_r &= s_r + D_r
+&& \forall r \in \mathcal{R} \\
+s_r &\ge E_r
+&& \forall r \in \mathcal{R}
+\end{align}
+
+\paragraph{Non-overlap at the same position}
+
+For every ordered pair of distinct aircraft $r,r' \in \mathcal{R}$ and every position $p \in \mathcal{P}$:
+\begin{align}
+s_{r'} &\ge f_r + \varepsilon - M(1 - q_{rr'p}) - M(1 - x_{rp}) - M(1 - x_{r'p})
+&& \forall r,r' \in \mathcal{R},\; r \neq r',\; p \in \mathcal{P}
+\\
+q_{rr'p} + q_{r'rp} &\ge x_{rp} + x_{r'p} - 1
+&& \forall r,r' \in \mathcal{R},\; r < r',\; p \in \mathcal{P}
+\\
+q_{rr'p} + q_{r'rp} &\le 1
+&& \forall r,r' \in \mathcal{R},\; r < r',\; p \in \mathcal{P}
+\end{align}
+
+The first constraint forces a minimum separation between the finish of $r$ and the start of $r'$ at position $p$ when $q_{rr'p}=1$; the position guards $-M(1-x_{rp})-M(1-x_{r'p})$ deactivate the constraint when $r$ or $r'$ is not at $p$.  The last two constraints force exactly one ordering direction whenever both aircraft share the position, and forbid both directions otherwise.
+
+\paragraph{Blocking — entry}
+
+\begin{align}
+s_{r'} &\ge s_r - M \left( 1 - \alpha^{in}_{rr'pp'} \right)
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r' \\
+s_{r'} &\le s_r + M \alpha^{in}_{rr'pp'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r' \\
+s_{r'} &\le f_r - \varepsilon + M \left( 1 - \beta^{in}_{rr'pp'} \right)
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r' \\
+s_{r'} &\ge f_r - M \beta^{in}_{rr'pp'} - M(1-x_{rp}) - M(1-x_{r'p'})
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r' \\
+u^{in}_{rr'pp'} &\le x_{rp}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r' \\
+u^{in}_{rr'pp'} &\le x_{r'p'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r' \\
+u^{in}_{rr'pp'} &\le \alpha^{in}_{rr'pp'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r' \\
+u^{in}_{rr'pp'} &\le \beta^{in}_{rr'pp'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r' \\
+u^{in}_{rr'pp'} &\ge x_{rp} + x_{r'p'} + \alpha^{in}_{rr'pp'} + \beta^{in}_{rr'pp'} - 3
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r'
+\end{align}
+
+\paragraph{Blocking — exit}
+
+\begin{align}
+f_{r'} &\ge s_r - M \left( 1 - \alpha^{out}_{rr'pp'} \right)
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r' \\
+f_{r'} &\le s_r + M \alpha^{out}_{rr'pp'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r' \\
+f_{r'} &\le f_r - \varepsilon + M \left( 1 - \beta^{out}_{rr'pp'} \right)
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r' \\
+f_{r'} &\ge f_r - M \beta^{out}_{rr'pp'} - M(1-x_{rp}) - M(1-x_{r'p'})
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r' \\
+u^{out}_{rr'pp'} &\le x_{rp}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r' \\
+u^{out}_{rr'pp'} &\le x_{r'p'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r' \\
+u^{out}_{rr'pp'} &\le \alpha^{out}_{rr'pp'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r' \\
+u^{out}_{rr'pp'} &\le \beta^{out}_{rr'pp'}
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r' \\
+u^{out}_{rr'pp'} &\ge x_{rp} + x_{r'p'} + \alpha^{out}_{rr'pp'} + \beta^{out}_{rr'pp'} - 3
+&& \forall r,r' \in \mathcal{R},\; (p,p') \in \mathcal{E},\; r \neq r'
+\end{align}
+
+\paragraph{Total movements}
+
+\begin{align}
+n &= 2 \sum_{(p,p')\in \mathcal{E}}\;
+\sum_{\substack{r,r' \in \mathcal{R}\\ r \neq r'}}
+\left( u^{in}_{rr'pp'} + u^{out}_{rr'pp'} \right)
+\end{align}
+
+\paragraph{Delays}
+
+\begin{equation}
+v^{D}_r \ge f_r - L_r
+\qquad \forall r \in \mathcal{R}
+\end{equation}
+
+\paragraph{Makespan}
+
+\begin{equation}
+m \ge f_r
+\qquad \forall r \in \mathcal{R}
+\end{equation}
+
+\paragraph{Variable domains}
+
+\begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
+    $s_r \ge 0$ \\
+    $f_r \ge 0$ \\
+    $x_{rp} \in \{0,1\}$ \\
+    $q_{rr'p} \in \{0,1\}$ \\
+    $\alpha^{in}_{rr'pp'} \in \{0,1\}$ \\
+    $\beta^{in}_{rr'pp'} \in \{0,1\}$ \\
+    $u^{in}_{rr'pp'} \in \{0,1\}$ \\
+    $\alpha^{out}_{rr'pp'} \in \{0,1\}$ \\
+    $\beta^{out}_{rr'pp'} \in \{0,1\}$ \\
+    $u^{out}_{rr'pp'} \in \{0,1\}$ \\
+    $v^{D}_r \ge 0$ \\
+    $m \ge 0$ \\
+    $n \ge 0$ \\
+\end{longtable}
+
+\subsection{Objective Function}
+
+\begin{align}
+\min \quad W^{M} m + W^{D} \sum_{r \in \mathcal{R}} v^{D}_{r} + W^{S} n
+\end{align}
+
+\subsection{Job-level recovery}
+
+Once the aircraft-level solution $(s_r, x_{rp})$ is obtained, the job-level
+start times are recovered deterministically by walking the precedence chain
+of each aircraft.  Let $j^r_1, j^r_2, \ldots, j^r_{n_r}$ denote the jobs of
+aircraft $r$ in chain order.  Setting $t^S_{j^r_1} = s_r$ and propagating
+$t^S_{j^r_{k+1}} = t^S_{j^r_k} + D_{j^r_k}$ yields the unique job schedule
+consistent with the aircraft-level solution.  Because no two jobs of the
+same aircraft are scheduled at different positions and the chain is linear,
+this recovery is loss-free with respect to the original job-level model.
+
+\subsection{Relationship to the job-level model}
+
+The aircraft-level model is a projection of the job-level MILP onto the
+subspace where the job variables are eliminated by the precedence chain.
+Compared to the formulation of \texttt{milp\_formulation.tex} it removes
+the variables $t^S_j$, $t^F_j$, $y_{jp}$, and $w_{jj'p}$, together with the
+constraints linking them.  The blocking block is identical: only the
+underlying definitions of $s_r$ and $f_r$ change (from aggregated sums of
+job timings to free decision variables).  In particular, every feasible
+solution of the job-level model induces a feasible solution of the
+aircraft-level model with the same makespan, delay and movement count, and
+conversely every aircraft-level solution lifts uniquely to a job-level
+solution through the recovery procedure described above.

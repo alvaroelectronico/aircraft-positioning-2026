@@ -1,0 +1,120 @@
+{
+  "instance": "scn_few-loose_seed8_P3_pl5",
+  "solver": "topology",
+  "label": "topology_ms6",
+  "config": {
+    "time_limit_s": 60,
+    "min_separation": 10.0,
+    "weight_makespan": 0.1,
+    "weight_delay": 1.0,
+    "weight_movements": 10,
+    "weight_topology": 1.0,
+    "alpha": 0.3,
+    "seed": 1,
+    "n_starts": 6,
+    "log_enabled": false,
+    "MIPGap": 0.0,
+    "NoRelHeurTime": 0
+  },
+  "timestamp": "20260514_145017",
+  "solve_time_s": 60.001,
+  "status": "topology (9725 iterations)",
+  "objective": 2.555,
+  "metrics": {
+    "makespan": 25.55,
+    "movements": 0,
+    "total_delay": 0.0
+  },
+  "aircraft": [
+    {
+      "id": "R2",
+      "position": "P1",
+      "start": 0.0,
+      "finish": 3.06,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J2-1",
+          "start": 0.0,
+          "finish": 3.06
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "position": "P5",
+      "start": 0.0,
+      "finish": 25.55,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J4-1",
+          "start": 0.0,
+          "finish": 12.68
+        },
+        {
+          "id": "J4-2",
+          "start": 12.68,
+          "finish": 25.55
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "position": "P2",
+      "start": 0.0,
+      "finish": 7.13,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J3-1",
+          "start": 0.0,
+          "finish": 7.13
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "position": "P4",
+      "start": 0.0,
+      "finish": 22.14,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J5-1",
+          "start": 0.0,
+          "finish": 12.3
+        },
+        {
+          "id": "J5-2",
+          "start": 12.3,
+          "finish": 22.14
+        }
+      ]
+    },
+    {
+      "id": "R1",
+      "position": "P3",
+      "start": 0.0,
+      "finish": 20.86,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J1-1",
+          "start": 0.0,
+          "finish": 5.99
+        },
+        {
+          "id": "J1-2",
+          "start": 5.99,
+          "finish": 11.91
+        },
+        {
+          "id": "J1-3",
+          "start": 11.91,
+          "finish": 20.86
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,426 @@
+{
+  "hangar": {
+    "positions": [
+      "P1",
+      "P2",
+      "P3",
+      "P4",
+      "P5"
+    ],
+    "blocking_arcs": [
+      {
+        "front": "P3",
+        "rear": "P4"
+      },
+      {
+        "front": "P3",
+        "rear": "P5"
+      },
+      {
+        "front": "P4",
+        "rear": "P5"
+      }
+    ]
+  },
+  "aircrafts": [
+    {
+      "id": "R1",
+      "client": "C1",
+      "earliest_start": 0.0,
+      "target_finish": 55.083
+    },
+    {
+      "id": "R2",
+      "client": "C2",
+      "earliest_start": 0.112,
+      "target_finish": 62.843
+    },
+    {
+      "id": "R3",
+      "client": "C3",
+      "earliest_start": 0.0,
+      "target_finish": 60.681
+    },
+    {
+      "id": "R4",
+      "client": "C4",
+      "earliest_start": 8.518,
+      "target_finish": 15.238
+    },
+    {
+      "id": "R5",
+      "client": "C5",
+      "earliest_start": 8.281,
+      "target_finish": 85.355
+    },
+    {
+      "id": "R6",
+      "client": "C6",
+      "earliest_start": 9.317,
+      "target_finish": 87.954
+    },
+    {
+      "id": "R7",
+      "client": "C1",
+      "earliest_start": 14.289,
+      "target_finish": 95.128
+    },
+    {
+      "id": "R8",
+      "client": "C2",
+      "earliest_start": 17.176,
+      "target_finish": 70.857
+    },
+    {
+      "id": "R9",
+      "client": "C3",
+      "earliest_start": 20.068,
+      "target_finish": 92.532
+    },
+    {
+      "id": "R10",
+      "client": "C4",
+      "earliest_start": 22.209,
+      "target_finish": 33.454
+    },
+    {
+      "id": "R11",
+      "client": "C5",
+      "earliest_start": 22.317,
+      "target_finish": 74.708
+    },
+    {
+      "id": "R12",
+      "client": "C6",
+      "earliest_start": 28.704,
+      "target_finish": 79.315
+    },
+    {
+      "id": "R13",
+      "client": "C1",
+      "earliest_start": 32.69,
+      "target_finish": 77.734
+    },
+    {
+      "id": "R14",
+      "client": "C2",
+      "earliest_start": 32.827,
+      "target_finish": 41.433
+    },
+    {
+      "id": "R15",
+      "client": "C3",
+      "earliest_start": 39.674,
+      "target_finish": 51.059
+    },
+    {
+      "id": "R16",
+      "client": "C4",
+      "earliest_start": 40.216,
+      "target_finish": 97.223
+    }
+  ],
+  "jobs": [
+    {
+      "id": "J1-1",
+      "aircraft_id": "R1",
+      "duration": 9.26,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J1-2",
+      "aircraft_id": "R1",
+      "duration": 10.08,
+      "is_first": false,
+      "is_last": true
+    },
+    {
+      "id": "J2-1",
+      "aircraft_id": "R2",
+      "duration": 10.06,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J2-2",
+      "aircraft_id": "R2",
+      "duration": 11.64,
+      "is_first": false,
+      "is_last": true
+    },
+    {
+      "id": "J3-1",
+      "aircraft_id": "R3",
+      "duration": 9.09,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J3-2",
+      "aircraft_id": "R3",
+      "duration": 7.27,
+      "is_first": false,
+      "is_last": true
+    },
+    {
+      "id": "J4-1",
+      "aircraft_id": "R4",
+      "duration": 5.15,
+      "is_first": true,
+      "is_last": true
+    },
+    {
+      "id": "J5-1",
+      "aircraft_id": "R5",
+      "duration": 8.27,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J5-2",
+      "aircraft_id": "R5",
+      "duration": 6.17,
+      "is_first": false,
+      "is_last": false
+    },
+    {
+      "id": "J5-3",
+      "aircraft_id": "R5",
+      "duration": 7.62,
+      "is_first": false,
+      "is_last": true
+    },
+    {
+      "id": "J6-1",
+      "aircraft_id": "R6",
+      "duration": 10.24,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J6-2",
+      "aircraft_id": "R6",
+      "duration": 9.14,
+      "is_first": false,
+      "is_last": false
+    },
+    {
+      "id": "J6-3",
+      "aircraft_id": "R6",
+      "duration": 9.14,
+      "is_first": false,
+      "is_last": true
+    },
+    {
+      "id": "J7-1",
+      "aircraft_id": "R7",
+      "duration": 7.65,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J7-2",
+      "aircraft_id": "R7",
+      "duration": 4.26,
+      "is_first": false,
+      "is_last": false
+    },
+    {
+      "id": "J7-3",
+      "aircraft_id": "R7",
+      "duration": 9.98,
+      "is_first": false,
+      "is_last": true
+    },
+    {
+      "id": "J8-1",
+      "aircraft_id": "R8",
+      "duration": 4.99,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J8-2",
+      "aircraft_id": "R8",
+      "duration": 8.43,
+      "is_first": false,
+      "is_last": true
+    },
+    {
+      "id": "J9-1",
+      "aircraft_id": "R9",
+      "duration": 8.27,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J9-2",
+      "aircraft_id": "R9",
+      "duration": 8.5,
+      "is_first": false,
+      "is_last": false
+    },
+    {
+      "id": "J9-3",
+      "aircraft_id": "R9",
+      "duration": 7.33,
+      "is_first": false,
+      "is_last": true
+    },
+    {
+      "id": "J10-1",
+      "aircraft_id": "R10",
+      "duration": 9.8,
+      "is_first": true,
+      "is_last": true
+    },
+    {
+      "id": "J11-1",
+      "aircraft_id": "R11",
+      "duration": 9.58,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J11-2",
+      "aircraft_id": "R11",
+      "duration": 4.62,
+      "is_first": false,
+      "is_last": true
+    },
+    {
+      "id": "J12-1",
+      "aircraft_id": "R12",
+      "duration": 10.37,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J12-2",
+      "aircraft_id": "R12",
+      "duration": 6.98,
+      "is_first": false,
+      "is_last": true
+    },
+    {
+      "id": "J13-1",
+      "aircraft_id": "R13",
+      "duration": 11.02,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J13-2",
+      "aircraft_id": "R13",
+      "duration": 3.67,
+      "is_first": false,
+      "is_last": true
+    },
+    {
+      "id": "J14-1",
+      "aircraft_id": "R14",
+      "duration": 7.37,
+      "is_first": true,
+      "is_last": true
+    },
+    {
+      "id": "J15-1",
+      "aircraft_id": "R15",
+      "duration": 9.8,
+      "is_first": true,
+      "is_last": true
+    },
+    {
+      "id": "J16-1",
+      "aircraft_id": "R16",
+      "duration": 10.72,
+      "is_first": true,
+      "is_last": false
+    },
+    {
+      "id": "J16-2",
+      "aircraft_id": "R16",
+      "duration": 9.21,
+      "is_first": false,
+      "is_last": false
+    },
+    {
+      "id": "J16-3",
+      "aircraft_id": "R16",
+      "duration": 9.03,
+      "is_first": false,
+      "is_last": true
+    }
+  ],
+  "job_precedences": [
+    {
+      "before": "J1-1",
+      "after": "J1-2"
+    },
+    {
+      "before": "J2-1",
+      "after": "J2-2"
+    },
+    {
+      "before": "J3-1",
+      "after": "J3-2"
+    },
+    {
+      "before": "J5-1",
+      "after": "J5-2"
+    },
+    {
+      "before": "J5-2",
+      "after": "J5-3"
+    },
+    {
+      "before": "J6-1",
+      "after": "J6-2"
+    },
+    {
+      "before": "J6-2",
+      "after": "J6-3"
+    },
+    {
+      "before": "J7-1",
+      "after": "J7-2"
+    },
+    {
+      "before": "J7-2",
+      "after": "J7-3"
+    },
+    {
+      "before": "J8-1",
+      "after": "J8-2"
+    },
+    {
+      "before": "J9-1",
+      "after": "J9-2"
+    },
+    {
+      "before": "J9-2",
+      "after": "J9-3"
+    },
+    {
+      "before": "J11-1",
+      "after": "J11-2"
+    },
+    {
+      "before": "J12-1",
+      "after": "J12-2"
+    },
+    {
+      "before": "J13-1",
+      "after": "J13-2"
+    },
+    {
+      "before": "J16-1",
+      "after": "J16-2"
+    },
+    {
+      "before": "J16-2",
+      "after": "J16-3"
+    }
+  ]
+}

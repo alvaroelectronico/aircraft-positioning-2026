@@ -1,0 +1,248 @@
+% =============================================================================
+%  Section: MILP Formulation
+% =============================================================================
+\section{MILP Formulation}
+\label{sec:milp}
+
+The exact model is implemented in \texttt{models/milp\_pyomo.py} as a Pyomo
+abstract model solved with Gurobi.
+
+\subsection{Sets}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Set & Description \\
+\midrule
+$\mathcal{J}$ & All jobs \\
+$\mathcal{R}$ & All aircraft \\
+$\mathcal{P}$ & All positions \\
+$\mathcal{C}$ & Clients \\
+$\mathcal{B} \subseteq \mathcal{P} \times \mathcal{P}$ & Blocking arcs $(p, p')$ \\
+$\mathcal{E} \subseteq \mathcal{J} \times \mathcal{J}$ & Job precedences $(j, j')$ \\
+$\mathcal{T} = \mathcal{R} \times \mathcal{R} \times \mathcal{B}$ &
+    Blocking tuples $(r, r', p, p')$, $r \neq r'$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Parameters}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Parameter & Domain & Description \\
+\midrule
+$d_j$ & $\mathbb{R}_{\geq 0}$ & Duration of job $j$ \\
+$e_r$ & $\mathbb{R}_{\geq 0}$ & Earliest start for aircraft $r$ \\
+$T_r$ & $\mathbb{R}_{\geq 0}$ & Target finish time for aircraft $r$ \\
+$R_{jr}$ & $\{0,1\}$ & 1 if job $j$ belongs to aircraft $r$ \\
+$F_{jr}$ & $\{0,1\}$ & 1 if $j$ is the first job of $r$ \\
+$L_{jr}$ & $\{0,1\}$ & 1 if $j$ is the last job of $r$ \\
+$\delta$ & $\mathbb{R}_{\geq 0}$ & Minimum separation between consecutive aircraft \\
+$M$ & $\mathbb{R}_{\geq 0}$ & Big-M constant ($\max_r T_r + \sum_j d_j$) \\
+$w_M, w_D, w_V$ & $\mathbb{R}_{\geq 0}$ & Objective weights \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Decision Variables}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Variable & Domain & Description \\
+\midrule
+$s_j$ & $\mathbb{R}_{\geq 0}$ & Start time of job $j$ \\
+$f_j$ & $\mathbb{R}_{\geq 0}$ & Finish time of job $j$ \\
+$S_r$ & $\mathbb{R}_{\geq 0}$ & Start time of aircraft $r$ (first job) \\
+$F_r$ & $\mathbb{R}_{\geq 0}$ & Finish time of aircraft $r$ (last job) \\
+$x_{rp}$ & $\{0,1\}$ & 1 if aircraft $r$ is assigned to position $p$ \\
+$y_{jp}$ & $\{0,1\}$ & 1 if job $j$ is at position $p$ \\
+$z_{jj'p}$ & $\{0,1\}$ & 1 if job $j$ precedes $j'$ at position $p$ \\
+$\Delta_r$ & $\mathbb{R}_{\geq 0}$ & Delay of aircraft $r$ \\
+$\hat{M}$ & $\mathbb{R}_{\geq 0}$ & Makespan \\
+$\hat{V}$ & $\mathbb{R}_{\geq 0}$ & Total movements \\
+\midrule
+\multicolumn{3}{l}{\textit{Auxiliary blocking variables (per tuple $(r,r',p,p') \in \mathcal{T}$):}} \\
+$\alpha^{\text{in}}_{rr'pp'}$ & $\{0,1\}$ & $r'$ enters $p'$ after $r$ enters $p$ \\
+$\beta^{\text{in}}_{rr'pp'}$ & $\{0,1\}$ & $r'$ enters $p'$ before $r$ leaves $p$ (minus $\delta$) \\
+$u^{\text{in}}_{rr'pp'}$ & $\{0,1\}$ & Entry blocking indicator ($= x_{rp} \cdot x_{r'p'} \cdot \alpha^{\text{in}} \cdot \beta^{\text{in}}$) \\
+$\alpha^{\text{out}}_{rr'pp'}$ & $\{0,1\}$ & $r'$ exits $p'$ after $r$ enters $p$ \\
+$\beta^{\text{out}}_{rr'pp'}$ & $\{0,1\}$ & $r'$ exits $p'$ before $r$ leaves $p$ (minus $\delta$) \\
+$u^{\text{out}}_{rr'pp'}$ & $\{0,1\}$ & Exit blocking indicator \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Objective}
+
+\begin{equation}
+    \min \quad
+    w_M \cdot \hat{M}
+    \;+\; w_D \cdot \sum_{r \in \mathcal{R}} \Delta_r
+    \;+\; w_V \cdot \hat{V}
+    \label{eq:milp-obj}
+\end{equation}
+
+\subsection{Constraints}
+
+\paragraph{Assignment and timing.}
+
+\begin{align}
+    \sum_{p \in \mathcal{P}} x_{rp} &= 1
+        & \forall r \in \mathcal{R}
+        & \quad \text{(each aircraft assigned to exactly one position)}
+    \label{eq:assign} \\[4pt]
+    y_{jp} &= \sum_{r \in \mathcal{R}} R_{jr} \cdot x_{rp}
+        & \forall j \in \mathcal{J},\; p \in \mathcal{P}
+        & \quad \text{(job inherits aircraft position)}
+    \label{eq:job-pos} \\[4pt]
+    f_j &= s_j + d_j
+        & \forall j \in \mathcal{J}
+        \label{eq:finish} \\[4pt]
+    s_j &\geq e_r \cdot F_{jr}
+        & \forall (j,r) : F_{jr}=1
+        & \quad \text{(earliest start)}
+    \label{eq:earliest} \\[4pt]
+    S_r &= \sum_{j \in \mathcal{J}} F_{jr} \cdot s_j
+        & \forall r \in \mathcal{R} \label{eq:aircraft-start} \\[4pt]
+    F_r &= \sum_{j \in \mathcal{J}} L_{jr} \cdot f_j
+        & \forall r \in \mathcal{R} \label{eq:aircraft-finish}
+\end{align}
+
+\paragraph{Precedences.}
+
+\begin{equation}
+    s_{j'} \geq f_j
+    \qquad \forall (j, j') \in \mathcal{E}
+    \label{eq:prec}
+\end{equation}
+
+\paragraph{Non-overlap within a position (disjunctive scheduling).}
+
+Binary variable $z_{jj'p} = 1$ means job $j$ is scheduled before job $j'$ at
+position $p$.  Using Big-M linearisation:
+
+\begin{align}
+    s_{j'} &\geq f_j - M\bigl(1 - z_{jj'p} + (1-y_{jp}) + (1-y_{j'p})\bigr)
+        & \forall j \neq j',\; p
+        \label{eq:non-overlap-1} \\
+    s_j &\geq f_{j'} - M\bigl(z_{jj'p} + (1-y_{jp}) + (1-y_{j'p})\bigr)
+        & \forall j \neq j',\; p
+        \label{eq:non-overlap-2} \\
+    z_{jj'p} + z_{j'jp} &\geq y_{jp} + y_{j'p} - 1
+        & \forall j < j',\; p
+        \label{eq:order-lb} \\
+    z_{jj'p} + z_{j'jp} &\leq 1
+        & \forall j < j',\; p
+        \label{eq:order-ub}
+\end{align}
+
+Aircraft-level non-overlap — one of the two orderings must hold:
+
+\begin{equation}
+    \sum_{\substack{j,j'\in\mathcal{J} \\ j \neq j'}}
+    \bigl(L_{jr} \cdot F_{j'r'} \cdot z_{jj'p}
+          + L_{j'r'} \cdot F_{jr} \cdot z_{j'jp}\bigr)
+    \geq x_{rp} + x_{r'p} - 1
+    \qquad \forall r < r',\; p
+    \label{eq:aircraft-order}
+\end{equation}
+
+\noindent\textbf{Minimum separation $\delta$ between consecutive aircraft at the same
+position.}  Let $q_{rr'p} = \sum_{j,j':\,j\neq j'} L_{jr}\,F_{j'r'}\,z_{jj'p}$ be
+the indicator that $r$ precedes $r'$ at position $p$.  Then:
+
+\begin{align}
+    S_{r'} &\geq F_r + \delta - M(1-q_{rr'p})
+             - M(1-x_{rp}) - M(1-x_{r'p})
+             & \forall r < r',\; p
+             \label{eq:same-pos-delta-1} \\
+    S_r    &\geq F_{r'} + \delta - M(1-q_{r'rp})
+             - M(1-x_{rp}) - M(1-x_{r'p})
+             & \forall r < r',\; p
+             \label{eq:same-pos-delta-2}
+\end{align}
+
+\noindent These two constraints were absent from the original formulation
+(2026-05-14 audit): the original model packed consecutive aircraft with zero
+gap, while the heuristic enforced $\delta=10$.  After correction, both
+methods use the same feasibility definition.
+
+\paragraph{Blocking movement indicators.}
+
+For each tuple $(r, r', p, p') \in \mathcal{T}$ with $(p,p') \in \mathcal{B}$:
+
+\vspace{0.5em}
+\noindent\textbf{Entry block} ($r'$ enters $p'$ while $r$ is in $p$):
+\begin{align}
+    S_{r'} &\geq S_r - M(1 - \alpha^{\text{in}}) \label{eq:alpha-in-lb} \\
+    S_{r'} &\leq S_r + M \cdot \alpha^{\text{in}} \label{eq:alpha-in-ub} \\
+    S_{r'} &\leq F_r - \delta + M(1 - \beta^{\text{in}}) \label{eq:beta-in-ub} \\
+    S_{r'} &\geq F_r - M \cdot \beta^{\text{in}}
+             - M(1-x_{rp}) - M(1-x_{r'p'}) \label{eq:beta-in-lb}
+\end{align}
+
+\noindent The entry blocking indicator is the linearisation of
+$u^{\text{in}} = x_{rp} \cdot x_{r'p'} \cdot \alpha^{\text{in}} \cdot \beta^{\text{in}}$:
+\begin{align}
+    u^{\text{in}} &\leq x_{rp}, \quad u^{\text{in}} \leq x_{r'p'}, \quad
+    u^{\text{in}} \leq \alpha^{\text{in}}, \quad u^{\text{in}} \leq \beta^{\text{in}}
+    \label{eq:u-in-ub} \\
+    u^{\text{in}} &\geq x_{rp} + x_{r'p'} + \alpha^{\text{in}} + \beta^{\text{in}} - 3
+    \label{eq:u-in-lb}
+\end{align}
+
+\noindent\textbf{Exit block} ($r'$ exits $p'$ while $r$ is in $p$):
+Analogous constraints with $F_{r'}$ replacing $S_{r'}$, yielding $u^{\text{out}}$.
+
+\paragraph{KPI aggregation.}
+
+\begin{align}
+    \hat{V} &= 2 \sum_{(r,r',p,p') \in \mathcal{T}}
+               \bigl(u^{\text{in}}_{rr'pp'} + u^{\text{out}}_{rr'pp'}\bigr)
+    \label{eq:movements} \\
+    \Delta_r &\geq \sum_{j \in \mathcal{J}} L_{jr}(f_j - T_r)
+    \qquad \forall r \in \mathcal{R}
+    \label{eq:delay} \\
+    \hat{M} &\geq f_j
+    \qquad \forall j \in \mathcal{J}
+    \label{eq:makespan}
+\end{align}
+
+\subsection{Model Size}
+
+For an instance with $R$ aircraft, $J$ jobs, $P$ positions, and $B$ blocking
+arcs the main variable and constraint counts are:
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Component & Order of magnitude \\
+\midrule
+Continuous variables & $O(J + R)$ \\
+Binary variables ($x, y, z$) & $O(JP + J^2 P)$ \\
+Blocking binary variables ($\alpha,\beta,u$) & $O(R^2 B)$ \\
+Non-overlap constraints & $O(J^2 P)$ \\
+Blocking constraints & $O(R^2 B)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Solver Configuration}
+
+The model is solved with \textbf{Gurobi} via Pyomo's \texttt{SolverFactory}.
+Relevant options:
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Option & Type & Effect \\
+\midrule
+\texttt{TimeLimit} & seconds & Wall-clock budget \\
+\texttt{MIPGap} & fraction & Stop when gap $\leq$ this value (0 = optimal) \\
+\texttt{NoRelHeurTime} & seconds & Aggressive primal heuristics before LP relaxation \\
+\bottomrule
+\end{tabular}
+\end{center}

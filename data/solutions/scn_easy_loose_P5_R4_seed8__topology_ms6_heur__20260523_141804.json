@@ -1,0 +1,121 @@
+{
+  "instance": "scn_easy_loose_P5_R4_seed8",
+  "solver": "topology",
+  "label": "topology_ms6_heur",
+  "config": {
+    "time_limit_s": 60,
+    "min_separation": 10.0,
+    "weight_makespan": 0.1,
+    "weight_delay": 1.0,
+    "weight_movements": 10,
+    "weight_topology": 1.0,
+    "alpha": 0.3,
+    "seed": 1,
+    "n_starts": 6,
+    "log_enabled": false,
+    "MIPGap": 0.0,
+    "NoRelHeurTime": 30
+  },
+  "timestamp": "20260523_141804",
+  "solve_time_s": 60.001,
+  "status": "topology (20370 iterations)",
+  "objective": 1.1208,
+  "metrics": {
+    "makespan": 11.208,
+    "movements": 0,
+    "total_delay": 0.0
+  },
+  "aircraft": [
+    {
+      "id": "R2",
+      "position": "P1",
+      "start": 0.0,
+      "finish": 5.93,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J2-1",
+          "start": 0.0,
+          "finish": 1.947
+        },
+        {
+          "id": "J2-2",
+          "start": 1.947,
+          "finish": 5.93
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "position": "P2",
+      "start": 0.0,
+      "finish": 10.732,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J3-1",
+          "start": 0.0,
+          "finish": 3.844
+        },
+        {
+          "id": "J3-2",
+          "start": 3.844,
+          "finish": 6.786
+        },
+        {
+          "id": "J3-3",
+          "start": 6.786,
+          "finish": 10.732
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "position": "P5",
+      "start": 0.0,
+      "finish": 11.208,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J4-1",
+          "start": 0.0,
+          "finish": 3.671
+        },
+        {
+          "id": "J4-2",
+          "start": 3.671,
+          "finish": 6.624
+        },
+        {
+          "id": "J4-3",
+          "start": 6.624,
+          "finish": 11.208
+        }
+      ]
+    },
+    {
+      "id": "R1",
+      "position": "P4",
+      "start": 1.011,
+      "finish": 6.657,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J1-1",
+          "start": 1.011,
+          "finish": 2.541
+        },
+        {
+          "id": "J1-2",
+          "start": 2.541,
+          "finish": 4.044
+        },
+        {
+          "id": "J1-3",
+          "start": 4.044,
+          "finish": 6.657
+        }
+      ]
+    }
+  ]
+}

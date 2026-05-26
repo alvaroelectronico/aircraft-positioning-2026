@@ -1,0 +1,111 @@
+{
+  "instance": "scn_easy_loose_P5_R4_seed1",
+  "solver": "topology",
+  "label": "topology_ms6",
+  "config": {
+    "time_limit_s": 60,
+    "min_separation": 10.0,
+    "weight_makespan": 0.1,
+    "weight_delay": 1.0,
+    "weight_movements": 10,
+    "weight_topology": 1.0,
+    "alpha": 0.3,
+    "seed": 1,
+    "n_starts": 6,
+    "log_enabled": false,
+    "MIPGap": 0.0,
+    "NoRelHeurTime": 0
+  },
+  "timestamp": "20260523_134151",
+  "solve_time_s": 60.001,
+  "status": "topology (29439 iterations)",
+  "objective": 0.9956,
+  "metrics": {
+    "makespan": 9.956,
+    "movements": 0,
+    "total_delay": 0.0
+  },
+  "aircraft": [
+    {
+      "id": "R4",
+      "position": "P1",
+      "start": 0.0,
+      "finish": 6.129,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J4-1",
+          "start": 0.0,
+          "finish": 2.47
+        },
+        {
+          "id": "J4-2",
+          "start": 2.47,
+          "finish": 6.129
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "position": "P2",
+      "start": 0.0,
+      "finish": 5.9,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J2-1",
+          "start": 0.0,
+          "finish": 3.491
+        },
+        {
+          "id": "J2-2",
+          "start": 3.491,
+          "finish": 5.9
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "position": "P4",
+      "start": 0.0,
+      "finish": 9.956,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J3-1",
+          "start": 0.0,
+          "finish": 3.324
+        },
+        {
+          "id": "J3-2",
+          "start": 3.324,
+          "finish": 6.355
+        },
+        {
+          "id": "J3-3",
+          "start": 6.355,
+          "finish": 9.956
+        }
+      ]
+    },
+    {
+      "id": "R1",
+      "position": "P3",
+      "start": 0.0,
+      "finish": 7.267,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J1-1",
+          "start": 0.0,
+          "finish": 3.904
+        },
+        {
+          "id": "J1-2",
+          "start": 3.904,
+          "finish": 7.267
+        }
+      ]
+    }
+  ]
+}

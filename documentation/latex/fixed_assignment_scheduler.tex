@@ -1,0 +1,197 @@
+% =============================================================================
+%  Fixed-Assignment Scheduler (FAS)
+% =============================================================================
+\section{Fixed-Assignment Scheduler}
+\label{sec:fas}
+
+\subsection{Motivation}
+
+The full MILP formulation (Section~\ref{sec:milp}) optimises position
+assignment and timing jointly.  When position assignments are already known
+— for example, from a topology heuristic run — all assignment variables
+become constants and the model reduces to a pure scheduling problem.
+Solving this reduced model is much faster: the dominant source of complexity
+in the full MILP (the position-assignment binary layer) is eliminated.
+
+A second motivation is correctness.  The Pyomo-based full MILP does not
+enforce the minimum separation $\delta$ between consecutive aircraft sharing
+the same position; it applies $\delta$ only in the blocking-arc constraints
+between different positions.  The greedy scheduler (\texttt{\_rebuild}) in
+the topology heuristic does enforce a $\delta$-gap, but only via the
+\texttt{pos\_free} counter, which can be inconsistent after local-search
+moves.  The \texttt{FixedAssignmentScheduler} corrects both issues by
+making $\delta$ an explicit constraint.
+
+\subsection{Model}
+\label{sec:fas-model}
+
+Let $\mathcal{R}$ be the set of aircraft, $p(r)$ the fixed position of
+aircraft $r$, $e_r$ its earliest start, $T_r$ its target finish,
+$D_r = \sum_{j \in \mathcal{J}_r} d_j$ its total processing time (sum of
+job durations along its precedence chain), and $\delta$ the minimum
+separation.  Big-$M$ is set to the sum of all $D_r$ values plus the latest
+$e_r$.
+
+\paragraph{Variables.}
+
+\begin{align*}
+S_r, F_r &\geq 0 \quad \text{(start and finish of aircraft } r\text{)} \\
+\mathit{delay}_r &\geq 0 \\
+\mathit{makespan} &\geq 0 \\
+q_{r,r'} &\in \{0,1\} \quad \forall\, r < r',\; p(r)=p(r') \quad
+    \text{(ordering: 1 if } r \text{ precedes } r'\text{)} \\
+u^{\mathrm{in}}_{r,r'},\; u^{\mathrm{out}}_{r,r'} &\in \{0,1\} \quad
+    \forall\, \text{blocking pairs } (r,r')
+\end{align*}
+
+Job-level start times are not explicit variables.  Because all jobs of
+each aircraft form a linear precedence chain with no branching, job
+starts are recovered deterministically from $S_r$ after solving.
+
+\paragraph{Constraints.}
+
+\begin{align}
+F_r &= S_r + D_r & \forall\, r \label{fas:finish} \\
+S_r &\geq e_r & \forall\, r \label{fas:earliest} \\
+\mathit{delay}_r &\geq F_r - T_r & \forall\, r \label{fas:delay} \\
+\mathit{makespan} &\geq F_r & \forall\, r \label{fas:makespan}
+\end{align}
+
+\noindent\textbf{Same-position ordering with $\delta$ separation}
+(for each pair $r < r'$ with $p(r) = p(r')$):
+\begin{align}
+S_{r'} &\geq F_r + \delta - M(1 - q_{r,r'}) \label{fas:order1} \\
+S_r    &\geq F_{r'} + \delta - M\, q_{r,r'}  \label{fas:order2}
+\end{align}
+
+\noindent\textbf{Blocking arcs} (for each pair $(r,r')$ whose fixed positions
+form a blocking arc $p(r) \to p(r')$ in the hangar topology):
+\begin{align}
+S_{r'} &\geq F_r - M\, u^{\mathrm{in}}_{r,r'} \label{fas:bin1} \\
+S_r    &\geq F_{r'} - M(1 - u^{\mathrm{in}}_{r,r'}) \label{fas:bin2} \\
+S_r    &\geq F_{r'} - M\, u^{\mathrm{out}}_{r,r'} \label{fas:bout1} \\
+S_{r'} &\geq F_r - M(1 - u^{\mathrm{out}}_{r,r'}) \label{fas:bout2}
+\end{align}
+
+These four constraints enforce that, for each blocking arc, either $r$
+finishes before $r'$ starts (entry direction) or $r'$ finishes before $r$
+starts (exit direction).
+
+\paragraph{Objective.}
+
+\begin{equation}
+\min\; w_M \cdot \mathit{makespan} + w_D \cdot \sum_r \mathit{delay}_r
+     + w_V \cdot V
+\label{fas:obj}
+\end{equation}
+
+where $V$ (the number of blocking movements) is a constant for a fixed
+assignment, computed before model construction.
+
+\subsection{Implementation}
+
+The model is implemented in \texttt{solvers/fixed\_assignment\_scheduler.py}
+as class \texttt{FixedAssignmentScheduler}, built directly with the
+\texttt{gurobipy} API (not via Pyomo).  This eliminates the Pyomo model
+construction overhead, which was measured at $\sim$110\,s for $R=30$; the
+gurobipy FAS builds in $<0.1$\,s for all instance sizes tested.
+
+\paragraph{Job chain recovery.}
+After solving, job start times are reconstructed from $S_r$ by iterating
+the precedence chain in topological order:
+\[
+    S_{j_1} = S_r, \quad S_{j_{k+1}} = S_{j_k} + d_{j_k}.
+\]
+
+\paragraph{Interface.}
+\begin{verbatim}
+fas = FixedAssignmentScheduler()
+fas.configure(time_limit_s=60, min_separation=10, ...)
+solution = fas.solve(instance_data, assignment)
+# assignment: {aircraft_id: position_id}
+# solution: standard dict compatible with check_solution.py
+\end{verbatim}
+
+The solution dict includes \texttt{\_build\_time\_s} and \texttt{\_solve\_time\_s}
+for timing diagnostics.
+
+\subsection{Parameters}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Parameter & Default & Description \\
+\midrule
+\texttt{time\_limit\_s}    & 60   & Gurobi time limit (seconds) \\
+\texttt{min\_separation}   & 10.0 & $\delta$: minimum gap between consecutive
+                                    aircraft at the same position \\
+\texttt{weight\_makespan}  & 0.1  & $w_M$ \\
+\texttt{weight\_delay}     & 1.0  & $w_D$ \\
+\texttt{weight\_movements} & 10   & $w_V$ \\
+\texttt{mip\_gap}          & 0.0  & Gurobi MIPGap \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Movement Counting Difference vs Topology Heuristic}
+\label{sec:fas-modelling-diff}
+
+Both FAS and the topology heuristic operate at the aircraft block level
+($D_r = \sum_j d_j$); neither performs job-level blocking evaluation.
+However, their movement counting conditions differ subtly:
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Method & Entry blocking condition & Exit blocking condition \\
+\midrule
+\texttt{\_count\_movements} & $S_r < S_{r'} < F_r$ (strict) &
+    $S_r < F_{r'} < F_r$ (strict) \\
+FAS $u^{\mathrm{in}}$ & $S_r \leq S_{r'} \leq F_r - \delta$ &
+    $S_r \leq F_{r'} \leq F_r - \delta$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The FAS formulation differs in two ways:
+\begin{enumerate}[noitemsep]
+    \item \textbf{Non-strict at lower bound}: when $S_{r'} = S_r$ exactly,
+          FAS counts an entry blocking but \texttt{\_count\_movements} does not
+          (strict inequality fails).
+    \item \textbf{$-\delta$ at upper bound}: FAS requires $S_{r'} \leq F_r -
+          \delta$ for entry to count, while the heuristic checks $S_{r'} <
+          F_r$.
+\end{enumerate}
+
+The net effect is that FAS may count blocking events that the greedy heuristic
+would not, and vice versa.  Because the objective uses $w_V = 10$ per movement
+unit, the MILP may pay up to 20 units of extra delay to avoid one FAS-counted
+blocking that the heuristic's checker would not penalise.
+
+\textbf{Observed consequence (Series~04, R=20):} \texttt{fas\_on\_topo} gives
+delay=245.0 vs \texttt{topology\_ms6} delay=238.95 on the same assignment,
+with both reporting movements=0 by the \texttt{check\_solution} checker.
+Same makespan (107.33), different delay: the MILP chose a different ordering
+of aircraft at shared positions to minimise FAS-counted (not checker-counted)
+movements.
+
+\textbf{Mitigation:} the \texttt{safe\_pipeline} wrapper returns
+$\min(\texttt{topology}, \texttt{fas\_on\_topo})$, guaranteeing that FAS
+never degrades the topology solution regardless of counting differences.
+Long-term fix: align FAS blocking conditions with \texttt{\_count\_movements}
+(strict inequalities, no $-\delta$ shift).
+
+\subsection{Model Size and Build Time}
+
+For a fixed assignment with $R$ aircraft and $P$ positions:
+\begin{itemize}[noitemsep]
+    \item \textbf{Continuous variables}: $3R + 1$ ($S_r$, $F_r$,
+          $\mathit{delay}_r$, makespan).
+    \item \textbf{Binary variables}: $\binom{R_{\mathrm{same}}}{2}$ ordering
+          binaries (where $R_{\mathrm{same}}$ is the number of aircraft sharing
+          a position) plus $2|\mathcal{B}|$ blocking binaries
+          ($\mathcal{B}$ = set of blocking arc pairs).
+    \item \textbf{Build time}: $<0.02$\,s for all instances tested
+          ($R \leq 30$), compared to $\sim$110\,s for the Pyomo full MILP
+          at $R=30$.
+\end{itemize}

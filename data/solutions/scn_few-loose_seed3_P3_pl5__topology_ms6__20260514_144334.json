@@ -1,0 +1,115 @@
+{
+  "instance": "scn_few-loose_seed3_P3_pl5",
+  "solver": "topology",
+  "label": "topology_ms6",
+  "config": {
+    "time_limit_s": 60,
+    "min_separation": 10.0,
+    "weight_makespan": 0.1,
+    "weight_delay": 1.0,
+    "weight_movements": 10,
+    "weight_topology": 1.0,
+    "alpha": 0.3,
+    "seed": 1,
+    "n_starts": 6,
+    "log_enabled": false,
+    "MIPGap": 0.0,
+    "NoRelHeurTime": 0
+  },
+  "timestamp": "20260514_144334",
+  "solve_time_s": 60.0,
+  "status": "topology (13849 iterations)",
+  "objective": 2.188,
+  "metrics": {
+    "makespan": 21.88,
+    "movements": 0,
+    "total_delay": 0.0
+  },
+  "aircraft": [
+    {
+      "id": "R2",
+      "position": "P1",
+      "start": 0.0,
+      "finish": 8.64,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J2-1",
+          "start": 0.0,
+          "finish": 8.64
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "position": "P3",
+      "start": 0.0,
+      "finish": 10.68,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J5-1",
+          "start": 0.0,
+          "finish": 10.68
+        }
+      ]
+    },
+    {
+      "id": "R1",
+      "position": "P2",
+      "start": 0.0,
+      "finish": 21.88,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J1-1",
+          "start": 0.0,
+          "finish": 2.33
+        },
+        {
+          "id": "J1-2",
+          "start": 2.33,
+          "finish": 13.58
+        },
+        {
+          "id": "J1-3",
+          "start": 13.58,
+          "finish": 21.88
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "position": "P4",
+      "start": 10.68,
+      "finish": 14.62,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J3-1",
+          "start": 10.68,
+          "finish": 14.62
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "position": "P5",
+      "start": 0.0,
+      "finish": 16.7,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J4-1",
+          "start": 0.0,
+          "finish": 9.3
+        },
+        {
+          "id": "J4-2",
+          "start": 9.3,
+          "finish": 16.7
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "instance": "scn_few-loose_seed3_P3_pl5",
+  "solver": "milp",
+  "label": "milp_baseline",
+  "config": {
+    "min_separation": 10.0,
+    "weight_makespan": 0.1,
+    "weight_delay": 1.0,
+    "weight_movements": 10,
+    "time_limit_s": 60,
+    "MIPGap": 0.0,
+    "NoRelHeurTime": 0
+  },
+  "timestamp": "20260514_144234",
+  "solve_time_s": 0.134,
+  "status": "optimal",
+  "objective": 2.19,
+  "metrics": {
+    "makespan": 21.88,
+    "movements": 0,
+    "total_delay": 0.0
+  },
+  "aircraft": [
+    {
+      "id": "R1",
+      "position": "P5",
+      "start": 0.0,
+      "finish": 21.88,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J1-1",
+          "start": 0.0,
+          "finish": 2.33
+        },
+        {
+          "id": "J1-2",
+          "start": 2.33,
+          "finish": 13.58
+        },
+        {
+          "id": "J1-3",
+          "start": 13.58,
+          "finish": 21.88
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "position": "P3",
+      "start": 3.94,
+      "finish": 12.58,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J2-1",
+          "start": 3.94,
+          "finish": 12.58
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "position": "P2",
+      "start": 0.0,
+      "finish": 3.94,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J3-1",
+          "start": 0.0,
+          "finish": 3.94
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "position": "P4",
+      "start": 0.0,
+      "finish": 19.98,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J4-1",
+          "start": 0.0,
+          "finish": 9.3
+        },
+        {
+          "id": "J4-2",
+          "start": 12.58,
+          "finish": 19.98
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "position": "P1",
+      "start": 0.0,
+      "finish": 10.68,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J5-1",
+          "start": 0.0,
+          "finish": 10.68
+        }
+      ]
+    }
+  ]
+}

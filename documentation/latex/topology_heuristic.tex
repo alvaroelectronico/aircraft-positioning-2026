@@ -1,0 +1,268 @@
+% =============================================================================
+%  Section: Topology-Aware Heuristic
+% =============================================================================
+\section{Topology-Aware Heuristic}
+\label{sec:topology}
+
+\subsection{Motivation}
+
+The constructive heuristic assigns aircraft to positions without considering
+the long-term effect of the hangar topology on future flexibility.  When a
+\emph{heavy} aircraft (large $D_r$) occupies a \emph{high-load} position
+(one that transitively blocks many others), it holds those downstream positions
+inaccessible for a long time, amplifying movements and delays in a cascade.
+
+The topology-aware heuristic (\texttt{solvers/topology\_heuristic.py}) augments
+the GRASP score with a \emph{topology penalty} that discourages placing
+urgent/heavy aircraft in high-load positions.
+
+\subsection{Topological Pre-computation}
+
+\paragraph{Blocking load.}
+For each position $p$, the \emph{blocking load} $\ell(p)$ is the number of
+positions reachable from $p$ via the transitive closure of $\mathcal{B}$:
+\[
+    \ell(p) = \bigl|\{p' \in \mathcal{P} : p \xrightarrow{*} p'\}\bigr|
+\]
+Positions with $\ell(p) = 0$ block nobody (safe for heavy aircraft).
+High-$\ell$ positions amplify any congestion.
+
+The computation is a DFS per position: $O(P^2)$.
+
+\paragraph{Aircraft slack.}
+The \emph{slack} of aircraft $r$ measures its scheduling margin:
+\[
+    \sigma_r = \max\bigl(0,\; T_r - e_r - D_r\bigr)
+\]
+Small $\sigma_r$ means the aircraft is \emph{urgent}: it must start soon to
+avoid delay.
+
+\paragraph{Urgency factor.}
+\[
+    u_r = \frac{1}{1 + \sigma_r / \bar{\sigma}}
+    \quad\in\;(0,\;1]
+    \qquad \bar{\sigma} = \frac{1}{R}\sum_{r}\sigma_r
+\]
+$u_r \to 1$ for very urgent aircraft; $u_r \to 0$ for very relaxed ones.
+
+\subsection{Algorithm}
+
+\begin{algorithm}[H]
+\caption{Topology-Aware Heuristic (multi-start)}
+\begin{algorithmic}[1]
+\State Pre-compute $\ell(p)$ for all $p$; compute $\sigma_r$, $u_r$, $\bar{\sigma}$ \Comment{shared across starts}
+\State $s^* \leftarrow \emptyset$, $z^* \leftarrow \infty$
+\For{$i = 0, \ldots, \texttt{n\_starts}-1$}
+    \State $\text{seed}_i \leftarrow \text{seed} + i$;\quad budget per start $\leftarrow t_{\text{limit}} / \texttt{n\_starts}$
+    \While{start time budget not exhausted}
+        \State Add Gaussian noise $\epsilon \sim \mathcal{N}(0,\;\rho\bar{\sigma})$ to each $\sigma_r$ \Comment{$\rho=\texttt{noise\_scale\_ratio}$}
+        \State Sort aircraft by $(\sigma_r + \epsilon \uparrow,\; D_r \downarrow)$ \Comment{urgency order}
+        \If{LNS kick scheduled}
+            \State Remove $k \in [\max(2, R/5),\; \max(3, R/3)]$ worst aircraft; re-insert
+        \Else
+            \State \textbf{Construction}: for each aircraft $r$ in urgency order:
+            \State \quad Score: $\text{score}(r,p) = w_D \Delta_r + w_M t_f + w_V V' \cdot 2 + w_{\text{topo}} \cdot u_r \cdot \ell(p) \cdot w_D$
+            \State \quad $\alpha_{\text{eff}} = \alpha + u_r(1 - \alpha)$;\quad GRASP-select position
+        \EndIf
+        \State $s \leftarrow \text{LightLocalSearch}(s,\;\max(5,R),\;\text{deadline})$
+        \If{$z(s) < z^*$} \; $s^* \leftarrow s$; $z^* \leftarrow z(s)$ \EndIf
+    \EndWhile
+\EndFor
+\State \Return $s^*$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Sequential construction.}
+Unlike the constructive heuristic (which evaluates all remaining aircraft ×
+positions jointly), the topology heuristic processes aircraft one at a time in
+urgency order.  For each aircraft it evaluates only the $|\mathcal{P}|$
+positions and selects using biased-random GRASP.  Processing in urgency order
+guarantees that the most constrained aircraft choose their position while the
+most desirable slots are still available.
+
+\subsection{Topology Penalty}
+
+The penalty added to the GRASP score when considering aircraft $r$ at position
+$p$ is:
+\begin{equation}
+    \pi(r, p)
+    = w_{\text{topo}} \cdot u_r \cdot \ell(p) \cdot w_D
+    \label{eq:topo-penalty}
+\end{equation}
+
+\noindent Key properties:
+\begin{itemize}[noitemsep]
+    \item \textbf{Urgent aircraft} ($u_r \approx 1$): large penalty for high-load
+          positions — they gravitate to $\ell(p) = 0$ slots.
+    \item \textbf{Relaxed aircraft} ($u_r \approx 0$): penalty near zero — they
+          can occupy any position without bias.
+    \item \textbf{Zero-load positions} ($\ell(p) = 0$): penalty is always zero.
+\end{itemize}
+
+\subsection{Adaptive GRASP Alpha}
+
+The GRASP randomness is adapted per aircraft:
+\begin{equation}
+    \alpha_{\text{eff}}(r) = \alpha + u_r \cdot (1 - \alpha)
+    \label{eq:adaptive-alpha}
+\end{equation}
+Recall that $\alpha=1$ is \textbf{fully greedy} (only rank 0 selected) and
+$\alpha=0$ is \textbf{uniform random} in the geometric weighting scheme
+$w_i = (1-\alpha)^i$ (see Section~\ref{sec:constructive}).
+Urgent aircraft (high $u_r$) drive $\alpha_{\text{eff}} \to 1$, making
+selection nearly greedy — they pick the best available position with little
+randomness.  Relaxed aircraft use $\alpha_{\text{eff}} \approx \alpha$,
+exploring more freely.
+
+\subsection{Construction Order and Noise Injection}
+
+Aircraft are processed in \emph{urgency order}: smallest slack first, then
+largest duration among tied-slack aircraft.  This ensures that the most
+constrained aircraft choose their positions while the most desirable slots are
+still available.
+
+A small Gaussian noise $\epsilon \sim \mathcal{N}(0,\; 0.005\bar{\sigma})$ is
+added to each $\sigma_r$ at the start of every iteration to diversify the
+ordering between iterations when aircraft have similar slack values.
+
+\subsection{LNS Perturbation Kicks}
+
+Every $\approx t_{\text{limit}}/8$ seconds (time-based, not iteration-count
+based) the heuristic fires a \emph{perturbation kick} to escape topology-induced
+local optima:
+
+\begin{enumerate}[noitemsep]
+    \item Sort the current best solution by delay DESC, then finish time DESC.
+          Take a pool of $\max(k \cdot 2,\; k + 3)$ aircraft; shuffle the pool;
+          select $k \in [\max(2, R/5),\; \max(3, R/3)]$ aircraft to remove.
+    \item Fix the remaining $R - k$ aircraft at their current positions;
+          schedule them in urgency order.
+    \item Re-insert the $k$ removed aircraft using topology-aware GRASP with
+          $w_{\text{topo}} = 0$ (penalty disabled), allowing the heuristic to
+          explore assignments that the penalty would normally prevent — including
+          patterns where heavy aircraft occupy high-load positions with precise
+          timing so no blocking materialises.
+\end{enumerate}
+
+The time-based schedule ensures kicks fire with a consistent frequency
+regardless of instance size.
+
+\subsection{Bounded Local Search}
+
+The local search (\texttt{\_light\_local\_search}) applies seven operators in
+priority order, bounded by \texttt{max\_passes} $= \max(5, R)$ outer
+restarts.  Candidate order is shuffled between passes to increase
+neighbourhood diversity.  Any improvement restarts from operator~1.
+
+\paragraph{Operators 1–3 (position assignment, $O(nP)$ per pass).}
+\begin{enumerate}[noitemsep]
+    \item \textbf{Single-move}: try moving each aircraft to a different
+          position; accept the first improvement.
+    \item \textbf{2-opt swap}: try swapping positions of every pair of
+          aircraft with different positions; accept the first improvement.
+    \item \textbf{Intra-position adjacent swap}: for each position with
+          $\geq 2$ aircraft, try swapping consecutive pairs in earliest-start
+          order; accept the first improvement.
+\end{enumerate}
+
+\paragraph{Operators 4–7 (intra-position sequencing, $O(n^2 P)$ per pass).}
+\begin{enumerate}[noitemsep]
+    \setcounter{enumi}{3}
+    \item \textbf{Intra-position insertion}: for each position with $\geq 2$
+          aircraft, try re-inserting each aircraft at every other slot in the
+          same position's sequence; accept the first improvement.
+    \item \textbf{Non-adjacent intra-position swap}: extend Op~3 to all
+          non-consecutive pairs within the same position.
+    \item \textbf{EDD repair}: for each position, evaluate three full-block
+          reorderings — by earliest target finish (EDD), by slack ascending,
+          and by delay/duration ratio descending — via \texttt{\_rebuild};
+          accept the first improvement.
+    \item \textbf{Delay-block insertion}: identify the $K = \max(2, R/10)$
+          aircraft with the largest individual delay; attempt to move each
+          earlier within its current position or reassign it to another
+          position; accept the first improvement.
+\end{enumerate}
+
+A \emph{two-speed} mode selects the operator set based on budget per start:
+\texttt{ls\_mode="fast"} (Ops~1–3 only) when budget per start is $<20$\,s,
+and \texttt{ls\_mode="full"} (all operators) otherwise.  This prevents the
+expensive operators from starving GRASP iterations in multi-start mode.
+
+The \texttt{max\_passes} counter decrements only when \emph{no} operator
+finds an improvement.  A deadline check after every operator prevents LS
+from overshooting the time budget (fixes a runaway issue observed at
+133.9\,s for a seed-8 run on R=20).
+
+\subsection{Parameters}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Parameter & Default & Description \\
+\midrule
+\texttt{time\_limit\_s}    & 60   & Total budget (seconds) \\
+\texttt{min\_separation}   & 10.0 & Minimum gap between aircraft \\
+\texttt{weight\_makespan}  & 0.1  & $w_M$ \\
+\texttt{weight\_delay}     & 1.0  & $w_D$ \\
+\texttt{weight\_movements} & 10   & $w_V$ \\
+\texttt{weight\_topology}    & 1.0   & $w_{\text{topo}}$ \\
+\texttt{alpha}               & 0.3   & Base GRASP geometric decay \\
+\texttt{kick\_interval\_ratio} & 0.125 & Kick interval as fraction of budget (0 = disabled) \\
+\texttt{seed}                & None  & Random seed (base seed for multi-start) \\
+\texttt{n\_starts}           & 1     & Number of independent restarts in the multi-start portfolio \\
+\texttt{noise\_scale\_ratio} & 0.005 & Std.\ of Gaussian noise relative to mean slack $\bar{\sigma}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Assignment Generator (\texttt{generate\_assignments})}
+\label{sec:topo-generate-assignments}
+
+Beyond its role as a complete solver, \texttt{TopologyHeuristic} exposes a
+lightweight interface for generating diverse position assignments without
+scheduling:
+
+\begin{verbatim}
+generate_assignments(instance_data, k=5, time_per_assign=2.0)
+  -> list[dict[aircraft_id, position_id]]
+\end{verbatim}
+
+The method runs $k$ independent GRASP iterations, each with a budget of
+\texttt{time\_per\_assign} seconds and \texttt{ls\_mode="fast"} (Ops~1–3
+only), using seeds $\texttt{seed}, \texttt{seed}+1, \ldots, \texttt{seed}+k-1$.
+Each call returns only the position map $\{r \mapsto p\}$; timing is discarded.
+
+Duplicate assignments (identical position maps across seeds) are removed before
+returning.  Two assignments are considered distinct if at least one aircraft
+differs in its assigned position.
+
+This interface is used by \texttt{TGRSolver} (Section~\ref{sec:tgr-solver})
+to generate candidate assignments that are then scheduled exactly by
+\texttt{FixedAssignmentScheduler} (Section~\ref{sec:fas}).
+
+\paragraph{Rationale.}
+Fast GRASP without heavy LS produces weaker individual solutions but explores
+more diverse assignments within a fixed time budget.  The scheduling quality
+of each assignment is then recovered by the exact FAS model rather than the
+greedy \texttt{\_rebuild} scheduler.
+
+\subsection{Relationship to Other Methods and Ablation Variants}
+
+\begin{center}
+\begin{tabular}{lp{9cm}}
+\toprule
+Configuration & Effect \\
+\midrule
+$w_{\text{topo}} = 0$ & Removes topology penalty; reduces to urgency-sorted GRASP
+    with sequential (per-aircraft) position selection. \\
+$\alpha = 1$ & Fully greedy construction (only rank~0 selected);
+    kicks provide the only diversification. \\
+\texttt{kick\_interval\_ratio} $= 0$ & Disables LNS perturbation kicks entirely;
+    solver runs as pure iterated GRASP with no large-neighbourhood escape. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+These three settings define the ablation study configurations
+(\texttt{topology\_no\_penalty}, \texttt{topology\_greedy}, and
+\texttt{topology\_no\_kicks}) available in \texttt{run\_experiments.py}.

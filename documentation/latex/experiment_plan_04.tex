@@ -1,0 +1,357 @@
+% =============================================================================
+%  Experiment Series 05: Safe Pipeline and fas_2cand
+% =============================================================================
+\newpage
+\section{Experiment Series 05: Safe Pipeline and \texttt{fas\_2cand}}
+\label{sec:exp05}
+
+\subsection{Motivation}
+
+Series~04 confirmed that \texttt{fas\_on\_topo} can produce worse results than
+\texttt{topology\_ms6} on the same assignment (R=20: 247.86 vs 236.06) due to
+movement-counting discrepancy (Section~\ref{sec:fas-modelling-diff}).  Two
+improvements were implemented on 2026-05-14:
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Safe pipeline} (\texttt{safe\_pipeline}): returns
+          $\min(\texttt{topology\_ms6},\, \texttt{fas\_on\_topo},\, \texttt{fas\_2cand})$,
+          guaranteeing FAS never degrades the topology result.
+    \item \textbf{Selective \texttt{fas\_2cand}}: extends \texttt{FixedAssignmentScheduler}
+          to accept $|C_r| > 1$ position candidates per aircraft.  Candidates
+          are the union of positions across $K=10$ short topology runs (1\,s each).
+          To avoid combinatorial explosion, only the top 4 aircraft by
+          delay$+$makespan contribution receive extra candidates; all others are
+          fixed to the primary \texttt{topology\_ms6} assignment.
+\end{enumerate}
+
+\subsection{Configuration}
+
+Shared: $w_M=0.1$, $w_D=1.0$, $w_V=10$, $t_{\text{limit}}=60$\,s,
+MIPGap=0, $\delta=10$, $\alpha=0.3$, $w_{\text{topo}}=1$, seed=1.
+
+All solutions pass RQ01--RQ08.  Log file:
+\texttt{run\_experiments\_20260514\_133855.log}.
+
+\subsection{Results}
+\label{exp:exp05-results}
+
+\begin{table}[h]
+\centering
+\caption{Series~05 results (2026-05-14).  All solutions pass RQ01--RQ08.
+Bold = best per instance.
+\texttt{safe\_pipeline} in this run did not yet include \texttt{fas\_2cand}
+in its warm cache (ordering fixed after the run; see Section~\ref{exp:exp05-ordering}).}
+\label{tab:exp05}
+\begin{tabular}{llrrrrr}
+\toprule
+Instance (R) & Method & Obj & Makespan & Delay & Mov & Time(s) \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_custom} (R=10)}
+ & topology\_ms6  & 16.93          &  62.59 &  10.67 & 0 & 60.0 \\
+ & fas\_on\_topo  & 16.93          &  62.59 &  10.67 & 0 &  0.0 \\
+ & safe\_pipeline & 16.93          &  62.59 &  10.67 & 0 &  0.0 \\
+ & \textbf{fas\_2cand}  & \textbf{12.35} &  62.59 &   6.09 & 0 &  0.2 \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_few-loose} (R=3)}
+ & topology\_ms6  & \textbf{3.12}  &  31.22 &   0.00 & 0 & 60.0 \\
+ & fas\_on\_topo  & \textbf{3.12}  &  31.22 &   0.00 & 0 &  0.0 \\
+ & safe\_pipeline & \textbf{3.12}  &  31.22 &   0.00 & 0 &  0.0 \\
+ & fas\_2cand     & \textbf{3.12}  &  31.22 &   0.00 & 0 &  0.0 \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_few-tight} (R=2)}
+ & topology\_ms6  & \textbf{6.39}  &  63.88 &   0.00 & 0 & 60.0 \\
+ & fas\_on\_topo  & \textbf{6.39}  &  63.88 &   0.00 & 0 &  0.0 \\
+ & safe\_pipeline & \textbf{6.39}  &  63.88 &   0.00 & 0 &  0.0 \\
+ & fas\_2cand     & \textbf{6.39}  &  63.88 &   0.00 & 0 &  0.0 \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_heavy-tight} (R=30)}
+ & \textbf{topology\_ms6}  & \textbf{202.92} & 238.82 & 179.04 & 0 & 60.0 \\
+ & fas\_on\_topo  & 223.37$\dagger$ & 249.79 & 198.39 & 0 & 60.3 \\
+ & \textbf{safe\_pipeline} & \textbf{202.92} & 238.82 & 179.04 & 0 &  0.0 \\
+ & fas\_2cand     & 280.21$\dagger$ & 278.00 & 252.41 & 0 & 60.6 \\
+\midrule
+\multirow{4}{*}{\texttt{scn\_many-medium} (R=20)}
+ & \textbf{topology\_ms6}  & \textbf{242.84} & 107.68 & 232.07 & 0 & 60.0 \\
+ & fas\_on\_topo  & 249.09         & 108.75 & 238.22 & 0 & 20.6 \\
+ & \textbf{safe\_pipeline} & \textbf{242.84} & 107.68 & 232.07 & 0 &  0.0 \\
+ & fas\_2cand     & 279.29$\dagger$ & 121.35 & 267.16 & 0 & 60.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent $\dagger$\,time-limited at 60\,s (not proven optimal).
+
+\subsection{Analysis}
+
+\paragraph{safe\_pipeline guarantees no regression.}
+
+For all five instances, \texttt{safe\_pipeline} matches or beats
+\texttt{topology\_ms6} and \texttt{fas\_on\_topo}.  It correctly selects
+\texttt{topology\_ms6} for R=10, 20, 30 (where topology dominates) and
+either source where they tie (R=2, R=3).  The zero extra runtime confirms
+that the selector adds negligible overhead.
+
+\paragraph{fas\_2cand improves R=10 significantly.}
+
+For R=10 with 4 out of 10 aircraft given extra candidates, \texttt{fas\_2cand}
+achieves obj=12.35 (delay=6.09) vs topology's 16.93 (delay=10.67) — a 27\%
+objective reduction in 0.2\,s.  This confirms that the primary \texttt{topology\_ms6}
+assignment is suboptimal for some aircraft: reassigning just 4 aircraft reduces delay
+by 4.58 units.
+
+\paragraph{fas\_2cand is time-limited and worse for R=20/30.}
+
+For R=20 and R=30, \texttt{fas\_2cand} uses all 60\,s and returns a worse
+incumbent than \texttt{topology\_ms6} (279.29 vs 242.84 for R=20;
+280.21 vs 202.92 for R=30).  The MILP is harder: with 4 binary position
+choices added to an already-large scheduling problem (R=20: 20 aircraft,
+multiple shared positions), the solver cannot find a good solution in 60\,s.
+This is consistent with the catastrophic results seen with all-candidates
+(\S~\ref{exp:exp04-fas-gap}): even 4 free aircraft can create enough branching
+to degrade the incumbent quality.
+
+\paragraph{Topology result for R=30 improved dramatically vs Series~04.}
+
+Series~04 reported topology=225.51 for R=30; here topology achieves 202.92.
+Both runs use seed=1 with 6 multi-starts of 10\,s each.  The improvement
+stems from the 6th start (seed=6) finding obj=202.92, which was not found in
+the Series~04 run.  This confirms stochastic variability in multi-start
+topology; results depend on which seeds are lucky.
+
+\subsection{Experiment Ordering Fix}
+\label{exp:exp05-ordering}
+
+In the run above, \texttt{safe\_pipeline} executed as GROUP~6 before
+\texttt{fas\_2cand} (GROUP~7), so its warm cache did not include
+\texttt{fas\_2cand}.  The \texttt{safe\_pipeline} correctly fell back to
+the best of \texttt{topology\_ms6} and \texttt{fas\_on\_topo}, which happened
+to be correct for R=20/30 since \texttt{fas\_2cand} was worse.  However for
+R=10, the correct safe\_pipeline result would be 12.35 (from \texttt{fas\_2cand}),
+not 16.93.
+
+Fix applied after the run: \texttt{fas\_2cand} promoted to GROUP~6 and
+\texttt{safe\_pipeline} demoted to GROUP~7 in \texttt{scripts/run\_experiments.py}.
+
+\subsection{Summary}
+
+\begin{itemize}[noitemsep]
+    \item \texttt{safe\_pipeline} is robust: it never degrades the topology
+          result and correctly selects the best cached source at zero cost.
+    \item \texttt{fas\_2cand} with top-4 selective candidates is highly
+          effective for R$\leq$10 (27\% improvement on R=10, optimal on
+          R=2/3) but time-limited for R$\geq$20.
+    \item For R=20/30, the primary bottleneck remains the assignment quality
+          from \texttt{topology\_ms6}; FAS on a fixed assignment cannot
+          overcome a suboptimal position allocation within 60\,s.
+\end{itemize}
+
+\subsection{Next Steps}
+\label{exp:exp05-next}
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Re-run with corrected ordering} to get \texttt{safe\_pipeline}
+          including \texttt{fas\_2cand} for R=10.
+    \item \textbf{tgr\_long} (Fase~5): TGR with $K=2$--3 assignments $\times$
+          20\,s topology (\texttt{ls\_mode="full"}) to improve assignment
+          quality for R=20/30.  Topology is the binding constraint, not FAS.
+    \item \textbf{Align FAS movement counting}: use strict inequalities and
+          remove $-\delta$ from $\beta^{\mathrm{in}}$ upper bound to eliminate
+          ghost blocking penalties.  Should recover \texttt{fas\_on\_topo}
+          performance gap on R=20.
+    \item \textbf{fas\_2cand time budget}: test with 120\,s for R=20/30 to
+          determine whether the gap closes with more time.
+\end{enumerate}
+
+% =============================================================================
+%  Experiment Series 06: Full Comparative Benchmark
+% =============================================================================
+\newpage
+\section{Experiment Series 06: Full Comparative Benchmark}
+\label{sec:exp06}
+
+\subsection{Motivation}
+
+Series~06 is the first run covering all major solving methods against the
+full instance library (50 instances across four scenario families and multiple
+seeds per family), all under the strict-$\delta$ feasibility definition
+established in Series~04.  The goal is a statistically reliable picture of
+method performance before writing conclusions.
+
+\subsection{Configuration}
+
+Methods: \texttt{milp\_baseline}, \texttt{topology\_ms6}, \texttt{tgr\_k5},
+\texttt{fas\_on\_topo}, \texttt{fas\_2cand}, \texttt{safe\_pipeline}.
+
+Shared: $w_M=0.1$, $w_D=1.0$, $w_V=10$, $t_{\text{limit}}=60$\,s,
+MIPGap=0, $\delta=10$, $\alpha=0.3$, $w_{\text{topo}}=1$, seed=1.
+
+Log file: \texttt{run\_experiments\_20260514\_142034.log}.
+Total: 300 runs, 292 ok, 8 failed (\texttt{milp\_baseline} aborted on all
+8 \texttt{scn\_heavy-tight} instances, as expected for $R=30$).
+
+\subsection{Results by Instance Family}
+
+\subsubsection{Small instances: \texttt{scn\_few-tight} ($R=2$, 12 seeds) and \texttt{scn\_few-loose} ($R=3$, 12 seeds)}
+
+All methods find the same optimum on every instance.  The MILP solves to
+proven optimality in $<$2\,s.  \texttt{fas\_2cand} occasionally returns a
+worse solution (e.g.\ obj=32.34 on \texttt{scn\_few-tight\_seed6} vs
+optimum 8.68); \texttt{safe\_pipeline} always recovers the optimum.
+
+\subsubsection{\texttt{scn\_custom} ($R=10$--$20$, six payload levels pl10--pl20)}
+
+\begin{table}[h]
+\centering
+\caption{Results for \texttt{scn\_custom} (single seed).
+Bold = best heuristic per row.  MILP is exact for pl10, time-limited for pl12--pl20.}
+\label{tab:exp06-custom}
+\begin{tabular}{lrrrrrr}
+\toprule
+Payload & \texttt{milp} & \texttt{topo\_ms6} & \texttt{tgr\_k5} & \texttt{fas\_on\_topo} & \texttt{fas\_2cand} & \texttt{safe\_pipeline} \\
+\midrule
+pl10  &  \textbf{5.87} (opt) &  16.93 &  16.93 &  16.93 & \textbf{12.35} & \textbf{12.35} \\
+pl12  &  6.70$\dagger$        &  \textbf{6.70}  &  \textbf{6.70}  &  \textbf{6.70}  & 31.67 & \textbf{6.70} \\
+pl14  & \textbf{40.53}$\dagger$ & 50.89 & 60.28 & \textbf{50.89} & 85.68 & \textbf{50.89} \\
+pl16  & 49.12$\dagger$        & \textbf{25.21} & 27.00 & \textbf{25.21} & 77.85 & \textbf{25.21} \\
+pl18  & 72.63$\dagger$        & 22.86 & \textbf{20.04} & \textbf{20.04} & 25.05 & \textbf{20.04} \\
+pl20  & 199.78$\dagger$       & \textbf{79.12} & 95.68 & 97.03 & 101.65$\dagger$ & \textbf{79.12} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent $\dagger$\,time-limited.  Key observations:
+
+\begin{itemize}[noitemsep]
+    \item For pl14--pl20 the MILP time-limited incumbent is \emph{much} worse
+          than the heuristics (e.g.\ 199.78 vs 79.12 for pl20), confirming that
+          the MILP loses all practical value for $R\gtrsim 14$ within 60\,s.
+    \item \texttt{fas\_2cand} regresses on pl12--pl20 (its MILP also runs out
+          of time or finds bad incumbents).  \texttt{safe\_pipeline} always
+          recovers the best heuristic result.
+    \item \texttt{tgr\_k5} wins on pl18; \texttt{topology\_ms6} wins on pl16
+          and pl20.  No single heuristic dominates.
+\end{itemize}
+
+\subsubsection{\texttt{scn\_heavy-tight} ($R=30$, 8 seeds)}
+
+\begin{table}[h]
+\centering
+\caption{Results for \texttt{scn\_heavy-tight} ($R=30$).  MILP aborted all 8.
+\texttt{fas\_2cand} is time-limited and consistently worse — omitted from table.
+Bold = best per row.}
+\label{tab:exp06-r30}
+\begin{tabular}{lrrrr}
+\toprule
+Seed & \texttt{topo\_ms6} & \texttt{tgr\_k5} & \texttt{fas\_on\_topo} & \texttt{safe\_pipeline} \\
+\midrule
+1 & \textbf{217.47} & 301.35 & 218.74 & \textbf{217.47} \\
+2 & 304.25 & 295.79 & \textbf{240.63} & \textbf{240.63} \\
+3 & 255.64 & 246.67 & \textbf{229.70} & \textbf{229.70} \\
+4 & 251.93 & 293.95 & \textbf{203.68} & \textbf{203.68} \\
+5 & 479.36 & 335.25 & \textbf{339.24} & \textbf{339.24} \\
+6 & 345.65 & 326.97 & \textbf{277.84} & \textbf{277.84} \\
+7 & 205.21 & 371.13 & \textbf{200.58} & \textbf{200.58} \\
+8 & 233.44 & 221.69 & \textbf{230.29} & \textbf{230.29} \\
+\midrule
+\textbf{Average} & 286.62 & 299.10 & \textbf{242.59} & \textbf{242.43} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{\texttt{scn\_many-medium} ($R=20$, 12 seeds)}
+
+\begin{table}[h]
+\centering
+\caption{Average objective for \texttt{scn\_many-medium} ($R=20$, 12 seeds).
+\texttt{milp\_baseline} is time-limited on all 12 instances.}
+\label{tab:exp06-r20-avg}
+\begin{tabular}{lrr}
+\toprule
+Method & Average Obj & Instances won \\
+\midrule
+\texttt{milp\_baseline}  & 414.44$\dagger$ & 0/12 \\
+\texttt{tgr\_k5}         & 239.21 & 2/12 \\
+\texttt{fas\_on\_topo}   & 234.80 & 4/12 \\
+\texttt{topology\_ms6}   & 218.12 & 6/12 \\
+\texttt{safe\_pipeline}  & \textbf{212.16} & \textbf{10/12} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent $\dagger$\,time-limited.
+
+\subsection{Analysis}
+
+\paragraph{safe\_pipeline is the overall best method for $R\geq 20$.}
+
+For $R=20$, \texttt{safe\_pipeline} wins 10 of 12 instances with average
+objective 212.16, vs topology's 218.12 ($-2.7\%$) and fas\_on\_topo's 234.80.
+The gains come from selecting between topology and fas, whichever dominates.
+
+For $R=30$, \texttt{safe\_pipeline} wins 6 of 8 instances with average
+242.43, vs topology's 286.62 ($-15.4\%$) and tgr\_k5's 299.10.
+\textbf{fas\_on\_topo is the dominant component for R=30}, winning 7 of 8
+head-to-head comparisons against topology (see Table~\ref{tab:exp06-r30}).
+
+\paragraph{fas\_on\_topo reversal at R=30.}
+
+In Series~04 (single seed), \texttt{fas\_on\_topo} was slightly worse than
+topology for $R=20$ and essentially tied for $R=30$.  Over 8 seeds, the
+picture inverts: \texttt{fas\_on\_topo} beats topology in 7/8 R=30 instances
+by an average margin of 44 units.  Explanation: for large instances (many
+aircraft per position, tight sequencing), the Gurobi MILP within FAS explores
+the scheduling space much more effectively than the greedy \texttt{\_rebuild}
+in the topology heuristic, even though both receive the same position assignment.
+The movement-counting conservatism documented in Section~\ref{sec:fas-modelling-diff}
+exists but is outweighed by the scheduling quality gain for $R=30$.
+
+\paragraph{MILP baseline loses all practical value for $R\geq 14$.}
+
+For pl16 (obj 49.12 tLim) the topology heuristic finds 25.21 — nearly half the
+MILP incumbent.  For pl20 (obj 199.78 tLim) topology finds 79.12, a 60\%
+improvement.  The crossing point where the MILP becomes unreliable is around
+pl14--pl16 (roughly 14–16 aircraft with tight constraints).
+
+\paragraph{tgr\_k5 is inconsistent.}
+
+\texttt{tgr\_k5} wins on 2/12 $R=20$ instances and 2/8 $R=30$ instances.
+Its 10\,s topology budget per assignment is often insufficient to find a good
+assignment for large dense scenarios, and its FAS step inherits whatever
+assignment topology produces.  A longer topology budget (\texttt{tgr\_long})
+is needed to make TGR competitive with topology\_ms6.
+
+\paragraph{fas\_2cand only reliable for $R\leq 12$.}
+
+For $R=2$--$3$ and pl10--pl12, \texttt{fas\_2cand} works well (finds optimum
+or near-optimum quickly).  From pl14 onwards it regresses, spending 60\,s
+on a MILP that cannot find a good incumbent with the extra position variables.
+\texttt{safe\_pipeline} always recovers.
+
+\subsection{Summary Table}
+
+\begin{center}
+\begin{tabular}{lllll}
+\toprule
+Instance size & Best method & 2nd best & MILP value & Comment \\
+\midrule
+$R \leq 5$   & Any (all tie) & — & Optimal & Trivial for all \\
+$R \approx 10$--12 & \texttt{safe\_pipeline} & \texttt{topology\_ms6} & Near-optimal tLim & fas\_2cand helps \\
+$R \approx 14$--20 & \texttt{safe\_pipeline} & \texttt{topology\_ms6} & Much worse tLim & MILP not useful \\
+$R \approx 30$ & \texttt{safe\_pipeline} & \texttt{fas\_on\_topo} & Aborted & FAS dominates \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Next Steps}
+\label{exp:exp06-next}
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{tgr\_long} (Fase~5): longer topology budget per assignment
+          to close the gap on $R=20/30$.
+    \item \textbf{Align FAS movement counting} with checker (strict inequalities)
+          to remove ghost-blocking conservatism.  Should improve
+          \texttt{fas\_on\_topo} on $R=20$.
+    \item \textbf{fas\_2cand for $R=10$--$14$}: the method works well in this
+          range; consider increasing \texttt{MAX\_FLEX\_AC} or the time budget
+          selectively for small instances.
+\end{enumerate}

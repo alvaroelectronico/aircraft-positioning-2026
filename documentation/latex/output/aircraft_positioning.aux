@@ -1,0 +1,295 @@
+\relax 
+\providecommand \babel@aux [2]{\global \let \babel@toc \@gobbletwo }
+\@nameuse{bbl@beforestart}
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\babel@aux{english}{}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Problem Statement}{4}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Context}{4}{subsection.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}Input Data}{4}{subsection.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Aircraft.}{4}{section*.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Jobs.}{4}{section*.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Hangar topology.}{4}{section*.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Separation.}{4}{section*.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3}Decisions}{4}{subsection.1.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.4}Objective Function}{4}{subsection.1.4}\protected@file@percent }
+\newlabel{eq:objective}{{1}{4}{Objective Function}{equation.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.5}Blocking Movements}{5}{subsection.1.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.6}Feasibility}{5}{subsection.1.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}MILP Formulation}{6}{section.2}\protected@file@percent }
+\newlabel{sec:milp}{{2}{6}{MILP Formulation}{section.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Sets}{6}{subsection.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Parameters}{6}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Decision Variables}{6}{subsection.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Objective}{7}{subsection.2.4}\protected@file@percent }
+\newlabel{eq:milp-obj}{{2}{7}{Objective}{equation.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5}Constraints}{7}{subsection.2.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Assignment and timing.}{7}{section*.6}\protected@file@percent }
+\newlabel{eq:assign}{{3}{7}{Assignment and timing}{equation.3}{}}
+\newlabel{eq:job-pos}{{4}{7}{Assignment and timing}{equation.4}{}}
+\newlabel{eq:finish}{{5}{7}{Assignment and timing}{equation.5}{}}
+\newlabel{eq:earliest}{{6}{7}{Assignment and timing}{equation.6}{}}
+\newlabel{eq:aircraft-start}{{7}{7}{Assignment and timing}{equation.7}{}}
+\newlabel{eq:aircraft-finish}{{8}{7}{Assignment and timing}{equation.8}{}}
+\@writefile{toc}{\contentsline {paragraph}{Precedences.}{7}{section*.7}\protected@file@percent }
+\newlabel{eq:prec}{{9}{7}{Precedences}{equation.9}{}}
+\@writefile{toc}{\contentsline {paragraph}{Non-overlap within a position (disjunctive scheduling).}{7}{section*.8}\protected@file@percent }
+\newlabel{eq:non-overlap-1}{{10}{7}{Non-overlap within a position (disjunctive scheduling)}{equation.10}{}}
+\newlabel{eq:non-overlap-2}{{11}{7}{Non-overlap within a position (disjunctive scheduling)}{equation.11}{}}
+\newlabel{eq:order-lb}{{12}{7}{Non-overlap within a position (disjunctive scheduling)}{equation.12}{}}
+\newlabel{eq:order-ub}{{13}{7}{Non-overlap within a position (disjunctive scheduling)}{equation.13}{}}
+\newlabel{eq:aircraft-order}{{14}{7}{Non-overlap within a position (disjunctive scheduling)}{equation.14}{}}
+\newlabel{eq:same-pos-delta-1}{{15}{7}{Non-overlap within a position (disjunctive scheduling)}{equation.15}{}}
+\newlabel{eq:same-pos-delta-2}{{16}{7}{Non-overlap within a position (disjunctive scheduling)}{equation.16}{}}
+\@writefile{toc}{\contentsline {paragraph}{Blocking movement indicators.}{8}{section*.9}\protected@file@percent }
+\newlabel{eq:alpha-in-lb}{{17}{8}{Blocking movement indicators}{equation.17}{}}
+\newlabel{eq:alpha-in-ub}{{18}{8}{Blocking movement indicators}{equation.18}{}}
+\newlabel{eq:beta-in-ub}{{19}{8}{Blocking movement indicators}{equation.19}{}}
+\newlabel{eq:beta-in-lb}{{20}{8}{Blocking movement indicators}{equation.20}{}}
+\newlabel{eq:u-in-ub}{{21}{8}{Blocking movement indicators}{equation.21}{}}
+\newlabel{eq:u-in-lb}{{22}{8}{Blocking movement indicators}{equation.22}{}}
+\@writefile{toc}{\contentsline {paragraph}{KPI aggregation.}{8}{section*.10}\protected@file@percent }
+\newlabel{eq:movements}{{23}{8}{KPI aggregation}{equation.23}{}}
+\newlabel{eq:delay}{{24}{8}{KPI aggregation}{equation.24}{}}
+\newlabel{eq:makespan}{{25}{8}{KPI aggregation}{equation.25}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6}Model Size}{8}{subsection.2.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.7}Solver Configuration}{8}{subsection.2.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Constructive Heuristic}{9}{section.3}\protected@file@percent }
+\newlabel{sec:constructive}{{3}{9}{Constructive Heuristic}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Overview}{9}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Algorithm}{9}{subsection.3.2}\protected@file@percent }
+\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces Constructive Heuristic (GRASP + ILS)}}{9}{algorithm.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Joint pair selection.}{9}{section*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Construction Scoring}{9}{subsection.3.3}\protected@file@percent }
+\newlabel{eq:grasp-score}{{26}{10}{Construction Scoring}{equation.26}{}}
+\newlabel{eq:grasp-weights}{{27}{10}{Construction Scoring}{equation.27}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Local Search}{10}{subsection.3.4}\protected@file@percent }
+\newlabel{sec:constructive-ls}{{3.4}{10}{Local Search}{subsection.3.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}ILS Perturbation}{10}{subsection.3.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}Parameters}{10}{subsection.3.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.7}Complexity}{11}{subsection.3.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Large Neighbourhood Search (LNS)}{12}{section.4}\protected@file@percent }
+\newlabel{sec:lns}{{4}{12}{Large Neighbourhood Search (LNS)}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Overview}{12}{subsection.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Algorithm}{13}{subsection.4.2}\protected@file@percent }
+\@writefile{loa}{\contentsline {algorithm}{\numberline {2}{\ignorespaces Large Neighbourhood Search (LNS / ALNS)}}{13}{algorithm.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Accept correctness.}{13}{section*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Initialisation}{14}{subsection.4.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Destroy Strategies}{14}{subsection.4.4}\protected@file@percent }
+\newlabel{sec:destroy}{{4.4}{14}{Destroy Strategies}{subsection.4.4}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.4.1}Adaptive LNS (\texttt  {destroy = alns})}{14}{subsubsection.4.4.1}\protected@file@percent }
+\newlabel{sec:alns}{{4.4.1}{14}{Adaptive LNS (\texttt {destroy = alns})}{subsubsection.4.4.1}{}}
+\newlabel{eq:alns-roulette}{{28}{14}{Adaptive LNS (\texttt {destroy = alns})}{equation.28}{}}
+\newlabel{eq:alns-update}{{29}{14}{Adaptive LNS (\texttt {destroy = alns})}{equation.29}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.4.2}Space-Time Cluster Destroy (\texttt  {cluster})}{15}{subsubsection.4.4.2}\protected@file@percent }
+\newlabel{sec:cluster-destroy}{{4.4.2}{15}{Space-Time Cluster Destroy (\texttt {cluster})}{subsubsection.4.4.2}{}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {3}{\ignorespaces Space-Time Cluster Destroy}}{15}{algorithm.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Repair Operators}{15}{subsection.4.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.5.1}Exhaustive Repair ($k \leq k_{\text  {exact}}$)}{15}{subsubsection.4.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.5.2}GRASP Repair ($k > k_{\text  {exact}}$, \texttt  {repair = grasp})}{15}{subsubsection.4.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.5.3}Sub-MILP Repair ($k > k_{\text  {exact}}$, \texttt  {repair = submilp / auto})}{15}{subsubsection.4.5.3}\protected@file@percent }
+\newlabel{sec:lns-submilp}{{4.5.3}{15}{Sub-MILP Repair ($k > k_{\text {exact}}$, \texttt {repair = submilp / auto})}{subsubsection.4.5.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Fallback monitoring.}{15}{section*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Schedule Rebuild}{15}{subsection.4.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7}Local Search}{15}{subsection.4.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.8}Parameters}{16}{subsection.4.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.9}Complexity and Iteration Throughput}{16}{subsection.4.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Topology-Aware Heuristic}{17}{section.5}\protected@file@percent }
+\newlabel{sec:topology}{{5}{17}{Topology-Aware Heuristic}{section.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Motivation}{17}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Topological Pre-computation}{17}{subsection.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Blocking load.}{17}{section*.14}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Aircraft slack.}{17}{section*.15}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Urgency factor.}{17}{section*.16}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Algorithm}{18}{subsection.5.3}\protected@file@percent }
+\@writefile{loa}{\contentsline {algorithm}{\numberline {4}{\ignorespaces Topology-Aware Heuristic (multi-start)}}{18}{algorithm.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Sequential construction.}{18}{section*.17}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Topology Penalty}{18}{subsection.5.4}\protected@file@percent }
+\newlabel{eq:topo-penalty}{{30}{18}{Topology Penalty}{equation.30}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Adaptive GRASP Alpha}{18}{subsection.5.5}\protected@file@percent }
+\newlabel{eq:adaptive-alpha}{{31}{18}{Adaptive GRASP Alpha}{equation.31}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}Construction Order and Noise Injection}{19}{subsection.5.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.7}LNS Perturbation Kicks}{19}{subsection.5.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.8}Bounded Local Search}{19}{subsection.5.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Operators 1–3 (position assignment, $O(nP)$ per pass).}{19}{section*.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Operators 4–7 (intra-position sequencing, $O(n^2 P)$ per pass).}{19}{section*.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.9}Parameters}{20}{subsection.5.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.10}Assignment Generator (\texttt  {generate\_assignments})}{20}{subsection.5.10}\protected@file@percent }
+\newlabel{sec:topo-generate-assignments}{{5.10}{20}{Assignment Generator (\texttt {generate\_assignments})}{subsection.5.10}{}}
+\@writefile{toc}{\contentsline {paragraph}{Rationale.}{20}{section*.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.11}Relationship to Other Methods and Ablation Variants}{21}{subsection.5.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Fixed-Assignment Scheduler}{22}{section.6}\protected@file@percent }
+\newlabel{sec:fas}{{6}{22}{Fixed-Assignment Scheduler}{section.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Motivation}{22}{subsection.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Model}{22}{subsection.6.2}\protected@file@percent }
+\newlabel{sec:fas-model}{{6.2}{22}{Model}{subsection.6.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Variables.}{22}{section*.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Constraints.}{22}{section*.22}\protected@file@percent }
+\newlabel{fas:finish}{{32}{22}{Constraints}{equation.32}{}}
+\newlabel{fas:earliest}{{33}{22}{Constraints}{equation.33}{}}
+\newlabel{fas:delay}{{34}{22}{Constraints}{equation.34}{}}
+\newlabel{fas:makespan}{{35}{22}{Constraints}{equation.35}{}}
+\newlabel{fas:order1}{{36}{22}{Constraints}{equation.36}{}}
+\newlabel{fas:order2}{{37}{22}{Constraints}{equation.37}{}}
+\newlabel{fas:bin1}{{38}{22}{Constraints}{equation.38}{}}
+\newlabel{fas:bin2}{{39}{22}{Constraints}{equation.39}{}}
+\newlabel{fas:bout1}{{40}{22}{Constraints}{equation.40}{}}
+\newlabel{fas:bout2}{{41}{22}{Constraints}{equation.41}{}}
+\@writefile{toc}{\contentsline {paragraph}{Objective.}{23}{section*.23}\protected@file@percent }
+\newlabel{fas:obj}{{42}{23}{Objective}{equation.42}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Implementation}{23}{subsection.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Job chain recovery.}{23}{section*.24}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Interface.}{23}{section*.25}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Parameters}{23}{subsection.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}Movement Counting Difference vs Topology Heuristic}{23}{subsection.6.5}\protected@file@percent }
+\newlabel{sec:fas-modelling-diff}{{6.5}{23}{Movement Counting Difference vs Topology Heuristic}{subsection.6.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.6}Model Size and Build Time}{24}{subsection.6.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}TGR-MILP Solver}{25}{section.7}\protected@file@percent }
+\newlabel{sec:tgr-solver}{{7}{25}{TGR-MILP Solver}{section.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Motivation}{25}{subsection.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Algorithm}{25}{subsection.7.2}\protected@file@percent }
+\@writefile{loa}{\contentsline {algorithm}{\numberline {5}{\ignorespaces TGRSolver}}{25}{algorithm.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Time budget split.}{25}{section*.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Implementation}{25}{subsection.7.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Deduplication.}{25}{section*.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Best-solution selection.}{25}{section*.28}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Observed Performance}{25}{subsection.7.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}Parameters}{26}{subsection.7.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Experiment Series 01: Topology Calibration and TGR-MILP}{27}{section.8}\protected@file@percent }
+\newlabel{sec:exp01}{{8}{27}{Experiment Series 01: Topology Calibration and TGR-MILP}{section.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}Motivation and Research Questions}{27}{subsection.8.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.2}Implementation}{27}{subsection.8.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Topology calibration.}{27}{section*.29}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Fix-position diagnostic (\texttt  {milp\_fix1}).}{27}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.3}Results}{27}{subsection.8.3}\protected@file@percent }
+\newlabel{exp:exp01-results}{{8.3}{27}{Results}{subsection.8.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Log file.}{27}{section*.31}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Configuration.}{27}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.3.1}Exp.~01-A — Topology Calibration (two-speed LS + size-adaptive starts)}{27}{subsubsection.8.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {8.3.2}Exp.~01-B — $|C_r|=1$ Fix-Position Diagnostic (\texttt  {milp\_fix1})}{27}{subsubsection.8.3.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Topology calibration results (2026-05-14). Bold = best heuristic per instance.}}{28}{table.caption.33}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{tab:exp01a}{{1}{28}{Topology calibration results (2026-05-14). Bold = best heuristic per instance}{table.caption.33}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Analysis}{28}{subsection.8.4}\protected@file@percent }
+\newlabel{exp:exp01-analysis}{{8.4}{28}{Analysis}{subsection.8.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{The gap is almost entirely in timing, not position assignment.}{28}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Implication: TGR-MILP is the correct next step.}{28}{section*.36}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{R=30 timing issue.}{28}{section*.37}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Fix-position diagnostic: MILP with all positions fixed from \texttt  {topology\_ms6}.}}{29}{table.caption.34}\protected@file@percent }
+\newlabel{tab:exp01b}{{2}{29}{Fix-position diagnostic: MILP with all positions fixed from \texttt {topology\_ms6}}{table.caption.34}{}}
+\@writefile{toc}{\contentsline {paragraph}{Topology regression on R=10 — partially resolved.}{29}{section*.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.5}Next Steps}{29}{subsection.8.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Experiment Series 02: TGR-MILP Pipeline}{30}{section.9}\protected@file@percent }
+\newlabel{sec:exp02}{{9}{30}{Experiment Series 02: TGR-MILP Pipeline}{section.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.1}Motivation}{30}{subsection.9.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.2}Phase 0 — Audit of \texttt  {milp\_fix1} Results}{30}{subsection.9.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Finding: minimum separation $\delta $ absent from same-position non-overlap.}{30}{section*.39}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Consequence.}{30}{section*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Implication.}{30}{section*.41}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Additional check: \texttt  {check\_solution} passes all RQ01--RQ07.}{30}{section*.42}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.3}Implementation}{30}{subsection.9.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.3.1}\texttt  {FixedAssignmentScheduler} (\texttt  {solvers/fixed\_assignment\_scheduler.py})}{30}{subsubsection.9.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.3.2}\texttt  {generate\_assignments} in \texttt  {TopologyHeuristic}}{31}{subsubsection.9.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.3.3}\texttt  {TGRSolver} (\texttt  {solvers/tgr\_solver.py})}{31}{subsubsection.9.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.4}Results}{31}{subsection.9.4}\protected@file@percent }
+\newlabel{exp:exp02-results}{{9.4}{31}{Results}{subsection.9.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{Log file.}{31}{section*.43}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Configuration.}{31}{section*.44}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {9.4.1}TGR-MILP vs baselines}{31}{subsubsection.9.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Log file.}{31}{section*.45}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.5}Analysis}{31}{subsection.9.5}\protected@file@percent }
+\newlabel{exp:exp02-analysis}{{9.5}{31}{Analysis}{subsection.9.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{TGR underperforms topology\_ms6 on R=20/30.}{31}{section*.47}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces TGR-MILP pipeline vs baselines (2026-05-14). Bold = best per instance.}}{32}{table.caption.46}\protected@file@percent }
+\newlabel{tab:exp02}{{3}{32}{TGR-MILP pipeline vs baselines (2026-05-14). Bold = best per instance}{table.caption.46}{}}
+\@writefile{toc}{\contentsline {paragraph}{The $\delta =10$ constraint is the decisive factor.}{32}{section*.48}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{FAS overhead: confirmed sub-second.}{32}{section*.49}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Small instances: TGR matches or equals optimal in 10\,s.}{32}{section*.50}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.6}Root Cause and Corrective Experiment}{33}{subsection.9.6}\protected@file@percent }
+\newlabel{exp:exp02-correction}{{9.6}{33}{Root Cause and Corrective Experiment}{subsection.9.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {9.7}Next Steps}{33}{subsection.9.7}\protected@file@percent }
+\newlabel{exp:exp02-next}{{9.7}{33}{Next Steps}{subsection.9.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {10}Experiment Series 03: FAS on Topology Assignment}{34}{section.10}\protected@file@percent }
+\newlabel{sec:exp03}{{10}{34}{Experiment Series 03: FAS on Topology Assignment}{section.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.1}Motivation}{34}{subsection.10.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.2}Configuration}{34}{subsection.10.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.3}Results}{34}{subsection.10.3}\protected@file@percent }
+\newlabel{exp:exp03-results}{{10.3}{34}{Results}{subsection.10.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Log file.}{34}{section*.51}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces FAS on topology\_ms6 assignment vs baselines (2026-05-14). Bold = best per instance.}}{34}{table.caption.52}\protected@file@percent }
+\newlabel{tab:exp03}{{4}{34}{FAS on topology\_ms6 assignment vs baselines (2026-05-14). Bold = best per instance}{table.caption.52}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.4}Analysis}{35}{subsection.10.4}\protected@file@percent }
+\newlabel{exp:exp03-analysis}{{10.4}{35}{Analysis}{subsection.10.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{R=10: large improvement over topology\_ms6.}{35}{section*.53}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{R=30: FAS beats topology\_ms6 under time limit.}{35}{section*.54}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{R=20: FAS \emph  {worse} than topology\_ms6.}{35}{section*.55}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Root cause of R=20 regression.}{35}{section*.56}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Implication.}{35}{section*.57}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Small instances: FAS is the right tool.}{35}{section*.58}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.5}Next Steps}{35}{subsection.10.5}\protected@file@percent }
+\newlabel{exp:exp03-next}{{10.5}{35}{Next Steps}{subsection.10.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {11}Experiment Series 04: Strict-$\delta $ Baselines}{36}{section.11}\protected@file@percent }
+\newlabel{sec:exp04}{{11}{36}{Experiment Series 04: Strict-$\delta $ Baselines}{section.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.1}Motivation}{36}{subsection.11.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.2}Configuration}{36}{subsection.11.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.3}Results}{36}{subsection.11.3}\protected@file@percent }
+\newlabel{exp:exp04-results}{{11.3}{36}{Results}{subsection.11.3}{}}
+\@writefile{toc}{\contentsline {paragraph}{Log file.}{36}{section*.59}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.4}Analysis}{36}{subsection.11.4}\protected@file@percent }
+\newlabel{exp:exp04-analysis}{{11.4}{36}{Analysis}{subsection.11.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{Impact of correcting $\delta $ in the MILP baseline.}{36}{section*.61}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Topology heuristic is now the strongest method for R=20/30.}{36}{section*.62}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Strict-$\delta $ baselines (2026-05-14). All solutions pass RQ01--RQ08. Bold = best per instance.}}{37}{table.caption.60}\protected@file@percent }
+\newlabel{tab:exp04}{{5}{37}{Strict-$\delta $ baselines (2026-05-14). All solutions pass RQ01--RQ08. Bold = best per instance}{table.caption.60}{}}
+\@writefile{toc}{\contentsline {paragraph}{FAS on topology assignment: R=20 regression resolved.}{37}{section*.63}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{R=30: fas\_on\_topo nearly matches topology\_ms6.}{37}{section*.64}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Small instances: all methods find the same optimum.}{37}{section*.65}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.5}Summary of Corrections Applied (2026-05-14)}{37}{subsection.11.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.6}Root Cause of fas\_on\_topo $>$ topology on R=20}{38}{subsection.11.6}\protected@file@percent }
+\newlabel{exp:exp04-fas-gap}{{11.6}{38}{Root Cause of fas\_on\_topo $>$ topology on R=20}{subsection.11.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.7}Next Steps}{38}{subsection.11.7}\protected@file@percent }
+\newlabel{exp:exp04-next}{{11.7}{38}{Next Steps}{subsection.11.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {12}Experiment Series 05: Safe Pipeline and \texttt  {fas\_2cand}}{39}{section.12}\protected@file@percent }
+\newlabel{sec:exp05}{{12}{39}{Experiment Series 05: Safe Pipeline and \texttt {fas\_2cand}}{section.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.1}Motivation}{39}{subsection.12.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.2}Configuration}{39}{subsection.12.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.3}Results}{39}{subsection.12.3}\protected@file@percent }
+\newlabel{exp:exp05-results}{{12.3}{39}{Results}{subsection.12.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Series~05 results (2026-05-14). All solutions pass RQ01--RQ08. Bold = best per instance. \texttt  {safe\_pipeline} in this run did not yet include \texttt  {fas\_2cand} in its warm cache (ordering fixed after the run; see Section~\ref {exp:exp05-ordering}).}}{39}{table.caption.66}\protected@file@percent }
+\newlabel{tab:exp05}{{6}{39}{Series~05 results (2026-05-14). All solutions pass RQ01--RQ08. Bold = best per instance. \texttt {safe\_pipeline} in this run did not yet include \texttt {fas\_2cand} in its warm cache (ordering fixed after the run; see Section~\ref {exp:exp05-ordering})}{table.caption.66}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.4}Analysis}{40}{subsection.12.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{safe\_pipeline guarantees no regression.}{40}{section*.67}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{fas\_2cand improves R=10 significantly.}{40}{section*.68}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{fas\_2cand is time-limited and worse for R=20/30.}{40}{section*.69}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Topology result for R=30 improved dramatically vs Series~04.}{40}{section*.70}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.5}Experiment Ordering Fix}{40}{subsection.12.5}\protected@file@percent }
+\newlabel{exp:exp05-ordering}{{12.5}{40}{Experiment Ordering Fix}{subsection.12.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.6}Summary}{40}{subsection.12.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {12.7}Next Steps}{40}{subsection.12.7}\protected@file@percent }
+\newlabel{exp:exp05-next}{{12.7}{40}{Next Steps}{subsection.12.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {13}Experiment Series 06: Full Comparative Benchmark}{42}{section.13}\protected@file@percent }
+\newlabel{sec:exp06}{{13}{42}{Experiment Series 06: Full Comparative Benchmark}{section.13}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.1}Motivation}{42}{subsection.13.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.2}Configuration}{42}{subsection.13.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.3}Results by Instance Family}{42}{subsection.13.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {13.3.1}Small instances: \texttt  {scn\_few-tight} ($R=2$, 12 seeds) and \texttt  {scn\_few-loose} ($R=3$, 12 seeds)}{42}{subsubsection.13.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {13.3.2}\texttt  {scn\_custom} ($R=10$--$20$, six payload levels pl10--pl20)}{42}{subsubsection.13.3.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Results for \texttt  {scn\_custom} (single seed). Bold = best heuristic per row. MILP is exact for pl10, time-limited for pl12--pl20.}}{42}{table.caption.71}\protected@file@percent }
+\newlabel{tab:exp06-custom}{{7}{42}{Results for \texttt {scn\_custom} (single seed). Bold = best heuristic per row. MILP is exact for pl10, time-limited for pl12--pl20}{table.caption.71}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {13.3.3}\texttt  {scn\_heavy-tight} ($R=30$, 8 seeds)}{42}{subsubsection.13.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {13.3.4}\texttt  {scn\_many-medium} ($R=20$, 12 seeds)}{42}{subsubsection.13.3.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces Results for \texttt  {scn\_heavy-tight} ($R=30$). MILP aborted all 8. \texttt  {fas\_2cand} is time-limited and consistently worse — omitted from table. Bold = best per row.}}{43}{table.caption.72}\protected@file@percent }
+\newlabel{tab:exp06-r30}{{8}{43}{Results for \texttt {scn\_heavy-tight} ($R=30$). MILP aborted all 8. \texttt {fas\_2cand} is time-limited and consistently worse — omitted from table. Bold = best per row}{table.caption.72}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Average objective for \texttt  {scn\_many-medium} ($R=20$, 12 seeds). \texttt  {milp\_baseline} is time-limited on all 12 instances.}}{43}{table.caption.73}\protected@file@percent }
+\newlabel{tab:exp06-r20-avg}{{9}{43}{Average objective for \texttt {scn\_many-medium} ($R=20$, 12 seeds). \texttt {milp\_baseline} is time-limited on all 12 instances}{table.caption.73}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.4}Analysis}{43}{subsection.13.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{safe\_pipeline is the overall best method for $R\geq 20$.}{43}{section*.74}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{fas\_on\_topo reversal at R=30.}{43}{section*.75}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{MILP baseline loses all practical value for $R\geq 14$.}{43}{section*.76}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{tgr\_k5 is inconsistent.}{43}{section*.77}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{fas\_2cand only reliable for $R\leq 12$.}{44}{section*.78}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.5}Summary Table}{44}{subsection.13.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {13.6}Next Steps}{44}{subsection.13.6}\protected@file@percent }
+\newlabel{exp:exp06-next}{{13.6}{44}{Next Steps}{subsection.13.6}{}}
+\gdef \@abspage@last{44}

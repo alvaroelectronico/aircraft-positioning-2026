@@ -1,0 +1,306 @@
+% =============================================================================
+%  Section: Computational Experiments
+% =============================================================================
+\section{Computational Experiments}
+\label{sec:experiments}
+
+This section records the results of the computational experiments run against
+the benchmark instance set.  Each subsection corresponds to one logged
+experiment run; earlier runs are kept as comments for traceability.
+
+% =============================================================================
+% EXPERIMENT 2026-05-13 #3  (active — shown in PDF)
+% =============================================================================
+\subsection{Topology multi-start portfolio vs MILP baseline (2026-05-13)}
+\label{exp:multistart-20260513}
+
+% =============================================================================
+% EXPERIMENT 2026-05-13 #2  (commented — superseded by #3)
+% =============================================================================
+%\subsection{Full comparison with bug-fixed solvers and topology ablation (2026-05-13)}
+%\label{exp:full-comparison-20260513b}
+
+\paragraph{Log file.}
+\texttt{run\_experiments\_20260513\_220915.log}
+
+\paragraph{Context.}
+This experiment introduces the \emph{topology multi-start portfolio}
+(\texttt{topology\_msN}): the 60\,s budget is divided into $N$ equal slices,
+each executed from a different deterministic seed (base + $i$), and the best
+solution across all starts is returned.  Three portfolio sizes are compared:
+$N \in \{3, 6, 12\}$ (slices of 20\,s, 10\,s and 5\,s respectively).
+
+This run also incorporates four new intra-position local-search operators
+(Ops 4–7) added to \texttt{\_light\_local\_search}: intra-position insertion,
+non-adjacent intra-position swap, EDD repair per block, and delay-block
+insertion.
+
+\textbf{Note on run artefact.}  Due to a configuration bug,
+\texttt{topology\_ms3/ms6/ms12} appeared twice in the experiment list
+(once from \texttt{EXPERIMENTS} and once from \texttt{MULTISTART\_EXPERIMENTS}),
+producing 7 entries instead of 4.  Duplicate results are identical and both are
+reported here for transparency; the bug has been fixed.
+
+\paragraph{Configuration.}
+
+Shared parameters: $w_M=0.1$, $w_D=1.0$, $w_V=10$,
+$t_{\text{limit}}=60\,\text{s}$, MIPGap = 0, $\alpha=0.3$,
+$w_{\text{topo}}=1$.\footnote{Weights are passed explicitly and override
+internal solver defaults.}
+
+\begin{center}
+\small
+\begin{tabular}{llrr}
+\toprule
+Label & Solver & $N_{\text{starts}}$ & Budget/start \\
+\midrule
+\texttt{milp\_baseline}  & \texttt{MILPSolver}       & --- & 60\,s \\
+\texttt{topology\_ms3}   & \texttt{TopologyHeur.}    & 3   & 20\,s \\
+\texttt{topology\_ms6}   & \texttt{TopologyHeur.}    & 6   & 10\,s \\
+\texttt{topology\_ms12}  & \texttt{TopologyHeur.}    & 12  & 5\,s  \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Results.}
+
+34 ok / 1 failed (\texttt{milp\_baseline} on \texttt{heavy-tight}, Gurobi aborted).
+Duplicate runs (configuration artefact) are averaged where results differ.
+
+% --- few-loose (R=5) ---------------------------------------------------------
+\begin{table}[H]
+\centering
+\caption{\texttt{few-loose} ($R=5$, 3 pos.).  All methods reach the MILP
+         optimal (3.12).}
+\label{tab:ms-few-loose}
+\begin{tabular}{lrrrr}
+\toprule
+Solver & Obj & Makespan & Delay & Mov \\
+\midrule
+\texttt{milp\_baseline}  & \textbf{3.12} & 31.22 & 0.00 & 0 \\
+\texttt{topology\_ms3}   & \textbf{3.12} & 31.22 & 0.00 & 0 \\
+\texttt{topology\_ms6}   & \textbf{3.12} & 31.22 & 0.00 & 0 \\
+\texttt{topology\_ms12}  & \textbf{3.12} & 31.22 & 0.00 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% --- few-tight (R=5) ---------------------------------------------------------
+\begin{table}[H]
+\centering
+\caption{\texttt{few-tight} ($R=5$, 2 pos.).  MILP optimal = 6.39.
+         All multi-start variants reach the optimum.}
+\label{tab:ms-few-tight}
+\begin{tabular}{lrrrr}
+\toprule
+Solver & Obj & Makespan & Delay & Mov \\
+\midrule
+\texttt{milp\_baseline}  & \textbf{6.39} & 63.88 & 0.00 & 0 \\
+\texttt{topology\_ms3}   & \textbf{6.39} & 63.88 & 0.00 & 0 \\
+\texttt{topology\_ms6}   & \textbf{6.39} & 63.88 & 0.00 & 0 \\
+\texttt{topology\_ms12}  & \textbf{6.39} & 63.88 & 0.00 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% --- many-tight (R=10) -------------------------------------------------------
+\begin{table}[H]
+\centering
+\caption{\texttt{many-tight} ($R=10$, 5 pos.).  MILP optimal = 4.79.
+         Multi-start topology regresses vs single-start (6.80): shorter
+         per-start budgets prevent the heavier LS from converging.}
+\label{tab:ms-pl10}
+\begin{tabular}{lrrrr}
+\toprule
+Solver & Obj & Makespan & Delay & Mov \\
+\midrule
+\texttt{milp\_baseline}  & \textbf{4.79}  & 47.90 &  0.00 & 0 \\
+\texttt{topology\_ms3}   & 16.93          & 62.59 & 10.67 & 0 \\
+\texttt{topology\_ms6}   & 24.03          & 73.37 & 16.69 & 0 \\
+\texttt{topology\_ms12}  & 24.03          & 73.37 & 16.69 & 0 \\
+\midrule
+\multicolumn{5}{l}{\small\textit{Ref.\ (prev.\ exp.): single-start topology = 6.80}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% --- many-medium (R=20) ------------------------------------------------------
+\begin{table}[H]
+\centering
+\caption{\texttt{many-medium} ($R=20$, 5 pos.).  MILP time-limited = 145.40.
+         Best multi-start result: ms12 = 231.36 (run 2).
+         Typical single-start topology $\approx 233$ (multi-seed study).}
+\label{tab:ms-pl20}
+\begin{tabular}{lrrrr}
+\toprule
+Solver & Obj & Makespan & Delay & Mov \\
+\midrule
+\texttt{milp\_baseline}  & 145.40\textsuperscript{†} & 96.21 & 135.78 & 0 \\
+\texttt{topology\_ms3}   & 246.97 / 253.81 & --- & --- & 0 \\
+\texttt{topology\_ms6}   & 249.68 / 242.90 & --- & --- & 0 \\
+\texttt{topology\_ms12}  & \textit{243.70 / 231.36} & 107.91 & 220.56 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+{\small \textsuperscript{†}Time-limited feasible solution, not provably optimal.
+Two values = two runs (configuration artefact).}
+
+% --- heavy-tight (R=30) ------------------------------------------------------
+\begin{table}[H]
+\centering
+\caption{\texttt{heavy-tight} ($R=30$, 4 pos.).  MILP aborted.
+         Best result: ms6 run 2 = 202.92.
+         Reference: single-start seed=None = 228.38; best of 12 seeds = 195.30.}
+\label{tab:ms-pl30}
+\begin{tabular}{lrrrr}
+\toprule
+Solver & Obj & Makespan & Delay & Mov \\
+\midrule
+\texttt{milp\_baseline}  & \multicolumn{4}{c}{\textit{aborted}} \\
+\texttt{topology\_ms3}   & 254.10 / 272.20 & --- & --- & 4/0 \\
+\texttt{topology\_ms6}   & 290.61 / \textit{\textbf{202.92}} & 238.82 & 179.04 & 0 \\
+\texttt{topology\_ms12}  & 252.15 / 272.85 & --- & --- & 0 \\
+\midrule
+\multicolumn{5}{l}{\small\textit{Ref.: single-start seed=None = 228.38;
+                                  best-of-12-seeds = 195.30}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Analysis.}
+
+\begin{itemize}
+
+    \item \textbf{Multi-start hurts small instances ($R \leq 10$).}
+    On \texttt{many-tight} ($R=10$), all multi-start variants regress
+    sharply versus the previous single-start result (ms3: 16.93, ms6/ms12:
+    24.03 vs 6.80).  The root cause is the interaction between the new
+    heavier LS operators (Ops~4–7) and short per-start budgets: with 10\,s
+    per start (ms6) or 5\,s (ms12), the solver completes only 1–2 GRASP
+    iterations, too few for the LS to reach a good local optimum.
+    For $R \leq 10$, a single long start is strictly preferable.
+
+    \item \textbf{Multi-start is competitive for large instances ($R=30$).}
+    On \texttt{heavy-tight}, ms6 run 2 achieved 202.92 — better than the
+    previous single-start reference (228.38) and close to the best-of-12
+    independent seeds (195.30).  This confirms that seed diversity is
+    valuable at $R=30$ even with shorter per-start budgets, because the
+    main bottleneck is finding the right initial construction, not LS depth.
+
+    \item \textbf{Multi-start shows high run-to-run variance at $R=30$.}
+    The two duplicate runs for ms6 produced 290.61 and 202.92 — a spread
+    of 88 units — despite identical parameters.  At $R=30$ a single
+    multi-start run is still insufficient for reliable conclusions; the
+    best-of-$K$ runs estimate should be used.
+
+    \item \textbf{New LS operators need budget calibration.}
+    The Ops~4–7 operators (intra-position insertion, non-adjacent swap, EDD
+    repair, delay-block insertion) increase cost per LS pass, reducing
+    iteration throughput.  This is beneficial when the budget per start is
+    long enough ($\geq 20$\,s) but counterproductive on short slices.
+    A budget-adaptive $N_{\text{starts}}$ strategy — larger $N$ for small
+    instances, smaller $N$ for large — is the recommended next step.
+
+    \item \textbf{Key conclusions.}
+    \begin{enumerate}[noitemsep]
+        \item For $R \leq 10$: use single-start topology (60\,s).
+              Multi-start degrades performance when per-start budget $< 20$\,s.
+        \item For $R = 30$: ms3 (3~$\times$~20\,s) is a reasonable default;
+              ms6 can yield better results but with higher variance.
+        \item The new LS operators require at least $\sim$20\,s per start
+              to be effective; this constrains the maximum useful $N$.
+        \item A duplicate experiment configuration bug has been fixed;
+              future runs will not repeat this artefact.
+    \end{enumerate}
+
+\end{itemize}
+
+% =============================================================================
+% EXPERIMENT 2026-05-13 #2  (commented — kept for traceability)
+% Log: run_experiments_20260513_162806.log
+% Summary: 8 experiments × 5 instances; LNS ACCEPT fix confirmed; topology
+%          single-start best heuristic (R=10: 6.80, R=20: 211.10*, R=30: 228.38).
+%          *Later multi-seed study showed 211.10 was an outlier; typical ~233.
+% =============================================================================
+
+
+% =============================================================================
+% EARLIER EXPERIMENTS (commented out — kept for traceability)
+% =============================================================================
+
+%\subsection{Experiment: full solver comparison (2026-05-13 \#1)}
+%\label{exp:full-comparison-20260513}
+%\paragraph{Log file.} \texttt{run\_experiments\_20260513\_111300.log}
+%\paragraph{Note.} Results from this run contain the LNS ACCEPT bug (see
+%Section~\ref{exp:full-comparison-20260513b}).  The LNS entry for R=30
+%returned 470.88 due to cur\_sol degradation; the MILP entry for R=10
+%showed 11.72 at maxTimeLim (inconsistent with the optimal 4.79 found in
+%earlier and later runs — likely a solver timeout artefact in that session).
+%Results superseded by experiment \ref{exp:full-comparison-20260513b}.
+%
+%\begin{center}
+%\begin{tabular}{lrr|rr|rr|rr|rr}
+%\toprule
+% & \multicolumn{2}{c|}{\texttt{milp}} & \multicolumn{2}{c|}{\texttt{const.\_7}}
+% & \multicolumn{2}{c|}{\texttt{const.\_4}} & \multicolumn{2}{c|}{\texttt{lns\_sub\_cl.}}
+% & \multicolumn{2}{c}{\texttt{topology}} \\
+%Inst. & Obj & St. & Obj & Obj & Obj & It & Obj & It & Obj \\
+%\midrule
+%\texttt{pl10} & 11.72 & t.l. & 20.87 & 24.03 & 18.88 & 32 & 17.19 & — \\
+%\texttt{pl20} & — & ab. & 269.35 & 248.89 & 287.18 & 47 & 219.31 & — \\
+%\texttt{pl30} & — & ab. & 243.57 & 310.44 & 528.21 & 19 & 243.57 & — \\
+%\bottomrule
+%\end{tabular}
+%\end{center}
+
+
+%\subsection{Experiment: lns vs lns\_submilp vs lns\_submilp\_cluster (2026-05-12 \#2)}
+%\paragraph{Log file.} \texttt{run\_experiments\_20260512\_103425.log}
+%\begin{center}
+%\begin{tabular}{lrr|rr|rr|rr}
+%\toprule
+% & \multicolumn{2}{c|}{\texttt{milp}} & \multicolumn{2}{c|}{\texttt{lns}}
+% & \multicolumn{2}{c|}{\texttt{lns\_submilp}} & \multicolumn{2}{c}{\texttt{lns\_submilp\_cluster}} \\
+%Inst. & Obj & St. & Obj & It & Obj & It & Obj & It \\
+%\midrule
+%\texttt{pl10} & 4.79 & opt & 17.73 & 1019 & 18.52 & 78 & 18.04 & 68 \\
+%\texttt{pl20} & 200.78 & t.l. & 257.46 & 405 & 253.09 & 51 & 262.84 & 57 \\
+%\texttt{pl30} & — & ab. & 222.54 & 150 & 200.72 & 0 & 260.16 & 0 \\
+%\bottomrule
+%\end{tabular}
+%\end{center}
+
+
+%\subsection{Experiment: milp\_baseline vs lns vs lns\_submilp (2026-05-12 \#1)}
+%\paragraph{Log file.} \texttt{run\_experiments\_20260512\_075324.log}
+%\begin{center}
+%\begin{tabular}{lrr|rr|rr}
+%\toprule
+% & \multicolumn{2}{c|}{\texttt{milp}} & \multicolumn{2}{c|}{\texttt{lns}}
+% & \multicolumn{2}{c}{\texttt{lns\_submilp}} \\
+%Inst. & Obj & St. & Obj & It & Obj & It \\
+%\midrule
+%\texttt{pl10} & 4.79 & opt & 17.73 & 978 & 18.52 & 86 \\
+%\texttt{pl20} & 145.40 & t.l. & 241.63 & 578 & 235.64 & 60 \\
+%\texttt{pl30} & — & ab. & 252.96 & 176 & 265.20 & 0 \\
+%\bottomrule
+%\end{tabular}
+%\end{center}
+
+
+%\subsection{Experiment: milp\_baseline vs topology (2026-05-11)}
+%\paragraph{Log file.} \texttt{run\_experiments\_20260511\_182527.log}
+%\begin{center}
+%\begin{tabular}{lrr|rr}
+%\toprule
+% & \multicolumn{2}{c|}{\texttt{milp\_baseline}} & \multicolumn{2}{c}{\texttt{topology}} \\
+%Inst. & Obj & Status & Obj & Status \\
+%\midrule
+%\texttt{few-loose}  ($R=5$)  & 3.12   & optimal   & 3.12   & — \\
+%\texttt{few-tight}  ($R=5$)  & 6.39   & optimal   & 6.39   & — \\
+%\texttt{pl10}       ($R=10$) & 4.79   & optimal   & 6.53   & — \\
+%\texttt{pl20}       ($R=20$) & 200.78 & time lim. & 247.64 & — \\
+%\texttt{pl30}       ($R=30$) & ---    & aborted   & 235.38 & — \\
+%\bottomrule
+%\end{tabular}
+%\end{center}

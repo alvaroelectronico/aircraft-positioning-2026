@@ -1,0 +1,164 @@
+% =============================================================================
+%  Section: Constructive Heuristic (GRASP + ILS)
+% =============================================================================
+\section{Constructive Heuristic}
+\label{sec:constructive}
+
+\subsection{Overview}
+
+The constructive heuristic (\texttt{solvers/constructive\_heuristic.py}) builds
+solutions using a \textbf{Greedy Randomised Adaptive Search Procedure (GRASP)}
+combined with an optional \textbf{Iterated Local Search (ILS)} perturbation
+mechanism.  Each iteration constructs a complete feasible solution and polishes
+it with a local search; the best solution found across all iterations is
+retained.
+
+By default (\texttt{ils\_ratio = 0.0}) the heuristic runs as pure GRASP —
+each iteration starts from an empty schedule.  Setting \texttt{ils\_ratio > 0}
+enables ILS: a fraction of iterations perturb the current best solution instead
+of building from scratch.
+
+\subsection{Algorithm}
+
+\begin{algorithm}[H]
+\caption{Constructive Heuristic (GRASP + ILS)}
+\begin{algorithmic}[1]
+\State $s^* \leftarrow \emptyset$, $z^* \leftarrow \infty$
+\While{time budget not exhausted}
+    \If{$s^* \neq \emptyset$ \textbf{and} $\text{Uniform}(0,1) < \rho_{\text{ils}}$}
+        \State Remove $n_{\text{perturb}}$ aircraft from $s^*$; keep the rest fixed
+    \Else
+        \State Start from an empty schedule
+    \EndIf
+    \State Schedule fixed aircraft first (in earliest-start order)
+    \While{unscheduled aircraft remain}
+        \State Evaluate all $(r, p)$ pairs over unscheduled aircraft and all positions
+        \State Score each pair; sort by score; assign GRASP weights $w_i = (1-\alpha)^i$
+        \State Sample one pair $(r^*, p^*)$; commit assignment; remove $r^*$ from pool
+    \EndWhile
+    \If{iteration $\equiv 0 \pmod{ls\_every}$ \textbf{or} current obj $< z^*$}
+        \State $s \leftarrow \text{LocalSearch}(s)$
+    \EndIf
+    \If{$z(s) < z^*$} \; $s^* \leftarrow s$; $z^* \leftarrow z(s)$ \EndIf
+\EndWhile
+\State \Return $s^*$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Joint pair selection.}
+At each insertion step the heuristic enumerates \emph{all} remaining
+(aircraft, position) pairs, not just the positions for a fixed aircraft.
+This means aircraft and positions are chosen simultaneously: one draw selects
+both who goes next and where they go.  The sorted list may contain
+$|{\mathcal R}_{\text{free}}| \times |\mathcal{P}|$ entries; the geometric
+weights favour the globally cheapest pair regardless of aircraft identity.
+
+\subsection{Construction Scoring}
+
+For each candidate pair $(r, p)$, the start time $t_s(r, p)$ is obtained from
+\texttt{\_find\_best\_start}, which compares two candidate times and returns
+the one with lower estimated cost:
+
+\begin{itemize}[noitemsep]
+    \item $t_{\text{imm}}$: immediate start — position free time plus minimum
+          separation $\delta$.  May create new blocking events.
+    \item $t_{\text{nob}}$: no-block start — iteratively advances $t_s$ past
+          every blocking conflict until none remain.
+\end{itemize}
+
+The cost comparison is:
+\[
+    c(t_s,\; \text{extra\_movs})
+    = w_D \cdot \max(0, t_s + D_r - T_r)
+    + w_M \cdot (t_s + D_r)
+    + w_V \cdot \text{extra\_movs} \cdot 2
+\]
+If $c(t_{\text{imm}}, \text{movs}_{\text{imm}}) \leq c(t_{\text{nob}}, 0)$,
+the immediate start is used despite the extra movements.
+
+The GRASP score for the pair then adds a gap penalty:
+\begin{equation}
+    \text{score}(r, p)
+    = w_D \cdot \Delta_r
+    + w_M \cdot t_f
+    + w_V \cdot V' \cdot 2
+    + w_{\text{gap}} \cdot g
+    \label{eq:grasp-score}
+\end{equation}
+where $V'$ is the total movement count after tentatively inserting $r$ at $p$,
+and $g = \max(0,\; t_s - \texttt{pos\_free\_at}[p])$ is the idle gap created
+at position $p$ (penalised only when $p$ has already been used at least once).
+
+The GRASP rank-based probability follows a geometric distribution:
+\begin{equation}
+    P(\text{select rank } i) \;\propto\; (1 - \alpha)^i, \quad i = 0, 1, 2, \ldots
+    \label{eq:grasp-weights}
+\end{equation}
+$\alpha = 0$ gives \textbf{uniform random} selection (all weights equal to 1);
+$\alpha = 1$ gives \textbf{fully greedy} selection (only rank~0 has non-zero
+weight).  The default value is $\alpha = 0.3$, which strongly favours top
+candidates while retaining stochastic diversity.
+
+\subsection{Local Search}
+\label{sec:constructive-ls}
+
+After each construction (run every \texttt{ls\_every} iterations, and always
+when a new best is found) the solution is polished with three operators applied
+in priority order until no improvement is found:
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Single-move}: try reassigning each aircraft to every other
+          position; accept the first improvement.
+    \item \textbf{2-opt swap}: try swapping positions of every pair of aircraft
+          with different positions; accept the first improvement.
+    \item \textbf{Intra-position adjacent swap}: for each position with
+          $\geq 2$ aircraft, try swapping the processing order of each pair of
+          consecutive aircraft; accept the first improvement.
+\end{enumerate}
+
+Operators are tried in the order listed; any improvement restarts from
+operator~1.  The search is fully convergent (runs until no operator finds an
+improvement).  Each candidate is evaluated by rebuilding the schedule in
+$O(R)$, giving $O(R^2 P)$ cost per pass.
+
+\subsection{ILS Perturbation}
+
+When \texttt{ils\_ratio} $> 0$, with probability $\rho_{\text{ils}}$ per
+iteration the heuristic \emph{perturbs} the current best solution instead of
+building from scratch:
+
+\begin{enumerate}[noitemsep]
+    \item Sample $k = \min(n_{\text{perturb}},\; R-1)$ aircraft to remove.
+    \item Fix the remaining $R - k$ aircraft at their current positions;
+          schedule them in earliest-start order.
+    \item Re-insert the $k$ removed aircraft using the standard GRASP loop.
+\end{enumerate}
+
+\subsection{Parameters}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Parameter & Default & Description \\
+\midrule
+\texttt{time\_limit\_s}   & 60   & Wall-clock budget (seconds) \\
+\texttt{alpha}            & 0.3  & GRASP geometric decay \\
+\texttt{min\_separation}  & 10.0 & Minimum gap between consecutive aircraft \\
+\texttt{weight\_makespan} & 0.1  & $w_M$ \\
+\texttt{weight\_delay}    & 1.0  & $w_D$ \\
+\texttt{weight\_movements}& 10   & $w_V$ \\
+\texttt{weight\_gap}      & $=w_M$ & Penalty for position idle time \\
+\texttt{n\_perturb}       & 4    & Aircraft removed per ILS kick \\
+\texttt{ils\_ratio}       & 0.0  & Fraction of iterations using ILS warm-start (0 = pure GRASP) \\
+\texttt{ls\_every}        & 1    & Run local search every $N$ iterations \\
+\texttt{seed}             & None & Random seed \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Complexity}
+
+Each GRASP step evaluates $|\mathcal{R}_{\text{free}}| \times P$ pairs.
+Summed over all $R$ insertion steps: $O(R^2 P)$ evaluations, each requiring
+$O(R)$ for movement counting, giving $O(R^3 P)$ per construction.  Local search
+(first improvement, fully convergent) adds $O(R^2 P)$ per pass.

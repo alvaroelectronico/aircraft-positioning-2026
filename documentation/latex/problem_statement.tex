@@ -1,0 +1,128 @@
+% =============================================================================
+%  Section: Problem Statement
+% =============================================================================
+\section{Problem Statement}
+
+\subsection{Context}
+
+An aircraft maintenance hangar contains a fixed set of \emph{positions}
+$\mathcal{P} = \{p_1, \ldots, p_P\}$ where aircraft can be parked and serviced.
+Each position can hold at most one aircraft at a time.
+A set of aircraft $\mathcal{R} = \{r_1, \ldots, r_R\}$ must be scheduled, each
+requiring a sequence of maintenance jobs carried out at a single position for its
+entire stay.
+
+The hangar has a physical access topology: some positions can only be reached by
+driving through other positions.  This creates \emph{blocking arcs}: if aircraft
+$r$ occupies a \emph{front} position $p$ while aircraft $r'$ needs to enter or
+exit a \emph{rear} position $p'$, a ground movement is needed, generating delay
+and logistical cost.
+
+\subsection{Input Data}
+
+\paragraph{Aircraft.}
+Each aircraft $r \in \mathcal{R}$ is characterised by:
+\begin{itemize}[noitemsep]
+    \item $e_r \geq 0$: earliest time at which $r$ can enter the hangar.
+    \item $T_r > 0$: target finish time (when the customer expects the aircraft
+          back in service).  Finishing after $T_r$ incurs a delay penalty.
+    \item A client identifier (for multi-client instances).
+\end{itemize}
+
+\paragraph{Jobs.}
+Each aircraft $r$ has an ordered sequence of maintenance jobs
+$\mathcal{J}^r = (j_1^r, j_2^r, \ldots)$ that must be executed
+\emph{sequentially} at the assigned position:
+\begin{itemize}[noitemsep]
+    \item $d_j > 0$: processing duration of job $j$.
+    \item Precedences: $j$ must finish before $j'$ starts whenever $(j,j')
+          \in \mathcal{E}$.  Within a single aircraft the jobs form a chain;
+          cross-aircraft precedences are also possible.
+\end{itemize}
+The \emph{total duration} of aircraft $r$ is $D_r = \sum_{j \in \mathcal{J}^r} d_j$.
+
+\paragraph{Hangar topology.}
+The blocking structure is a directed acyclic graph (DAG):
+\[
+    \mathcal{B} \subseteq \mathcal{P} \times \mathcal{P},
+    \quad (p, p') \in \mathcal{B} \;\Rightarrow\;
+    \text{an aircraft in } p \text{ blocks access to } p'.
+\]
+A position's \emph{blocking load} is
+$\ell(p) = |\{p' : p \text{ can reach } p' \text{ transitively in } \mathcal{B}\}|$.
+
+\paragraph{Separation.}
+A minimum time gap $\delta \geq 0$ must be observed between consecutive aircraft
+occupying the same position: if aircraft $r$ finishes at $f_r$ in position $p$,
+the next aircraft $r'$ assigned to $p$ must start no earlier than
+$f_r + \delta$.
+
+\subsection{Decisions}
+
+\begin{enumerate}[noitemsep]
+    \item \textbf{Assignment}: which position $p \in \mathcal{P}$ is assigned to
+          aircraft $r$.  Each aircraft occupies exactly one position.
+    \item \textbf{Scheduling}: start time $s_j$ for each job $j$, respecting
+          precedences, earliest-start, and non-overlap within each position.
+\end{enumerate}
+
+\subsection{Objective Function}
+
+The objective is a weighted sum of three KPIs:
+
+\begin{equation}
+    \min \quad
+    w_M \cdot M
+    + w_D \cdot \sum_{r \in \mathcal{R}} \Delta_r
+    + w_V \cdot V
+    \label{eq:objective}
+\end{equation}
+
+\noindent where:
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Symbol & Definition & Default weight \\
+\midrule
+$M$ & Makespan: $\max_{r} f_r$ (time until the last aircraft leaves) & $w_M = 0.1$ \\
+$\Delta_r$ & Individual delay: $\max(0,\; f_r - T_r)$ & $w_D = 1.0$ \\
+$V$ & Total blocking movements count & $w_V = 10$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The weights above correspond to the experimental configuration used in this
+project.  The MILP model uses higher values ($w_M=10$, $w_D=100$, $w_V=1$)
+to avoid numerical issues; all heuristics use the same weights as the MILP when
+called from the experiment runner.
+
+\subsection{Blocking Movements}
+
+A \emph{blocking event} occurs when aircraft $r$ arrives at or departs from
+rear position $p'$ while aircraft $r_b$ is occupying a front position $p$ such
+that $(p,p') \in \mathcal{B}$ and their time windows overlap.
+
+Formally, let $s_r$, $f_r$ denote the start and finish of aircraft $r$:
+
+\begin{itemize}[noitemsep]
+    \item \textbf{Entry block}: $r'$ enters $p'$ while $r_b \in p$:
+          $s_{r'} \in (s_{r_b},\; f_{r_b} - \delta)$.
+    \item \textbf{Exit block}: $r'$ exits $p'$ while $r_b \in p$:
+          $f_{r'} \in (s_{r_b},\; f_{r_b} - \delta)$.
+\end{itemize}
+
+Each detected blocking event contributes 2 to $V$ (one movement in, one out).
+
+\subsection{Feasibility}
+
+A solution is \emph{feasible} if:
+\begin{enumerate}[noitemsep]
+    \item Every aircraft is assigned to exactly one position.
+    \item Jobs of an aircraft are scheduled at the assigned position, in order,
+          without gaps within the position chain.
+    \item No two aircraft overlap at the same position (minimum separation $\delta$
+          between consecutive aircraft).
+    \item Each aircraft's first job starts no earlier than $e_r$.
+    \item All job precedences $(j, j') \in \mathcal{E}$ are satisfied.
+\end{enumerate}
