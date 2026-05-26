@@ -1,0 +1,22 @@
+# Aircraft Hangar Positioning — Python dependencies
+#
+# Install with:
+#     pip install -r requirements.txt
+#
+# Gurobi (gurobipy) ships its own bundled solver binary and a free
+# size-limited licence; for the instances in this repo (R up to 30,
+# P=5) the size limit is more than enough.  For larger instances or
+# longer runs you may need a full Gurobi licence — see
+# https://www.gurobi.com/academia/academic-program-and-licenses/ .
+
+# --- Optimization ---
+pyomo==6.9.5
+gurobipy==12.0.3
+
+# --- Scientific stack ---
+numpy==2.4.4
+matplotlib==3.10.8
+
+# --- I/O ---
+openpyxl==3.1.5
+jsonschema==4.26.0

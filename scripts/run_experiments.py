@@ -153,7 +153,7 @@ EXPERIMENTS: list[dict] = [
             "time_topology_s": 9,
             "alpha":           0.3,
             "weight_topology": 1.0,
-            "seed":            1,
+            "NOTE":            1,
         },
     },
 
