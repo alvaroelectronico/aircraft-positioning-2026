@@ -2,7 +2,7 @@
 % Do not edit by hand — rerun the script to regenerate.
 \begin{table}[htbp]
   \centering\small
-  \caption{Effect of the weight profile on the Safe pipeline solution structure. Mean $\bar m$, mean total delay $\bar v^D$, and mean movements $\bar n$ (averaged over 6 seeds) under the three profiles: default $(0.1,1,10)$, wB $(1,10,0.1)$ (delay-priority), wC $(10,0.1,1)$ (makespan-priority).}
+  \caption{Effect of the weight profile on the Safe pipeline solution structure. Mean $\bar m$, mean total delay $\bar v^D$, and mean movements $\bar n$ (averaged over 9 seeds) under the three profiles: default $(0.1,1,10)$, wB $(1,10,0.1)$ (delay-priority), wC $(10,0.1,1)$ (makespan-priority).}
   \label{tab:res_weights}
   \resizebox{\textwidth}{!}{%
   \begin{tabular}{lrrrrrrrrr}
@@ -10,21 +10,21 @@
     Configuration & \multicolumn{3}{c}{\textbf{Default}} & \multicolumn{3}{c}{\textbf{wB (delay)}} & \multicolumn{3}{c}{\textbf{wC (makespan)}} \\
      & $\bar m$ & $\bar v^D$ & $\bar n$ & $\bar m$ & $\bar v^D$ & $\bar n$ & $\bar m$ & $\bar v^D$ & $\bar n$ \\
     \midrule
-    None ($R{=}10$, tight) & 65.50 & 100.67 & 0.0 & 64.67 & 100.67 & 0.0 & 62.33 & 103.33 & 0.0 \\
-    Chain ($R{=}10$, tight) & 86.17 & 155.50 & 1.0 & 64.67 & 100.67 & 19.0 & 62.33 & 110.00 & 12.0 \\
-    Hub ($R{=}10$, tight) & 82.75 & 133.75 & 0.0 & 65.50 & 100.67 & 16.7 & 62.33 & 116.50 & 10.7 \\
-    Triangle ($R{=}10$, tight) & 69.50 & 109.83 & 0.0 & 64.67 & 100.67 & 11.7 & 62.33 & 109.50 & 7.3 \\
-    Two rows ($R{=}10$, tight) & 67.50 & 106.33 & 0.0 & 65.50 & 100.67 & 6.0 & 62.33 & 108.67 & 3.3 \\
-    Full ($R{=}10$, tight) & 86.33 & 173.67 & 0.3 & 65.50 & 100.67 & 45.3 & 62.42 & 123.92 & 28.0 \\
+    None ($R{=}10$, tight) & 65.39 & 98.06 & 0.0 & 64.83 & 98.06 & 0.0 & 62.50 & 102.28 & 0.0 \\
+    Chain ($R{=}10$, tight) & 88.17 & 153.78 & 0.9 & 64.83 & 98.06 & 17.8 & 62.50 & 110.06 & 11.3 \\
+    Hub ($R{=}10$, tight) & 78.72 & 128.06 & 0.0 & 65.39 & 98.06 & 16.4 & 62.50 & 115.17 & 11.3 \\
+    Triangle ($R{=}10$, tight) & 68.61 & 106.94 & 0.0 & 64.83 & 98.06 & 10.9 & 62.50 & 106.39 & 8.0 \\
+    Two rows ($R{=}10$, tight) & 67.72 & 105.39 & 0.0 & 65.39 & 98.06 & 5.8 & 62.50 & 106.33 & 3.8 \\
+    Full ($R{=}10$, tight) & 89.50 & 181.22 & 0.2 & 65.39 & 98.06 & 44.0 & 62.61 & 119.17 & 29.6 \\
     \midrule
-    Triangle ($R{=}5$, tight) & 35.50 & 0.17 & 0.0 & 35.50 & 0.00 & 0.3 & 35.50 & 4.67 & 0.0 \\
-    Triangle ($R{=}20$, tight) & 132.00 & 663.92 & 0.0 & 125.42 & 621.58 & 32.0 & 118.17 & 648.67 & 25.0 \\
-    Triangle ($R{=}30$, tight) & 234.08 & 2079.75 & 1.7 & 217.90 & 1945.00 & 61.6 & 207.10 & 2002.60 & 40.4 \\
+    Triangle ($R{=}5$, tight) & 35.89 & 0.11 & 0.0 & 35.89 & 0.00 & 0.2 & 35.89 & 3.11 & 0.0 \\
+    Triangle ($R{=}20$, tight) & 132.50 & 662.72 & 0.2 & 123.56 & 616.67 & 33.6 & 117.50 & 645.67 & 23.6 \\
+    Triangle ($R{=}30$, tight) & 234.72 & 2060.78 & 2.2 & 219.50 & 1933.56 & 60.5 & 207.25 & 2003.56 & 42.2 \\
     \midrule
-    Triangle ($R{=}10$, medium) & 68.83 & 67.50 & 0.0 & 65.67 & 54.00 & 11.0 & 62.33 & 65.83 & 6.7 \\
-    Triangle ($R{=}10$, loose) & 71.42 & 8.00 & 0.0 & 67.50 & 0.50 & 9.0 & 62.33 & 11.58 & 8.7 \\
+    Triangle ($R{=}10$, medium) & 68.17 & 63.06 & 0.0 & 64.94 & 51.06 & 10.9 & 62.50 & 62.28 & 7.6 \\
+    Triangle ($R{=}10$, loose) & 70.56 & 5.78 & 0.0 & 67.06 & 0.33 & 9.6 & 62.50 & 11.56 & 8.9 \\
     \midrule
-    Full ($R{=}20$, tight) & 170.25 & 926.25 & 2.0 & 125.92 & 623.83 & 123.7 & 119.83 & 688.17 & 76.0 \\
+    Full ($R{=}20$, tight) & 166.72 & 919.17 & 2.0 & 123.78 & 618.72 & 123.8 & 118.61 & 681.56 & 84.4 \\
     \bottomrule
   \end{tabular}}
 \end{table}

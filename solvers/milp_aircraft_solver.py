@@ -1,21 +1,26 @@
 """
-MILPAircraftSolver — wraps the aircraft-level Pyomo MILP for aircraft positioning.
+MILPAircraftSolver — wraps the aircraft-level MILP for aircraft positioning.
 
 Mirrors the contract of ``MILPSolver`` so it is a drop-in replacement in the
-``Application`` pipeline and the experiment runner.  Internally it relies on
-``models/milp_aircraft.py``, where the job concept is eliminated from the
-optimisation model: each aircraft is treated as a single block
-[s_r, s_r + D_r] with D_r computed offline.  Job-level timings are recovered
-deterministically from s_r by walking the precedence chain (see
-``milp_aircraft.get_solution``).
+``Application`` pipeline and the experiment runner.  Two model backends are
+supported:
+
+* ``"gurobipy"`` (default) — native gurobipy build; significantly faster for
+  large instances.  Requires gurobipy to be installed and a Gurobi 13+ licence.
+* ``"pyomo"``  — the original Pyomo/AbstractModel path, useful as a fallback
+  or for comparison.
 
 Usage as a library
 ------------------
     from solvers.milp_aircraft_solver import MILPAircraftSolver
 
-    solver = MILPAircraftSolver()
+    solver = MILPAircraftSolver()                  # gurobipy by default
     solver.configure_solver(MIPGap=0.0, TimeLimit=60)
     solution = solver.solve(instance_data)
+
+    solver_pyomo = MILPAircraftSolver(model_backend="pyomo")
+    solver_pyomo.configure_solver(MIPGap=0.0, TimeLimit=60)
+    solution = solver_pyomo.solve(instance_data)
 
 Usage as a script
 -----------------
@@ -28,12 +33,6 @@ import sys
 
 # Make the models directory importable regardless of cwd
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "models"))
-
-from milp_aircraft import (  # noqa: E402
-    model as _abstract_model,
-    prepare_data,
-    get_solution,
-)
 
 # Keys consumed by this class; everything else is forwarded verbatim to the
 # backend solver.  time_limit_s is the generic time-limit key set by
@@ -49,7 +48,7 @@ _MODEL_KEYS = frozenset({
 
 
 class MILPAircraftSolver:
-    """Aircraft-level Pyomo MILP solver."""
+    """Aircraft-level MILP solver with selectable model backend."""
 
     _DEFAULTS: dict = {
         "min_separation":   10.0,
@@ -59,8 +58,24 @@ class MILPAircraftSolver:
         "time_limit_s":     None,
     }
 
-    def __init__(self, backend: str = "gurobi") -> None:
-        self._backend = backend
+    def __init__(
+        self,
+        model_backend: str = "gurobipy",
+        gurobi_backend: str = "gurobi",
+    ) -> None:
+        """
+        Parameters
+        ----------
+        model_backend : "gurobipy" | "pyomo"
+            Which model-building path to use.  Defaults to "gurobipy".
+        gurobi_backend : str
+            Pyomo solver name passed to SolverFactory when model_backend=="pyomo".
+            Ignored for the gurobipy path.
+        """
+        if model_backend not in ("gurobipy", "pyomo"):
+            raise ValueError(f"model_backend must be 'gurobipy' or 'pyomo', got {model_backend!r}")
+        self._model_backend  = model_backend
+        self._gurobi_backend = gurobi_backend
         self._model_params: dict = dict(self._DEFAULTS)
         self._solver_options: dict = {}
 
@@ -72,7 +87,7 @@ class MILPAircraftSolver:
             time_limit_s, fix_positions_from.
 
         All other keyword arguments are forwarded verbatim to the backend
-        (e.g. ``MIPGap=0.0`` or ``NoRelHeurTime=10`` for Gurobi).
+        (e.g. ``MIPGap=0.0``, ``NoRelHeurTime=10``, ``Threads=4``).
         """
         for key, value in kwargs.items():
             if key in _MODEL_KEYS:
@@ -88,9 +103,22 @@ class MILPAircraftSolver:
     def get_config(self) -> dict:
         return {**self._model_params, **self._solver_options}
 
+    # ------------------------------------------------------------------
+    # Public solve entry-point
+    # ------------------------------------------------------------------
+
     def solve(self, instance_data: dict) -> dict:
         """Solve *instance_data* and return the solution dict."""
-        from pyomo.environ import SolverFactory
+        if self._model_backend == "gurobipy":
+            return self._solve_gurobipy(instance_data)
+        return self._solve_pyomo(instance_data)
+
+    # ------------------------------------------------------------------
+    # gurobipy path
+    # ------------------------------------------------------------------
+
+    def _solve_gurobipy(self, instance_data: dict) -> dict:
+        from milp_aircraft_gurobipy import prepare_data, build_model, get_solution  # noqa: E402
 
         data = prepare_data(
             instance_data,
@@ -99,9 +127,50 @@ class MILPAircraftSolver:
             self._model_params["weight_delay"],
             self._model_params["weight_movements"],
         )
+        m = build_model(data)
+
+        # Optional: fix position assignments from a warm solution.
+        fix_sol = self._model_params.get("fix_positions_from")
+        if fix_sol is not None:
+            x = m._v["x"]
+            pos_map = {ac["id"]: ac["position"] for ac in fix_sol["aircraft"]}
+            for r in data["aircraft"]:
+                for p in data["positions"]:
+                    val = 1.0 if pos_map.get(r) == p else 0.0
+                    x[r, p].lb = val
+                    x[r, p].ub = val
+
+        # Apply solver options (TimeLimit, MIPGap, NoRelHeurTime, …)
+        if self._model_params["time_limit_s"] is not None:
+            m.setParam("TimeLimit", self._model_params["time_limit_s"])
+        for k, v in self._solver_options.items():
+            m.setParam(k, v)
+
+        m.optimize()
+        return get_solution(m, instance_data)
+
+    # ------------------------------------------------------------------
+    # Pyomo path (original implementation)
+    # ------------------------------------------------------------------
+
+    def _solve_pyomo(self, instance_data: dict) -> dict:
+        from pyomo.environ import SolverFactory  # noqa: E402
+        from milp_aircraft_pyomo import (        # noqa: E402
+            model as _abstract_model,
+            prepare_data,
+            get_solution,
+        )
+
+        data     = prepare_data(
+            instance_data,
+            self._model_params["min_separation"],
+            self._model_params["weight_makespan"],
+            self._model_params["weight_delay"],
+            self._model_params["weight_movements"],
+        )
         instance = _abstract_model.create_instance(data)
 
-        # Optional: fix vAircraftPosition from a warm solution (e.g. topology).
+        # Optional: fix vAircraftPosition from a warm solution.
         fix_sol = self._model_params.get("fix_positions_from")
         if fix_sol is not None:
             pos_map = {ac["id"]: ac["position"] for ac in fix_sol["aircraft"]}
@@ -111,7 +180,7 @@ class MILPAircraftSolver:
                 else:
                     instance.vAircraftPosition[r, p].fix(0)
 
-        solver = SolverFactory(self._backend)
+        solver = SolverFactory(self._gurobi_backend)
         for k, v in self._solver_options.items():
             solver.options[k] = v
         if self._model_params["time_limit_s"] is not None:
@@ -139,12 +208,11 @@ if __name__ == "__main__":
         "scn_easy_loose_P5_R4_seed1.json",
     )
     _instance_path = sys.argv[1] if len(sys.argv) > 1 else _default_instance
+    _raw_data      = load_instance(_instance_path)
 
-    _raw_data = load_instance(_instance_path)
-
-    _solver = MILPAircraftSolver(backend="gurobi")
+    _solver = MILPAircraftSolver(model_backend="gurobipy")
     _solver.configure_solver(
-        min_separation=1.0,
+        min_separation=0.5,
         weight_makespan=0.1,
         weight_delay=1.0,
         weight_movements=10.0,

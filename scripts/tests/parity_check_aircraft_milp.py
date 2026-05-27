@@ -35,7 +35,7 @@ def solve(seed: int) -> tuple[float, float]:
     job_mlp.configure_solver(**COMMON, MIPGap=0.0, TimeLimit=60)
     sol_job = job_mlp.solve(data)
 
-    ac_mlp = MILPAircraftSolver(backend="gurobi")
+    ac_mlp = MILPAircraftSolver()
     ac_mlp.configure_solver(**COMMON, MIPGap=0.0, TimeLimit=60)
     sol_ac = ac_mlp.solve(data)
 

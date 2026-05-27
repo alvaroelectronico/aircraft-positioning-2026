@@ -66,7 +66,7 @@ def main() -> None:
     print(f"  check_solution overall: {r_job}")
 
     print("\n=== aircraft-level MILP ===")
-    s_ac = MILPAircraftSolver(backend="gurobi")
+    s_ac = MILPAircraftSolver()
     s_ac.configure_solver(**common)
     sol_ac = s_ac.solve(inst)
     print(f"  status={sol_ac['status']}  obj={sol_ac['objective']}  "

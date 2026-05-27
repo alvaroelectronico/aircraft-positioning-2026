@@ -883,12 +883,12 @@ if __name__ == "__main__":
     #                "milp_baseline_heur".  "" / None runs the default
     #                EXPERIMENTS list.
     #
-    #  Current preset: seed7 run of the main four methods × three weight
+    #  Current preset: seed10 run of the main four methods × three weight
     #  profiles (12 experiments, no _heur variants), matching the seed1
     #  batch in data/logs/seed1_main_methods_*.log.
     # ==========================================================================
 
-    INST_FILTER: str = "_seed7"                                                                                          # ← edit here
+    INST_FILTER: str = "_seed10"                                                                                         # ← edit here
     EXP_FILTER:  str = "milp_baseline,topology_ms6,fas_on_topo,safe_pipeline,milp_baseline_wB,topology_ms6_wB,fas_on_topo_wB,safe_pipeline_wB,milp_baseline_wC,topology_ms6_wC,fas_on_topo_wC,safe_pipeline_wC"  # ← edit here
 
     # ------------------------------------------------------------------

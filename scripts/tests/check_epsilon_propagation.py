@@ -67,7 +67,7 @@ def main() -> None:
     sol_job = _run(s_job, raw, "job")
 
     print("\n=== aircraft-level MILP (same config override test) ===")
-    s_ac = MILPAircraftSolver(backend="gurobi")
+    s_ac = MILPAircraftSolver()
     s_ac.configure_solver(**common)
     sol_ac = _run(s_ac, raw, "ac")
 

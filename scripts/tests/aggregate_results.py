@@ -82,6 +82,7 @@ def parse_log(path: Path) -> list[dict]:
     ``None`` values, so the aggregator can filter them via the status field.
     """
     rows: list[dict] = []
+    index: dict[tuple[str, str], int] = {}   # (instance, experiment) -> position in rows
     for raw in path.read_text(encoding="utf-8").splitlines():
         if not raw.startswith("  scn_"):
             continue
@@ -110,7 +111,7 @@ def parse_log(path: Path) -> list[dict]:
         gap = None if gap_tok == "-" else (
             float(gap_tok.rstrip("%")) / 100.0 if gap_tok.endswith("%") else None
         )
-        rows.append({
+        row = {
             "instance":   inst,
             "experiment": exp,
             "status":     status,
@@ -120,7 +121,13 @@ def parse_log(path: Path) -> list[dict]:
             "movements":  mov,
             "gap":        gap,
             "time_s":     time_s,
-        })
+        }
+        key = (inst, exp)
+        if key in index:
+            rows[index[key]] = row   # RESUME section overwrites the original entry
+        else:
+            index[key] = len(rows)
+            rows.append(row)
     return rows
 
 
@@ -256,7 +263,7 @@ def table_default_profile(data: dict[str, list[dict]]) -> str:
     # column subhead
     sub = "    "
     for _ in METHODS_DEFAULT:
-        sub += r" & $\bar f$ & $\bar m$ & $\bar v^D$ & $\bar n$ & $\bar t$"
+        sub += r" & $\boldsymbol{\bar{f}}$ & $\bar m$ & $\bar v^D$ & $\bar n$ & $\bar t$"
     out.append(sub + r" \\")
     out.append(r"    \midrule")
     # rows grouped by axis
@@ -270,8 +277,9 @@ def table_default_profile(data: dict[str, list[dict]]) -> str:
         cells = [latex_label]
         for m in METHODS_DEFAULT:
             agg = aggregate(rows, m)
+            f_val = fmt(agg["obj"], 2)
             cells.extend([
-                fmt(agg["obj"], 2),
+                r"\textbf{" + f_val + r"}",
                 fmt(agg["mks"], 2),
                 fmt(agg["dly"], 2),
                 fmt(agg["mov"], 1),
