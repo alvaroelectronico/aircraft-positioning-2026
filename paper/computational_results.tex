@@ -212,7 +212,7 @@ instances, for a total of \textbf{1\,440 runs}.
 \label{sec:results}
 % ------------------------------------------------------------------------------
 
-We report mean values over nine random seeds per configuration.
+We report mean values over ten random seeds per configuration.
 The analysis is organised around four questions: (i) up to what size is the MILP
 provably optimal within the time budget, (ii) how the four methods compare on
 the resulting feasible solutions, (iii) how the gap between the heuristic
@@ -223,23 +223,20 @@ delay, and movements.
 \subsubsection{Reach of the exact MILP}
 
 Table~\ref{tab:res_milp_opt} reports the MILP outcome under the 60\,s
-budget.  The exact solver only closes the $R{=}5$ configuration to
-optimality (in about $4$\,s on average).  On every $R{=}10$ configuration
-the search exhausts the budget with an average Gurobi gap above 95\,\%
---- the gap remains high even on the unconstrained \emph{None} topology
-($96.2\,\%$), indicating that bound weakness, rather than blocking
-interactions, is what stalls branch-and-bound.  On the medium-size
-configurations ($R{=}20$, both triangle and full topologies) the solver
-overruns the 60\,s wall clock by a factor of two to three (an artefact
-of Gurobi's post-timeout cleanup) and still ends with a gap close to
-$100\,\%$; moreover, on most seeds the solver either aborts or exceeds the
-Pyomo build cap before returning any feasible incumbent: across
-nine seeds, Triangle $R{=}20$ yields only 2 usable MILP runs and
-Full $R{=}20$ yields just 1.  At $R{=}30$
-the model either aborts or exceeds the one-minute Pyomo build cap on
-every seed, so no MILP row can be reported for that size; the heuristic
-pipeline is therefore the only available source of solutions for the
-largest configuration.
+budget.  The exact solver closes the $R{=}5$ configuration to
+optimality on all ten seeds (about $5$\,s on average).  On the $R{=}10$
+configurations the search exhausts the budget; gaps range from
+$86\,\%$ on the unconstrained \emph{None} topology to $98\,\%$ on
+\emph{Full}, with most configurations above $93\,\%$ --- indicating
+that bound weakness, rather than blocking interactions, is what stalls
+branch-and-bound.  On the medium-size configurations ($R{=}20$, both
+triangle and full topologies) the solver still ends with a gap close to
+$100\,\%$; on many seeds the build or solve exhausts the time budget
+before returning any feasible incumbent: across ten seeds, Triangle
+$R{=}20$ yields only 3 usable MILP runs and Full $R{=}20$ yields just
+2.  At $R{=}30$ only a single seed produces a feasible incumbent
+(gap $= 99.7\,\%$); the heuristic pipeline is therefore the primary
+source of solutions for the largest configuration.
 
 \input{tables/res_milp_opt}
 
@@ -250,15 +247,15 @@ default profile $(W^M, W^D, W^S) = (0.1, 1, 10)$.  Three observations
 stand out.  First, on every $R{=}10$ configuration with non-trivial
 blocking the heuristic pipeline finishes well below the best feasible
 MILP solution found within the budget: \textbf{Safe} reduces $\bar f$ by
-$20$--$40\,\%$ over \textbf{MILP} on Chain, Hub, Triangle, Two rows and
+$20$--$50\,\%$ over \textbf{MILP} on Chain, Hub, Triangle, Two rows and
 Full, while on the unconstrained \emph{None} topology the two methods
-are practically tied ($104.6$ versus $106.3$).  Within a 60\,s budget
+are practically tied ($104.3$ versus $105.8$).  Within a 60\,s budget
 the heuristic therefore dominates the exact solver on the constrained
 topologies and matches it on the trivial one.  Second, the gap widens
 sharply with the fleet size: on \emph{Triangle $R{=}20$} \textbf{Safe}
-returns $\bar f = 678$ against \textbf{MILP}'s $3250$, and on
-\emph{Full $R{=}20$} the gap is $956$ versus $4676$, both more than
-four times apart.  Third, the topology heuristic alone (\textbf{Topo})
+returns $\bar f = 681$ against \textbf{MILP}'s $2449$, and on
+\emph{Full $R{=}20$} the gap is $959$ versus $3332$, both more than
+three times apart.  Third, the topology heuristic alone (\textbf{Topo})
 already matches the safe-pipeline value on most $R{=}10$ rows; on
 \emph{Chain}, \emph{Two rows}, \emph{Hub} and \emph{Full} a single FAS
 pass shaves a few percent off Topo, and on \emph{Triangle $R{=}30$}
@@ -275,18 +272,18 @@ To compare methods on a common scale we compute, for each instance, the
 four methods on that instance.  The gaps in
 Table~\ref{tab:res_method_gap} confirm that, within the 60\,s budget,
 the exact solver is the worst performer on every configuration with
-non-trivial blocking: from $22\,\%$ on \emph{Triangle $R{=}10$} up to
-$47\,\%$ on \emph{Hub $R{=}10$} and $68\,\%$ on \emph{Full $R{=}10$},
-and dramatic gaps on the larger instances ($417\,\%$ on
-\emph{Triangle $R{=}20$}, $431\,\%$ on \emph{Full $R{=}20$}), driven by
+non-trivial blocking: from $20\,\%$ on \emph{Triangle $R{=}10$} up to
+$43\,\%$ on \emph{Hub $R{=}10$} and $62\,\%$ on \emph{Full $R{=}10$},
+and dramatic gaps on the larger instances ($285\,\%$ on
+\emph{Triangle $R{=}20$}, $266\,\%$ on \emph{Full $R{=}20$}), driven by
 the very weak feasible incumbents Gurobi returns at the time limit.
-\textbf{Topo} alone stays below $7\,\%$ on every $R{=}10$ tight
+\textbf{Topo} alone stays below $5\,\%$ on every $R{=}10$ tight
 configuration and below $4\,\%$ at $R{=}20$; \textbf{FAS} closes the
 residual gap to $0\,\%$ in every case except \emph{Triangle $R{=}30$},
 where Topo and FAS each win on some seeds and only the Safe pipeline
 attains $0\,\%$ throughout.  Two apparent outliers stand out: the heuristic methods sit at
-$32.2\,\%$ on \emph{Triangle $R{=}10$, loose} (MILP at $61.5\,\%$),
-and at $3.5\,\%$ on \emph{Triangle $R{=}5$} (Topo/FAS/Safe).  Both come from
+$29.8\,\%$ on \emph{Triangle $R{=}10$, loose} (MILP at $55.3\,\%$),
+and at $3.1\,\%$ on \emph{Triangle $R{=}5$} (Topo/FAS/Safe).  Both come from
 seeds whose best objective is close to zero, so even tiny absolute
 deviations translate to large relative gaps; the absolute differences
 in Table~\ref{tab:res_default} remain well within a few units.
@@ -300,18 +297,18 @@ profiles on the structure of the safe-pipeline solutions.  Under the
 default, movement-priority profile, the safe pipeline returns
 essentially zero blocking movements on every configuration covered by
 the benchmark --- the only non-zero entries are residuals of
-$\bar n{=}0.9$ on \emph{Chain $R{=}10$}, $\bar n{=}0.2$ on
-\emph{Full $R{=}10$}, $\bar n{=}2.2$ on \emph{Triangle $R{=}30$} and
-$\bar n{=}2.0$ on the dense \emph{Full $R{=}20$} --- at the cost of a
-moderate makespan penalty: e.g.\ $\bar m{=}89.5$ on
-\emph{Full $R{=}10$} versus $62.6$ under wC, and $\bar m{=}166.7$ on
-\emph{Full $R{=}20$} versus $118.6$.  Switching to the delay-priority
+$\bar n{=}1.0$ on \emph{Chain $R{=}10$}, $\bar n{=}0.2$ on
+\emph{Full $R{=}10$}, $\bar n{=}2.0$ on \emph{Triangle $R{=}30$} and
+$\bar n{=}2.6$ on the dense \emph{Full $R{=}20$} --- at the cost of a
+moderate makespan penalty: e.g.\ $\bar m{=}90.2$ on
+\emph{Full $R{=}10$} versus $62.5$ under wC, and $\bar m{=}166.3$ on
+\emph{Full $R{=}20$} versus $118.7$.  Switching to the delay-priority
 profile (wB) collapses the mean delay onto a narrow band ---
-$\bar v^D \approx 98.1$ on every $R{=}10$ tight row regardless of
-topology --- but injects $6$--$44$ blocking movements per instance.
+$\bar v^D \approx 97.8$ on every $R{=}10$ tight row regardless of
+topology --- but injects $6$--$43$ blocking movements per instance.
 The makespan-priority profile (wC) flattens $\bar m$ to about
-$62.5$ on every $R{=}10$ tight row at the price of
-$4$--$30$ movements and intermediate delay.  The three profiles
+$62.4$ on every $R{=}10$ tight row at the price of
+$4$--$29$ movements and intermediate delay.  The three profiles
 therefore act as effective dials between the objectives, and the
 default profile is the appropriate choice when the operational
 priority is to keep aircraft in the assigned slot for the whole

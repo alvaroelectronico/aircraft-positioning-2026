@@ -2,27 +2,27 @@
 % Do not edit by hand — rerun the script to regenerate.
 \begin{table}[htbp]
   \centering\small
-  \caption{MILP performance under the 60\,s budget per configuration. $n$ = number of usable runs (out of 9 seeds; rows aborted by Gurobi or whose Pyomo build exceeded 60\,s are excluded); \textit{Opt} = number of instances proved optimal; $\overline{\mathrm{gap}}$ = mean Gurobi optimality gap; $\overline{t_{\mathrm{MILP}}}$ = mean wall-clock time (s).}
+  \caption{MILP performance under the 60\,s budget per configuration. $n$ = number of usable runs (out of 10 seeds; rows aborted by Gurobi or whose Pyomo build exceeded 60\,s are excluded); \textit{Opt} = number of instances proved optimal; $\overline{\mathrm{gap}}$ = mean Gurobi optimality gap; $\overline{t_{\mathrm{MILP}}}$ = mean wall-clock time (s).}
   \label{tab:res_milp_opt}
   \begin{tabular}{lrrrr}
     \toprule
     Configuration & $n$ & Opt & $\overline{\mathrm{gap}}$ (\%) & $\overline{t_{\mathrm{MILP}}}$ \\
     \midrule
-    None ($R{=}10$, tight) & 9 & 0 & 95.95 & 68.5 \\
-    Chain ($R{=}10$, tight) & 9 & 0 & 97.95 & 68.1 \\
-    Hub ($R{=}10$, tight) & 9 & 0 & 97.69 & 76.1 \\
-    Triangle ($R{=}10$, tight) & 9 & 0 & 96.89 & 68.6 \\
-    Two rows ($R{=}10$, tight) & 9 & 0 & 97.08 & 76.8 \\
-    Full ($R{=}10$, tight) & 9 & 0 & 98.49 & 67.8 \\
+    None ($R{=}10$, tight) & 10 & 1 & 86.36 & 62.1 \\
+    Chain ($R{=}10$, tight) & 10 & 0 & 97.73 & 67.3 \\
+    Hub ($R{=}10$, tight) & 10 & 0 & 93.89 & 74.5 \\
+    Triangle ($R{=}10$, tight) & 10 & 0 & 95.03 & 67.7 \\
+    Two rows ($R{=}10$, tight) & 10 & 0 & 94.69 & 75.1 \\
+    Full ($R{=}10$, tight) & 10 & 0 & 98.44 & 67.0 \\
     \midrule
-    Triangle ($R{=}5$, tight) & 9 & 9 & 0.00 & 5.6 \\
-    Triangle ($R{=}20$, tight) & 2 & 0 & 99.83 & 165.9 \\
-    Triangle ($R{=}30$, tight) & 0 & --- & --- & --- \\
+    Triangle ($R{=}5$, tight) & 10 & 10 & 0.00 & 5.0 \\
+    Triangle ($R{=}20$, tight) & 3 & 0 & 99.67 & 130.9 \\
+    Triangle ($R{=}30$, tight) & 1 & 0 & 99.71 & 61.5 \\
     \midrule
-    Triangle ($R{=}10$, medium) & 9 & 0 & 95.45 & 69.6 \\
-    Triangle ($R{=}10$, loose) & 9 & 0 & 62.08 & 68.1 \\
+    Triangle ($R{=}10$, medium) & 10 & 0 & 92.31 & 68.7 \\
+    Triangle ($R{=}10$, loose) & 10 & 1 & 55.88 & 61.9 \\
     \midrule
-    Full ($R{=}20$, tight) & 1 & 0 & 99.89 & 156.2 \\
+    Full ($R{=}20$, tight) & 2 & 0 & 99.81 & 109.0 \\
     \bottomrule
   \end{tabular}
 \end{table}

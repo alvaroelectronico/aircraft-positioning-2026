@@ -246,10 +246,18 @@ def table_default_profile(data: dict[str, list[dict]]) -> str:
     n = n_seeds(data)
     out.append(r"\begin{table}[htbp]")
     out.append(r"  \centering")
+    # Check whether any milp_baseline data exists for R=30 configurations
+    _r30_milp = any(
+        any(r["experiment"] == "milp_baseline" and r.get("objective") is not None
+            for r in rows)
+        for cfg, rows in data.items() if "R30" in cfg or "tight_P5_R30" in cfg
+    )
+    _milp_note = (r" MILP results for $R{=}30$ are based on a single usable seed."
+                  if _r30_milp else r" MILP is unavailable for $R{=}30$.")
     out.append(r"  \caption{Mean results over " + str(n) + r" seeds per configuration under the default weight profile "
                r"$(W^M, W^D, W^S) = (0.1, 1, 10)$. Columns per method: mean objective $\bar f$, "
                r"mean makespan $\bar m$, mean total delay $\bar v^D$, mean movements $\bar n$, "
-               r"and mean wall-clock time $\bar t$ (s). MILP is unavailable for $R=30$.}")
+               r"and mean wall-clock time $\bar t$ (s)." + _milp_note + r"}")
     out.append(r"  \label{tab:res_default}")
     out.append(r"  \setlength{\tabcolsep}{3pt}%")
     out.append(r"  \resizebox{\textwidth}{!}{%")
@@ -263,7 +271,7 @@ def table_default_profile(data: dict[str, list[dict]]) -> str:
     # column subhead
     sub = "    "
     for _ in METHODS_DEFAULT:
-        sub += r" & $\boldsymbol{\bar{f}}$ & $\bar m$ & $\bar v^D$ & $\bar n$ & $\bar t$"
+        sub += r" & $\bm{\bar{f}}$ & $\bar m$ & $\bar v^D$ & $\bar n$ & $\bar t$"
     out.append(sub + r" \\")
     out.append(r"    \midrule")
     # rows grouped by axis

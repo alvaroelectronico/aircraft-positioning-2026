@@ -2,30 +2,30 @@
 % Do not edit by hand — rerun the script to regenerate.
 \begin{table}[htbp]
   \centering
-  \caption{Mean results over 9 seeds per configuration under the default weight profile $(W^M, W^D, W^S) = (0.1, 1, 10)$. Columns per method: mean objective $\bar f$, mean makespan $\bar m$, mean total delay $\bar v^D$, mean movements $\bar n$, and mean wall-clock time $\bar t$ (s). MILP is unavailable for $R=30$.}
+  \caption{Mean results over 10 seeds per configuration under the default weight profile $(W^M, W^D, W^S) = (0.1, 1, 10)$. Columns per method: mean objective $\bar f$, mean makespan $\bar m$, mean total delay $\bar v^D$, mean movements $\bar n$, and mean wall-clock time $\bar t$ (s). MILP results for $R{=}30$ are based on a single usable seed.}
   \label{tab:res_default}
   \setlength{\tabcolsep}{3pt}%
   \resizebox{\textwidth}{!}{%
   \begin{tabular}{lrrrrrrrrrrrrrrrrrrrr}
     \toprule
     Configuration & \multicolumn{5}{c}{\textbf{MILP}} & \multicolumn{5}{c}{\textbf{Topo}} & \multicolumn{5}{c}{\textbf{FAS}} & \multicolumn{5}{c}{\textbf{Safe}} \\
-     & $\boldsymbol{\bar{f}}$ & $\bar m$ & $\bar v^D$ & $\bar n$ & $\bar t$ & $\boldsymbol{\bar{f}}$ & $\bar m$ & $\bar v^D$ & $\bar n$ & $\bar t$ & $\boldsymbol{\bar{f}}$ & $\bar m$ & $\bar v^D$ & $\bar n$ & $\bar t$ & $\boldsymbol{\bar{f}}$ & $\bar m$ & $\bar v^D$ & $\bar n$ & $\bar t$ \\
+     & $\bm{\bar{f}}$ & $\bar m$ & $\bar v^D$ & $\bar n$ & $\bar t$ & $\bm{\bar{f}}$ & $\bar m$ & $\bar v^D$ & $\bar n$ & $\bar t$ & $\bm{\bar{f}}$ & $\bar m$ & $\bar v^D$ & $\bar n$ & $\bar t$ & $\bm{\bar{f}}$ & $\bar m$ & $\bar v^D$ & $\bar n$ & $\bar t$ \\
     \midrule
-    None ($R{=}10$, tight) & \textbf{106.29} & 65.72 & 99.72 & 0.0 & 68.5 & \textbf{104.59} & 65.39 & 98.06 & 0.0 & 60.0 & \textbf{104.59} & 65.39 & 98.06 & 0.0 & 0.0 & \textbf{104.59} & 65.39 & 98.06 & 0.0 & 0.0 \\
-    Chain ($R{=}10$, tight) & \textbf{210.81} & 88.67 & 188.61 & 1.3 & 68.1 & \textbf{173.62} & 87.83 & 155.94 & 0.9 & 60.0 & \textbf{171.48} & 88.17 & 153.78 & 0.9 & 0.1 & \textbf{171.48} & 88.17 & 153.78 & 0.9 & 0.0 \\
-    Hub ($R{=}10$, tight) & \textbf{196.61} & 91.61 & 185.22 & 0.2 & 76.1 & \textbf{136.02} & 78.50 & 128.17 & 0.0 & 60.0 & \textbf{135.93} & 78.72 & 128.06 & 0.0 & 0.1 & \textbf{135.93} & 78.72 & 128.06 & 0.0 & 0.0 \\
-    Triangle ($R{=}10$, tight) & \textbf{139.21} & 77.61 & 131.44 & 0.0 & 68.6 & \textbf{113.81} & 68.61 & 106.94 & 0.0 & 60.0 & \textbf{113.81} & 68.61 & 106.94 & 0.0 & 0.0 & \textbf{113.81} & 68.61 & 106.94 & 0.0 & 0.0 \\
-    Two rows ($R{=}10$, tight) & \textbf{150.04} & 79.83 & 142.06 & 0.0 & 76.8 & \textbf{114.21} & 68.17 & 107.39 & 0.0 & 70.4 & \textbf{112.16} & 67.72 & 105.39 & 0.0 & 0.4 & \textbf{112.16} & 67.72 & 105.39 & 0.0 & 0.0 \\
-    Full ($R{=}10$, tight) & \textbf{299.86} & 114.67 & 270.61 & 1.8 & 67.8 & \textbf{199.14} & 89.78 & 185.72 & 0.4 & 60.0 & \textbf{192.39} & 89.50 & 181.22 & 0.2 & 0.3 & \textbf{192.39} & 89.50 & 181.22 & 0.2 & 0.0 \\
+    None ($R{=}10$, tight) & \textbf{105.83} & 65.30 & 99.30 & 0.0 & 62.1 & \textbf{104.30} & 65.00 & 97.80 & 0.0 & 60.0 & \textbf{104.30} & 65.00 & 97.80 & 0.0 & 0.0 & \textbf{104.30} & 65.00 & 97.80 & 0.0 & 0.0 \\
+    Chain ($R{=}10$, tight) & \textbf{207.25} & 88.55 & 186.40 & 1.2 & 67.3 & \textbf{172.05} & 86.95 & 153.35 & 1.0 & 60.0 & \textbf{170.12} & 87.25 & 151.40 & 1.0 & 0.1 & \textbf{170.12} & 87.25 & 151.40 & 1.0 & 0.0 \\
+    Hub ($R{=}10$, tight) & \textbf{188.04} & 88.90 & 177.15 & 0.2 & 74.5 & \textbf{133.67} & 77.70 & 125.90 & 0.0 & 60.0 & \textbf{133.59} & 77.90 & 125.80 & 0.0 & 0.1 & \textbf{133.59} & 77.90 & 125.80 & 0.0 & 0.0 \\
+    Triangle ($R{=}10$, tight) & \textbf{135.64} & 76.90 & 127.95 & 0.0 & 67.7 & \textbf{112.59} & 67.90 & 105.80 & 0.0 & 60.0 & \textbf{112.59} & 67.90 & 105.80 & 0.0 & 0.0 & \textbf{112.59} & 67.90 & 105.80 & 0.0 & 0.0 \\
+    Two rows ($R{=}10$, tight) & \textbf{145.56} & 78.60 & 137.70 & 0.0 & 75.1 & \textbf{113.34} & 68.40 & 106.50 & 0.0 & 69.3 & \textbf{111.50} & 68.00 & 104.70 & 0.0 & 0.3 & \textbf{111.50} & 68.00 & 104.70 & 0.0 & 0.0 \\
+    Full ($R{=}10$, tight) & \textbf{291.42} & 113.20 & 264.10 & 1.6 & 67.0 & \textbf{200.23} & 90.30 & 187.20 & 0.4 & 60.0 & \textbf{193.06} & 90.15 & 182.05 & 0.2 & 0.3 & \textbf{193.06} & 90.15 & 182.05 & 0.2 & 0.0 \\
     \midrule
-    Triangle ($R{=}5$, tight) & \textbf{3.59} & 35.89 & 0.00 & 0.0 & 5.6 & \textbf{3.70} & 35.89 & 0.11 & 0.0 & 120.5 & \textbf{3.70} & 35.89 & 0.11 & 0.0 & 0.4 & \textbf{3.70} & 35.89 & 0.11 & 0.0 & 0.0 \\
-    Triangle ($R{=}20$, tight) & \textbf{3249.95} & 409.50 & 3209.00 & 0.0 & 165.9 & \textbf{687.26} & 132.06 & 671.83 & 0.2 & 62.1 & \textbf{678.19} & 132.50 & 662.72 & 0.2 & 26.6 & \textbf{678.19} & 132.50 & 662.72 & 0.2 & 0.0 \\
-    Triangle ($R{=}30$, tight) & \textbf{---} & --- & --- & --- & --- & \textbf{2131.92} & 231.39 & 2097.67 & 1.1 & 412.1 & \textbf{2144.79} & 235.11 & 2079.06 & 4.2 & 60.5 & \textbf{2106.47} & 234.72 & 2060.78 & 2.2 & 0.0 \\
+    Triangle ($R{=}5$, tight) & \textbf{3.58} & 35.80 & 0.00 & 0.0 & 5.0 & \textbf{3.68} & 35.80 & 0.10 & 0.0 & 114.5 & \textbf{3.68} & 35.80 & 0.10 & 0.0 & 0.3 & \textbf{3.68} & 35.80 & 0.10 & 0.0 & 0.0 \\
+    Triangle ($R{=}20$, tight) & \textbf{2449.37} & 322.00 & 2410.50 & 0.7 & 130.9 & \textbf{689.23} & 132.25 & 674.00 & 0.2 & 61.9 & \textbf{680.56} & 132.65 & 665.30 & 0.2 & 26.3 & \textbf{680.56} & 132.65 & 665.30 & 0.2 & 0.0 \\
+    Triangle ($R{=}30$, tight) & \textbf{2731.25} & 267.50 & 2524.50 & 18.0 & 61.5 & \textbf{2117.17} & 230.70 & 2084.10 & 1.0 & 376.9 & \textbf{2131.95} & 234.05 & 2070.55 & 3.8 & 60.5 & \textbf{2094.27} & 233.70 & 2050.90 & 2.0 & 0.0 \\
     \midrule
-    Triangle ($R{=}10$, medium) & \textbf{117.75} & 88.61 & 108.89 & 0.0 & 69.6 & \textbf{69.87} & 68.17 & 63.06 & 0.0 & 60.0 & \textbf{69.87} & 68.17 & 63.06 & 0.0 & 0.0 & \textbf{69.87} & 68.17 & 63.06 & 0.0 & 0.0 \\
-    Triangle ($R{=}10$, loose) & \textbf{15.56} & 70.06 & 8.56 & 0.0 & 68.1 & \textbf{12.83} & 70.56 & 5.78 & 0.0 & 60.0 & \textbf{12.83} & 70.56 & 5.78 & 0.0 & 0.0 & \textbf{12.83} & 70.56 & 5.78 & 0.0 & 0.0 \\
+    Triangle ($R{=}10$, medium) & \textbf{111.66} & 86.10 & 103.05 & 0.0 & 68.7 & \textbf{68.64} & 68.40 & 61.80 & 0.0 & 60.0 & \textbf{68.64} & 68.40 & 61.80 & 0.0 & 0.0 & \textbf{68.64} & 68.40 & 61.80 & 0.0 & 0.0 \\
+    Triangle ($R{=}10$, loose) & \textbf{14.66} & 69.60 & 7.70 & 0.0 & 61.9 & \textbf{12.26} & 70.55 & 5.20 & 0.0 & 60.0 & \textbf{12.26} & 70.55 & 5.20 & 0.0 & 0.0 & \textbf{12.26} & 70.55 & 5.20 & 0.0 & 0.0 \\
     \midrule
-    Full ($R{=}20$, tight) & \textbf{4675.60} & 531.00 & 4622.50 & 0.0 & 156.2 & \textbf{988.47} & 164.11 & 960.94 & 1.1 & 63.4 & \textbf{962.31} & 165.33 & 916.89 & 2.9 & 65.5 & \textbf{955.84} & 166.72 & 919.17 & 2.0 & 0.0 \\
+    Full ($R{=}20$, tight) & \textbf{3332.33} & 415.75 & 3130.75 & 16.0 & 109.0 & \textbf{989.28} & 163.80 & 960.90 & 1.2 & 63.1 & \textbf{965.06} & 165.05 & 914.55 & 3.4 & 65.0 & \textbf{959.23} & 166.30 & 916.60 & 2.6 & 0.0 \\
     \bottomrule
   \end{tabular}}
 \end{table}

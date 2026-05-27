@@ -28,6 +28,7 @@ sys.path.insert(0, str(_ROOT / "scripts" / "input_data"))
 sys.path.insert(0, str(_ROOT / "scripts" / "output_data"))
 
 from milp_solver import MILPSolver                          # noqa: E402
+from milp_aircraft_solver import MILPAircraftSolver         # noqa: E402
 from constructive_heuristic import ConstructiveHeuristic    # noqa: E402  (used in archived experiments)
 from lns_solver import LNSSolver                            # noqa: E402  (used in archived experiments)
 from topology_heuristic import TopologyHeuristic            # noqa: E402
@@ -84,7 +85,7 @@ EXPERIMENTS: list[dict] = [
     # =========================================================================
     {
         "label":        "milp_baseline",
-        "solver_class": MILPSolver,
+        "solver_class": MILPAircraftSolver,
         "config":       {**_BASE_CONFIG},
     },
 
@@ -201,7 +202,7 @@ EXPERIMENTS: list[dict] = [
     # =========================================================================
     {
         "label":        "milp_baseline_heur",
-        "solver_class": MILPSolver,
+        "solver_class": MILPAircraftSolver,
         "config":       {**_BASE_CONFIG_HEUR},
     },
     {
@@ -232,7 +233,7 @@ EXPERIMENTS: list[dict] = [
     # =========================================================================
     {
         "label":        "milp_baseline_wB",
-        "solver_class": MILPSolver,
+        "solver_class": MILPAircraftSolver,
         "config":       {**_BASE_CONFIG_WB},
     },
     {
@@ -262,7 +263,7 @@ EXPERIMENTS: list[dict] = [
     # =========================================================================
     {
         "label":        "milp_baseline_wC",
-        "solver_class": MILPSolver,
+        "solver_class": MILPAircraftSolver,
         "config":       {**_BASE_CONFIG_WC},
     },
     {
@@ -294,7 +295,7 @@ EXPERIMENTS: list[dict] = [
     # =========================================================================
     {
         "label":          "milp_fix1",
-        "solver_class":   MILPSolver,
+        "solver_class":   MILPAircraftSolver,
         "fix_from":       "topology_ms6",   # use topology_ms6 solution from cache
         "config":         {**_BASE_CONFIG},
     },
@@ -923,7 +924,11 @@ if __name__ == "__main__":
         sys.exit(1)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_path  = _ROOT / "data" / "logs" / f"run_experiments_{timestamp}.log"
+    # Derive a seed tag from INST_FILTER for consistent log naming, e.g. "_seed10" → "seed10_"
+    _seed_tag = ""
+    if inst_filter and inst_filter.strip().startswith("_seed"):
+        _seed_tag = inst_filter.strip().lstrip("_") + "_"
+    log_path  = _ROOT / "data" / "logs" / f"{_seed_tag}main_methods_{timestamp}.log"
 
     summary = run_experiments(instances, experiments, log_path=log_path)
     print(f"\nLog saved: {log_path}")
