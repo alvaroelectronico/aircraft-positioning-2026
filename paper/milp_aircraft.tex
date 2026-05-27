@@ -203,6 +203,21 @@ makespan by every aircraft finish time.
   \label{eq:milpobj}
 \end{equation}
 
+Equation~\eqref{eq:milpobj} aggregates the three operational criteria of
+the AHPP into a single scalarised cost.  The first term, $W^M\,m$,
+penalises the makespan and therefore rewards compact schedules that free
+the hangar early; the second term, $W^D \sum_r v^D_r$, penalises the
+total positive delay accumulated past each aircraft's target finish
+$L_r$ and is what enforces the soft time windows; the third term,
+$W^S\,n$, penalises the number of manoeuvring movements induced by
+blocking and is what couples the assignment and scheduling decisions
+through the indicators $u^{\mathrm{in}}_{rr'pp'}$ and
+$u^{\mathrm{out}}_{rr'pp'}$.  The three non-negative weights
+$W^M, W^D, W^S$ are exogenous parameters that the planner can tune to
+encode the relative operational priority of throughput, on-time
+delivery, and ground-crew effort; \S\ref{sec:exp_setup} evaluates the
+model under three contrasting weight profiles.
+
 \subsection{Job-level recovery}
 \label{sec:job_recovery}
 

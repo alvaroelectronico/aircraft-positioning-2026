@@ -260,7 +260,7 @@ def table_default_profile(data: dict[str, list[dict]]) -> str:
                r"and mean wall-clock time $\bar t$ (s)." + _milp_note + r"}")
     out.append(r"  \label{tab:res_default}")
     out.append(r"  \setlength{\tabcolsep}{3pt}%")
-    out.append(r"  \resizebox{\textwidth}{!}{%")
+    out.append(r"  \scriptsize")
     out.append(r"  \begin{tabular}{l" + ("rrrrr" * 4) + r"}")
     out.append(r"    \toprule")
     # Method header
@@ -295,7 +295,7 @@ def table_default_profile(data: dict[str, list[dict]]) -> str:
             ])
         out.append("    " + " & ".join(cells) + r" \\")
     out.append(r"    \bottomrule")
-    out.append(r"  \end{tabular}}")
+    out.append(r"  \end{tabular}")
     out.append(r"\end{table}")
     return "\n".join(out)
 
@@ -424,7 +424,6 @@ def table_weight_profiles(data: dict[str, list[dict]]) -> str:
                r"(averaged over " + str(n) + r" seeds) under the three profiles: "
                r"default $(0.1,1,10)$, wB $(1,10,0.1)$ (delay-priority), wC $(10,0.1,1)$ (makespan-priority).}")
     out.append(r"  \label{tab:res_weights}")
-    out.append(r"  \resizebox{\textwidth}{!}{%")
     out.append(r"  \begin{tabular}{l" + ("rrr" * 3) + r"}")
     out.append(r"    \toprule")
     out.append(r"    Configuration & \multicolumn{3}{c}{\textbf{Default}} & \multicolumn{3}{c}{\textbf{wB (delay)}} & \multicolumn{3}{c}{\textbf{wC (makespan)}} \\")
@@ -445,7 +444,7 @@ def table_weight_profiles(data: dict[str, list[dict]]) -> str:
             cells.extend([fmt(agg["mks"], 2), fmt(agg["dly"], 2), fmt(agg["mov"], 1)])
         out.append("    " + " & ".join(cells) + r" \\")
     out.append(r"    \bottomrule")
-    out.append(r"  \end{tabular}}")
+    out.append(r"  \end{tabular}")
     out.append(r"\end{table}")
     return "\n".join(out)
 

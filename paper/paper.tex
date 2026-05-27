@@ -1,42 +1,37 @@
-\documentclass[a4paper,11pt]{article}
+%% ===========================================================================
+%% Aircraft Hangar Positioning — formatted for Central European Journal
+%% of Operations Research (CEJOR), Springer Nature.
+%%
+%% Document class: sn-jnl with the sn-mathphys-ay option (author-year style,
+%% the convention used in CEJOR).  The class file (sn-jnl.cls) and the
+%% bibliography style (sn-mathphys-ay.bst) live alongside this file.
+%%
+%% NOTE on CEJOR submission rules:
+%%   * Submit a single .tex (do NOT use \input{} at submission time).
+%%     During writing we keep separate files; concatenate before sending.
+%%   * Figures must be attached separately (not embedded).
+%%   * Abstract 150-250 words, no citations, no equations, no subheadings.
+%%   * 4-6 keywords.
+%% ===========================================================================
 
-% ── Encoding & fonts ───────────────────────────────────────────────────────────
-\usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
-\usepackage{lmodern}
+\documentclass[pdflatex,sn-mathphys-ay]{sn-jnl}
 
-% ── Maths ──────────────────────────────────────────────────────────────────────
-\usepackage{amsmath,amssymb,amsthm}
-\usepackage{bm}                       % \bm for robust bold math (e.g. table 5 f̄)
-
-% ── Layout ─────────────────────────────────────────────────────────────────────
-\usepackage[margin=2.5cm]{geometry}
-\usepackage{setspace}
-\onehalfspacing
-
-% ── Tables & figures ───────────────────────────────────────────────────────────
+%%%%%% Packages not loaded by sn-jnl  %%%%%%
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsthm}
+\usepackage{bm}              % \bm for robust bold math symbols
+\usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{multirow}
-\usepackage{graphicx}
-\usepackage{caption}
-\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{enumitem}
 \usepackage{rotating}
 \usepackage{pdflscape}
 \usepackage{placeins}
-
-% ── Algorithms ─────────────────────────────────────────────────────────────────
 \usepackage[ruled,linesnumbered]{algorithm2e}
+\usepackage{natbib}          % \citep, \citet for the author-year style
 
-% ── Hyperlinks & references ────────────────────────────────────────────────────
-\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
-\usepackage{natbib}
-
-% ── Misc ───────────────────────────────────────────────────────────────────────
-\usepackage{xcolor}
-\usepackage{enumitem}
-\usepackage{microtype}
-
-% ── Custom commands ────────────────────────────────────────────────────────────
+%%%%%% Custom math macros  %%%%%%
 \newcommand{\calP}{\mathcal{P}}        % positions
 \newcommand{\calA}{\mathcal{A}}        % blocking arcs
 \newcommand{\calR}{\mathcal{R}}        % aircraft
@@ -48,56 +43,66 @@
 \newcommand{\NZ}{\mathbb{Z}_{\geq 0}}  % non-negative integers
 \DeclareMathOperator*{\argmin}{arg\,min}
 
-\newtheorem{definition}{Definition}
-\newtheorem{proposition}{Proposition}
+%%%%%% Theorem environments per the Springer Nature template  %%%%%%
+\theoremstyle{thmstyleone}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+
+\theoremstyle{thmstyletwo}
 \newtheorem{remark}{Remark}
 
-% ── Title ──────────────────────────────────────────────────────────────────────
-\title{\textbf{Aircraft Hangar Positioning: A Mixed-Integer Programming Model
-and Heuristic Solving Approaches}}
+\theoremstyle{thmstylethree}
+\newtheorem{definition}{Definition}
 
-% \author{%
-%   Álvaro García\\
-%   \small Baobab Soluciones, Madrid, Spain\\
-%   \small \texttt{alvaro.garcia@baobabsoluciones.es}
-% }
+\raggedbottom
 
-\date{\today}
-
-% ==============================================================================
+% ============================================================================
 \begin{document}
+
+\title[Aircraft Hangar Positioning]{Aircraft Hangar Positioning: A
+Mixed-Integer Programming Model and Heuristic Solving Approaches}
+
+\author*[1]{\fnm{\'Alvaro} \sur{Garc\'ia}}
+\email{alvaro.garcia@baobabsoluciones.es}
+
+\affil*[1]{\orgname{Baobab Soluciones},
+           \orgaddress{\city{Madrid}, \country{Spain}}}
+
+\abstract{We study the \emph{aircraft hangar positioning problem} (AHPP):
+given a hangar with a set of maintenance positions connected by directed
+blocking arcs, a fleet of aircraft each with a known total maintenance
+duration, and time-window constraints on start and finish, assign every
+aircraft to exactly one position and schedule its maintenance block so as
+to minimise a weighted combination of total delay, makespan, and
+manoeuvring movements.  The blocking-arc structure captures physical
+constraints: an aircraft in a front position obstructs entry to and exit
+from a rear position, incurring costly movements whenever the occupancy
+windows of the two aircraft overlap.  We present a compact mixed-integer
+linear programming formulation, expressed at the aircraft level so that
+each aircraft is treated as a single uninterrupted maintenance block,
+together with two complementary heuristic approaches: a topology-aware
+GRASP that steers heavy aircraft away from high-load positions, and a
+fixed-assignment scheduler that re-optimises timing given a position
+assignment.  Combining these in a safe pipeline always yields a solution
+at least as good as any individual component.  Computational experiments
+on 120 benchmark instances covering six hangar topologies, three slack
+levels, and up to 30 aircraft show that the heuristic pipeline
+consistently outperforms the exact solver within a 60-second budget as
+soon as the fleet grows beyond the regime in which the exact solver is
+competitive, while the exact solver closes the gap on the smallest
+instances.}
+
+\keywords{Aircraft hangar scheduling,
+          Mixed-integer linear programming,
+          GRASP heuristic,
+          Blocking constraints,
+          Maintenance planning}
 
 \maketitle
 
-\begin{abstract}
-We study the \emph{aircraft hangar positioning problem} (AHPP): given a hangar
-with a set of maintenance positions connected by directed \emph{blocking arcs},
-a fleet of aircraft each with a known total maintenance duration, and
-time-window constraints on start and finish, assign every aircraft to exactly
-one position and schedule its maintenance block so as to minimise a weighted
-combination of total delay, makespan, and manoeuvring movements.  The
-blocking-arc structure captures physical constraints: an aircraft in a
-\emph{front} position obstructs entry to and exit from a \emph{rear} position,
-incurring costly movements whenever the occupancy windows of the two aircraft
-overlap.  We present a compact mixed-integer linear programming (MILP)
-formulation, expressed at the aircraft level so that each aircraft is treated
-as a single uninterrupted maintenance block, together with two complementary
-heuristic approaches: a topology-aware GRASP that steers heavy aircraft away
-from high-load positions, and a fixed-assignment scheduler that re-optimises
-timing given a position assignment.  Combining these in a \emph{safe pipeline}
-always yields a solution at least as good as any individual component.
-Computational experiments on 120 benchmark instances covering six hangar
-topologies, three slack levels, and up to 30 aircraft show that the heuristic
-pipeline consistently outperforms the exact solver within a 60-second budget
-as soon as the fleet grows beyond the regime in which the exact solver is
-competitive, while the exact solver closes the gap on the smallest instances.
-\end{abstract}
-
-\bigskip
-\noindent\textbf{Keywords:} aircraft hangar scheduling; mixed-integer linear
-programming; GRASP heuristic; blocking arc constraints; maintenance planning.
-
-% ==============================================================================
+% ============================================================================
+%% NOTE: \input{} is for the writing stage only; CEJOR requires a single
+%% .tex document at submission time -- concatenate the body files first.
 \input{intro}
 \input{literature_review}
 \input{problem_statement}
@@ -106,8 +111,9 @@ programming; GRASP heuristic; blocking arc constraints; maintenance planning.
 \input{computational_results}
 \input{conclusions}
 
-% ==============================================================================
-\bibliographystyle{plainnat}
+% ============================================================================
+%% Bibliography style is set automatically by sn-jnl via the documentclass
+%% option [pdflatex,sn-mathphys-ay]; do not set \bibliographystyle explicitly.
 \bibliography{references}
 
 \end{document}

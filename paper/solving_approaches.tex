@@ -66,12 +66,68 @@ $z^* \leftarrow +\infty$; $T_s \leftarrow T / n_s$\;
 \label{alg:topo}
 \end{algorithm}
 
-The single-move and 2-opt swap operators reassign one or two aircraft to
-alternative positions; the intra-position reorder swaps the service
-sequence of two aircraft sharing a position; the perturb-and-rebuild
-kick forces a random reassignment of a small subset before re-running the
-schedule with the same position map.  All operators are $O(R^2)$ or
-cheaper, so the local-search phase converges within the slice budget.
+All four operators share the same skeleton: propose a candidate
+modification of the current incumbent, rebuild the schedule from
+scratch with the modified assignment (or ordering), evaluate the
+objective \eqref{eq:milpobj}, and accept the first strictly improving
+proposal.  On acceptance the search restarts from the cheapest
+operator, so cheap moves get repeated chances to fire before the
+expensive ones are tried again.  They differ in the perturbation they
+apply.
+
+The \emph{single-move} operator iterates over every aircraft and, for
+each, over every alternative position, producing $O(R\,(P-1))$
+candidate moves.  Each candidate reassigns one aircraft and leaves the
+rest unchanged.  This is the cheapest perturbation, so it is tried
+first in every iteration.
+
+The \emph{2-opt swap} operator is a position-exchange move that
+preserves the multiset of positions occupied.  It enumerates every
+ordered pair $(r, r')$ of aircraft assigned to \emph{different}
+positions $p$ and $p'$ and produces a candidate in which $r$ takes
+position $p'$ and $r'$ takes position $p$, with all other aircraft
+fixed.  Unlike single-move, the swap conserves the load distribution
+across positions and therefore reaches solutions that no chain of
+single-moves can reach without first overloading a position; this
+proves particularly useful on the \emph{Two rows} and \emph{Triangle}
+topologies, where balanced loads are critical.  The enumeration is
+$O(R^2)$ candidate pairs.
+
+The \emph{intra-position reorder} operator does not change any
+position assignment.  For every position $p$ with at least two
+assigned aircraft, it generates all adjacent transpositions of the
+service order at $p$, plus all single-slot insertions and all
+non-adjacent transpositions within the same position; it also tries
+three structured reorderings per position (earliest-due-date,
+slack-ascending, and delay-ratio-descending).  Because aircraft
+durations and time windows interact with the precedence chain, two
+schedules that differ only in the service order at one position
+can produce substantially different delays and movements, so this
+family of moves is essential for tightening the timing once the
+assignment is good.
+
+Finally, the \emph{perturb-and-rebuild} operator is an aggressive
+delay-driven move designed to escape local minima where single-move
+and 2-opt are stuck.  It identifies the
+$K = \max(2, \lceil R/10 \rceil)$ aircraft with the largest current
+delay, and for each of them tries (i) every intra-position slot
+relocation at its current position, and (ii) every single-move
+relocation to a different position.  Effectively this is a focused
+combination of intra-position insertion and single-move applied only
+to the worst-performing aircraft, where it has the greatest chance of
+finding improvement.  The intra-position part addresses the case
+where the aircraft is simply scheduled too late at its current
+position; the cross-position part covers the case where the position
+itself is wrong.  The move is more expensive than single-move per
+candidate but evaluates only $K \cdot (P + k_p)$ candidates per pass,
+which on benchmark instances ($K \le 3$, $P = 5$) is comparable in
+cost to one single-move pass.
+
+All operators dominate the construction phase in cost only because
+the schedule rebuild is itself non-trivial; the move-enumeration
+budget is $O(R^2)$ per pass at worst, and the local-search phase
+typically converges within two to four passes before the slice
+budget $T_s = T/n_s$ is exhausted.
 
 % ------------------------------------------------------------------------------
 \subsection{Fixed-Assignment Scheduler (FAS)}
