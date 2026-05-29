@@ -484,6 +484,14 @@ if __name__ == "__main__":
              "several batches.  When provided, the per-config log "
              "auto-discovery is skipped.",
     )
+    ap.add_argument(
+        "--paper-dir",
+        type=Path,
+        default=_ROOT / "papers" / "cejor_aircraft",
+        help="Paper folder whose tables/ subdirectory will receive the "
+             "generated LaTeX files.  Defaults to papers/cejor_aircraft.  "
+             "Use papers/jobs_extension for paper #2.",
+    )
     args = ap.parse_args()
 
     if args.log:
@@ -491,7 +499,7 @@ if __name__ == "__main__":
     else:
         data = load_all()
     print_debug_summary(data)
-    tables_dir = _ROOT / "paper" / "tables"
+    tables_dir = args.paper_dir / "tables"
     tables_dir.mkdir(parents=True, exist_ok=True)
     outputs = {
         "res_milp_opt.tex":    table_optimality(data),

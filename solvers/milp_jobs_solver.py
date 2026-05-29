@@ -1,9 +1,13 @@
 """
-MILPSolver — wraps the Pyomo MILP model for the aircraft positioning problem.
+MILPSolver — wraps the job-level Pyomo MILP for the aircraft positioning problem.
+
+This is the original job-level formulation (one decision variable per job),
+kept as the legacy baseline.  The aircraft-level formulation lives in
+``solvers/milp_aircraft_solver.py``.
 
 Usage as a library
 ------------------
-    from solvers.milp_solver import MILPSolver
+    from solvers.milp_jobs_solver import MILPSolver
 
     solver = MILPSolver()
     solver.configure_solver(NoRelHeurTime=10, MIPGap=10)
@@ -11,7 +15,7 @@ Usage as a library
 
 Usage as a script (standalone debugging, no Application needed)
 ---------------------------------------------------------------
-    python milp_solver.py [<instance_path>]
+    python milp_jobs_solver.py [<instance_path>]
 """
 from __future__ import annotations
 
@@ -21,7 +25,7 @@ import sys
 # Make the models directory importable regardless of cwd
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "models"))
 
-from milp_pyomo import model as _abstract_model, prepare_data, get_solution  # noqa: E402
+from milp_jobs_pyomo import model as _abstract_model, prepare_data, get_solution  # noqa: E402
 
 # Keys consumed by this class as model parameters; everything else is forwarded
 # verbatim to the backend solver (e.g. Gurobi options).
@@ -100,7 +104,7 @@ class MILPSolver:
         Returns
         -------
         dict
-            Solution dict — see ``get_solution`` in milp_pyomo.py for schema.
+            Solution dict — see ``get_solution`` in milp_jobs_pyomo.py for schema.
         """
         import threading
         import time as _time

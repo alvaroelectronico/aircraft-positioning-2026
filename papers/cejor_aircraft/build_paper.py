@@ -2,10 +2,10 @@
 
 Usage
 -----
-    python paper/build_paper.py             # full build (2 pdflatex + bibtex)
-    python paper/build_paper.py --fast      # single pdflatex pass (no bibtex)
-    python paper/build_paper.py --clean     # remove auxiliary files only
-    python paper/build_paper.py --open      # open PDF after build (Windows/Mac/Linux)
+    python papers/cejor_aircraft/build_paper.py             # full build (2 pdflatex + bibtex)
+    python papers/cejor_aircraft/build_paper.py --fast      # single pdflatex pass (no bibtex)
+    python papers/cejor_aircraft/build_paper.py --clean     # remove auxiliary files only
+    python papers/cejor_aircraft/build_paper.py --open      # open PDF after build (Windows/Mac/Linux)
 """
 
 from __future__ import annotations

@@ -1,0 +1,123 @@
+%% ===========================================================================
+%% Aircraft Hangar Positioning, Extension: Job-Level Scheduling with
+%% Refined Blocking Semantics — formatted for Central European Journal
+%% of Operations Research (CEJOR), Springer Nature.
+%%
+%% Companion to the aircraft-level paper (papers/cejor_aircraft/).
+%% The extension treats blocking at the job level: it is no longer
+%% sufficient to represent each aircraft as a single uninterrupted block,
+%% because blocking interactions depend on the per-job timing.
+%%
+%% Document class: sn-jnl with the sn-mathphys-ay option (author-year
+%% style, as in CEJOR).  The class file (sn-jnl.cls) and the bibliography
+%% style (sn-mathphys-ay.bst) live alongside this file.
+%%
+%% NOTE: this paper is intentionally self-contained.  Do NOT \input{}
+%% files from ../cejor_aircraft/.  When content overlaps, copy it.
+%% ===========================================================================
+
+\documentclass[pdflatex,sn-mathphys-ay]{sn-jnl}
+
+%%%%%% Packages not loaded by sn-jnl  %%%%%%
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsthm}
+\usepackage{bm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{rotating}
+\usepackage{pdflscape}
+\usepackage{placeins}
+\usepackage[ruled,linesnumbered]{algorithm2e}
+\usepackage{natbib}
+
+%%%%%% Custom math macros (mirrors paper #1)  %%%%%%
+\newcommand{\calP}{\mathcal{P}}
+\newcommand{\calA}{\mathcal{A}}
+\newcommand{\calR}{\mathcal{R}}
+\newcommand{\calJ}{\mathcal{J}}
+\newcommand{\calE}{\mathcal{E}}
+\newcommand{\calC}{\mathcal{C}}
+\newcommand{\calB}{\mathcal{B}}
+\newcommand{\NR}{\mathbb{R}_{\geq 0}}
+\newcommand{\NZ}{\mathbb{Z}_{\geq 0}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\theoremstyle{thmstyleone}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
+
+\theoremstyle{thmstyletwo}
+\newtheorem{remark}{Remark}
+
+\theoremstyle{thmstylethree}
+\newtheorem{definition}{Definition}
+
+\raggedbottom
+
+% ============================================================================
+\begin{document}
+
+\title[Aircraft Hangar Positioning: Job-Level Extension]{Aircraft Hangar
+Positioning with Job-Level Blocking: A Mixed-Integer Programming Extension}
+
+\author*[1]{\fnm{\'Alvaro} \sur{Garc\'ia}}
+\email{alvaro.garcia@baobabsoluciones.es}
+
+\affil*[1]{\orgname{Baobab Soluciones},
+           \orgaddress{\city{Madrid}, \country{Spain}}}
+
+\abstract{TODO: rewrite for paper~\#2.  The aircraft-level formulation of
+\citet{TODO-cejor-paper} models each aircraft as a single uninterrupted
+maintenance block, an aggregation that is valid only when blocking
+interactions depend solely on the entry and exit instants of the block.
+In this paper we relax that assumption and treat blocking at the
+\emph{job} level: each aircraft is a chain of jobs whose individual
+start times can trigger blocking movements.  We introduce a new
+mixed-integer linear programming formulation, propose heuristics
+tailored to the job-level structure, and evaluate both on the same
+120-instance benchmark used for the aircraft-level paper, enabling a
+direct formulation-to-formulation comparison.}
+
+\keywords{Aircraft hangar scheduling,
+          Job-level mixed-integer linear programming,
+          Blocking constraints,
+          Maintenance planning,
+          Resource-constrained project scheduling}
+
+\maketitle
+
+% ============================================================================
+%% TODO: add body sections as they are written.
+%% Suggested skeleton (mirroring paper #1):
+%%   \input{intro}
+%%   \input{related_work_extension}    % short, mostly cross-ref to paper #1
+%%   \input{problem_statement_jobs}
+%%   \input{milp_jobs_v2}
+%%   \input{solving_approaches_v2}
+%%   \input{computational_results_v2}
+%%   \input{conclusions}
+
+\section{Introduction}\label{sec:intro}
+
+TODO: write paper~\#2 introduction.  Key points to cover:
+\begin{itemize}
+  \item Recall the aircraft-level formulation of the companion paper
+        and its assumption that blocking depends only on aircraft
+        start/finish times.
+  \item Motivate the job-level refinement: industrial cases in which
+        the order of jobs within an aircraft affects blocking
+        (e.g.\ a job that opens a panel changes the obstruction
+        geometry mid-service).
+  \item State the contributions: new MILP, new heuristics, comparison
+        on the shared benchmark.
+\end{itemize}
+
+% ============================================================================
+%% Bibliography style is set automatically by sn-jnl via the documentclass
+%% option [pdflatex,sn-mathphys-ay]; do not set \bibliographystyle explicitly.
+\bibliography{references}
+
+\end{document}

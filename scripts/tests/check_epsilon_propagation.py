@@ -18,7 +18,7 @@ sys.path.insert(0, str(_ROOT / "scripts" / "output_data"))
 sys.path.insert(0, str(_ROOT / "solvers"))
 
 from instance_io import load_json                              # noqa: E402
-from milp_solver import MILPSolver                             # noqa: E402
+from milp_jobs_solver import MILPSolver                        # noqa: E402
 from milp_aircraft_solver import MILPAircraftSolver            # noqa: E402
 from check_solution import check_solution                      # noqa: E402
 

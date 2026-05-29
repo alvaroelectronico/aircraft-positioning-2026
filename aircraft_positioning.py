@@ -8,7 +8,7 @@ MILP to CP or any other method only requires passing a different solver.
 Usage
 -----
     from aircraft_positioning import Application
-    from solvers.milp_solver import MILPSolver
+    from solvers.milp_jobs_solver import MILPSolver
 
     app = Application(solver=MILPSolver())
     app.read_data("data/instances/instance.json")
@@ -261,7 +261,7 @@ if __name__ == "__main__":
     _args = _parser.parse_args()
 
     if _args.solver == "milp":
-        from milp_solver import MILPSolver  # noqa: E402
+        from milp_jobs_solver import MILPSolver  # noqa: E402
         _solver = MILPSolver()
         _solver_config = dict(
             min_separation=10,

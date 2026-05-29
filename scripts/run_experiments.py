@@ -27,7 +27,7 @@ sys.path.insert(0, str(_ROOT / "solvers"))
 sys.path.insert(0, str(_ROOT / "scripts" / "input_data"))
 sys.path.insert(0, str(_ROOT / "scripts" / "output_data"))
 
-from milp_solver import MILPSolver                          # noqa: E402
+from milp_jobs_solver import MILPSolver                     # noqa: E402
 from milp_aircraft_solver import MILPAircraftSolver         # noqa: E402
 from constructive_heuristic import ConstructiveHeuristic    # noqa: E402  (used in archived experiments)
 from lns_solver import LNSSolver                            # noqa: E402  (used in archived experiments)

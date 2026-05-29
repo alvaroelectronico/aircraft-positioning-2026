@@ -47,7 +47,7 @@ except Exception:
 # Optional sub-MILP repair — Pyomo fallback (slower, kept for compatibility)
 _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "..", "models"))
 try:
-    from milp_pyomo import model as _abstract_milp_model, prepare_data as _milp_prepare_data
+    from milp_jobs_pyomo import model as _abstract_milp_model, prepare_data as _milp_prepare_data
     from pyomo.environ import SolverFactory as _SolverFactory
     _SUBMILP_AVAILABLE = True
 except Exception:

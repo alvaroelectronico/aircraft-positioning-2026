@@ -18,7 +18,7 @@ sys.path.insert(0, str(_ROOT / "solvers"))
 sys.path.insert(0, str(_ROOT / "models"))
 
 from instance_io import load_json                             # noqa: E402
-from milp_solver import MILPSolver                            # noqa: E402
+from milp_jobs_solver import MILPSolver                       # noqa: E402
 from constructive_heuristic import ConstructiveHeuristic     # noqa: E402
 
 
