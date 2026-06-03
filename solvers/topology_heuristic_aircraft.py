@@ -1,5 +1,5 @@
 """
-TopologyHeuristic — Topology-aware GRASP heuristic for aircraft positioning.
+TopologyHeuristicAircraft — Topology-aware GRASP heuristic for aircraft positioning.
 
 Key idea
 --------
@@ -27,10 +27,10 @@ all starts is returned.  This is the recommended mode for production.
 
 Usage
 -----
-    from solvers.topology_heuristic import TopologyHeuristic
+    from solvers.topology_heuristic_aircraft import TopologyHeuristicAircraft
     from aircraft_positioning import Application
 
-    app = Application(solver=TopologyHeuristic())
+    app = Application(solver=TopologyHeuristicAircraft())
     app.read_data("data/instances/instance.json")
     app.configure_solver(time_limit_s=60, weight_topology=1.0, n_starts=6)
     app.solve()
@@ -55,7 +55,7 @@ from lns_solver import _rebuild
 #  Public solver class
 # =============================================================================
 
-class TopologyHeuristic:
+class TopologyHeuristicAircraft:
     """Topology-aware GRASP heuristic — no external dependencies required."""
 
     _DEFAULTS: dict = {
@@ -77,7 +77,7 @@ class TopologyHeuristic:
 
     @property
     def name(self) -> str:
-        return "topology"
+        return "topology_aircraft"
 
     def configure_solver(self, **kwargs) -> None:
         for key, value in kwargs.items():

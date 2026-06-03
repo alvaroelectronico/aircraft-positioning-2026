@@ -63,23 +63,13 @@
 \title[Aircraft Hangar Positioning: Job-Level Extension]{Aircraft Hangar
 Positioning with Job-Level Blocking: A Mixed-Integer Programming Extension}
 
-\author*[1]{\fnm{\'Alvaro} \sur{Garc\'ia}}
-\email{alvaro.garcia@baobabsoluciones.es}
+% \author*[1]{\fnm{\'Alvaro} \sur{Garc\'ia}}
+% \email{alvaro.garcia@upm.es}
 
 \affil*[1]{\orgname{Baobab Soluciones},
            \orgaddress{\city{Madrid}, \country{Spain}}}
 
-\abstract{TODO: rewrite for paper~\#2.  The aircraft-level formulation of
-\citet{TODO-cejor-paper} models each aircraft as a single uninterrupted
-maintenance block, an aggregation that is valid only when blocking
-interactions depend solely on the entry and exit instants of the block.
-In this paper we relax that assumption and treat blocking at the
-\emph{job} level: each aircraft is a chain of jobs whose individual
-start times can trigger blocking movements.  We introduce a new
-mixed-integer linear programming formulation, propose heuristics
-tailored to the job-level structure, and evaluate both on the same
-120-instance benchmark used for the aircraft-level paper, enabling a
-direct formulation-to-formulation comparison.}
+\abstract{TODO: rewrite once the methodology sections are complete.}
 
 \keywords{Aircraft hangar scheduling,
           Job-level mixed-integer linear programming,
@@ -102,18 +92,10 @@ direct formulation-to-formulation comparison.}
 
 \section{Introduction}\label{sec:intro}
 
-TODO: write paper~\#2 introduction.  Key points to cover:
-\begin{itemize}
-  \item Recall the aircraft-level formulation of the companion paper
-        and its assumption that blocking depends only on aircraft
-        start/finish times.
-  \item Motivate the job-level refinement: industrial cases in which
-        the order of jobs within an aircraft affects blocking
-        (e.g.\ a job that opens a panel changes the obstruction
-        geometry mid-service).
-  \item State the contributions: new MILP, new heuristics, comparison
-        on the shared benchmark.
-\end{itemize}
+TODO: write the introduction.
+
+\input{problem_statement}
+\input{milp}
 
 % ============================================================================
 %% Bibliography style is set automatically by sn-jnl via the documentclass

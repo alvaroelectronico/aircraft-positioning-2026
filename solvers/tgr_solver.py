@@ -3,8 +3,8 @@ TGRSolver — Topology-Guided Restricted MILP solver.
 
 Pipeline
 --------
-1. TopologyHeuristic generates K diverse position assignments (fast GRASP, no LS).
-2. FixedAssignmentScheduler solves the scheduling MILP for each assignment.
+1. TopologyHeuristicAircraft generates K diverse position assignments (fast GRASP, no LS).
+2. FixedAssignmentSchedulerAircraft solves the scheduling MILP for each assignment.
 3. Return the best schedule across all assignments (min objective).
 
 This separates the two sub-problems cleanly:
@@ -30,8 +30,8 @@ from __future__ import annotations
 
 import time
 
-from topology_heuristic import TopologyHeuristic, _prepare_instance, _solve_single
-from fixed_assignment_scheduler import FixedAssignmentScheduler
+from topology_heuristic_aircraft import TopologyHeuristicAircraft, _prepare_instance, _solve_single
+from fixed_assignment_scheduler_aircraft import FixedAssignmentSchedulerAircraft
 from constructive_heuristic import _objective
 
 
@@ -69,7 +69,7 @@ class TGRSolver:
 
     def solve(self, instance_data: dict) -> dict:
         # Per-instance epsilon overrides the config fallback; propagated to
-        # the sub-solvers (TopologyHeuristic, FixedAssignmentScheduler) which
+        # the sub-solvers (TopologyHeuristicAircraft, FixedAssignmentSchedulerAircraft) which
         # apply the same override on their own solve() entrypoints.
         if "min_separation" in instance_data:
             self._params["min_separation"] = float(instance_data["min_separation"])
@@ -83,7 +83,7 @@ class TGRSolver:
 
         # Step 1 — generate diverse assignments
         print(f"  [TGR] generating {n_assign} assignments  ({t_topo:.1f}s topology budget)")
-        topo = TopologyHeuristic()
+        topo = TopologyHeuristicAircraft()
         topo.configure_solver(**{
             k: params[k] for k in (
                 "min_separation", "weight_makespan", "weight_delay",
@@ -111,7 +111,7 @@ class TGRSolver:
         print(f"  [TGR] scheduling {len(assignments)} assignments"
               f"  ({t_per_milp:.1f}s per MILP)")
 
-        fas = FixedAssignmentScheduler()
+        fas = FixedAssignmentSchedulerAircraft()
         fas.configure(
             min_separation   = params["min_separation"],
             weight_makespan  = params["weight_makespan"],

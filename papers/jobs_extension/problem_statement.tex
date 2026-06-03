@@ -1,0 +1,211 @@
+% ==============================================================================
+\section{Problem Statement}
+\label{sec:problem}
+% ==============================================================================
+
+% ------------------------------------------------------------------------------
+\subsection*{Operational overview}
+% ------------------------------------------------------------------------------
+
+A maintenance hangar consists of a finite number of parking positions
+arranged in space.  Because of the physical geometry of the facility,
+some positions are \emph{rear} positions whose only access path runs
+across one or more \emph{front} positions.  An aircraft parked at a
+front position therefore physically obstructs the entry and exit of
+any aircraft at the rear positions behind it.  Whenever a rear-position
+aircraft has to enter or leave the hangar while a front aircraft is
+being serviced, the front aircraft must be temporarily towed out of
+the way and returned to its slot once the manoeuvre is complete.  Each
+such manoeuvre is operationally expensive: it occupies the ground crew,
+interrupts service, and carries a non-negligible risk of damage.
+
+A fleet of aircraft must be serviced in the hangar over a planning
+horizon.  For each aircraft the airline specifies the work to be
+performed, an earliest date on which work can start, and a target date
+by which it should be finished; finishing later than the target incurs
+a delay cost that the operator wants to minimise.  The work itself is
+an ordered list of \emph{jobs} with known individual durations and a
+strict chain of precedences: a job cannot start until its predecessor
+has finished.  Each job is also tagged as either \emph{interruptible},
+meaning the ground crew can pause it briefly to clear the way for a
+neighbouring movement and resume it shortly afterwards, or
+\emph{non-interruptible}, meaning it must run from start to finish
+without external disturbance.
+
+A schedule consists of two decisions per aircraft: which position to
+assign it to, and when to start each of its jobs.  Two aircraft sharing
+a position must be serviced one after the other.  An aircraft assigned
+to a rear position can always enter or leave when the relevant front
+position is unoccupied at that instant.  When the front position is
+occupied, only two situations make the manoeuvre possible: (i) the
+front aircraft is between two consecutive jobs and the gap is wide
+enough to absorb the tow-out and tow-back; or (ii) the front aircraft
+is mid-job and that job is interruptible, in which case the job is
+paused, the manoeuvre is performed, and the job is resumed at the
+cost of some additional working time.  Any other attempt to access the
+rear position is operationally infeasible.  The schedule must satisfy
+all of the above and minimise a weighted combination of makespan,
+total delay, and number of manoeuvres.
+
+% ------------------------------------------------------------------------------
+\subsection*{Formal definition}
+% ------------------------------------------------------------------------------
+
+The hangar is modelled as a directed acyclic graph $G = (\calP, \calA)$
+where $\calP = \{p_1, \dots, p_P\}$ is the set of parking positions and
+$\calA \subseteq \calP \times \calP$ is the set of \emph{blocking
+arcs}: an arc $(p, p') \in \calA$ means that position $p$ (the
+\emph{front}) obstructs the access path to position $p'$ (the
+\emph{rear}).
+
+Let $\calR = \{r_1, \dots, r_R\}$ be the fleet of aircraft to be
+serviced.  Each aircraft $r \in \calR$ carries an ordered chain of
+jobs
+\[
+  \calJ_r = (j^r_1, j^r_2, \ldots, j^r_{N_r}),
+\]
+in which $j^r_{k+1}$ may only start after $j^r_k$ has finished.  Let
+$\calJ = \bigcup_{r \in \calR} \calJ_r$ be the global job set.  Each
+job $j \in \calJ$ has a nominal duration $D_j > 0$ and an
+interruptibility flag
+\[
+  I_j \in \{0, 1\}, \qquad I_j = 1 \iff j \text{ is interruptible.}
+\]
+The aggregate processing time of aircraft $r$ is
+$T_r = \sum_{j \in \calJ_r} D_j$.  Each aircraft also has an earliest
+start $E_r \ge 0$ and a target finish $L_r > E_r$.
+
+Four positive temporal parameters complete the instance:
+\begin{itemize}[leftmargin=2em, itemsep=0pt]
+  \item $\varepsilon$: the towing time of an aircraft into or out of a
+        parking slot.  Used as the minimum separation between two
+        consecutive aircraft serviced at the same position.
+  \item $\mu$: the minimum inter-job pause that must be left between
+        two consecutive jobs of an aircraft when a neighbouring access
+        manoeuvre takes place during that pause.  In its absence the
+        gap may be zero.
+  \item $\delta$: the additional working time added to an interruptible
+        job each time it is paused to allow a neighbouring access
+        manoeuvre.
+\end{itemize}
+All three parameters are specified per instance.
+
+% ------------------------------------------------------------------------------
+%\subsection*{Decision variables and basic constraints}
+% ------------------------------------------------------------------------------
+
+A solution assigns each aircraft $r \in \calR$ to exactly one position
+$\pi(r) \in \calP$, and fixes a start time $s_j \ge 0$ for every job
+$j \in \calJ$.  The finish time of a job is
+\begin{equation}
+  f_j \;=\; s_j + D_j + \delta\, \kappa_j,
+  \label{eq:job_finish}
+\end{equation}
+where $\kappa_j \in \NZ$ counts how many times job $j$ was paused
+during its execution to enable a neighbouring access manoeuvre (see
+the access conditions below); $\kappa_j > 0$ requires $I_j = 1$.
+Job-level start and finish times induce aircraft-level start and finish
+times $s_r = s_{j^r_1}$ and $f_r = f_{j^r_{N_r}}$, and the per-job
+delay $v^D_r = \max(0,\, f_r - L_r)$.
+
+The basic feasibility requirements are
+\begin{align}
+  & \textstyle\sum_{p \in \calP} \mathbf{1}[\pi(r) = p] = 1
+    && \forall r \in \calR, \label{eq:assign} \\
+  & s_{j^r_{k+1}} \;\ge\; f_{j^r_k}
+    && \forall r \in \calR,\ k = 1, \ldots, N_r{-}1, \label{eq:chain} \\
+  & s_r \;\ge\; E_r
+    && \forall r \in \calR, \label{eq:earlystart} \\
+  & [s_r, f_r] \cap [s_{r'}, f_{r'}] = \emptyset \text{ and gap } \ge \varepsilon
+    && \forall r \ne r' \in \calR \text{ with } \pi(r) = \pi(r'). \label{eq:sameposseq}
+\end{align}
+Equation~\eqref{eq:assign} enforces that every aircraft is assigned to
+exactly one position; \eqref{eq:chain} chains each aircraft's jobs in
+the prescribed order; \eqref{eq:earlystart} respects the earliest
+start; and \eqref{eq:sameposseq} forbids overlapping occupancies at
+the same position and leaves at least $\varepsilon$ time units
+between the finish of one aircraft and the start of the next.
+
+% ------------------------------------------------------------------------------
+\subsection*{Access conditions on blocked positions}
+\label{subsec:access}
+% ------------------------------------------------------------------------------
+
+Consider any arc $(p, p') \in \calA$ and an aircraft $r'$ assigned to
+the rear position $p' = \pi(r')$.  Its two access instants are the
+entry $\tau = s_{r'}$ and the exit $\tau = f_{r'}$.  Each of these
+instants must fall into exactly one of three modes, depending on the
+state of the front position $p$ at time $\tau$.
+
+\paragraph{Mode (A) — front position vacant at $\tau$.}
+If no aircraft is being serviced at $p$ at time $\tau$ --- formally,
+no aircraft $r$ with $\pi(r) = p$ satisfies $s_r \le \tau \le f_r$ ---
+the access requires no manoeuvre and incurs no extra time and no
+movement count.
+
+\paragraph{Mode (B) — front aircraft mid-stay, $\tau$ in an inter-job gap.}
+If there exists an aircraft $r$ with $\pi(r) = p$ such that $\tau$
+falls between two consecutive jobs $j^r_k$ and $j^r_{k+1}$ of $r$,
+i.e.
+\begin{equation}
+  f_{j^r_k} \;\le\; \tau \;\le\; s_{j^r_{k+1}},
+  \label{eq:mode_b_window}
+\end{equation}
+then $r$ is towed out, $r'$ accesses $p'$, and $r$ is towed back.  The
+gap must be wide enough to accommodate the manoeuvre:
+\begin{equation}
+  s_{j^r_{k+1}} \;-\; f_{j^r_k} \;\ge\; \mu
+    \quad\text{whenever any access instant uses this gap}.
+  \label{eq:mode_b_gap}
+\end{equation}
+The event contributes $2$ to the movement count (tow-out plus
+tow-back) and does not extend any job.
+
+\paragraph{Mode (C) — front aircraft mid-job, job interruptible.}
+If there exists an aircraft $r$ with $\pi(r) = p$ such that $\tau$
+falls strictly within the execution of some job $j^r_k$ of $r$, i.e.
+\begin{equation}
+  s_{j^r_k} \;<\; \tau \;<\; f_{j^r_k},
+  \label{eq:mode_c_window}
+\end{equation}
+the access is feasible only if $I_{j^r_k} = 1$.  In that case $j^r_k$
+is paused, the manoeuvre is performed, $j^r_k$ resumes, and the
+counter $\kappa_{j^r_k}$ of equation~\eqref{eq:job_finish} is
+incremented by $1$.  The event contributes $2$ to the movement count.
+
+\paragraph{Infeasibility.}
+If~\eqref{eq:mode_c_window} holds but $I_{j^r_k} = 0$, the access
+instant $\tau$ is infeasible: the schedule must either retime $r'$ so
+that $\tau$ falls into Mode~(A) or Mode~(B), or reassign $r'$ to a
+different position.
+
+\paragraph{Independence of entry and exit.}
+The mode of the entry $s_{r'}$ and the mode of the exit $f_{r'}$ are
+determined independently, against potentially different front aircraft
+and different jobs.  Each contributes its own movement count and, in
+Mode~(C), its own increment of $\kappa$.
+
+% ------------------------------------------------------------------------------
+\subsection*{Objective}
+% ------------------------------------------------------------------------------
+
+Let $m = \max_{r \in \calR} f_r$ be the makespan and let $n$ be the
+total number of movements summed over all blocking arcs and aircraft
+pairs.  The objective is the weighted combination
+\begin{equation}
+  \label{eq:obj}
+  \min \;\; W^M \cdot m
+        \;+\; W^D \sum_{r \in \calR} v^D_r
+        \;+\; W^S \cdot n,
+\end{equation}
+where $W^M, W^D, W^S \ge 0$ are user-specified weights expressing the
+relative priority of throughput, on-time delivery, and ground-crew
+effort.
+
+The problem is $\mathcal{NP}$-hard: even without blocking arcs it
+contains the single-machine scheduling problem with arbitrary release
+dates and weighted completion times~\citep{Lenstra1977}, and the
+blocking access conditions of \S\ref{subsec:access} further enlarge
+the combinatorial structure.  The mixed-integer programming
+formulation that captures these conditions is developed in
+\S\ref{sec:milp}.

@@ -8,14 +8,14 @@ MILP to CP or any other method only requires passing a different solver.
 Usage
 -----
     from aircraft_positioning import Application
-    from solvers.milp_jobs_solver import MILPSolver
+    from solvers.milp_aircraft_solver import MILPAircraftSolver
 
-    app = Application(solver=MILPSolver())
-    app.read_data("data/instances/instance.json")
-    app.configure_solver(NoRelHeurTime=10, MIPGap=10)
+    app = Application(solver=MILPAircraftSolver())   # gurobipy backend by default
+    app.read_data("data/instances_202605/scn_triangle_tight_P5_R5/scn_triangle_tight_P5_R5_seed1.json")
+    app.configure_solver(time_limit_s=60, MIPGap=0.0)
     app.solve()
-    app.check_solution()
-    app.plot_solution()
+    report = app.check_solution()
+    app.plot_solution()      # opens a Gantt-chart window
 
 Solver contract
 ---------------
@@ -250,46 +250,110 @@ class Application:
 if __name__ == "__main__":
     import argparse
 
-    _parser = argparse.ArgumentParser(description="Aircraft positioning solver")
-    _parser.add_argument("instance", nargs="?",
-                         default=str(_ROOT / "data" / "instances" / "scn_custom_many_tight_pl10.json"),
-                         help="Path to the instance file (.json or .xlsx)")
-    _parser.add_argument("--solver", choices=["milp", "constructive"], default="milp",
-                         help="Solver to use (default: milp)")
-    _parser.add_argument("--time-limit", type=float, default=None,
-                         help="Wall-clock time limit in seconds")
+    # Windows consoles default to cp1252; force UTF-8 so the check_solution
+    # report (which uses arrows and other non-ASCII glyphs) prints cleanly.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, OSError):
+        pass
+
+    # A small, MILP-tractable benchmark instance (R=5 triangle, tight).
+    # Solves to optimality in a few seconds with default Gurobi settings.
+    _DEFAULT_INSTANCE = (
+        _ROOT / "data" / "instances_202605"
+              / "scn_triangle_tight_P5_R5"
+              / "scn_triangle_tight_P5_R5_seed1.json"
+    )
+
+    _parser = argparse.ArgumentParser(
+        description="Run one solver on one aircraft-positioning instance "
+                    "and verify the resulting solution.",
+    )
+    _parser.add_argument(
+        "instance", nargs="?", default=str(_DEFAULT_INSTANCE),
+        help=f"Path to the instance .json or .xlsx (default: {_DEFAULT_INSTANCE.name}).",
+    )
+    _parser.add_argument(
+        "--solver", choices=["aircraft-milp", "jobs-milp", "constructive"],
+        default="aircraft-milp",
+        help="Solver to use.  'aircraft-milp' = paper-#1 MILP via native gurobipy "
+             "(default); 'jobs-milp' = legacy job-level Pyomo MILP; "
+             "'constructive' = constructive heuristic.",
+    )
+    _parser.add_argument(
+        "--time-limit", type=float, default=60.0,
+        help="Wall-clock time limit in seconds (default: 60).",
+    )
+    _parser.add_argument(
+        "--no-plot", action="store_true",
+        help="Suppress the Gantt chart window (useful for CI / batch runs).",
+    )
+    _parser.add_argument(
+        "--save", action="store_true",
+        help="Persist the solution under data/solutions/ (off by default).",
+    )
     _args = _parser.parse_args()
 
-    if _args.solver == "milp":
-        from milp_jobs_solver import MILPSolver  # noqa: E402
+    # Default weights match paper-#1's main profile: movements >> delay >> makespan.
+    _WEIGHTS = dict(weight_makespan=0.1, weight_delay=1.0, weight_movements=10.0)
+
+    if _args.solver == "aircraft-milp":
+        from milp_aircraft_solver import MILPAircraftSolver  # noqa: E402
+        _solver = MILPAircraftSolver()                       # gurobipy by default
+        _solver_config = dict(
+            time_limit_s=_args.time_limit,
+            MIPGap=0.0,
+            **_WEIGHTS,
+        )
+    elif _args.solver == "jobs-milp":
+        from milp_jobs_solver import MILPSolver              # noqa: E402
         _solver = MILPSolver()
         _solver_config = dict(
-            min_separation=10,
-            weight_makespan=10.0,
-            weight_delay=100.0,
-            weight_movements=1.0,
-            NoRelHeurTime=10,
-            MIPGap=10,
+            time_limit_s=_args.time_limit,
+            MIPGap=0.0,
+            **_WEIGHTS,
         )
     else:
         from constructive_heuristic import ConstructiveHeuristic  # noqa: E402
         _solver = ConstructiveHeuristic()
         _solver_config = dict(
-            min_separation=10,
-            weight_makespan=10.0,
-            weight_delay=100.0,
-            weight_movements=1.0,
+            time_limit_s=_args.time_limit,
             alpha=0.3,
             seed=None,
+            **_WEIGHTS,
         )
 
-    if _args.time_limit is not None:
-        _solver_config["time_limit_s"] = _args.time_limit
+    print("=" * 60)
+    print(f"  Instance : {Path(_args.instance).name}")
+    print(f"  Solver   : {_args.solver}")
+    print(f"  Limit    : {_args.time_limit:.0f} s")
+    print("=" * 60)
 
     app = Application(solver=_solver)
     app.read_data(_args.instance)
     app.configure_solver(**_solver_config)
     app.solve()
-    app.save_solution()
-    app.check_solution()
-    app.plot_solution()
+
+    _sol = app.get_solution()
+    _m   = _sol["metrics"]
+    print("\n--- Solver result ---")
+    print(f"  status      : {_sol['status']}")
+    print(f"  objective   : {_sol['objective']}")
+    print(f"  makespan    : {_m['makespan']}")
+    print(f"  total_delay : {_m['total_delay']}")
+    print(f"  movements   : {_m['movements']}")
+    print(f"  mip_gap     : {_sol.get('mip_gap')}")
+    print(f"  solve_time_s: {app._solve_time_s}")
+
+    if _args.save:
+        app.save_solution()
+
+    print("\n--- Solution check (paper #1 semantics) ---")
+    report = app.check_solution()
+
+    if not _args.no_plot:
+        print("\n--- Gantt chart (close the window to exit) ---")
+        app.plot_solution()
+
+    sys.exit(0 if report["compliant"] else 1)

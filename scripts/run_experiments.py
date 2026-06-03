@@ -31,9 +31,11 @@ from milp_jobs_solver import MILPSolver                     # noqa: E402
 from milp_aircraft_solver import MILPAircraftSolver         # noqa: E402
 from constructive_heuristic import ConstructiveHeuristic    # noqa: E402  (used in archived experiments)
 from lns_solver import LNSSolver                            # noqa: E402  (used in archived experiments)
-from topology_heuristic import TopologyHeuristic            # noqa: E402
+from topology_heuristic_aircraft import TopologyHeuristicAircraft  # noqa: E402
+from topology_heuristic_job      import TopologyHeuristicJob       # noqa: E402
 from tgr_solver import TGRSolver                            # noqa: E402
-from fixed_assignment_scheduler import FixedAssignmentScheduler  # noqa: E402
+from fixed_assignment_scheduler_aircraft import FixedAssignmentSchedulerAircraft  # noqa: E402
+from fixed_assignment_scheduler_job      import FixedAssignmentSchedulerJob       # noqa: E402
 from aircraft_positioning import Application                 # noqa: E402  (also sets up remaining paths)
 
 
@@ -96,7 +98,7 @@ EXPERIMENTS: list[dict] = [
     # =========================================================================
     {
         "label":        "topology_ms3",
-        "solver_class": TopologyHeuristic,
+        "solver_class": TopologyHeuristicAircraft,
         "config": {
             **_BASE_CONFIG,
             "alpha":           0.3,
@@ -107,7 +109,7 @@ EXPERIMENTS: list[dict] = [
     },
     {
         "label":        "topology_ms6",
-        "solver_class": TopologyHeuristic,
+        "solver_class": TopologyHeuristicAircraft,
         "config": {
             **_BASE_CONFIG,
             "alpha":           0.3,
@@ -118,7 +120,7 @@ EXPERIMENTS: list[dict] = [
     },
     {
         "label":        "topology_ms12",
-        "solver_class": TopologyHeuristic,
+        "solver_class": TopologyHeuristicAircraft,
         "config": {
             **_BASE_CONFIG,
             "alpha":           0.3,
@@ -129,7 +131,7 @@ EXPERIMENTS: list[dict] = [
     },
 
     # =========================================================================
-    # GROUP 3 — TGR-MILP: topology assignment generator + FixedAssignmentScheduler.
+    # GROUP 3 — TGR-MILP: topology assignment generator + FixedAssignmentSchedulerAircraft.
     # tgr_k5: 5 assignments × 2s topology + remaining budget shared across MILPs.
     # tgr_k3: 3 assignments × 3s topology + longer MILP per assignment.
     # =========================================================================
@@ -159,7 +161,7 @@ EXPERIMENTS: list[dict] = [
     },
 
     # =========================================================================
-    # GROUP 5 — fas_on_topo: FixedAssignmentScheduler on topology_ms6 assignment.
+    # GROUP 5 — fas_on_topo: FixedAssignmentSchedulerAircraft on topology_ms6 assignment.
     # "Honest milp_fix1" — same assignment as topology_ms6 but with correct delta.
     # fas_from key is handled by the runner (bypasses Application, calls FAS directly).
     # Must run AFTER topology_ms6 so the warm cache is populated.
@@ -207,7 +209,7 @@ EXPERIMENTS: list[dict] = [
     },
     {
         "label":        "topology_ms6_heur",
-        "solver_class": TopologyHeuristic,
+        "solver_class": TopologyHeuristicAircraft,
         "config": {
             **_BASE_CONFIG_HEUR,
             "alpha":           0.3,
@@ -238,7 +240,7 @@ EXPERIMENTS: list[dict] = [
     },
     {
         "label":        "topology_ms6_wB",
-        "solver_class": TopologyHeuristic,
+        "solver_class": TopologyHeuristicAircraft,
         "config": {
             **_BASE_CONFIG_WB,
             "alpha":           0.3,
@@ -268,7 +270,7 @@ EXPERIMENTS: list[dict] = [
     },
     {
         "label":        "topology_ms6_wC",
-        "solver_class": TopologyHeuristic,
+        "solver_class": TopologyHeuristicAircraft,
         "config": {
             **_BASE_CONFIG_WC,
             "alpha":           0.3,
@@ -301,6 +303,33 @@ EXPERIMENTS: list[dict] = [
     },
 
     # =========================================================================
+    # JOB-LEVEL SIBLINGS — job-as-scheduling-unit problem (paper #2)
+    # Three-mode blocking semantics with mu/delta/eta parameters.
+    # =========================================================================
+    {
+        "label":        "topology_ms6_job",
+        "solver_class": TopologyHeuristicJob,
+        "config": {
+            **_BASE_CONFIG,
+            "alpha":           0.3,
+            "weight_topology": 1.0,
+            "n_starts":        6,
+            "seed":            1,
+        },
+    },
+    {
+        "label":     "fas_on_topo_job",
+        "fas_from":  "topology_ms6_job",
+        "fas_class": FixedAssignmentSchedulerJob,
+        "config":    {**_BASE_CONFIG},
+    },
+    {
+        "label":     "safe_pipeline_job",
+        "safe_from": ["topology_ms6_job", "fas_on_topo_job"],
+        "config":    {**_BASE_CONFIG},
+    },
+
+    # =========================================================================
     # ARCHIVED — uncomment to reproduce earlier experiments
     # =========================================================================
     # {   "label": "constructive",       alpha=0.4                              },
@@ -329,7 +358,7 @@ EXPERIMENTS: list[dict] = [
 SEED_EXPERIMENTS: list[dict] = [
     {
         "label":        f"topology_seed{s}",
-        "solver_class": TopologyHeuristic,
+        "solver_class": TopologyHeuristicAircraft,
         "config": {
             **_BASE_CONFIG,
             "alpha":           0.3,
@@ -452,7 +481,11 @@ def run_experiments(
                         _write_log(log_path, config_header, summary)
                     continue
 
-                # ---- fas_from: run FixedAssignmentScheduler on a cached assignment ----
+                # ---- fas_from: run a FixedAssignmentScheduler on a cached assignment ----
+                # An optional `fas_class` key in the experiment dict selects which
+                # FAS variant to use (default = FixedAssignmentSchedulerAircraft for
+                # the CJOR paper).  Job-level experiments set fas_class to
+                # FixedAssignmentSchedulerJob.
                 fas_from = exp.get("fas_from")
                 if fas_from is not None and not exp.get("fas_2cand"):
                     from instance_io import load_json as _load_json
@@ -463,8 +496,9 @@ def run_experiments(
                         )
                     assignment = {a["id"]: a["position"] for a in fas_sol["aircraft"]}
                     print(f"  fas_from '{fas_from}'  assignment={list(assignment.values())[:5]}...")
-                    fas_cfg = dict(exp["config"])
-                    fas = FixedAssignmentScheduler()
+                    fas_cfg   = dict(exp["config"])
+                    fas_class = exp.get("fas_class", FixedAssignmentSchedulerAircraft)
+                    fas       = fas_class()
                     fas.configure(
                         time_limit_s    = fas_cfg.get("time_limit_s", 60),
                         min_separation  = fas_cfg.get("min_separation", 10.0),
@@ -506,7 +540,7 @@ def run_experiments(
                 # ---- fas_2cand: FAS with multi-candidate positions from generate_assignments ----
                 if exp.get("fas_2cand"):
                     from instance_io import load_json as _load_json
-                    from solvers.topology_heuristic import TopologyHeuristic
+                    from solvers.topology_heuristic_aircraft import TopologyHeuristicAircraft
                     fas_from2 = exp.get("fas_from")
                     fas_sol2 = _warm_cache.get((inst_path.stem, fas_from2))
                     if fas_sol2 is None:
@@ -517,7 +551,7 @@ def run_experiments(
                     aircraft_ids = list(primary_assignment.keys())
                     raw_inst = _load_json(inst_path)
                     # Generate K diverse assignments to build candidate sets
-                    topo = TopologyHeuristic()
+                    topo = TopologyHeuristicAircraft()
                     fas_cfg2 = dict(exp["config"])
                     topo.configure_solver(
                         time_limit_s=fas_cfg2.get("time_limit_s", 60),
@@ -568,7 +602,7 @@ def run_experiments(
                     n_multi = sum(1 for v in cands_map.values() if len(v) > 1)
                     print(f"  fas_2cand: {n_multi}/{len(primary_assignment)} aircraft have >1 candidate"
                           f"  (top-{MAX_FLEX_AC} by delay)")
-                    fas2 = FixedAssignmentScheduler()
+                    fas2 = FixedAssignmentSchedulerAircraft()
                     fas2.configure(
                         time_limit_s    = fas_cfg2.get("time_limit_s", 60),
                         min_separation  = fas_cfg2.get("min_separation", 10.0),
@@ -704,7 +738,7 @@ def _build_config_header(experiments: list[dict]) -> str:
 
     # --- Per-experiment table (only differing params) ---
     labels       = [exp["label"]                                          for exp in experiments]
-    solver_names = [exp.get("solver_class", FixedAssignmentScheduler).__name__ for exp in experiments]
+    solver_names = [exp.get("solver_class", FixedAssignmentSchedulerAircraft).__name__ for exp in experiments]
     w_label      = max(len(l) for l in labels)
     w_solver     = max(len(s) for s in solver_names)
 
@@ -723,7 +757,7 @@ def _build_config_header(experiments: list[dict]) -> str:
 
     for exp, cfg in zip(experiments, all_configs):
         row_vals = (
-            [exp["label"], exp.get("solver_class", FixedAssignmentScheduler).__name__]
+            [exp["label"], exp.get("solver_class", FixedAssignmentSchedulerAircraft).__name__]
             + [_fmt(cfg.get(k)) for k in diff_keys]
         )
         buf.write("  " + "  ".join(v.ljust(w) for v, w in zip(row_vals, col_widths)) + "\n")

@@ -135,7 +135,7 @@ class LNSSolver:
 
         # ----------------------------------------------------------
         # Step 1: initial solution
-        # Priority: warm_solution injected externally (e.g. from TopologyHeuristic)
+        # Priority: warm_solution injected externally (e.g. from TopologyHeuristicAircraft)
         # Fallback: fast constructive run capped at init_time seconds
         # ----------------------------------------------------------
         warm_solution = params.get("warm_solution")

@@ -1,0 +1,269 @@
+% ==============================================================================
+\section{MILP Formulation}
+\label{sec:milp}
+% ==============================================================================
+
+We present a mixed-integer linear programming formulation of the
+problem of \S\ref{sec:problem}.  Where possible the notation follows
+the conventions used elsewhere in the literature for aircraft
+positioning problems with blocking arcs: parameters use upper-case
+Latin letters, decision variables use lower-case Latin letters, and
+Greek letters are reserved for fixed scalar constants ($\varepsilon$,
+$\mu$, $\delta$, the time-granularity $\eta$ and the big-$M$
+relaxation~$M$).  The key feature of the formulation is that every
+access of a blocked aircraft is explicitly \emph{classified}, by means
+of a partition constraint, into one of the four mutually exclusive
+states allowed by the problem: before the front aircraft's stay,
+after it, in an inter-job gap (Mode~B), or strictly inside an
+interruptible job (Mode~C).  An access that cannot be classified into
+any of these four states corresponds to an attempt to enter or leave a
+position whose blocker is in the middle of a non-interruptible job,
+and is correctly rendered infeasible by the model.
+
+\subsection*{Sets}
+
+\begin{tabular}{@{}l@{\quad}p{0.78\textwidth}@{}}
+  $\calP$
+    & maintenance positions \\
+  $\calR$
+    & aircraft \\
+  $\calJ_r,\ r \in \calR$
+    & ordered job chain of aircraft $r$;
+      $\calJ_r = (j^r_1, \ldots, j^r_{N_r})$ \\
+  $\calJ = \bigcup_{r \in \calR} \calJ_r$
+    & global job set \\
+  $\calA \subseteq \calP \times \calP$
+    & blocking arcs $(p, p')$: position $p$ blocks position $p'$ \\
+\end{tabular}
+
+\subsection*{Parameters}
+
+\begin{tabular}{@{}l@{\quad}p{0.78\textwidth}@{}}
+  $D_j$
+    & nominal duration of job $j \in \calJ$ \\
+  $I_j \in \{0, 1\}$
+    & interruptibility flag of job $j$; $I_j = 1$ iff $j$ can be paused \\
+  $E_r, L_r$
+    & earliest start and target finish of aircraft $r$ \\
+  $\varepsilon$
+    & tow-in / tow-out time; minimum separation between consecutive
+      aircraft serviced at the same position \\
+  $\mu$
+    & operational time absorbed by a single Mode-(B) manoeuvre inside
+      an inter-job gap (per-access, cumulative across all manoeuvres
+      that share the same gap) \\
+  $\delta$
+    & additional working time added to an interruptible job each time
+      it is paused to allow a Mode-(C) manoeuvre \\
+  $\eta$
+    & time-granularity used to enforce strict inequalities on the
+      Mode-(C) job interior; equals the smallest time difference
+      meaningful in the instance (e.g.\ one day) \\
+  $K^{\max}_j$
+    & valid upper bound on the number of times job $j$ may be paused;
+      we take $K^{\max}_j = 2 (|\calR| - 1)$ \\
+  $H^{UB}$
+    & technical upper bound on every job start and finish time,
+      large enough to accommodate the worst-case sequential schedule
+      with all possible interruptions \\
+  $M$
+    & big-$M$ constant; we take $M = H^{UB} + \max(\varepsilon, \mu, \delta, \eta)$ \\
+  $W^M, W^D, W^S$
+    & weights for makespan, total delay, and movements \\
+\end{tabular}
+
+\subsection*{Variables}
+
+\paragraph{Assignment and timing.}
+Binaries $x_{rp} \in \{0,1\}$ (aircraft $r$ assigned to position $p$)
+and $q_{rr'p} \in \{0,1\}$ (aircraft $r$ precedes aircraft $r'$ at
+$p$).  Continuous $s_j, f_j \in [0, H^{UB}]$ for every $j \in \calJ$,
+together with the aircraft-level shortcuts $s_r = s_{j^r_1}$ and
+$f_r = f_{j^r_{N_r}}$.  The integer counter $\kappa_j \in \{0, \ldots,
+K^{\max}_j\}$ records how many times job $j$ is paused.
+
+\paragraph{Placement compatibility.}
+For every $r \ne r'$ and every $(p, p') \in \calA$ we introduce a
+binary $y_{rr'pp'} \in \{0,1\}$ that equals $1$ iff $r$ is the front
+aircraft at $p$ and $r'$ is the rear aircraft at $p'$.
+
+\paragraph{Access classification.}
+For every $r \ne r'$, every $(p, p') \in \calA$, and every access
+side $a \in \{\mathrm{in}, \mathrm{out}\}$ (with the convention $\tau^a_{r'}
+= s_{r'}$ when $a = \mathrm{in}$ and $\tau^a_{r'} = f_{r'}$ when $a =
+\mathrm{out}$), we introduce the four mutually exclusive classification
+indicators
+\begin{align*}
+  & z^{-,a}_{rr'pp'} \in \{0,1\}
+    && \text{access $\tau^a_{r'}$ falls strictly before $r$'s stay,} \\
+  & z^{+,a}_{rr'pp'} \in \{0,1\}
+    && \text{access $\tau^a_{r'}$ falls strictly after $r$'s stay,} \\
+  & b^{Ba}_{rr'pp'k} \in \{0,1\},\ k = 1, \ldots, N_r-1
+    && \text{access falls in inter-job gap $k$ of $r$ (Mode B),} \\
+  & b^{Ca}_{rr'pp'j} \in \{0,1\},\ j \in \calJ_r
+    && \text{access falls strictly inside job $j$ of $r$ (Mode C).}
+\end{align*}
+
+\paragraph{Objective auxiliaries.}
+Makespan $m \in \NR$, per-aircraft delay $v^D_r \in \NR$, and total
+movement count $n \in \NZ$.
+
+\subsection*{Constraints}
+
+To keep the alignment compact we abbreviate
+$\forall r \ne r' \in \calR,\ (p,p') \in \calA,\ a \in
+\{\mathrm{in},\mathrm{out}\}$ by $(\dagger)$ and
+$\forall r \ne r' \in \calR,\ p \in \calP$ by $(\ddagger)$.
+
+\paragraph{Assignment, chain, earliest start, sequencing.}
+\begin{align}
+  \sum_{p \in \calP} x_{rp} &= 1
+    && \forall r \in \calR \label{eq:assign}\\
+  f_j &= s_j + D_j + \delta\, \kappa_j
+    && \forall j \in \calJ \label{eq:jobdur}\\
+  s_{j^r_{k+1}} &\ge f_{j^r_k}
+    && \forall r,\ k = 1, \ldots, N_r{-}1 \label{eq:chain}\\
+  s_r &\ge E_r
+    && \forall r \in \calR \label{eq:earlystart}\\
+  s_{r'} &\ge f_r + \varepsilon - M(1 - q_{rr'p}) \notag\\
+         &\quad - M(1 - x_{rp}) - M(1 - x_{r'p})
+    && (\ddagger) \label{eq:sep}\\
+  q_{rr'p} + q_{r'rp} &\ge x_{rp} + x_{r'p} - 1
+    && \forall r < r' \in \calR,\, p \in \calP \label{eq:ordLB}\\
+  q_{rr'p} + q_{r'rp} &\le 1
+    && \forall r < r' \in \calR,\, p \in \calP \label{eq:ordUB}\\
+  q_{rr'p} &\le x_{rp},\quad q_{rr'p} \le x_{r'p}
+    && (\ddagger),\ \forall p \in \calP \label{eq:ordTight}
+\end{align}
+
+\paragraph{Placement compatibility.}
+For every $r \ne r' \in \calR$ and every $(p, p') \in \calA$:
+\begin{align}
+  y_{rr'pp'} &\le x_{rp},\quad
+  y_{rr'pp'} \le x_{r'p'},\quad
+  y_{rr'pp'} \ge x_{rp} + x_{r'p'} - 1
+    \label{eq:y_link}
+\end{align}
+
+\paragraph{Exhaustive classification of every access.}
+For every $(\dagger)$, an access $\tau^a_{r'}$ that is exposed to the
+front aircraft $r$ must be classified into exactly one of the four
+allowed states; conversely, if $y_{rr'pp'} = 0$ the access is not
+exposed and no indicator may fire:
+\begin{align}
+  z^{-,a}_{rr'pp'} + z^{+,a}_{rr'pp'}
+   + \!\!\sum_{k=1}^{N_r-1}\! b^{Ba}_{rr'pp'k}
+   + \!\!\sum_{j \in \calJ_r}\! b^{Ca}_{rr'pp'j}
+   &= y_{rr'pp'}
+    && \label{eq:partition}
+\end{align}
+
+\paragraph{Before / after the front stay.}
+For every $(\dagger)$:
+\begin{align}
+  \tau^a_{r'} &\le s_r - \eta + M\bigl(1 - z^{-,a}_{rr'pp'}\bigr)
+    && \label{eq:zminus}\\
+  \tau^a_{r'} &\ge f_r + \eta - M\bigl(1 - z^{+,a}_{rr'pp'}\bigr)
+    && \label{eq:zplus}
+\end{align}
+
+\paragraph{Mode (B) --- inter-job gap.}
+For every $(\dagger)$ and every $k = 1, \ldots, N_r-1$:
+\begin{align}
+  \tau^a_{r'} &\ge f_{j^r_k} - M\bigl(1 - b^{Ba}_{rr'pp'k}\bigr)
+    && \label{eq:bb_lb}\\
+  \tau^a_{r'} &\le s_{j^r_{k+1}} + M\bigl(1 - b^{Ba}_{rr'pp'k}\bigr)
+    && \label{eq:bb_ub}
+\end{align}
+Each Mode-(B) event consumes $\mu$ time units of the gap, so the gap
+must be wide enough to accommodate all events that use it:
+\begin{align}
+  s_{j^r_{k+1}} - f_{j^r_k}
+    &\ge
+    \mu \!\!\sum_{\substack{r' \ne r\\ (p,p') \in \calA \\ a \in \{\mathrm{in}, \mathrm{out}\}}}
+        \!\! b^{Ba}_{rr'pp'k}
+    && \forall r \in \calR,\ k = 1, \ldots, N_r-1
+    \label{eq:bb_gap}
+\end{align}
+
+\paragraph{Mode (C) --- strictly inside an interruptible job.}
+For every $(\dagger)$ and every $j \in \calJ_r$:
+\begin{align}
+  \tau^a_{r'} &\ge s_j + \eta - M\bigl(1 - b^{Ca}_{rr'pp'j}\bigr)
+    && \label{eq:bc_lb}\\
+  \tau^a_{r'} &\le s_j + D_j + \delta\bigl(\kappa_j - b^{Ca}_{rr'pp'j}\bigr)
+                - \eta + M\bigl(1 - b^{Ca}_{rr'pp'j}\bigr)
+    && \label{eq:bc_ub}\\
+  b^{Ca}_{rr'pp'j} &\le I_j
+    && \label{eq:bc_interr}
+\end{align}
+The upper bound~\eqref{eq:bc_ub} pins $\tau^a_{r'}$ inside the
+\emph{active} portion of the job, excluding the extension that this
+specific access would itself generate, and so prevents the
+``self-justifying interruption'' phenomenon in which an access could
+otherwise become feasible only because the very interruption it
+triggers extends the job past it.  Constraint~\eqref{eq:bc_interr}
+forbids Mode~(C) on non-interruptible jobs.
+
+\paragraph{Counters, delay and makespan.}
+\begin{align}
+  \kappa_j &=
+    \!\!\sum_{\substack{r' \ne r\\ (p,p') \in \calA\\ a \in \{\mathrm{in}, \mathrm{out}\}}}
+    \!\! b^{Ca}_{rr'pp'j}
+    && \forall r \in \calR,\ j \in \calJ_r \label{eq:kappa}\\
+  n &= 2 \!\!\sum_{(p,p') \in \calA}
+       \!\!\sum_{\substack{r,r' \in \calR \\ r \ne r'}}
+       \sum_{a}
+       \biggl(
+         \!\sum_{k=1}^{N_r-1}\! b^{Ba}_{rr'pp'k}
+         + \!\sum_{j \in \calJ_r}\! b^{Ca}_{rr'pp'j}
+       \biggr)
+    && \label{eq:movements}\\
+  v^D_r &\ge f_r - L_r
+    && \forall r \in \calR \label{eq:delay}\\
+  m &\ge f_r
+    && \forall r \in \calR \label{eq:makespan}
+\end{align}
+
+\subsection*{Objective}
+\begin{equation}
+  \min \quad W^M\, m
+         \;+\; W^D \sum_{r \in \calR} v^D_r
+         \;+\; W^S\, n.
+  \label{eq:milpobj}
+\end{equation}
+
+\paragraph{Comments on the formulation.}
+Constraints~\eqref{eq:assign}--\eqref{eq:ordTight} reproduce the
+assignment, chain, earliest-start and same-position sequencing
+requirements: \eqref{eq:jobdur} embeds the per-job extension $\delta
+\kappa_j$ into the duration; \eqref{eq:chain} together with
+$s_r = s_{j^r_1}$, $f_r = f_{j^r_{N_r}}$ chains consecutive jobs of
+the same aircraft; \eqref{eq:sep}--\eqref{eq:ordTight} enforce the
+disjunction between two aircraft sharing a position and tighten the
+ordering binaries with the standard $q \le x$ reinforcements.
+Inequalities~\eqref{eq:y_link} make $y_{rr'pp'}$ the logical
+conjunction of $x_{rp}$ and $x_{r'p'}$, so $y_{rr'pp'} = 1$ exactly
+when the blocker / blocked placement of the arc $(p, p')$ is
+materialised by the assignment.
+
+Equation~\eqref{eq:partition} is the central structural constraint:
+whenever the placement is materialised, every access $\tau^a_{r'}$
+must be classified into exactly one of the four allowed states; when
+the placement is not materialised, no indicator may fire.  This is
+what turns the formulation into an exact model: an access that falls
+inside a non-interruptible job cannot be put in Mode~(C) (forbidden
+by \eqref{eq:bc_interr}), cannot be put in Mode~(B) (would violate
+\eqref{eq:bb_lb}--\eqref{eq:bb_ub}), and cannot be put in $z^-$ or
+$z^+$ (would violate \eqref{eq:zminus}--\eqref{eq:zplus}), so the only
+way to satisfy~\eqref{eq:partition} is to revise the timing or the
+assignment.  Constraint~\eqref{eq:bb_gap} forces the gap to accommodate
+the cumulative manoeuvre time of all Mode-(B) events that use it, and
+\eqref{eq:bc_ub} guards against self-justifying interruptions.
+Equation~\eqref{eq:kappa} aggregates the Mode-(C) indicators into the
+per-job counter used by~\eqref{eq:jobdur}, and~\eqref{eq:movements}
+adds up all manoeuvres with the displacement-plus-return factor of
+two.  The objective~\eqref{eq:milpobj} combines makespan, total
+positive delay past the target finish, and movement count under
+non-negative user weights; the choice of weight profile is discussed
+in \S\ref{sec:exp_setup}.

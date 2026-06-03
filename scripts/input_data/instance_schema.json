@@ -11,6 +11,21 @@
       "description": "Tow-in/tow-out time epsilon: minimum separation between consecutive aircraft at the same position and safety margin in the blocking conditions",
       "minimum": 0
     },
+    "mu": {
+      "type": "number",
+      "description": "Optional paper-#2 parameter: minimum inter-job pause when used as a Mode-(B) window for a neighbouring access manoeuvre. Default 1.0 day if absent. Ignored by paper-#1 (aircraft-level) code.",
+      "minimum": 0
+    },
+    "delta": {
+      "type": "number",
+      "description": "Optional paper-#2 parameter: working time added to an interruptible job each time it is paused to allow a Mode-(C) access manoeuvre. Default 2.0 days if absent. Ignored by paper-#1 (aircraft-level) code.",
+      "minimum": 0
+    },
+    "eta": {
+      "type": "number",
+      "description": "Optional paper-#2 parameter: time granularity for strict inequalities (e.g. one day). Default 1.0 if absent. Ignored by paper-#1 (aircraft-level) code.",
+      "minimum": 0
+    },
     "hangar": {
       "type": "object",
       "description": "Hangar layout definition",
@@ -106,6 +121,10 @@
           "is_last": {
             "type": "boolean",
             "description": "True if this is the last job in the sequence for its aircraft"
+          },
+          "interruptible": {
+            "type": "boolean",
+            "description": "Optional paper-#2 flag: true if the job can be paused to allow a Mode-(C) blocking manoeuvre on a neighbouring rear position. Default false if absent. Ignored by paper-#1 (aircraft-level) code."
           }
         }
       },

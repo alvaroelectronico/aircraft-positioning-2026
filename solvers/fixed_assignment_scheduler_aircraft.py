@@ -1,5 +1,5 @@
 """
-FixedAssignmentScheduler — gurobipy MILP for scheduling with fixed position assignments.
+FixedAssignmentSchedulerAircraft — gurobipy MILP for scheduling with fixed position assignments.
 
 Given a fixed assignment {aircraft_id: position}, optimises the timing/sequencing
 of aircraft within their positions.  Dramatically faster than the full Pyomo MILP
@@ -18,9 +18,9 @@ Compared to the full MILP (milp_pyomo.py):
 
 Usage
 -----
-    from solvers.fixed_assignment_scheduler import FixedAssignmentScheduler
+    from solvers.fixed_assignment_scheduler_aircraft import FixedAssignmentSchedulerAircraft
 
-    scheduler = FixedAssignmentScheduler()
+    scheduler = FixedAssignmentSchedulerAircraft()
     scheduler.configure(time_limit_s=30, min_separation=10.0,
                         weight_makespan=0.1, weight_delay=1.0, weight_movements=10)
     solution = scheduler.solve(instance_data, assignment)
@@ -34,7 +34,7 @@ import gurobipy as gp
 from gurobipy import GRB
 
 
-class FixedAssignmentScheduler:
+class FixedAssignmentSchedulerAircraft:
     """gurobipy MILP scheduler with fixed position assignments."""
 
     _DEFAULTS: dict = {
@@ -51,7 +51,7 @@ class FixedAssignmentScheduler:
 
     @property
     def name(self) -> str:
-        return "fas"
+        return "fas_aircraft"
 
     def configure(self, **kwargs) -> None:
         for k, v in kwargs.items():

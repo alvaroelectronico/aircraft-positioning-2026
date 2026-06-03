@@ -46,6 +46,13 @@ DEFAULT_DURATION_RANGE: tuple[int, int] = (3, 8)
 # Stored per-instance so each instance is self-contained.
 DEFAULT_MIN_SEPARATION: float = 0.5
 
+# Paper-#2 optional parameters; written verbatim to every generated instance
+# so the file is self-describing for both papers.  See check_solution_jobs_v2.
+DEFAULT_MU:            float = 1.0     # Mode-B inter-job pause
+DEFAULT_DELTA:         float = 2.0     # Mode-C job extension
+DEFAULT_ETA:           float = 1.0     # strict-inequality granularity
+DEFAULT_INTERRUPTIBLE: bool  = False   # per-job flag
+
 # Slack ratio applied to L_r = E_r + D_r + ceil(rho * D_r).
 SLACK_PARAMS: dict[str, float] = {
     "loose":  0.80,
@@ -194,11 +201,12 @@ def _make_aircraft(
         for t, dur in enumerate(durations, start=1):
             job_id = f"J{r}-{t}"
             jobs.append({
-                "id":          job_id,
-                "aircraft_id": aircraft_id,
-                "duration":    int(dur),
-                "is_first":    t == 1,
-                "is_last":     t == n_tasks,
+                "id":            job_id,
+                "aircraft_id":   aircraft_id,
+                "duration":      int(dur),
+                "is_first":      t == 1,
+                "is_last":       t == n_tasks,
+                "interruptible": DEFAULT_INTERRUPTIBLE,  # paper-#2 flag; ignored by paper-#1
             })
             job_ids.append(job_id)
 
@@ -254,6 +262,9 @@ def generate_instance(
 
     instance = {
         "min_separation": min_separation,
+        "mu":             DEFAULT_MU,     # paper-#2 default; ignored by paper-#1
+        "delta":          DEFAULT_DELTA,  # paper-#2 default; ignored by paper-#1
+        "eta":            DEFAULT_ETA,    # paper-#2 default; ignored by paper-#1
         "hangar": {
             "positions":     positions,
             "blocking_arcs": blocking_arcs,
