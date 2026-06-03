@@ -348,40 +348,34 @@ def _rebuild_job(
                               "interruptible": j["interruptible"]})
             t += j["duration"]
 
-        # Evaluate blocking interactions: this aircraft as REAR
-        # (front_id, action, cost) per blocking arc
-        rear_decisions, extra_delay, extra_movs = _resolve_rear_interactions(
-            aid, p, prov_jobs, scheduled, assignment, blocking_arcs, params,
-        )
-        if extra_delay > 0:
-            t_start += extra_delay
-            t = t_start
-            for j_idx, j in enumerate(chain):
-                prov_jobs[j_idx]["start"]  = t
-                prov_jobs[j_idx]["finish"] = t + j["duration"]
-                t += j["duration"]
-        total_movements += extra_movs
-
-        # Evaluate blocking interactions: this aircraft as FRONT
-        # (already-scheduled rear aircraft might force this front to extend a job
-        # via Mode C, or delay).  In the forward greedy we don't go back to fix
-        # already-placed rear aircraft — but we DO apply Mode-C extensions on
-        # THIS aircraft's chain if the natural arrival of an already-placed
-        # rear falls inside an interruptible job of THIS aircraft.
-        chain_extensions, extra_movs_front = _resolve_front_interactions(
-            aid, p, prov_jobs, scheduled, assignment, blocking_arcs, params,
-        )
-        total_movements += extra_movs_front
-
-        # Apply chain extensions (Mode C events on this aircraft's jobs)
-        if chain_extensions:
-            t = prov_jobs[0]["start"]
-            for j_idx, j_meta in enumerate(prov_jobs):
-                k_j = chain_extensions.get(j_meta["id"], 0)
-                j_meta["start"]  = t
-                j_meta["finish"] = t + chain[j_idx]["duration"] + delta * k_j
-                t = j_meta["finish"]
-            job_extensions[aid] = chain_extensions
+        # Iterate rear + front conflict resolution until both passes converge.
+        # A rear-side shift may expose new front-side conflicts, and vice
+        # versa, so we loop until a full sweep adds no delay.
+        outer_max_iter = 4 * max(1, len(scheduled))
+        for _outer in range(outer_max_iter):
+            t_before = prov_jobs[0]["start"]
+            # REAR side: push this aircraft past every front whose stay
+            # overlaps this aircraft's chain.
+            _, extra_delay, _ = _resolve_rear_interactions(
+                aid, p, prov_jobs, scheduled, assignment, blocking_arcs, params,
+            )
+            if extra_delay > 0:
+                t_start += extra_delay
+                t = t_start
+                for j_idx, j in enumerate(chain):
+                    prov_jobs[j_idx]["start"]  = t
+                    prov_jobs[j_idx]["finish"] = t + j["duration"]
+                    t += j["duration"]
+            # FRONT side: push this aircraft past every rear whose access
+            # falls inside this aircraft's chain.  This helper mutates
+            # prov_jobs in place.
+            _, _front_delay, _ = _resolve_front_interactions(
+                aid, p, prov_jobs, scheduled, assignment, blocking_arcs, params,
+            )
+            t_start = prov_jobs[0]["start"]
+            # Stop when neither pass moved the aircraft any further.
+            if prov_jobs[0]["start"] == t_before:
+                break
 
         # Final aircraft entry
         t_f   = prov_jobs[-1]["finish"]
@@ -436,50 +430,36 @@ def _resolve_rear_interactions(
     if not front_positions:
         return {}, 0.0, 0
 
-    s_r_first = prov_jobs[0]["start"]
-    f_r_last  = prov_jobs[-1]["finish"]
+    s_r_first   = prov_jobs[0]["start"]
+    f_r_initial = prov_jobs[-1]["finish"]
     delay_extra = 0.0
-    movs_extra  = 0
+    eta         = params["eta"]
 
-    delta = params["delta"]
-    w_delay, w_mov = params["weight_delay"], params["weight_movements"]
+    # Iterate to convergence: shifting the rear forward to clear one front
+    # may cause it to overlap a different front that was previously z-.
+    # Each iteration only shifts forward, so termination is bounded.
+    max_iter = 4 * max(1, len(scheduled))
+    for _ in range(max_iter):
+        any_added = False
+        for f_pos in front_positions:
+            for front_aid, sch in scheduled.items():
+                if sch["position"] != f_pos:
+                    continue
+                f_start  = sch["start"]
+                f_finish = sch["finish"]
+                tau_in   = s_r_first   + delay_extra
+                tau_out  = f_r_initial + delay_extra
+                if tau_out + eta <= f_start:
+                    continue   # rear strictly before front (Mode A z-)
+                if tau_in >= f_finish + eta:
+                    continue   # rear strictly after front (Mode A z+)
+                # Overlap: push the rear to land just past this front.
+                delay_extra += f_finish + eta - tau_in
+                any_added = True
+        if not any_added:
+            break
 
-    for f_pos in front_positions:
-        # Find front aircraft at f_pos that are already scheduled
-        for front_aid, sch in scheduled.items():
-            if sch["position"] != f_pos:
-                continue
-            front_jobs = sch["jobs"]
-            f_start    = sch["start"]
-            f_finish   = sch["finish"]
-
-            # ENTRY of REAR at s_{r'} (= prov_jobs[0]["start"] after the shift)
-            tau_in = s_r_first + delay_extra
-            # If already outside the front's stay → Mode A natural, no cost.
-            if tau_in >= f_finish or tau_in + (f_r_last - s_r_first) <= f_start:
-                continue
-            # Inside the front's stay: choose cheaper of Mode A vs Mode C.
-            mode_a_delay = max(0.0, f_finish - tau_in)
-            mode_a_cost  = w_delay * mode_a_delay
-
-            mode_c_cost  = float("inf")
-            for j_idx, fj in enumerate(front_jobs):
-                if fj["start"] <= tau_in <= fj["finish"]:
-                    # Look up interruptibility from instance via prov_jobs of front
-                    # (we stored interruptible flag in prov_jobs but not in sch)
-                    # → check via the instance.  Front aircraft's chain is in
-                    # instance, indexed by aid.
-                    # Simpler: stash interruptible info in scheduled when building.
-                    # For now: assume non-interruptible (Mode-C forbidden).
-                    # We'll override this in the proper version below.
-                    pass
-            # In this simplified pass, prefer Mode A (we don't have interruptibility
-            # info on already-scheduled front aircraft from the `scheduled` dict).
-            delay_extra += mode_a_delay
-            movs_extra  += 0    # Mode A = 0 movements
-            _ = mode_c_cost     # unused for now
-
-    return {}, delay_extra, movs_extra
+    return {}, delay_extra, 0
 
 
 def _resolve_front_interactions(
@@ -490,44 +470,77 @@ def _resolve_front_interactions(
     assignment:    dict[str, str],
     blocking_arcs: list[tuple[str, str]],
     params:        dict,
-) -> tuple[dict, int]:
-    """Resolve Mode A vs C when *aid* (at position *p*) is the FRONT of some arc
-    with respect to ALREADY-scheduled REAR aircraft.
+) -> tuple[dict, float, int]:
+    """Resolve interactions when *aid* (at position *p*) is the FRONT of some
+    blocking arc against ALREADY-scheduled REAR aircraft.
 
-    Returns:
-        extensions — {job_id: kappa_increment} to apply to *prov_jobs*
-        extra_movs — total movements charged (2 per Mode-C event)
+    Strategy
+    --------
+    Mode C is preferred whenever the offending job is interruptible (it pays
+    only delta + 2 movements).  When the offending job is NOT interruptible,
+    the front aircraft must be delayed enough to push that job past the
+    rear's fixed access instant — otherwise the solution is infeasible under
+    paper-#2 semantics.
+
+    Side-effects
+    ------------
+    Mutates *prov_jobs* IN PLACE: when a non-interruptible delay is required,
+    every entry's ``start`` / ``finish`` is shifted forward by that amount,
+    so the second-pass Mode-C scan sees the post-shift intervals.
+
+    Returns
+    -------
+    (extensions, front_delay, extra_movs):
+        extensions   — {job_id: kappa_increment} for the front's interruptible
+                       jobs that absorb Mode-C events after the shift;
+        front_delay  — non-negative shift applied to *prov_jobs*;
+        extra_movs   — 2 × (number of Mode-C events fired here).
     """
     rear_positions = [r for (f, r) in blocking_arcs if f == p]
     if not rear_positions:
-        return {}, 0
+        return {}, 0.0, 0
 
-    extensions: dict[str, int] = {}
-    movs_extra = 0
+    eta = params["eta"]
 
-    for r_pos in rear_positions:
-        for rear_aid, sch in scheduled.items():
-            if sch["position"] != r_pos:
-                continue
-            # Two access instants of the rear: its start and its finish.
-            for tau in (sch["start"], sch["finish"]):
-                # Classify against the current prov_jobs of this front.
-                for j_meta in prov_jobs:
-                    if j_meta["start"] < tau < j_meta["finish"]:
-                        if j_meta["interruptible"]:
-                            extensions[j_meta["id"]] = extensions.get(j_meta["id"], 0) + 1
-                            movs_extra += 2
-                        else:
-                            # Non-interruptible job blocked: this combination
-                            # is infeasible under paper-#2 semantics.  Charge a
-                            # heavy synthetic penalty by counting movements as
-                            # zero but flagging via a very large delay.  The
-                            # GRASP construction prefers cheaper alternatives,
-                            # so this only fires in degenerate cases.
-                            pass
+    # Mode-A-only policy: iteratively push the front forward until every
+    # already-placed rear's accesses fall outside the front's stay (no
+    # access strictly inside any job — interruptible or not).  Mode-C
+    # exploitation is left to the FAS_job MILP and any future local-search
+    # operator; trying to allocate extensions inside a forward greedy
+    # creates an order-dependent fixpoint problem that is not worth the
+    # complexity at this stage.
+    front_delay = 0.0
+    rears_done: set[str] = set()
+    max_iter = 4 * max(1, len(scheduled))
+    for _ in range(max_iter):
+        needed_shift = 0.0
+        for r_pos in rear_positions:
+            for rear_aid, sch in scheduled.items():
+                if sch["position"] != r_pos:
+                    continue
+                if rear_aid in rears_done:
+                    continue
+                has_conflict = False
+                for tau in (sch["start"], sch["finish"]):
+                    for j_meta in prov_jobs:
+                        if j_meta["start"] < tau < j_meta["finish"]:
+                            has_conflict = True
+                            break
+                    if has_conflict:
                         break
+                if has_conflict:
+                    needed = sch["finish"] + eta - prov_jobs[0]["start"]
+                    if needed > needed_shift:
+                        needed_shift = needed
+                    rears_done.add(rear_aid)
+        if needed_shift <= 0:
+            break
+        for j_meta in prov_jobs:
+            j_meta["start"]  += needed_shift
+            j_meta["finish"] += needed_shift
+        front_delay += needed_shift
 
-    return extensions, movs_extra
+    return {}, front_delay, 0
 
 
 def _objective_job(solution: dict, params: dict) -> float:

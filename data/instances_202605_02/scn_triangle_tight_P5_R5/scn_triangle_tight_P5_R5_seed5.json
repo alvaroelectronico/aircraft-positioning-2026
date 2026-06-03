@@ -60,161 +60,184 @@
       "aircraft_id": "R1",
       "duration": 7,
       "is_first": true,
-      "is_last": false
+      "is_last": false,
+      "interruptible": false
     },
     {
       "id": "J1-2",
       "aircraft_id": "R1",
       "duration": 3,
       "is_first": false,
-      "is_last": false
+      "is_last": false,
+      "interruptible": false
     },
     {
       "id": "J1-3",
       "aircraft_id": "R1",
       "duration": 7,
       "is_first": false,
-      "is_last": false
+      "is_last": false,
+      "interruptible": false
     },
     {
       "id": "J1-4",
       "aircraft_id": "R1",
       "duration": 5,
       "is_first": false,
-      "is_last": false
+      "is_last": false,
+      "interruptible": false
     },
     {
       "id": "J1-5",
       "aircraft_id": "R1",
       "duration": 6,
       "is_first": false,
-      "is_last": true
+      "is_last": true,
+      "interruptible": false
     },
     {
       "id": "J2-1",
       "aircraft_id": "R2",
       "duration": 3,
       "is_first": true,
-      "is_last": false
+      "is_last": false,
+      "interruptible": false
     },
     {
       "id": "J2-2",
       "aircraft_id": "R2",
       "duration": 4,
       "is_first": false,
-      "is_last": false
+      "is_last": false,
+      "interruptible": false
     },
     {
       "id": "J2-3",
       "aircraft_id": "R2",
       "duration": 5,
       "is_first": false,
-      "is_last": false
+      "is_last": false,
+      "interruptible": false
     },
     {
       "id": "J2-4",
       "aircraft_id": "R2",
       "duration": 6,
       "is_first": false,
-      "is_last": false
+      "is_last": false,
+      "interruptible": true
     },
     {
       "id": "J2-5",
       "aircraft_id": "R2",
       "duration": 5,
       "is_first": false,
-      "is_last": true
+      "is_last": true,
+      "interruptible": false
     },
     {
       "id": "J3-1",
       "aircraft_id": "R3",
       "duration": 3,
       "is_first": true,
-      "is_last": false
+      "is_last": false,
+      "interruptible": false
     },
     {
       "id": "J3-2",
       "aircraft_id": "R3",
       "duration": 3,
       "is_first": false,
-      "is_last": false
+      "is_last": false,
+      "interruptible": false
     },
     {
       "id": "J3-3",
       "aircraft_id": "R3",
       "duration": 8,
       "is_first": false,
-      "is_last": true
+      "is_last": true,
+      "interruptible": false
     },
     {
       "id": "J4-1",
       "aircraft_id": "R4",
       "duration": 4,
       "is_first": true,
-      "is_last": false
+      "is_last": false,
+      "interruptible": true
     },
     {
       "id": "J4-2",
       "aircraft_id": "R4",
       "duration": 4,
       "is_first": false,
-      "is_last": false
+      "is_last": false,
+      "interruptible": false
     },
     {
       "id": "J4-3",
       "aircraft_id": "R4",
       "duration": 5,
       "is_first": false,
-      "is_last": false
+      "is_last": false,
+      "interruptible": false
     },
     {
       "id": "J4-4",
       "aircraft_id": "R4",
       "duration": 4,
       "is_first": false,
-      "is_last": false
+      "is_last": false,
+      "interruptible": false
     },
     {
       "id": "J4-5",
       "aircraft_id": "R4",
       "duration": 8,
       "is_first": false,
-      "is_last": true
+      "is_last": true,
+      "interruptible": true
     },
     {
       "id": "J5-1",
       "aircraft_id": "R5",
       "duration": 8,
       "is_first": true,
-      "is_last": false
+      "is_last": false,
+      "interruptible": false
     },
     {
       "id": "J5-2",
       "aircraft_id": "R5",
       "duration": 3,
       "is_first": false,
-      "is_last": false
+      "is_last": false,
+      "interruptible": false
     },
     {
       "id": "J5-3",
       "aircraft_id": "R5",
       "duration": 5,
       "is_first": false,
-      "is_last": false
+      "is_last": false,
+      "interruptible": true
     },
     {
       "id": "J5-4",
       "aircraft_id": "R5",
       "duration": 6,
       "is_first": false,
-      "is_last": false
+      "is_last": false,
+      "interruptible": true
     },
     {
       "id": "J5-5",
       "aircraft_id": "R5",
       "duration": 5,
       "is_first": false,
-      "is_last": true
+      "is_last": true,
+      "interruptible": false
     }
   ],
   "job_precedences": [
@@ -290,5 +313,9 @@
       "before": "J5-4",
       "after": "J5-5"
     }
-  ]
+  ],
+  "min_separation": 0.5,
+  "mu": 1.0,
+  "delta": 2.0,
+  "eta": 1.0
 }
