@@ -29,6 +29,7 @@ sys.path.insert(0, str(_ROOT / "scripts" / "output_data"))
 
 from milp_jobs_solver import MILPSolver                     # noqa: E402
 from milp_aircraft_solver import MILPAircraftSolver         # noqa: E402
+from milp_jobs_v2_solver  import MILPJobsV2Solver           # noqa: E402
 from constructive_heuristic import ConstructiveHeuristic    # noqa: E402  (used in archived experiments)
 from lns_solver import LNSSolver                            # noqa: E402  (used in archived experiments)
 from topology_heuristic_aircraft import TopologyHeuristicAircraft  # noqa: E402
@@ -306,6 +307,16 @@ EXPERIMENTS: list[dict] = [
     # JOB-LEVEL SIBLINGS — job-as-scheduling-unit problem (paper #2)
     # Three-mode blocking semantics with mu/delta/eta parameters.
     # =========================================================================
+    {
+        "label":        "milp_baseline_job",
+        "solver_class": MILPJobsV2Solver,
+        "config":       {**_BASE_CONFIG},
+    },
+    {
+        "label":        "milp_baseline_job_heur",
+        "solver_class": MILPJobsV2Solver,
+        "config":       {**_BASE_CONFIG_HEUR},
+    },
     {
         "label":        "topology_ms6_job",
         "solver_class": TopologyHeuristicJob,
@@ -930,16 +941,40 @@ if __name__ == "__main__":
     # Resolution — do not edit below this line
     # ------------------------------------------------------------------
 
-    # Support CLI overrides (argv still works for scripted use)
+    # Support CLI overrides (argv still works for scripted use).
+    # Positional args: <inst_filter> <exp_filter> [<instance_root>]
     inst_filter = sys.argv[1] if len(sys.argv) > 1 else INST_FILTER or None
     exp_filter  = sys.argv[2] if len(sys.argv) > 2 else EXP_FILTER  or None
+    inst_root   = Path(sys.argv[3]) if len(sys.argv) > 3 else None
 
-    # inst_filter supports comma-separated substring patterns
+    # Resolve the instance-discovery root.  Default: data/instances_202605.
+    # When a third argument is provided (or the user wants an alternate
+    # benchmark folder), use that instead.
+    if inst_root is not None:
+        _root_path = inst_root if inst_root.is_absolute() else (_ROOT / inst_root)
+        _instance_paths = sorted(_root_path.glob("scn_*/scn_*.json"))
+    else:
+        _instance_paths = INSTANCE_PATHS
+
+    # inst_filter supports comma-separated patterns.
+    # Each pattern is a substring match by default; a trailing "$" means
+    # "stem ends with this pattern" (useful to distinguish "_seed1" from
+    # "_seed10" when filtering).
+    def _match_stem(stem: str, patterns: list[str]) -> bool:
+        for pat in patterns:
+            if pat.endswith("$"):
+                if stem.endswith(pat[:-1]):
+                    return True
+            else:
+                if pat in stem:
+                    return True
+        return False
+
     if inst_filter:
         _patterns = [p.strip() for p in inst_filter.split(",")]
-        instances = [p for p in INSTANCE_PATHS if any(pat in p.stem for pat in _patterns)]
+        instances = [p for p in _instance_paths if _match_stem(p.stem, _patterns)]
     else:
-        instances = INSTANCE_PATHS
+        instances = _instance_paths
 
     # exp_filter uses EXACT label matching (labels are unique strings,
     # substring would inadvertently pull "_heur"/"_wB"/"_wC" siblings).
@@ -962,7 +997,12 @@ if __name__ == "__main__":
     _seed_tag = ""
     if inst_filter and inst_filter.strip().startswith("_seed"):
         _seed_tag = inst_filter.strip().lstrip("_") + "_"
-    log_path  = _ROOT / "data" / "logs" / f"{_seed_tag}main_methods_{timestamp}.log"
+    # If an alternate instance root was used, append its folder name as a tag
+    # so the log filename remains self-describing (e.g. "seed1_202605_02_...").
+    _root_tag = ""
+    if inst_root is not None:
+        _root_tag = inst_root.name.replace("instances_", "") + "_"
+    log_path  = _ROOT / "data" / "logs" / f"{_seed_tag}{_root_tag}main_methods_{timestamp}.log"
 
     summary = run_experiments(instances, experiments, log_path=log_path)
     print(f"\nLog saved: {log_path}")

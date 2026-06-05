@@ -1,0 +1,233 @@
+% ==============================================================================
+\section{Solving Approaches}
+\label{sec:approaches}
+% ==============================================================================
+
+The MILP of \S\ref{sec:milp} is exact but its size grows quickly with the
+number of aircraft, the per-aircraft chain length, and the blocking-arc
+density: the partition variables $z^-,\,z^+,\,b^B,\,b^C$ contribute
+$O(|\calR|^2 \cdot |\calA| \cdot (N_{\max} + 1))$ binaries.  We
+complement the exact solver with two heuristic building blocks --- a
+topology-aware GRASP that decides only the position assignment and a
+fixed-assignment scheduler that solves the timing problem exactly given
+that assignment --- plus a safe-pipeline composition that combines them
+without any additional optimisation.
+
+% ------------------------------------------------------------------------------
+\subsection{Topology-Aware GRASP}
+\label{sec:topo_heuristic}
+% ------------------------------------------------------------------------------
+
+The construction step inherits the structural intuition of an
+aircraft-as-a-block heuristic: heavy aircraft assigned to topologically
+central positions force their long occupancy windows to overlap with
+aircraft serviced behind them, triggering manoeuvres or large delays.
+We measure topological centrality through the \emph{blocking load} of a
+position,
+\[
+  \ell(p) = |\{q \in \calP : p \text{ reaches } q \text{ in } G\}|,
+\]
+i.e.\ the number of positions that lie downstream of $p$ in the
+blocking-arc graph, and bias the construction towards placing heavy
+aircraft at positions with low (ideally zero) blocking load.
+
+The candidate cost combines four terms,
+\[
+  c(r, p) = W^M\,\hat m + W^D\,\hat v^D_r + W^S\,\hat n_{rp}
+            + W^T \cdot T_r \cdot \ell(p),
+\]
+where $\hat m, \hat v^D_r, \hat n_{rp}$ are produced by a fast
+job-level rebuild (described below), $W^T$ is the topology-penalty
+weight, and $T_r = \sum_{j \in \calJ_r} D_j$ is the aggregate
+processing time of aircraft $r$.  The heuristic constructs a feasible
+solution by biased-random greedy insertion, and diversification is
+obtained by restarting from independent random seeds.
+Algorithm~\ref{alg:topo} states the full procedure.
+
+\begin{algorithm}[htbp]
+\DontPrintSemicolon
+\KwIn{Instance $I$, weights $(W^M, W^D, W^S, W^T)$,
+      RCL parameter $\alpha$, time budget $T$, number of starts $n_s$.}
+\KwOut{Best feasible job-level solution $z^*$ found.}
+$z^* \leftarrow +\infty$; $T_s \leftarrow T / n_s$\;
+\For{$k = 1, \ldots, n_s$}{
+  $\mathcal{U} \leftarrow \calR$ sorted by $T_r$ descending\;
+  \While{$\mathcal{U} \neq \emptyset$}{
+    evaluate $c(r, p)$ for every $(r, p) \in \mathcal{U} \times \calP$
+    using the Mode-A rebuild below\;
+    pick $(r, p)$ from the geometrically biased RCL of weight
+    parameter $\alpha$, commit it; remove $r$ from $\mathcal{U}$\;
+  }
+  $z \leftarrow$ Mode-A rebuild of the current assignment\;
+  \If{$z < z^*$}{$z^* \leftarrow z$}
+}
+\Return $z^*$\;
+\caption{Topology-aware GRASP for the job-level problem
+         with multi-start ($n_s$ restarts).}
+\label{alg:topo}
+\end{algorithm}
+
+\paragraph{Mode-A rebuild.}
+The rebuild is the only piece that differs in spirit from an
+aircraft-level GRASP.  Given a partial position assignment
+$\pi : \calR' \to \calP$ over the aircraft committed so far, it
+schedules the aircraft in increasing earliest-start order and, for
+each, lays the job chain back-to-back at its position.  Before
+committing the chain it adjusts the start so that the resulting
+schedule is feasible under the three-mode access conditions of
+\S\ref{subsec:access}:
+\begin{itemize}[leftmargin=2em, itemsep=0pt]
+  \item if any already-placed \emph{front} aircraft $r$ has a stay
+        $[s_r, f_r]$ that overlaps the new aircraft's chain, push the
+        new start to $f_r + \eta$ (clean Mode~A z+);
+  \item if any already-placed \emph{rear} aircraft has an access
+        instant $\tau$ that falls inside a job of the new chain, push
+        the new chain start past that rear's full stay
+        ($\mathrm{finish}_{\mathrm{rear}} + \eta$, again clean Mode~A);
+  \item each shift may expose a new overlap with another aircraft, so
+        both passes are wrapped in a convergence loop that only ever
+        moves the chain forward and therefore terminates in a bounded
+        number of iterations.
+\end{itemize}
+After the convergence loop, every access instant of every other
+aircraft is either strictly before or strictly after the new
+aircraft's stay (Mode~A everywhere).  No Mode-B gap is inserted and no
+Mode-C interruption is triggered by the construction --- those two
+modes would require retiming already-committed jobs (Mode~B) or
+solving a fixpoint between extension lengths and access classifications
+(Mode~C).  In a forward greedy both lead to non-monotone state updates
+that we choose not to handle at this stage; Mode~B and Mode~C are
+exploited downstream by the fixed-assignment scheduler.
+
+\paragraph{Implication.}
+The Mode-A rebuild trades two solution-quality components for a
+substantially simpler construction.  First, $\hat n_{rp} = 0$ for every
+GRASP candidate, so the movement term of the cost reduces to
+$W^S \cdot 0$ during construction; movements only appear in the
+post-construction objective when the rebuild later yields a schedule
+in which a downstream rear was forced into Mode~A by delaying past a
+front.  Second, the construction never benefits from a Mode-C
+interruption that would shorten makespan or delay at the price of one
+manoeuvre.  Both effects are recovered when the assignment is passed to
+the fixed-assignment scheduler below, which solves the timing problem
+to optimality and naturally identifies profitable Mode-B and Mode-C
+configurations.
+
+A local-search portfolio analogous to the aircraft-level
+GRASP's---single-move, 2-opt swap, intra-position reorder,
+perturb-and-rebuild---can be plugged on top of the Mode-A rebuild
+because the operators only manipulate the position assignment (or the
+within-position service order) and delegate the timing computation to
+the rebuild.  We do not include such a portfolio in the present cut
+to keep the heuristic's behaviour easy to reason about; the empirical
+study in \S\ref{sec:experiments} therefore reports a pure
+multi-start GRASP without local search.
+
+% ------------------------------------------------------------------------------
+\subsection{Fixed-Assignment Scheduler (FAS)}
+\label{sec:fas}
+% ------------------------------------------------------------------------------
+
+Given a fixed position assignment $\pi : \calR \to \calP$, the problem
+of \S\ref{sec:problem} reduces to a pure scheduling problem: find per-job
+start times $\{s_j\}_{j \in \calJ}$ and interruption counters
+$\{\kappa_j\}_{j \in \calJ}$ that minimise the objective
+\eqref{eq:milpobj} subject to the constraints
+\eqref{eq:assign}--\eqref{eq:makespan} of \S\ref{sec:milp}, with every
+$x_{rp}$ replaced by the constant $\mathbf{1}[\pi(r) = p]$.
+
+Substituting $\pi$ collapses the formulation along two axes:
+\begin{itemize}[leftmargin=2em, itemsep=0pt]
+  \item the $O(|\calR|\,|\calP|)$ assignment binaries
+        $x_{rp}$ disappear, together with the assignment
+        constraint~\eqref{eq:assign};
+  \item the same-position ordering binaries $q_{rr'p}$ are only kept
+        between aircraft that share a position under $\pi$, replacing
+        the $O(|\calR|^2 |\calP|)$ enumeration of \eqref{eq:ordLB}--%
+        \eqref{eq:ordTight} by an enumeration over actually-shared
+        positions;
+  \item the placement-compatibility variable $y_{rr'pp'}$ becomes the
+        constant $\mathbf{1}[\pi(r){=}p \wedge \pi(r'){=}p']$, so the
+        partition constraint~\eqref{eq:partition} only needs to be
+        instantiated for the pairs $(r, r')$ that actually share an
+        arc $(\pi(r), \pi(r')) \in \calA$.  All other partition
+        variables are dropped.
+\end{itemize}
+The Mode-B gap, Mode-C extension and counter constraints
+\eqref{eq:bb_lb}--\eqref{eq:kappa} carry over verbatim restricted to the
+active arcs, as do the objective auxiliaries.
+Algorithm~\ref{alg:fas} summarises the procedure.  The reduced model is
+encoded directly in \texttt{gurobipy}, bypassing the Pyomo layer.
+
+\begin{algorithm}[htbp]
+\DontPrintSemicolon
+\KwIn{Instance $I$, fixed assignment $\pi$, time budget $T$.}
+\KwOut{Best feasible job-level schedule found within $T$.}
+identify active arcs
+   $\mathcal{A}^{\pi} = \{(r, r') : (\pi(r), \pi(r')) \in \calA\}$\;
+build reduced MILP with per-job variables $s_j, f_j, \kappa_j$,
+   partition variables only for pairs in $\mathcal{A}^{\pi}$ and both
+   access sides, makespan, delay and movement auxiliaries\;
+solve with Gurobi under time limit $T$\;
+recover the aircraft-level summary
+   $s_r \!=\! s_{j^r_1},\, f_r \!=\! f_{j^r_{N_r}}$
+   and the schedule dict\;
+\Return resulting schedule\;
+\caption{Fixed-Assignment Scheduler (FAS) for the job-level problem.}
+\label{alg:fas}
+\end{algorithm}
+
+In contrast to the GRASP, the FAS \emph{does} exploit Mode~B and
+Mode~C whenever they improve the objective, since the partition
+constraint forces every access to be classified into one of the four
+admissible states and the solver is free to select the cheapest
+combination across all blocking pairs.  Empirically the FAS therefore
+absorbs a substantial part of the construction's Mode-A conservatism:
+on the densely-blocked benchmark configurations the resulting movement
+count is non-zero whenever an interruptible job in the front would
+have allowed a strictly cheaper schedule than the corresponding Mode-A
+delay.  The model size is dominated by the $4\,|\mathcal{A}^{\pi}|\,
+(N_{\max}+1)$ partition binaries, which is one to two orders of
+magnitude smaller than the full MILP of \S\ref{sec:milp} on the same
+instance.
+
+% ------------------------------------------------------------------------------
+\subsection{Safe Pipeline}
+\label{sec:safe_pipeline}
+% ------------------------------------------------------------------------------
+
+The two preceding methods can be run in sequence: the GRASP produces a
+position assignment, and FAS then solves the timing problem on that
+assignment.  Because the FAS receives a fixed $\pi$ it cannot recover
+from a poor assignment; conversely the GRASP's Mode-A construction
+leaves headroom that the FAS can convert into shorter makespan or fewer
+movements.  Which of the two ends up with the lower objective is
+instance-dependent.  The \emph{safe pipeline} returns the best
+objective achieved by any of the component methods:
+\[
+  z^* = \min_{h \in \mathcal{H}} z_h,
+  \qquad \mathcal{H} = \{\texttt{topology\_ms6\_job},\ \texttt{fas\_on\_topo\_job}\},
+\]
+and is therefore feasibility-preserving: as long as one component
+returns a compliant solution, the pipeline returns the best of them.
+Since each component already stores its solution in a shared cache,
+the pipeline performs no additional optimisation; its cost is a
+single comparison.
+
+\begin{proposition}
+The safe-pipeline objective satisfies $z^* \le z_h$ for every
+$h \in \mathcal{H}$; in particular, $z^* \le z_{\texttt{topology\_ms6\_job}}$
+and $z^* \le z_{\texttt{fas\_on\_topo\_job}}$, so the pipeline never
+degrades either component's result.
+\end{proposition}
+
+A further consequence is robustness: when the GRASP fails to produce a
+job-level-compliant schedule on a dense topology --- the construction
+is Mode-A only and may push aircraft past the time budget, or expose
+the rare residual conflict that the convergence loop cannot resolve in
+forward order --- the FAS-on-topo branch still returns a compliant
+solution as long as the assignment is feasible at all (the MILP either
+proves infeasibility of the assignment or returns a valid schedule).
+The pipeline therefore inherits the exactness of the MILP at the cost
+of the GRASP runtime, without paying the build time of the full
+job-level MILP of \S\ref{sec:milp}.

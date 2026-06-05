@@ -1,0 +1,52 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (5 experiments)
+==================================================================
+  Shared parameters:
+    weight_makespan=0.1           time_limit_s=60
+    weight_delay=1.0              MIPGap=0.0
+    weight_movements=10           
+
+  Per-experiment parameters:
+  Label                   Solver                            NoRelHeurTime  alpha  weight_topology  n_starts  seed
+  ---------------------------------------------------------------------------------------------------------------
+  milp_baseline_job       MILPJobsV2Solver                  0              —      —                —         —   
+  milp_baseline_job_heur  MILPJobsV2Solver                  30             —      —                —         —   
+  topology_ms6_job        TopologyHeuristicJob              0              0.3    1                6         1   
+  fas_on_topo_job         FixedAssignmentSchedulerAircraft  0              —      —                —         —   
+  safe_pipeline_job       FixedAssignmentSchedulerAircraft  0              —      —                —         —   
+==================================================================
+
+
+
+==================================================================
+  SUMMARY  —  26 ok  /  0 failed  /  26 total
+==================================================================
+  Instance                         Experiment              Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  -------------------------------------------------------------------------------------------------------------------------------
+  scn_chain_tight_P5_R10_seed1     milp_baseline_job       maxTimeLim      163.35      68.50     156.50     0    97.73%      60.5
+  scn_chain_tight_P5_R10_seed1     milp_baseline_job_heur  maxTimeLim      163.35      68.50     156.50     0    97.73%      60.5
+  scn_chain_tight_P5_R10_seed1     topology_ms6_job        topology_j      294.80     108.00     284.00     0         -       0.0
+  scn_chain_tight_P5_R10_seed1     fas_on_topo_job         optimal         175.90      84.00     167.50     0     0.00%       0.2
+  scn_chain_tight_P5_R10_seed1     safe_pipeline_job       optimal         175.90      84.00     167.50     0         -       0.0
+  scn_full_tight_P5_R10_seed1      milp_baseline_job       maxTimeLim      180.35      68.50     173.50     0    97.95%      61.2
+  scn_full_tight_P5_R10_seed1      milp_baseline_job_heur  maxTimeLim      203.05      95.50     193.50     0    98.18%      61.2
+  scn_full_tight_P5_R10_seed1      topology_ms6_job        topology_j      520.35     158.50     504.50     0         -       0.0
+  scn_full_tight_P5_R10_seed1      fas_on_topo_job         optimal         282.10      96.00     272.50     0     0.00%       3.5
+  scn_full_tight_P5_R10_seed1      safe_pipeline_job       optimal         282.10      96.00     272.50     0         -       0.0
+  scn_full_tight_P5_R20_seed1      milp_baseline_job       maxTimeLim     2533.10     336.00    2499.50     0    99.80%      64.6
+  scn_full_tight_P5_R20_seed1      milp_baseline_job_heur  maxTimeLim     1464.15     226.50    1441.50     0    99.66%      64.8
+  scn_full_tight_P5_R20_seed1      topology_ms6_job        topology_j     2987.45     369.50    2950.50     0         -       0.2
+  scn_full_tight_P5_R20_seed1      fas_on_topo_job         maxTimeLim     1347.15     221.50    1325.00     0    64.24%      60.3
+  scn_full_tight_P5_R20_seed1      safe_pipeline_job       maxTimeLim     1347.15     221.50    1325.00     0         -       0.0
+  scn_hub_tight_P5_R10_seed1       milp_baseline_job       maxTimeLim      136.40      74.00     129.00     0    83.21%      60.6
+  scn_hub_tight_P5_R10_seed1       milp_baseline_job_heur  maxTimeLim      119.55      60.50     113.50     0    94.69%      60.6
+  scn_hub_tight_P5_R10_seed1       topology_ms6_job        topology_j      171.30      83.00     163.00     0         -       0.0
+  scn_hub_tight_P5_R10_seed1       fas_on_topo_job         optimal         158.30      83.00     150.00     0     0.00%       0.0
+  scn_hub_tight_P5_R10_seed1       safe_pipeline_job       optimal         158.30      83.00     150.00     0         -       0.0
+  scn_none_tight_P5_R10_seed1      milp_baseline_job       optimal          99.35      58.50      93.50     0     0.00%       4.2
+  scn_none_tight_P5_R10_seed1      milp_baseline_job_heur  optimal          99.35      58.50      93.50     0     0.00%      39.0
+  scn_none_tight_P5_R10_seed1      topology_ms6_job        topology_j      124.10      81.00     116.00     0         -       0.0
+  scn_none_tight_P5_R10_seed1      fas_on_topo_job         optimal         121.10      81.00     113.00     0     0.00%       0.0
+  scn_none_tight_P5_R10_seed1      safe_pipeline_job       optimal         121.10      81.00     113.00     0         -       0.0
+  scn_triangle_loose_P5_R10_seed1  milp_baseline_job       optimal          14.65      61.50       8.50     0     0.00%      40.6
+==================================================================
