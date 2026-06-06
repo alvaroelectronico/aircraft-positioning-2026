@@ -281,3 +281,18 @@ Entries are appended by `snapshot.py save`, never edited by hand.
 *2026-06-06 18:41*  score +0.0220  (best +0.0191)
 
 (no Lessons section in note.md)
+
+## iter_0042_3cycle  (rejected)
+*2026-06-06 18:47*  score +0.0716  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0043_double_internal_multistart  (rejected)
+*2026-06-06 18:49*  score +0.0282  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0044_bigger_max_kick  (rejected)
+*2026-06-06 18:51*  score +0.0191  (best +0.0191)
+
+(no Lessons section in note.md)
