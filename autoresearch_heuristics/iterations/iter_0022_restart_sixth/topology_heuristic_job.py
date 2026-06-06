@@ -122,24 +122,12 @@ class TopologyHeuristicJob:
         best_sol: dict | None = None
         best_obj                = float("inf")
 
-        # Multi-start with shared incumbent: start 0 does the initial
-        # construction; starts 1..N-1 continue LNS from the global best
-        # so far, with a new RNG.  This gives n_starts × per_start of
-        # LNS budget on a single basin neighbourhood rather than
-        # n_starts independent shallow basins.
-        shared_assignment = None
         for k in range(n_starts):
             rng       = random.Random(seed_base + k)
-            sol, obj, asgn = _solve_single(
-                instance, params, per_start, rng, log_lines,
-                seed_assignment=shared_assignment,
-            )
+            sol, obj  = _solve_single(instance, params, per_start, rng, log_lines)
             if obj < best_obj - 1e-9:
                 best_obj = obj
                 best_sol = sol
-            # Share the assignment that produced the current best.
-            if asgn is not None and obj <= best_obj + 1e-9:
-                shared_assignment = asgn
 
         if best_sol is None:
             best_sol = _empty_solution()
@@ -246,21 +234,15 @@ def _compute_blocking_load(positions: list[str], arc_from: dict[str, list[str]])
 # =============================================================================
 
 def _solve_single(
-    instance:        dict,
-    params:          dict,
-    budget_s:        float,
-    rng:             random.Random,
-    log_lines:       list[str],
-    seed_assignment: dict[str, str] | None = None,
-) -> tuple[dict, float, dict[str, str] | None]:
-    """One GRASP iteration.
-
-    If ``seed_assignment`` is provided, skip the initial construction and
-    use it as the incumbent for LS + LNS — this is how multi-start chaining
-    pools the LNS budget across multiple starts on one basin.
-
-    Returns ``(best_sol, best_obj, best_assignment)`` so the caller can
-    share the incumbent assignment to subsequent multi-start replicates."""
+    instance:  dict,
+    params:    dict,
+    budget_s:  float,
+    rng:       random.Random,
+    log_lines: list[str],
+) -> tuple[dict, float]:
+    """One GRASP iteration: construct, run the LS portfolio, then a sequence
+    of LNS-style destroy-and-rebuild perturbations that re-use the remaining
+    budget."""
     aircraft      = instance["aircraft"]
     positions     = instance["positions"]
     arc_from      = instance["arc_from"]
@@ -275,10 +257,7 @@ def _solve_single(
         return max(0.0, budget_s - (time.perf_counter() - t0))
 
     # ---- Initial construction + LS ----
-    if seed_assignment is not None:
-        best_assignment = dict(seed_assignment)
-    else:
-        best_assignment = _construct(instance, params, rng, weights, blocking_load)
+    best_assignment = _construct(instance, params, rng, weights, blocking_load)
     best_sol, best_obj = _local_search(
         best_assignment, None, instance, params, _remaining(),
     )
@@ -293,7 +272,7 @@ def _solve_single(
     #                scoring systematically avoids on chain topologies).
     # K varies in {R//4, R//3, R//2} round-robin to mix small and large kicks.
     n_ac = len(aircraft)
-    kick_sizes = [1, max(1, n_ac // 4), max(1, n_ac // 3), max(1, n_ac // 2)]
+    kick_sizes = [max(1, n_ac // 4), max(1, n_ac // 3), max(1, n_ac // 2)]
     kick_idx = 0
     while _remaining() > 0.0:
         k = kick_sizes[kick_idx % len(kick_sizes)]
@@ -343,7 +322,7 @@ def _solve_single(
             best_assignment = dict(new_assignment)
 
     best_sol["status"] = "topology_job"
-    return best_sol, best_obj, best_assignment
+    return best_sol, best_obj
 
 
 def _construct(
@@ -538,7 +517,7 @@ def _local_search(
         # back from its earliest start can save more downstream rear delay
         # than it adds to its own — this is Mode-B in spirit, available
         # to the rebuild only when the LS explicitly schedules it.
-        deltas = (0.0, 1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0, 50.0, 70.0, 100.0, 150.0)
+        deltas = (0.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0)
         for aid in aircraft_ids:
             if not _time_left():
                 break

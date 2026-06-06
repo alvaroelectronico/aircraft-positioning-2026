@@ -564,6 +564,42 @@ def _local_search(
                     break
             if improved:
                 break
+        if improved:
+            continue
+
+        # Operator 5: combined move + idle-gap.  For each aircraft, try
+        # moving to a new position AND setting a Δ-delay simultaneously.
+        # Captures cases where a position change is only productive WITH
+        # a specific timing shift — neither op 1 (move only) nor op 4
+        # (delay only) finds it.
+        combo_deltas = (5.0, 10.0, 20.0, 50.0)
+        for aid in aircraft_ids:
+            if not _time_left():
+                break
+            cur_p  = assignment[aid]
+            base_s = aircraft[aid]["earliest_start"]
+            for new_p in positions:
+                if new_p == cur_p:
+                    continue
+                trial = dict(assignment)
+                trial[aid] = new_p
+                for d in combo_deltas:
+                    new_overrides = dict(start_overrides)
+                    new_overrides[aid] = base_s + d
+                    sol = _rebuild_job(trial, instance, params, order=order,
+                                       start_overrides=new_overrides)
+                    obj = _objective_job(sol, params)
+                    if _accept(sol, obj):
+                        assignment = trial
+                        start_overrides = new_overrides
+                        best_obj = obj
+                        best_sol = sol
+                        improved = True
+                        break
+                if improved:
+                    break
+            if improved:
+                break
         # Loop restarts on improvement; else exits.
 
     return best_sol, best_obj

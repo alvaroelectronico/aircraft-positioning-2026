@@ -293,7 +293,7 @@ def _solve_single(
     #                scoring systematically avoids on chain topologies).
     # K varies in {R//4, R//3, R//2} round-robin to mix small and large kicks.
     n_ac = len(aircraft)
-    kick_sizes = [1, max(1, n_ac // 4), max(1, n_ac // 3), max(1, n_ac // 2)]
+    kick_sizes = [max(1, n_ac // 4), max(1, n_ac // 3), max(1, n_ac // 2)]
     kick_idx = 0
     while _remaining() > 0.0:
         k = kick_sizes[kick_idx % len(kick_sizes)]
@@ -538,7 +538,9 @@ def _local_search(
         # back from its earliest start can save more downstream rear delay
         # than it adds to its own — this is Mode-B in spirit, available
         # to the rebuild only when the LS explicitly schedules it.
-        deltas = (0.0, 1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0, 50.0, 70.0, 100.0, 150.0)
+        deltas = tuple([0.0] + [float(x) for x in
+                                 (1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 18, 22, 27, 33,
+                                  40, 50, 60, 75, 90, 110, 130, 160, 200)])
         for aid in aircraft_ids:
             if not _time_left():
                 break

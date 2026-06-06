@@ -122,24 +122,12 @@ class TopologyHeuristicJob:
         best_sol: dict | None = None
         best_obj                = float("inf")
 
-        # Multi-start with shared incumbent: start 0 does the initial
-        # construction; starts 1..N-1 continue LNS from the global best
-        # so far, with a new RNG.  This gives n_starts × per_start of
-        # LNS budget on a single basin neighbourhood rather than
-        # n_starts independent shallow basins.
-        shared_assignment = None
         for k in range(n_starts):
             rng       = random.Random(seed_base + k)
-            sol, obj, asgn = _solve_single(
-                instance, params, per_start, rng, log_lines,
-                seed_assignment=shared_assignment,
-            )
+            sol, obj  = _solve_single(instance, params, per_start, rng, log_lines)
             if obj < best_obj - 1e-9:
                 best_obj = obj
                 best_sol = sol
-            # Share the assignment that produced the current best.
-            if asgn is not None and obj <= best_obj + 1e-9:
-                shared_assignment = asgn
 
         if best_sol is None:
             best_sol = _empty_solution()
@@ -246,21 +234,15 @@ def _compute_blocking_load(positions: list[str], arc_from: dict[str, list[str]])
 # =============================================================================
 
 def _solve_single(
-    instance:        dict,
-    params:          dict,
-    budget_s:        float,
-    rng:             random.Random,
-    log_lines:       list[str],
-    seed_assignment: dict[str, str] | None = None,
-) -> tuple[dict, float, dict[str, str] | None]:
-    """One GRASP iteration.
-
-    If ``seed_assignment`` is provided, skip the initial construction and
-    use it as the incumbent for LS + LNS — this is how multi-start chaining
-    pools the LNS budget across multiple starts on one basin.
-
-    Returns ``(best_sol, best_obj, best_assignment)`` so the caller can
-    share the incumbent assignment to subsequent multi-start replicates."""
+    instance:  dict,
+    params:    dict,
+    budget_s:  float,
+    rng:       random.Random,
+    log_lines: list[str],
+) -> tuple[dict, float]:
+    """One GRASP iteration: construct, run the LS portfolio, then a sequence
+    of LNS-style destroy-and-rebuild perturbations that re-use the remaining
+    budget."""
     aircraft      = instance["aircraft"]
     positions     = instance["positions"]
     arc_from      = instance["arc_from"]
@@ -275,10 +257,7 @@ def _solve_single(
         return max(0.0, budget_s - (time.perf_counter() - t0))
 
     # ---- Initial construction + LS ----
-    if seed_assignment is not None:
-        best_assignment = dict(seed_assignment)
-    else:
-        best_assignment = _construct(instance, params, rng, weights, blocking_load)
+    best_assignment = _construct(instance, params, rng, weights, blocking_load)
     best_sol, best_obj = _local_search(
         best_assignment, None, instance, params, _remaining(),
     )
@@ -293,34 +272,13 @@ def _solve_single(
     #                scoring systematically avoids on chain topologies).
     # K varies in {R//4, R//3, R//2} round-robin to mix small and large kicks.
     n_ac = len(aircraft)
-    kick_sizes = [1, max(1, n_ac // 4), max(1, n_ac // 3), max(1, n_ac // 2)]
+    kick_sizes = [max(1, n_ac // 4), max(1, n_ac // 3), max(1, n_ac // 2)]
     kick_idx = 0
     while _remaining() > 0.0:
         k = kick_sizes[kick_idx % len(kick_sizes)]
-        # Six-mode cycling — full restart costs LS budget so it only fires
-        # 1/6 of the time; the other modes carry more weight.
-        #   0, 3: random destroy + greedy repair
-        #   1, 4: random destroy + uniform repair
-        #   2:    topdest destroy + uniform repair
-        #   5:    FULL restart (destroy all, uniform repair)
-        mode = kick_idx % 6
+        repair = "greedy" if (kick_idx % 2 == 0) else "uniform"
         kick_idx += 1
-        if mode == 0 or mode == 3:
-            destroyed = rng.sample(list(best_assignment.keys()), k)
-            repair = "greedy"
-        elif mode == 1 or mode == 4:
-            destroyed = rng.sample(list(best_assignment.keys()), k)
-            repair = "uniform"
-        elif mode == 2:
-            counts: dict[str, list[str]] = {}
-            for aid, p in best_assignment.items():
-                counts.setdefault(p, []).append(aid)
-            ranked = sorted(counts.items(), key=lambda kv: -len(kv[1]))
-            destroyed = [aid for _, aids in ranked[:2] for aid in aids]
-            repair = "uniform"
-        else:
-            destroyed = list(best_assignment.keys())
-            repair = "uniform"
+        destroyed = rng.sample(list(best_assignment.keys()), k)
         partial   = {aid: pos for aid, pos in best_assignment.items()
                      if aid not in destroyed}
         if repair == "uniform":
@@ -343,7 +301,7 @@ def _solve_single(
             best_assignment = dict(new_assignment)
 
     best_sol["status"] = "topology_job"
-    return best_sol, best_obj, best_assignment
+    return best_sol, best_obj
 
 
 def _construct(
@@ -435,6 +393,8 @@ def _local_search(
     positions    = instance["positions"]
     raw_instance = instance["_raw"]
     aircraft     = instance["aircraft"]
+    arc_from     = instance["arc_from"]
+    blocking_load = _compute_blocking_load(positions, arc_from)
 
     if order is None:
         order = _default_schedule_order(assignment, instance)
@@ -538,7 +498,7 @@ def _local_search(
         # back from its earliest start can save more downstream rear delay
         # than it adds to its own — this is Mode-B in spirit, available
         # to the rebuild only when the LS explicitly schedules it.
-        deltas = (0.0, 1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0, 50.0, 70.0, 100.0, 150.0)
+        deltas = (0.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0)
         for aid in aircraft_ids:
             if not _time_left():
                 break
@@ -563,6 +523,39 @@ def _local_search(
                     improved = True
                     break
             if improved:
+                break
+        if improved:
+            continue
+
+        # Operator 5: global reorder.  Try replacing the scheduling sequence
+        # with one of four candidate orderings:
+        #   - target_finish ASC   (EDD)
+        #   - total_duration DESC (heaviest first)
+        #   - blocking_load[assignment[aid]] ASC (rear-most positions first)
+        #   - blocking_load[assignment[aid]] DESC (front-most positions first)
+        # The two blocking-load variants are the key ones for chain/hub:
+        # scheduling one direction lets the front- or rear-side resolver
+        # see the other side already in place, which the local intra-pos
+        # swaps can't simulate.
+        candidate_orders = [
+            sorted(aircraft_ids, key=lambda aid: aircraft[aid]["target_finish"]),
+            sorted(aircraft_ids, key=lambda aid: -aircraft[aid]["total_duration"]),
+            sorted(aircraft_ids, key=lambda aid: blocking_load.get(assignment[aid], 0)),
+            sorted(aircraft_ids, key=lambda aid: -blocking_load.get(assignment[aid], 0)),
+        ]
+        for cand_order in candidate_orders:
+            if not _time_left():
+                break
+            if cand_order == order:
+                continue
+            sol = _rebuild_job(assignment, instance, params, order=cand_order,
+                               start_overrides=start_overrides)
+            obj = _objective_job(sol, params)
+            if _accept(sol, obj):
+                order    = cand_order
+                best_obj = obj
+                best_sol = sol
+                improved = True
                 break
         # Loop restarts on improvement; else exits.
 

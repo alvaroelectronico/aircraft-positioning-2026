@@ -293,7 +293,7 @@ def _solve_single(
     #                scoring systematically avoids on chain topologies).
     # K varies in {R//4, R//3, R//2} round-robin to mix small and large kicks.
     n_ac = len(aircraft)
-    kick_sizes = [1, max(1, n_ac // 4), max(1, n_ac // 3), max(1, n_ac // 2)]
+    kick_sizes = [1, 1, max(1, n_ac // 4), max(1, n_ac // 3), max(1, n_ac // 2)]
     kick_idx = 0
     while _remaining() > 0.0:
         k = kick_sizes[kick_idx % len(kick_sizes)]

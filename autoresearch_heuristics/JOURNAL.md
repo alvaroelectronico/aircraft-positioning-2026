@@ -144,3 +144,115 @@ Entries are appended by `snapshot.py save`, never edited by hand.
   exhausted; the residual hub gap needs either a k-aircraft
   simultaneous delay (k=4) or a rebuild that schedules the
   whole position-block atomically.
+
+## iter_0017_global_reorder  (rejected)
+*2026-06-06 17:04*  score +0.0630  (best +0.0630)
+
+(no Lessons section in note.md)
+
+## iter_0018_topdest_destroy  (accepted)
+*2026-06-06 17:06*  score +0.0609  (best +0.0630)
+
+- Position-targeted destroy is more productive than random destroy on
+  instances where the incumbent stacks aircraft at extreme positions.
+  Forces an instant rebalance that random destroy would have to find
+  by chance.
+
+## iter_0019_hottest_destroy  (rejected)
+*2026-06-06 17:08*  score +0.0609  (best +0.0609)
+
+(no Lessons section in note.md)
+
+## iter_0020_alns_adaptive  (rejected)
+*2026-06-06 17:11*  score +0.0615  (best +0.0609)
+
+(no Lessons section in note.md)
+
+## iter_0021_full_restart_mode  (accepted)
+*2026-06-06 17:13*  score +0.0600  (best +0.0609)
+
+- Full restart (destroy all, random reassign) is qualitatively different
+  from K-aircraft destroy: it abandons the partial-assignment carry that
+  all other modes depend on.  Useful as a periodic basin-escape.
+- chain_R10 floor is 198.8, not 199.4.  The 199.4 we saw across iters
+
+## iter_0022_restart_sixth  (rejected)
+*2026-06-06 17:26*  score +0.0600  (best +0.0600)
+
+(no Lessons section in note.md)
+
+## iter_0023_chained_multistart  (accepted)
+*2026-06-06 17:30*  score +0.0580  (best +0.0600)
+
+- Chained multi-start is the right pattern here: the LNS finds
+  improvements asymptotically, so 6 × (short LNS) loses to 1 × (long
+  LNS) with multi-seed diversification.  The construction step is
+  cheap; running it n_starts times was wasted budget.
+
+## iter_0024_blocker_destroy  (rejected)
+*2026-06-06 17:32*  score +0.0677  (best +0.0580)
+
+(no Lessons section in note.md)
+
+## iter_0025_balance_biased_repair  (rejected)
+*2026-06-06 17:34*  score +0.0745  (best +0.0580)
+
+(no Lessons section in note.md)
+
+## iter_0026_fine_grained_deltas  (accepted)
+*2026-06-06 17:36*  score +0.0226  (best +0.0580)
+
+- The Δ menu density matters more than its range.  Adding 1, 3, 7,
+  15, 30, 70 between the existing values lets the idle-gap operator
+  find exact alignment points the coarse grid misses.
+- chain_R10 floor is NOT 198.8 — it's lower.  The previous "floor"
+
+## iter_0027_denser_deltas  (rejected)
+*2026-06-06 17:38*  score +0.0246  (best +0.0226)
+
+(no Lessons section in note.md)
+
+## iter_0028_pair_idle_gap_fine  (rejected)
+*2026-06-06 17:56*  score +0.0468  (best +0.0226)
+
+(no Lessons section in note.md)
+
+## iter_0029_smaller_kicks  (accepted)
+*2026-06-06 17:58*  score +0.0191  (best +0.0226)
+
+(no Lessons section in note.md)
+
+## iter_0030_added_K2  (rejected)
+*2026-06-06 18:00*  score +0.0359  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0031_double_K1  (rejected)
+*2026-06-06 18:02*  score +0.0226  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0032_delay_ordered_idle_gap  (rejected)
+*2026-06-06 18:04*  score +0.0191  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0033_combined_move_delay  (rejected)
+*2026-06-06 18:07*  score +0.0238  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0034_drop_intra_pos_adj  (rejected)
+*2026-06-06 18:11*  score +0.0646  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0035_intra_pos_insertion  (rejected)
+*2026-06-06 18:13*  score +0.0225  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0036_duration_scaled_deltas  (rejected)
+*2026-06-06 18:16*  score +0.0435  (best +0.0191)
+
+(no Lessons section in note.md)

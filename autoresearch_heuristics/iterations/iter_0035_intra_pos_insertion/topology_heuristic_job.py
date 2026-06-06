@@ -564,6 +564,41 @@ def _local_search(
                     break
             if improved:
                 break
+        if improved:
+            continue
+
+        # Operator 5: intra-position insertion.  Pop each same-position
+        # aircraft and reinsert at every other slot within its position.
+        blocks: dict[str, list[str]] = {}
+        for aid in order:
+            blocks.setdefault(assignment.get(aid, "?"), []).append(aid)
+        for pos, pos_aids in blocks.items():
+            if not _time_left() or len(pos_aids) < 2:
+                continue
+            pos_set = set(pos_aids)
+            for src in range(len(pos_aids)):
+                for dst in range(len(pos_aids)):
+                    if src == dst:
+                        continue
+                    reordered = list(pos_aids)
+                    item = reordered.pop(src)
+                    reordered.insert(dst, item)
+                    it = iter(reordered)
+                    trial_order = [next(it) if a in pos_set else a for a in order]
+                    sol = _rebuild_job(assignment, instance, params,
+                                       order=trial_order,
+                                       start_overrides=start_overrides)
+                    obj = _objective_job(sol, params)
+                    if _accept(sol, obj):
+                        order    = trial_order
+                        best_obj = obj
+                        best_sol = sol
+                        improved = True
+                        break
+                if improved:
+                    break
+            if improved:
+                break
         # Loop restarts on improvement; else exits.
 
     return best_sol, best_obj

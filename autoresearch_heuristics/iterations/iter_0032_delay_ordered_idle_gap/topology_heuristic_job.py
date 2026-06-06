@@ -539,7 +539,13 @@ def _local_search(
         # than it adds to its own — this is Mode-B in spirit, available
         # to the rebuild only when the LS explicitly schedules it.
         deltas = (0.0, 1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0, 50.0, 70.0, 100.0, 150.0)
-        for aid in aircraft_ids:
+        # Process aircraft in order of CURRENT DELAY DESC — most-delayed
+        # ones are most likely to benefit from a timing shift, so try
+        # them first.  Fall back to any order if no delays.
+        delay_lookup = {a["id"]: a.get("delay", 0.0) for a in best_sol["aircraft"]}
+        ordered_aids = sorted(aircraft_ids,
+                              key=lambda x: -delay_lookup.get(x, 0.0))
+        for aid in ordered_aids:
             if not _time_left():
                 break
             base_start = aircraft[aid]["earliest_start"]

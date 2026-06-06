@@ -293,17 +293,19 @@ def _solve_single(
     #                scoring systematically avoids on chain topologies).
     # K varies in {R//4, R//3, R//2} round-robin to mix small and large kicks.
     n_ac = len(aircraft)
-    kick_sizes = [1, max(1, n_ac // 4), max(1, n_ac // 3), max(1, n_ac // 2)]
+    kick_sizes = [max(1, n_ac // 4), max(1, n_ac // 3), max(1, n_ac // 2)]
     kick_idx = 0
     while _remaining() > 0.0:
         k = kick_sizes[kick_idx % len(kick_sizes)]
-        # Six-mode cycling — full restart costs LS budget so it only fires
-        # 1/6 of the time; the other modes carry more weight.
+        # Seven-mode cycling:
         #   0, 3: random destroy + greedy repair
         #   1, 4: random destroy + uniform repair
         #   2:    topdest destroy + uniform repair
-        #   5:    FULL restart (destroy all, uniform repair)
-        mode = kick_idx % 6
+        #   5:    full restart + uniform repair
+        #   6:    blocker destroy + uniform repair  (NEW: destroy every
+        #          aircraft at the highest-blocking-load position — the
+        #          structural choke point for chain/hub topologies)
+        mode = kick_idx % 7
         kick_idx += 1
         if mode == 0 or mode == 3:
             destroyed = rng.sample(list(best_assignment.keys()), k)
@@ -318,8 +320,15 @@ def _solve_single(
             ranked = sorted(counts.items(), key=lambda kv: -len(kv[1]))
             destroyed = [aid for _, aids in ranked[:2] for aid in aids]
             repair = "uniform"
-        else:
+        elif mode == 5:
             destroyed = list(best_assignment.keys())
+            repair = "uniform"
+        else:
+            blocker_pos = max(positions, key=lambda p: blocking_load.get(p, 0))
+            destroyed = [aid for aid, p in best_assignment.items()
+                         if p == blocker_pos]
+            if not destroyed:
+                destroyed = rng.sample(list(best_assignment.keys()), k)
             repair = "uniform"
         partial   = {aid: pos for aid, pos in best_assignment.items()
                      if aid not in destroyed}
@@ -538,7 +547,7 @@ def _local_search(
         # back from its earliest start can save more downstream rear delay
         # than it adds to its own — this is Mode-B in spirit, available
         # to the rebuild only when the LS explicitly schedules it.
-        deltas = (0.0, 1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0, 50.0, 70.0, 100.0, 150.0)
+        deltas = (0.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0)
         for aid in aircraft_ids:
             if not _time_left():
                 break

@@ -512,25 +512,8 @@ def _local_search(
         if improved:
             continue
 
-        # Operator 3: intra-position adjacent swap in the scheduling order.
-        for k in range(len(order) - 1):
-            if not _time_left():
-                break
-            a1, a2 = order[k], order[k + 1]
-            if assignment.get(a1) != assignment.get(a2):
-                continue
-            trial_order = list(order)
-            trial_order[k], trial_order[k + 1] = trial_order[k + 1], trial_order[k]
-            sol = _rebuild_job(assignment, instance, params, order=trial_order, start_overrides=start_overrides)
-            obj = _objective_job(sol, params)
-            if _accept(sol, obj):
-                order    = trial_order
-                best_obj = obj
-                best_sol = sol
-                improved = True
-                break
-        if improved:
-            continue
+        # Operator 3 (intra-pos adj-swap) dropped in iter_0034 — idle-gap
+        # covers similar timing space and intra-pos adj-swap fired rarely.
 
         # Operator 4: idle-gap insertion.  For each aircraft, try delaying
         # its earliest start by Δ ∈ {2, 5, 10, 20, 50, 100} (and a Δ=0

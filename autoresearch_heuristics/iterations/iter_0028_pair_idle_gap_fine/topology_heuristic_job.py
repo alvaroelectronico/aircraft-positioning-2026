@@ -293,7 +293,7 @@ def _solve_single(
     #                scoring systematically avoids on chain topologies).
     # K varies in {R//4, R//3, R//2} round-robin to mix small and large kicks.
     n_ac = len(aircraft)
-    kick_sizes = [1, max(1, n_ac // 4), max(1, n_ac // 3), max(1, n_ac // 2)]
+    kick_sizes = [max(1, n_ac // 4), max(1, n_ac // 3), max(1, n_ac // 2)]
     kick_idx = 0
     while _remaining() > 0.0:
         k = kick_sizes[kick_idx % len(kick_sizes)]
@@ -561,6 +561,39 @@ def _local_search(
                     best_obj = obj
                     best_sol = sol
                     improved = True
+                    break
+            if improved:
+                break
+        if improved:
+            continue
+
+        # Operator 5: pair idle-gap with fine deltas.  For each pair (a, b),
+        # try delaying both by the same Δ.  iter_0016 tried this with a
+        # coarse Δ menu and was rejected; with iter_0026's fine Δ menu
+        # the synchronous-delay basin may finally have an entry point.
+        pair_deltas = (3.0, 5.0, 10.0, 20.0, 50.0)
+        for i in range(len(aircraft_ids)):
+            if not _time_left():
+                break
+            ai = aircraft_ids[i]
+            base_i = aircraft[ai]["earliest_start"]
+            for j in range(i + 1, len(aircraft_ids)):
+                aj = aircraft_ids[j]
+                base_j = aircraft[aj]["earliest_start"]
+                for d in pair_deltas:
+                    new_overrides = dict(start_overrides)
+                    new_overrides[ai] = base_i + d
+                    new_overrides[aj] = base_j + d
+                    sol = _rebuild_job(assignment, instance, params, order=order,
+                                       start_overrides=new_overrides)
+                    obj = _objective_job(sol, params)
+                    if _accept(sol, obj):
+                        start_overrides = new_overrides
+                        best_obj = obj
+                        best_sol = sol
+                        improved = True
+                        break
+                if improved:
                     break
             if improved:
                 break

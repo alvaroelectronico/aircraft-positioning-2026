@@ -538,12 +538,18 @@ def _local_search(
         # back from its earliest start can save more downstream rear delay
         # than it adds to its own — this is Mode-B in spirit, available
         # to the rebuild only when the LS explicitly schedules it.
-        deltas = (0.0, 1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0, 50.0, 70.0, 100.0, 150.0)
+        base_deltas = (0.0, 1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0, 50.0, 70.0, 100.0, 150.0)
+        # Also try Δ values scaled to each aircraft's total chain duration:
+        # 0.5*D, 1*D, 2*D.  Captures "delay by one or two stay durations"
+        # which is exactly the slot-1 / slot-2 separation pattern in MILP
+        # chain/hub solutions.
         for aid in aircraft_ids:
             if not _time_left():
                 break
             base_start = aircraft[aid]["earliest_start"]
             cur_override = start_overrides.get(aid, 0.0)
+            dur = aircraft[aid]["total_duration"]
+            deltas = base_deltas + (dur * 0.5, dur, dur * 1.5, dur * 2.0)
             for d in deltas:
                 target = base_start + d if d > 0 else 0.0
                 if abs(target - cur_override) < 1e-9:

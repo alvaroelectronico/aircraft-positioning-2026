@@ -293,7 +293,7 @@ def _solve_single(
     #                scoring systematically avoids on chain topologies).
     # K varies in {R//4, R//3, R//2} round-robin to mix small and large kicks.
     n_ac = len(aircraft)
-    kick_sizes = [1, max(1, n_ac // 4), max(1, n_ac // 3), max(1, n_ac // 2)]
+    kick_sizes = [max(1, n_ac // 4), max(1, n_ac // 3), max(1, n_ac // 2)]
     kick_idx = 0
     while _remaining() > 0.0:
         k = kick_sizes[kick_idx % len(kick_sizes)]
@@ -325,8 +325,25 @@ def _solve_single(
                      if aid not in destroyed}
         if repair == "uniform":
             new_assignment = dict(partial)
+            # Balance-biased random: positions with fewer occupants are
+            # more likely to be picked.  Weight = (max_count + 1 - count).
             for aid in destroyed:
-                new_assignment[aid] = rng.choice(positions)
+                counts_now = {p: 0 for p in positions}
+                for q in new_assignment.values():
+                    if q in counts_now:
+                        counts_now[q] += 1
+                max_c = max(counts_now.values())
+                weights_p = [max_c + 1 - counts_now[p] for p in positions]
+                tot = sum(weights_p)
+                r = rng.random() * tot
+                acc = 0.0
+                picked = positions[0]
+                for p, w in zip(positions, weights_p):
+                    acc += w
+                    if r <= acc:
+                        picked = p
+                        break
+                new_assignment[aid] = picked
         else:
             new_assignment = _construct(
                 instance, params, rng, weights, blocking_load,
@@ -538,7 +555,7 @@ def _local_search(
         # back from its earliest start can save more downstream rear delay
         # than it adds to its own — this is Mode-B in spirit, available
         # to the rebuild only when the LS explicitly schedules it.
-        deltas = (0.0, 1.0, 2.0, 3.0, 5.0, 7.0, 10.0, 15.0, 20.0, 30.0, 50.0, 70.0, 100.0, 150.0)
+        deltas = (0.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0)
         for aid in aircraft_ids:
             if not _time_left():
                 break
