@@ -34,6 +34,19 @@ from constructive_heuristic import ConstructiveHeuristic    # noqa: E402  (used 
 from lns_solver import LNSSolver                            # noqa: E402  (used in archived experiments)
 from topology_heuristic_aircraft import TopologyHeuristicAircraft  # noqa: E402
 from topology_heuristic_job      import TopologyHeuristicJob       # noqa: E402
+
+# Autoresearch variant of TopologyHeuristicJob — loaded explicitly from the
+# autoresearch_heuristics/ working copy so it does not collide with the
+# canonical one already imported above.  Same public class name, distinct
+# in-memory class object.
+import importlib.util as _il_util                                  # noqa: E402
+_AR_PATH = _ROOT / "autoresearch_heuristics" / "topology_heuristic_job.py"
+_ar_spec = _il_util.spec_from_file_location(
+    "_ar_topology_heuristic_job", str(_AR_PATH),
+)
+_ar_mod = _il_util.module_from_spec(_ar_spec)
+_ar_spec.loader.exec_module(_ar_mod)
+TopologyHeuristicJobAR = _ar_mod.TopologyHeuristicJob
 from tgr_solver import TGRSolver                            # noqa: E402
 from fixed_assignment_scheduler_aircraft import FixedAssignmentSchedulerAircraft  # noqa: E402
 from fixed_assignment_scheduler_job      import FixedAssignmentSchedulerJob       # noqa: E402
@@ -320,6 +333,17 @@ EXPERIMENTS: list[dict] = [
     {
         "label":        "topology_ms6_job",
         "solver_class": TopologyHeuristicJob,
+        "config": {
+            **_BASE_CONFIG,
+            "alpha":           0.3,
+            "weight_topology": 1.0,
+            "n_starts":        6,
+            "seed":            1,
+        },
+    },
+    {
+        "label":        "topology_ms6_job_ar",
+        "solver_class": TopologyHeuristicJobAR,
         "config": {
             **_BASE_CONFIG,
             "alpha":           0.3,
