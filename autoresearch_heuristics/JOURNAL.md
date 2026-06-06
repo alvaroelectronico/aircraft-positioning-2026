@@ -256,3 +256,28 @@ Entries are appended by `snapshot.py save`, never edited by hand.
 *2026-06-06 18:16*  score +0.0435  (best +0.0191)
 
 (no Lessons section in note.md)
+
+## iter_0037_greedy_heavy_lns  (rejected)
+*2026-06-06 18:32*  score +0.0402  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0038_reverse_position_order  (rejected)
+*2026-06-06 18:34*  score +0.0191  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0039_conflict_targeted_idle_gap  (rejected)
+*2026-06-06 18:36*  score +0.0191  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0040_eight_mode  (rejected)
+*2026-06-06 18:39*  score +0.0526  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0041_five_mode  (rejected)
+*2026-06-06 18:41*  score +0.0220  (best +0.0191)
+
+(no Lessons section in note.md)
