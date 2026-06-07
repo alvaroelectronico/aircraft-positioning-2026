@@ -374,3 +374,13 @@ Entries are appended by `snapshot.py save`, never edited by hand.
 *2026-06-07 08:26*  score +0.0332  (best -0.0075)
 
 (no Lessons section in note.md)
+
+## iter_0060_sparser_deltas  (rejected)
+*2026-06-07 08:30*  score +0.0057  (best -0.0075)
+
+(no Lessons section in note.md)
+
+## iter_0061_enumerate_single_move  (rejected)
+*2026-06-07 08:34*  score +0.0256  (best -0.0075)
+
+(no Lessons section in note.md)
