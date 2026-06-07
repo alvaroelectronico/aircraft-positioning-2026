@@ -341,3 +341,36 @@ Entries are appended by `snapshot.py save`, never edited by hand.
 *2026-06-07 07:51*  score +0.0191  (best +0.0191)
 
 (no Lessons section in note.md)
+
+## iter_0054_per_access_rebuild  (accepted)
+*2026-06-07 08:13*  score -0.0075  (best +0.0191)
+
+- The pre-iter_0055 rebuild was leaving substantial value on the table
+  by enforcing span-disjointness rather than per-access disjointness.
+  Even though both produce compliant solutions, the per-access rebuild
+  reaches schedules the span-based rebuild can't represent.
+
+## iter_0055_denser_deltas_v2  (rejected)
+*2026-06-07 08:16*  score +0.0057  (best -0.0075)
+
+(no Lessons section in note.md)
+
+## iter_0056_no_idle_gap  (rejected)
+*2026-06-07 08:18*  score +0.0256  (best -0.0075)
+
+(no Lessons section in note.md)
+
+## iter_0057_bigger_kicks_v2  (rejected)
+*2026-06-07 08:21*  score +0.0458  (best -0.0075)
+
+(no Lessons section in note.md)
+
+## iter_0058_engulfing_front_resolver  (rejected)
+*2026-06-07 08:24*  score +0.0079  (best -0.0075)
+
+(no Lessons section in note.md)
+
+## iter_0059_no_topdest  (rejected)
+*2026-06-07 08:26*  score +0.0332  (best -0.0075)
+
+(no Lessons section in note.md)

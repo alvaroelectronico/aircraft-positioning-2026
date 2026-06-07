@@ -835,14 +835,6 @@ def _resolve_front_interactions(
         return {}, 0.0, 0
 
     eta = params["eta"]
-
-    # Mode-A-only policy: iteratively push the front forward until every
-    # already-placed rear's accesses fall outside the front's stay (no
-    # access strictly inside any job — interruptible or not).  Mode-C
-    # exploitation is left to the FAS_job MILP and any future local-search
-    # operator; trying to allocate extensions inside a forward greedy
-    # creates an order-dependent fixpoint problem that is not worth the
-    # complexity at this stage.
     front_delay = 0.0
     rears_done: set[str] = set()
     max_iter = 4 * max(1, len(scheduled))
@@ -856,7 +848,7 @@ def _resolve_front_interactions(
                     continue
                 # Per-access Mode-A: each rear access τ must satisfy
                 # τ ≤ F_s - eta OR τ ≥ F_f + eta where F is the front
-                # (this aircraft) currently at [prov_jobs[0].start,
+                # (this aircraft) at [prov_jobs[0].start,
                 # prov_jobs[-1].finish].  If neither holds for some τ,
                 # shift the front so τ + eta ≤ new F_s, i.e., new F_s ≥
                 # τ + eta.  The MAXIMUM such τ over all rear accesses
