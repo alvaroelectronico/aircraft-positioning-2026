@@ -296,3 +296,33 @@ Entries are appended by `snapshot.py save`, never edited by hand.
 *2026-06-06 18:51*  score +0.0191  (best +0.0191)
 
 (no Lessons section in note.md)
+
+## iter_0045_block_swap  (rejected)
+*2026-06-07 07:29*  score +0.0191  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0046_per_access_mode_a  (rejected)
+*2026-06-07 07:34*  score +0.0422  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0047_alpha_halved  (rejected)
+*2026-06-07 07:37*  score +0.0593  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0048_max_needed_delay  (rejected)
+*2026-06-07 07:39*  score +0.0191  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0049_alpha_05  (rejected)
+*2026-06-07 07:41*  score +0.0441  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0050_shaw_relatedness  (rejected)
+*2026-06-07 07:43*  score +0.0264  (best +0.0191)
+
+(no Lessons section in note.md)
