@@ -326,3 +326,18 @@ Entries are appended by `snapshot.py save`, never edited by hand.
 *2026-06-07 07:43*  score +0.0264  (best +0.0191)
 
 (no Lessons section in note.md)
+
+## iter_0051_persisted_overrides  (rejected)
+*2026-06-07 07:47*  score +0.0191  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0052_global_order_swap  (rejected)
+*2026-06-07 07:49*  score +0.0544  (best +0.0191)
+
+(no Lessons section in note.md)
+
+## iter_0053_combined_random_topdest  (rejected)
+*2026-06-07 07:51*  score +0.0191  (best +0.0191)
+
+(no Lessons section in note.md)
