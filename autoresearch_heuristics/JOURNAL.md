@@ -409,3 +409,56 @@ Entries are appended by `snapshot.py save`, never edited by hand.
 *2026-06-07 22:36*  score -0.0075  (best -0.0075)
 
 (no Lessons section in note.md)
+
+## iter_0067_no_restart_on_improvement  (accepted)
+*2026-06-07 22:39*  score -0.0419  (best -0.0075)
+
+- Restart-on-improvement was actively harmful: each pass through ops
+  1→2→3→4 lets EACH op act on the FRESH state from the previous op'"'"'s
+  improvement.  Without restart, the LS converges faster on a richer
+  trajectory.
+
+## iter_0068_3cycle_v3  (rejected)
+*2026-06-07 22:41*  score -0.0299  (best -0.0419)
+
+(no Lessons section in note.md)
+
+## iter_0069_intra_pos_insertion_v3  (accepted)
+*2026-06-07 22:43*  score -0.0420  (best -0.0419)
+
+(no Lessons section in note.md)
+
+## iter_0070_edd_repair_v3  (accepted)
+*2026-06-07 22:45*  score -0.0425  (best -0.0420)
+
+(no Lessons section in note.md)
+
+## iter_0071_nonadj_intra_pos_swap  (rejected)
+*2026-06-07 22:47*  score -0.0425  (best -0.0425)
+
+(no Lessons section in note.md)
+
+## iter_0072_denser_deltas_v3  (rejected)
+*2026-06-07 22:49*  score -0.0425  (best -0.0425)
+
+(no Lessons section in note.md)
+
+## iter_0073_kick_K12  (accepted)
+*2026-06-07 22:50*  score -0.0481  (best -0.0425)
+
+(no Lessons section in note.md)
+
+## iter_0074_no_topdest_v2  (accepted)
+*2026-06-07 22:52*  score -0.0530  (best -0.0481)
+
+(no Lessons section in note.md)
+
+## iter_0075_add_K3  (rejected)
+*2026-06-07 22:54*  score -0.0489  (best -0.0530)
+
+(no Lessons section in note.md)
+
+## iter_0076_no_full_restart  (rejected)
+*2026-06-07 22:56*  score -0.0473  (best -0.0530)
+
+(no Lessons section in note.md)
