@@ -462,3 +462,33 @@ Entries are appended by `snapshot.py save`, never edited by hand.
 *2026-06-07 22:56*  score -0.0473  (best -0.0530)
 
 (no Lessons section in note.md)
+
+## iter_0077_drop_adj_swap_v2  (rejected)
+*2026-06-07 22:58*  score -0.0417  (best -0.0530)
+
+(no Lessons section in note.md)
+
+## iter_0078_restart_op1_only  (rejected)
+*2026-06-07 23:01*  score +0.0163  (best -0.0530)
+
+(no Lessons section in note.md)
+
+## iter_0079_more_K1  (rejected)
+*2026-06-07 23:02*  score -0.0318  (best -0.0530)
+
+(no Lessons section in note.md)
+
+## iter_0080_coarser_deltas  (rejected)
+*2026-06-07 23:06*  score -0.0481  (best -0.0530)
+
+(no Lessons section in note.md)
+
+## iter_0081_op1_with_delay  (rejected)
+*2026-06-07 23:23*  score -0.0400  (best -0.0530)
+
+(no Lessons section in note.md)
+
+## iter_0082_restart_after_op4  (rejected)
+*2026-06-07 23:25*  score -0.0356  (best -0.0530)
+
+(no Lessons section in note.md)
