@@ -384,3 +384,28 @@ Entries are appended by `snapshot.py save`, never edited by hand.
 *2026-06-07 08:34*  score +0.0256  (best -0.0075)
 
 (no Lessons section in note.md)
+
+## iter_0062_alpha_cycling  (rejected)
+*2026-06-07 22:27*  score -0.0048  (best -0.0075)
+
+(no Lessons section in note.md)
+
+## iter_0063_enriched_kicks  (rejected)
+*2026-06-07 22:29*  score -0.0066  (best -0.0075)
+
+(no Lessons section in note.md)
+
+## iter_0064_pair_idle_gap_v2  (rejected)
+*2026-06-07 22:31*  score +0.0256  (best -0.0075)
+
+(no Lessons section in note.md)
+
+## iter_0065_exhaust_k2_repair  (rejected)
+*2026-06-07 22:33*  score +0.0265  (best -0.0075)
+
+(no Lessons section in note.md)
+
+## iter_0066_exhaust_replaces_restart  (rejected)
+*2026-06-07 22:36*  score -0.0075  (best -0.0075)
+
+(no Lessons section in note.md)
