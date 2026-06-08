@@ -497,3 +497,33 @@ Entries are appended by `snapshot.py save`, never edited by hand.
 *2026-06-07 23:28*  score -0.0385  (best -0.0530)
 
 (no Lessons section in note.md)
+
+## iter_0084_adaptive_kick  (rejected)
+*2026-06-08 07:39*  score -0.0473  (best -0.0530)
+
+(no Lessons section in note.md)
+
+## iter_0085_cyclic_shift_order  (rejected)
+*2026-06-08 07:41*  score -0.0500  (best -0.0530)
+
+(no Lessons section in note.md)
+
+## iter_0086_edd_construction  (rejected)
+*2026-06-08 07:43*  score -0.0469  (best -0.0530)
+
+(no Lessons section in note.md)
+
+## iter_0087_op4_multi_improvement  (rejected)
+*2026-06-08 07:46*  score -0.0133  (best -0.0530)
+
+(no Lessons section in note.md)
+
+## iter_0088_balance_biased_repair_v2  (rejected)
+*2026-06-08 07:48*  score -0.0459  (best -0.0530)
+
+(no Lessons section in note.md)
+
+## iter_0089_k1_enumerate_mode  (rejected)
+*2026-06-08 07:50*  score -0.0481  (best -0.0530)
+
+(no Lessons section in note.md)
