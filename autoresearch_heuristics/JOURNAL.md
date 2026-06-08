@@ -527,3 +527,8 @@ Entries are appended by `snapshot.py save`, never edited by hand.
 *2026-06-08 07:50*  score -0.0481  (best -0.0530)
 
 (no Lessons section in note.md)
+
+## iter_0090_focused_worst_op  (rejected)
+*2026-06-08 07:53*  score -0.0452  (best -0.0530)
+
+(no Lessons section in note.md)
