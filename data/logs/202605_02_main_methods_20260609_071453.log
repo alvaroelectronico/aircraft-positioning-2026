@@ -1,0 +1,65 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (2 experiments)
+==================================================================
+  Shared parameters:
+    weight_makespan=0.1           time_limit_s=60
+    weight_delay=1.0              MIPGap=0.0
+    weight_movements=10           NoRelHeurTime=0
+
+  Per-experiment parameters:
+  Label                Solver                alpha  weight_topology  n_starts  seed
+  ---------------------------------------------------------------------------------
+  milp_baseline_job    MILPJobsV2Solver      —      —                —         —   
+  topology_ms6_job_ar  TopologyHeuristicJob  0.3    1                6         1   
+==================================================================
+
+
+
+==================================================================
+  SUMMARY  —  42 ok  /  0 failed  /  42 total
+==================================================================
+  Instance                       Experiment           Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  --------------------------------------------------------------------------------------------------------------------------
+  scn_chain_tight_P5_R10_seed1   milp_baseline_job    maxTimeLim      163.35      68.50     156.50     0    97.73%      60.6
+  scn_chain_tight_P5_R10_seed1   topology_ms6_job_ar  topology_j      181.25      87.50     172.50     0         -      60.0
+  scn_chain_tight_P5_R10_seed10  milp_baseline_job    maxTimeLim      177.65      71.50     150.50     2    97.52%      60.7
+  scn_chain_tight_P5_R10_seed10  topology_ms6_job_ar  topology_j      152.35      88.50     143.50     0         -      60.0
+  scn_chain_tight_P5_R10_seed2   milp_baseline_job    maxTimeLim      190.45      79.50     182.50     0    97.53%      60.7
+  scn_chain_tight_P5_R10_seed2   topology_ms6_job_ar  topology_j      193.55     100.50     183.50     0         -      60.0
+  scn_chain_tight_P5_R10_seed3   milp_baseline_job    maxTimeLim      193.85      88.50     145.00     4    97.89%      60.6
+  scn_chain_tight_P5_R10_seed3   topology_ms6_job_ar  topology_j      182.85      88.50     174.00     0         -      60.0
+  scn_chain_tight_P5_R10_seed4   milp_baseline_job    maxTimeLim      175.65      86.50     167.00     0    97.38%      60.7
+  scn_chain_tight_P5_R10_seed4   topology_ms6_job_ar  topology_j      165.65      86.50     157.00     0         -      60.0
+  scn_chain_tight_P5_R10_seed5   milp_baseline_job    maxTimeLim      156.95      79.50     149.00     0    97.39%      60.7
+  scn_chain_tight_P5_R10_seed5   topology_ms6_job_ar  topology_j      183.05      80.50     175.00     0         -      60.0
+  scn_chain_tight_P5_R10_seed6   milp_baseline_job    maxTimeLim      206.05      75.50     178.50     2    97.96%      60.7
+  scn_chain_tight_P5_R10_seed6   topology_ms6_job_ar  topology_j      219.70      97.00     210.00     0         -      60.0
+  scn_chain_tight_P5_R10_seed7   milp_baseline_job    maxTimeLim      146.95      74.50     139.50     0    97.01%      60.6
+  scn_chain_tight_P5_R10_seed7   topology_ms6_job_ar  topology_j      189.70      97.00     180.00     0         -      60.0
+  scn_chain_tight_P5_R10_seed8   milp_baseline_job    maxTimeLim      183.10      71.00     156.00     2    97.87%      60.8
+  scn_chain_tight_P5_R10_seed8   topology_ms6_job_ar  topology_j      200.90      89.00     192.00     0         -      60.0
+  scn_chain_tight_P5_R10_seed9   milp_baseline_job    maxTimeLim      193.50      95.00     184.00     0    97.57%      60.7
+  scn_chain_tight_P5_R10_seed9   topology_ms6_job_ar  topology_j      188.35      93.50     179.00     0         -      60.0
+  scn_full_tight_P5_R10_seed1    milp_baseline_job    maxTimeLim      180.35      68.50     173.50     0    97.95%      61.3
+  scn_full_tight_P5_R10_seed1    topology_ms6_job_ar  topology_j      323.30     143.00     309.00     0         -      60.0
+  scn_full_tight_P5_R10_seed10   milp_baseline_job    maxTimeLim      178.05      75.50     170.50     0    97.53%      61.5
+  scn_full_tight_P5_R10_seed10   topology_ms6_job_ar  topology_j      247.05     130.50     234.00     0         -      60.0
+  scn_full_tight_P5_R10_seed2    milp_baseline_job    maxTimeLim      197.65     111.50     186.50     0    97.62%      61.5
+  scn_full_tight_P5_R10_seed2    topology_ms6_job_ar  topology_j      238.60     111.00     227.50     0         -      60.0
+  scn_full_tight_P5_R10_seed3    milp_baseline_job    maxTimeLim      219.45      79.50     211.50     0    98.13%      61.5
+  scn_full_tight_P5_R10_seed3    topology_ms6_job_ar  topology_j      292.70     102.00     282.50     0         -      60.0
+  scn_full_tight_P5_R10_seed4    milp_baseline_job    maxTimeLim      218.10     121.00     206.00     0    97.89%      61.5
+  scn_full_tight_P5_R10_seed4    topology_ms6_job_ar  topology_j      238.40     114.00     227.00     0         -      60.0
+  scn_full_tight_P5_R10_seed5    milp_baseline_job    maxTimeLim      224.30      98.00     214.50     0    98.17%      61.3
+  scn_full_tight_P5_R10_seed5    topology_ms6_job_ar  topology_j      249.10     101.00     239.00     0         -      60.0
+  scn_full_tight_P5_R10_seed6    milp_baseline_job    maxTimeLim      209.30     103.00     199.00     0    97.99%      61.4
+  scn_full_tight_P5_R10_seed6    topology_ms6_job_ar  topology_j      517.15     186.50     498.50     0         -      60.0
+  scn_full_tight_P5_R10_seed7    milp_baseline_job    maxTimeLim      218.75     107.50     208.00     0    97.99%      61.4
+  scn_full_tight_P5_R10_seed7    topology_ms6_job_ar  topology_j      276.60     111.00     265.50     0         -      60.0
+  scn_full_tight_P5_R10_seed8    milp_baseline_job    maxTimeLim      201.75      72.50     194.50     0    98.07%      61.5
+  scn_full_tight_P5_R10_seed8    topology_ms6_job_ar  topology_j      348.25     122.50     336.00     0         -      60.0
+  scn_full_tight_P5_R10_seed9    milp_baseline_job    maxTimeLim      231.90     104.00     221.50     0    97.97%      61.4
+  scn_full_tight_P5_R10_seed9    topology_ms6_job_ar  topology_j      246.80     113.00     235.50     0         -      60.0
+  scn_full_tight_P5_R20_seed1    milp_baseline_job    maxTimeLim     2533.10     336.00    2499.50     0    99.80%      65.6
+  scn_full_tight_P5_R20_seed1    topology_ms6_job_ar  topology_j     1264.60     221.00    1242.50     0         -      60.0
+==================================================================

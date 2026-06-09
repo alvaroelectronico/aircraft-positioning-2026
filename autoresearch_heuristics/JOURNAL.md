@@ -532,3 +532,8 @@ Entries are appended by `snapshot.py save`, never edited by hand.
 *2026-06-08 07:53*  score -0.0452  (best -0.0530)
 
 (no Lessons section in note.md)
+
+## iter_0091_stack_penalty  (rejected)
+*2026-06-09 07:14*  score -0.0477  (best -0.0530)
+
+(no Lessons section in note.md)

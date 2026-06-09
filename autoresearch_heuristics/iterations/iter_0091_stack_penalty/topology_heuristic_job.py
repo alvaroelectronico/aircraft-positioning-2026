@@ -359,8 +359,14 @@ def _construct(
         key=lambda aid: -aircraft[aid]["total_duration"],
     )
 
+    n_per_pos = max(1, len(aircraft) // len(positions))
     for aid in to_place:
         ac = aircraft[aid]
+        # Per-position count of aircraft already assigned.
+        count_at: dict[str, int] = {p: 0 for p in positions}
+        for q in assignment.values():
+            if q in count_at:
+                count_at[q] += 1
         candidates: list[tuple[str, float]] = []
         for p in positions:
             trial = dict(assignment)
@@ -372,7 +378,15 @@ def _construct(
                 * ac["total_duration"]
                 * blocking_load.get(p, 0)
             )
-            candidates.append((p, base_cost + topo_pen))
+            # iter_0092: stack penalty — heavy penalty for placing at a
+            # position that already has count >= n_per_pos (the balanced
+            # target). Prevents the construction from cramming everyone at
+            # the "low-blocking-load" positions on dense topologies.
+            stack_pen = 0.0
+            over = count_at[p] - n_per_pos + 1
+            if over > 0:
+                stack_pen = 50.0 * ac["total_duration"] * over
+            candidates.append((p, base_cost + topo_pen + stack_pen))
         candidates.sort(key=lambda x: x[1])
         chosen, _draw, _rank = _biased_random_select_logged(
             candidates, weights, rng,
