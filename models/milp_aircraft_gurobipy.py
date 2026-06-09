@@ -108,16 +108,32 @@ def prepare_data(
 #  Model construction
 # ============================================================
 
-def build_model(data: dict) -> gp.Model:
+def build_model(data: dict, cuts: str = "all") -> gp.Model:
     """Build the aircraft-level MILP as a gurobipy Model.
 
     The model is returned un-solved.  Set solver parameters
     (TimeLimit, MIPGap, …) on the returned object and call m.optimize().
 
+    Parameters
+    ----------
+    cuts : str
+        Controls LP-tightening additions:
+          - ``"none"``: original formulation with a single global big-M
+            and no implied lower bounds.
+          - ``"phase1"``: per-pair tight big-M on ``sep`` and the eight
+            blocking linearisation constraints (``aIn*/aOut*/bIn*/bOut*``).
+            Drop constraints whose tight M is 0 (already implied).
+          - ``"all"`` (default): ``phase1`` plus trivial implied lower
+            bounds on ``mks``, ``Σdly[r]``, and ``mov``.
+
     Attributes stored on the returned model:
         m._d  — the data dict (same reference as the *data* argument)
         m._v  — dict of variable collections keyed by name
+        m._cuts — the ``cuts`` setting used
     """
+    if cuts not in ("none", "phase1", "all"):
+        raise ValueError(f"Unknown cuts mode {cuts!r}; expected 'none' | 'phase1' | 'all'.")
+
     ac   = data["aircraft"]
     pos  = data["positions"]
     arcs = data["blocking_arcs"]
@@ -135,6 +151,43 @@ def build_model(data: dict) -> gp.Model:
     ordered   = [(r, rp, p)       for r in ac for rp in ac for p in pos   if r != rp]
     unordered = [(r, rp, p)       for r in ac for rp in ac for p in pos   if r  < rp]
     bt        = [(r, rp, p, pp)   for r in ac for rp in ac for (p, pp) in arcs if r != rp]
+
+    # ----------------------------------------------------------
+    # Per-pair tight big-M coefficients.  Derived from each
+    # constraint's worst-case residual over the variable box
+    # (s[r] ∈ [E[r], H], f[r] ∈ [E[r]+D[r], H]).  When the
+    # residual is ≤ 0 the constraint is implied by the variable
+    # bounds (``s[rp] >= E[rp]`` etc.) and we drop it entirely.
+    # ----------------------------------------------------------
+    if cuts == "none":
+        M_sep      = {(r, rp, p):     M for r, rp, p     in ordered}
+        M_aIn_LB   = {(r, rp, p, pp): M for r, rp, p, pp in bt}
+        M_aIn_UB   = {(r, rp, p, pp): M for r, rp, p, pp in bt}
+        M_bIn_UB   = {(r, rp, p, pp): M for r, rp, p, pp in bt}
+        M_bIn_LB   = {(r, rp, p, pp): M for r, rp, p, pp in bt}
+        M_aOut_LB  = {(r, rp, p, pp): M for r, rp, p, pp in bt}
+        M_aOut_UB  = {(r, rp, p, pp): M for r, rp, p, pp in bt}
+        M_bOut_UB  = {(r, rp, p, pp): M for r, rp, p, pp in bt}
+        M_bOut_LB  = {(r, rp, p, pp): M for r, rp, p, pp in bt}
+    else:
+        # sep:    s[rp] - f[r] - eps  worst case  = E[rp] - H - eps
+        M_sep      = {(r, rp, p):     max(0.0, H + eps - E[rp])             for r, rp, p     in ordered}
+        # aInLB:  s[rp] - s[r]        worst case  = E[rp] - H
+        M_aIn_LB   = {(r, rp, p, pp): max(0.0, H - E[rp])                   for r, rp, p, pp in bt}
+        # aInUB:  s[r]  - s[rp]       worst case  = E[r]  - H
+        M_aIn_UB   = {(r, rp, p, pp): max(0.0, H - E[r])                    for r, rp, p, pp in bt}
+        # bInUB:  s[rp] - f[r] + eps  worst case  = E[rp] - (E[r]+D[r]) + eps  (rev sign)
+        M_bIn_UB   = {(r, rp, p, pp): max(0.0, H + eps - E[r] - D[r])       for r, rp, p, pp in bt}
+        # bInLB:  f[r]  - s[rp]       worst case  = (E[r]+D[r]) - H
+        M_bIn_LB   = {(r, rp, p, pp): max(0.0, H - E[rp])                   for r, rp, p, pp in bt}
+        # aOutLB: f[rp] - s[r]        worst case  = (E[rp]+D[rp]) - H
+        M_aOut_LB  = {(r, rp, p, pp): max(0.0, H - E[rp] - D[rp])           for r, rp, p, pp in bt}
+        # aOutUB: s[r]  - f[rp]       worst case  = E[r] - H
+        M_aOut_UB  = {(r, rp, p, pp): max(0.0, H - E[r])                    for r, rp, p, pp in bt}
+        # bOutUB: f[rp] - f[r] + eps  worst case  = (E[rp]+D[rp]) - (E[r]+D[r]) + eps  (rev sign)
+        M_bOut_UB  = {(r, rp, p, pp): max(0.0, H + eps - E[r] - D[r])       for r, rp, p, pp in bt}
+        # bOutLB: f[r]  - f[rp]       worst case  = (E[r]+D[r]) - H
+        M_bOut_LB  = {(r, rp, p, pp): max(0.0, H - E[rp] - D[rp])           for r, rp, p, pp in bt}
 
     m = gp.Model()
 
@@ -167,10 +220,10 @@ def build_model(data: dict) -> gp.Model:
     # ----------------------------------------------------------
     m.addConstrs(
         (s[rp] >= f[r] + eps
-         - M * (1 - o[r, rp, p])
-         - M * (1 - x[r, p])
-         - M * (1 - x[rp, p])
-         for r, rp, p in ordered),
+         - M_sep[r, rp, p] * (1 - o[r, rp, p])
+         - M_sep[r, rp, p] * (1 - x[r, p])
+         - M_sep[r, rp, p] * (1 - x[rp, p])
+         for r, rp, p in ordered if M_sep[r, rp, p] > 0),
         name="sep",
     )
     m.addConstrs(
@@ -188,26 +241,26 @@ def build_model(data: dict) -> gp.Model:
     # Blocking — entry
     # ----------------------------------------------------------
     m.addConstrs(
-        (s[rp] >= s[r] - M * (1 - ain[r, rp, p, pp])
-         for r, rp, p, pp in bt),
+        (s[rp] >= s[r] - M_aIn_LB[r, rp, p, pp] * (1 - ain[r, rp, p, pp])
+         for r, rp, p, pp in bt if M_aIn_LB[r, rp, p, pp] > 0),
         name="aInLB",
     )
     m.addConstrs(
-        (s[rp] <= s[r] + M * ain[r, rp, p, pp]
-         for r, rp, p, pp in bt),
+        (s[rp] <= s[r] + M_aIn_UB[r, rp, p, pp] * ain[r, rp, p, pp]
+         for r, rp, p, pp in bt if M_aIn_UB[r, rp, p, pp] > 0),
         name="aInUB",
     )
     m.addConstrs(
-        (s[rp] <= f[r] - eps + M * (1 - bin_[r, rp, p, pp])
-         for r, rp, p, pp in bt),
+        (s[rp] <= f[r] - eps + M_bIn_UB[r, rp, p, pp] * (1 - bin_[r, rp, p, pp])
+         for r, rp, p, pp in bt if M_bIn_UB[r, rp, p, pp] > 0),
         name="bInUB",
     )
     m.addConstrs(
         (s[rp] >= f[r]
-         - M * bin_[r, rp, p, pp]
-         - M * (1 - x[r, p])
-         - M * (1 - x[rp, pp])
-         for r, rp, p, pp in bt),
+         - M_bIn_LB[r, rp, p, pp] * bin_[r, rp, p, pp]
+         - M_bIn_LB[r, rp, p, pp] * (1 - x[r, p])
+         - M_bIn_LB[r, rp, p, pp] * (1 - x[rp, pp])
+         for r, rp, p, pp in bt if M_bIn_LB[r, rp, p, pp] > 0),
         name="bInLB",
     )
     m.addConstrs((uin[r, rp, p, pp] <= x[r, p]            for r, rp, p, pp in bt), name="uInUB1")
@@ -224,26 +277,26 @@ def build_model(data: dict) -> gp.Model:
     # Blocking — exit
     # ----------------------------------------------------------
     m.addConstrs(
-        (f[rp] >= s[r] - M * (1 - aout[r, rp, p, pp])
-         for r, rp, p, pp in bt),
+        (f[rp] >= s[r] - M_aOut_LB[r, rp, p, pp] * (1 - aout[r, rp, p, pp])
+         for r, rp, p, pp in bt if M_aOut_LB[r, rp, p, pp] > 0),
         name="aOutLB",
     )
     m.addConstrs(
-        (f[rp] <= s[r] + M * aout[r, rp, p, pp]
-         for r, rp, p, pp in bt),
+        (f[rp] <= s[r] + M_aOut_UB[r, rp, p, pp] * aout[r, rp, p, pp]
+         for r, rp, p, pp in bt if M_aOut_UB[r, rp, p, pp] > 0),
         name="aOutUB",
     )
     m.addConstrs(
-        (f[rp] <= f[r] - eps + M * (1 - bout[r, rp, p, pp])
-         for r, rp, p, pp in bt),
+        (f[rp] <= f[r] - eps + M_bOut_UB[r, rp, p, pp] * (1 - bout[r, rp, p, pp])
+         for r, rp, p, pp in bt if M_bOut_UB[r, rp, p, pp] > 0),
         name="bOutUB",
     )
     m.addConstrs(
         (f[rp] >= f[r]
-         - M * bout[r, rp, p, pp]
-         - M * (1 - x[r, p])
-         - M * (1 - x[rp, pp])
-         for r, rp, p, pp in bt),
+         - M_bOut_LB[r, rp, p, pp] * bout[r, rp, p, pp]
+         - M_bOut_LB[r, rp, p, pp] * (1 - x[r, p])
+         - M_bOut_LB[r, rp, p, pp] * (1 - x[rp, pp])
+         for r, rp, p, pp in bt if M_bOut_LB[r, rp, p, pp] > 0),
         name="bOutLB",
     )
     m.addConstrs((uout[r, rp, p, pp] <= x[r, p]             for r, rp, p, pp in bt), name="uOutUB1")
@@ -271,6 +324,42 @@ def build_model(data: dict) -> gp.Model:
     m.addConstrs((mks >= f[r]             for r in ac), name="makespan")
 
     # ----------------------------------------------------------
+    # Implied lower bounds on output variables.
+    #
+    # cuts == "phase1"  — tight per-pair big-M only (above), no
+    #                     output-variable cuts.
+    # cuts == "all"     — adds the trivial per-aircraft floors plus
+    #                     a position-load makespan cut.
+    # cuts == "none"    — none of the above; pure baseline.
+    # ----------------------------------------------------------
+    if cuts == "all":
+        # (a) Trivial per-aircraft floors.
+        mks_floor   = max((E[r] + D[r]                 for r in ac), default=0.0)
+        dly_floor   = sum(max(0.0, E[r] + D[r] - L[r]) for r in ac)
+        if mks_floor > 0:
+            m.addConstr(mks >= mks_floor, name="mks_floor")
+        if dly_floor > 0:
+            m.addConstr(gp.quicksum(dly[r] for r in ac) >= dly_floor,
+                        name="dly_floor")
+
+        # (b) Position-load makespan cut.  For each position p, every
+        # aircraft assigned to p occupies p for D[r] time plus ε
+        # separation from its neighbours.  The last aircraft at p
+        # finishes no earlier than
+        #     min_{r ∈ S_p} E[r]  +  Σ_{r ∈ S_p} D[r]  +  (|S_p|-1) ε
+        # ≥ Σ_{r ∈ S_p} D[r]  +  (|S_p|-1) ε   (since E ≥ 0).
+        # Linearising via the indicators x[r,p]:
+        #     mks + ε  ≥  Σ_r (D[r] + ε) · x[r,p]    for every p.
+        # The LP relaxation cannot put all probability on a single p
+        # without inflating mks; balanced x's still push mks up by
+        # roughly (R/P) · avg(D+ε).
+        for p in pos:
+            m.addConstr(
+                mks + eps >= gp.quicksum((D[r] + eps) * x[r, p] for r in ac),
+                name=f"mks_load[{p}]",
+            )
+
+    # ----------------------------------------------------------
     # Objective
     # ----------------------------------------------------------
     m.setObjective(
@@ -285,6 +374,7 @@ def build_model(data: dict) -> gp.Model:
         "aout": aout, "bout": bout, "uout": uout,
         "dly": dly, "mks": mks, "mov": mov,
     }
+    m._cuts = cuts
     return m
 
 

@@ -44,6 +44,7 @@ _MODEL_KEYS = frozenset({
     "weight_movements",
     "time_limit_s",
     "fix_positions_from",   # solution dict: fix vAircraftPosition from a prior solution
+    "cuts",                 # "none" | "phase1" | "all" — LP-tightening level (gurobipy only)
 })
 
 
@@ -56,6 +57,7 @@ class MILPAircraftSolver:
         "weight_delay":     100.0,
         "weight_movements": 1.0,
         "time_limit_s":     None,
+        "cuts":             "all",
     }
 
     def __init__(
@@ -127,7 +129,7 @@ class MILPAircraftSolver:
             self._model_params["weight_delay"],
             self._model_params["weight_movements"],
         )
-        m = build_model(data)
+        m = build_model(data, cuts=self._model_params["cuts"])
 
         # Optional: fix position assignments from a warm solution.
         fix_sol = self._model_params.get("fix_positions_from")

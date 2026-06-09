@@ -102,7 +102,12 @@ EXPERIMENTS: list[dict] = [
     {
         "label":        "milp_baseline",
         "solver_class": MILPAircraftSolver,
-        "config":       {**_BASE_CONFIG},
+        "config":       {**_BASE_CONFIG, "cuts": "none"},   # original formulation, no LP-tightening
+    },
+    {
+        "label":        "milp_baseline_cuts",
+        "solver_class": MILPAircraftSolver,
+        "config":       {**_BASE_CONFIG, "cuts": "all"},    # tight per-pair big-M + implied lower bounds
     },
 
     # =========================================================================
