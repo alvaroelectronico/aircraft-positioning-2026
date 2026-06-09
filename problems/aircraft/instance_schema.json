@@ -1,0 +1,154 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Aircraft Positioning Instance",
+  "description": "Schema for an aircraft positioning problem instance",
+  "type": "object",
+  "required": ["hangar", "aircrafts", "jobs", "job_precedences", "min_separation"],
+  "additionalProperties": false,
+  "properties": {
+    "min_separation": {
+      "type": "number",
+      "description": "Tow-in/tow-out time epsilon: minimum separation between consecutive aircraft at the same position and safety margin in the blocking conditions",
+      "minimum": 0
+    },
+    "mu": {
+      "type": "number",
+      "description": "Optional paper-#2 parameter: minimum inter-job pause when used as a Mode-(B) window for a neighbouring access manoeuvre. Default 1.0 day if absent. Ignored by paper-#1 (aircraft-level) code.",
+      "minimum": 0
+    },
+    "delta": {
+      "type": "number",
+      "description": "Optional paper-#2 parameter: working time added to an interruptible job each time it is paused to allow a Mode-(C) access manoeuvre. Default 2.0 days if absent. Ignored by paper-#1 (aircraft-level) code.",
+      "minimum": 0
+    },
+    "eta": {
+      "type": "number",
+      "description": "Optional paper-#2 parameter: time granularity for strict inequalities (e.g. one day). Default 1.0 if absent. Ignored by paper-#1 (aircraft-level) code.",
+      "minimum": 0
+    },
+    "hangar": {
+      "type": "object",
+      "description": "Hangar layout definition",
+      "required": ["positions", "blocking_arcs"],
+      "additionalProperties": false,
+      "properties": {
+        "positions": {
+          "type": "array",
+          "description": "List of position identifiers available in the hangar",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "blocking_arcs": {
+          "type": "array",
+          "description": "Pairs of positions where the front position blocks access to the rear position",
+          "items": {
+            "type": "object",
+            "required": ["front", "rear"],
+            "additionalProperties": false,
+            "properties": {
+              "front": {
+                "type": "string",
+                "description": "Position that blocks access"
+              },
+              "rear": {
+                "type": "string",
+                "description": "Position being blocked"
+              }
+            }
+          }
+        }
+      }
+    },
+    "aircrafts": {
+      "type": "array",
+      "description": "List of aircraft to be scheduled",
+      "items": {
+        "type": "object",
+        "required": ["id", "client", "earliest_start", "target_finish"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique aircraft identifier"
+          },
+          "client": {
+            "type": "string",
+            "description": "Client identifier owning this aircraft"
+          },
+          "earliest_start": {
+            "type": "number",
+            "description": "Earliest time at which work on this aircraft can begin",
+            "minimum": 0
+          },
+          "target_finish": {
+            "type": "number",
+            "description": "Target time by which all work on this aircraft should be completed",
+            "minimum": 0
+          }
+        }
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "jobs": {
+      "type": "array",
+      "description": "List of jobs (work tasks) to be scheduled across aircraft",
+      "items": {
+        "type": "object",
+        "required": ["id", "aircraft_id", "duration", "is_first", "is_last"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique job identifier"
+          },
+          "aircraft_id": {
+            "type": "string",
+            "description": "Identifier of the aircraft this job belongs to"
+          },
+          "duration": {
+            "type": "number",
+            "description": "Duration of the job in time units",
+            "minimum": 0
+          },
+          "is_first": {
+            "type": "boolean",
+            "description": "True if this is the first job in the sequence for its aircraft"
+          },
+          "is_last": {
+            "type": "boolean",
+            "description": "True if this is the last job in the sequence for its aircraft"
+          },
+          "interruptible": {
+            "type": "boolean",
+            "description": "Optional paper-#2 flag: true if the job can be paused to allow a Mode-(C) blocking manoeuvre on a neighbouring rear position. Default false if absent. Ignored by paper-#1 (aircraft-level) code."
+          }
+        }
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "job_precedences": {
+      "type": "array",
+      "description": "Ordering constraints between jobs within each aircraft, in increasing task order",
+      "items": {
+        "type": "object",
+        "required": ["before", "after"],
+        "additionalProperties": false,
+        "properties": {
+          "before": {
+            "type": "string",
+            "description": "Job that must be completed before the other"
+          },
+          "after": {
+            "type": "string",
+            "description": "Job that must start after the other is complete"
+          }
+        }
+      }
+    }
+  }
+}
