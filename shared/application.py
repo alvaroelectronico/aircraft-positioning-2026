@@ -11,7 +11,7 @@ Usage
     from solvers.milp_aircraft_solver import MILPAircraftSolver
 
     app = Application(solver=MILPAircraftSolver())   # gurobipy backend by default
-    app.read_data("data/instances_202605/scn_triangle_tight_P5_R5/scn_triangle_tight_P5_R5_seed1.json")
+    app.read_data("problems/aircraft/instances/scn_triangle_tight_P5_R5/scn_triangle_tight_P5_R5_seed1.json")
     app.configure_solver(time_limit_s=60, MIPGap=0.0)
     app.solve()
     report = app.check_solution()
@@ -171,7 +171,7 @@ class Application:
         ----------
         solutions_dir:
             Directory where files are written.
-            Defaults to ``<project_root>/data/solutions/``.
+            Defaults to ``<project_root>/outputs/solutions/``.
         label:
             Experiment label used in the filename and the CSV ``solver``
             column.  Falls back to the solver's own ``name`` attribute (or
@@ -295,7 +295,7 @@ if __name__ == "__main__":
     )
     _parser.add_argument(
         "--save", action="store_true",
-        help="Persist the solution under data/solutions/ (off by default).",
+        help="Persist the solution under outputs/solutions/ (off by default).",
     )
     _args = _parser.parse_args()
 

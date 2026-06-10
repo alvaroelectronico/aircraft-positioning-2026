@@ -1,6 +1,6 @@
 """Aggregate computational results across the 12 benchmark configurations.
 
-Reads the per-configuration log files in data/logs/ that follow the pattern
+Reads the per-configuration log files in outputs/logs/ that follow the pattern
     scn_<topo>_<slack>_P<n>_R<n>[__extra]_<timestamp>.log
 parses each SUMMARY table, computes mean metrics per (configuration, method),
 and prints two LaTeX tables to stdout:

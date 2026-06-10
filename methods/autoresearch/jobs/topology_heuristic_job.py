@@ -27,7 +27,7 @@ Usage
     from aircraft_positioning import Application
 
     app = Application(solver=TopologyHeuristicJob())
-    app.read_data("data/instances_202605/scn_.../scn_..._seed1.json")
+    app.read_data("problems/jobs/instances/scn_.../scn_..._seed1.json")
     app.configure_solver(time_limit_s=60, n_starts=6)
     app.solve()
 """

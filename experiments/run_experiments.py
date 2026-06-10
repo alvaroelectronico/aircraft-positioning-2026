@@ -2,13 +2,13 @@
 run_experiments.py — Batch runner for aircraft positioning experiments.
 
 Runs a set of named solver configurations against a set of instances,
-saves one JSON per run and updates data/solutions/results.csv.
+saves one JSON per run and updates outputs/solutions/results.csv.
 
 Usage
 -----
-    python scripts/run_experiments.py                  # all instances, all experiments
-    python scripts/run_experiments.py scn_few-loose    # instances whose name contains the pattern
-    python scripts/run_experiments.py scn_few-loose milp_baseline   # filter instances AND experiment
+    python experiments/run_experiments.py                  # all instances, all experiments
+    python experiments/run_experiments.py scn_few-loose    # instances whose name contains the pattern
+    python experiments/run_experiments.py scn_few-loose milp_baseline   # filter instances AND experiment
 """
 from __future__ import annotations
 
@@ -68,12 +68,12 @@ from application import Application                         # noqa: E402  (was a
 #  INSTANCES — edit this list or use a glob pattern
 # =============================================================================
 
-# Canonical layout: data/instances_202605/<config>/<config>_seed{N}.json.
+# Canonical layout: problems/aircraft/instances/<config>/<config>_seed{N}.json.
 # Earlier flat layouts (data/experiment_instances/...) are no longer
 # scanned automatically; legacy validation files there are kept for
 # reference but not auto-discovered.
 INSTANCE_PATHS: list[Path] = sorted(
-    (_ROOT / "data" / "instances_202605").glob("scn_*/scn_*.json"),
+    (_ROOT / "problems" / "aircraft" / "instances").glob("scn_*/scn_*.json"),
 )
 
 
@@ -447,7 +447,7 @@ def run_experiments(
     experiments:
         List of experiment dicts (see module header).
     solutions_dir:
-        Where to write solution files.  Defaults to ``data/solutions/``.
+        Where to write solution files.  Defaults to ``outputs/solutions/``.
     log_path:
         If given, rewrite this file after each instance with the experiment
         configurations followed by the latest summary table.
@@ -457,7 +457,7 @@ def run_experiments(
     list[dict]
         One summary record per completed run.
     """
-    solutions_dir = solutions_dir or _ROOT / "data" / "solutions"
+    solutions_dir = solutions_dir or _ROOT / "outputs" / "solutions"
     total   = len(instances) * len(experiments)
     done    = 0
     summary = []
@@ -962,7 +962,8 @@ if __name__ == "__main__":
     #  INST_FILTER : comma-separated substrings to match instance stems
     #                (e.g. "_seed2" picks up scn_<config>_seed2 across all
     #                configurations).  "" / None runs every instance under
-    #                data/experiment_instances and data/instances_202605.
+    #                problems/aircraft/instances (or whichever root is supplied
+    #                as the third CLI argument).
     #
     #  EXP_FILTER  : comma-separated EXACT experiment labels (no substring
     #                match) so "milp_baseline" does not also pull in
@@ -971,7 +972,7 @@ if __name__ == "__main__":
     #
     #  Current preset: seed10 run of the main four methods × three weight
     #  profiles (12 experiments, no _heur variants), matching the seed1
-    #  batch in data/logs/seed1_main_methods_*.log.
+    #  batch in outputs/logs/seed1_main_methods_*.log.
     # ==========================================================================
 
     INST_FILTER: str = "_seed10"                                                                                         # ← edit here
@@ -987,7 +988,7 @@ if __name__ == "__main__":
     exp_filter  = sys.argv[2] if len(sys.argv) > 2 else EXP_FILTER  or None
     inst_root   = Path(sys.argv[3]) if len(sys.argv) > 3 else None
 
-    # Resolve the instance-discovery root.  Default: data/instances_202605.
+    # Resolve the instance-discovery root.  Default: problems/aircraft/instances.
     # When a third argument is provided (or the user wants an alternate
     # benchmark folder), use that instead.
     if inst_root is not None:
@@ -1042,7 +1043,7 @@ if __name__ == "__main__":
     _root_tag = ""
     if inst_root is not None:
         _root_tag = inst_root.name.replace("instances_", "") + "_"
-    log_path  = _ROOT / "data" / "logs" / f"{_seed_tag}{_root_tag}main_methods_{timestamp}.log"
+    log_path  = _ROOT / "outputs" / "logs" / f"{_seed_tag}{_root_tag}main_methods_{timestamp}.log"
 
     summary = run_experiments(instances, experiments, log_path=log_path)
     print(f"\nLog saved: {log_path}")

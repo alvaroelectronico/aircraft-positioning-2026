@@ -32,19 +32,19 @@ too when absent so that ``validate_instance()`` accepts the result.
 Usage
 -----
     # Plain default migration (idempotent)
-    python scripts/migrate_instances_v2.py
+    python experiments/migrate_instances_v2.py
 
     # Custom root (e.g. the alternate-benchmark folder)
-    python scripts/migrate_instances_v2.py --root data/instances_202605_02
+    python experiments/migrate_instances_v2.py --root problems/jobs/instances
 
     # Annotate with 30 % random interruptibility, reproducibly
-    python scripts/migrate_instances_v2.py \
-        --root data/instances_202605_02 \
+    python experiments/migrate_instances_v2.py \
+        --root problems/jobs/instances \
         --interruptible-rate 0.3 \
         --seed 42
 
     # Preview changes without writing
-    python scripts/migrate_instances_v2.py --dry-run
+    python experiments/migrate_instances_v2.py --dry-run
 """
 from __future__ import annotations
 
@@ -205,7 +205,7 @@ def main() -> None:
         type=Path,
         default=Path(__file__).resolve().parent.parent / "data" / "instances_202605",
         help="Root folder containing scn_*/scn_*.json "
-             "(default: data/instances_202605).",
+             "(default: problems/aircraft/instances).",
     )
     ap.add_argument(
         "--interruptible-rate",

@@ -1,15 +1,15 @@
 """One-off driver: regenerate the 120-instance benchmark with the integer
 generator into per-configuration subfolders under
-``data/instances_202605/``.
+``problems/aircraft/instances/``.
 
 Layout produced:
-    data/instances_202605/<config_dirname>/<config_dirname>_seed{N}.json
+    problems/aircraft/instances/<config_dirname>/<config_dirname>_seed{N}.json
 
 where ``<config_dirname>`` is the filename stem without the trailing
 ``_seed{N}`` (e.g. ``scn_chain_tight_P5_R10``).
 
 Run:
-    python scripts/regenerate_benchmark.py [--force]
+    python experiments/regenerate_benchmark.py [--force]
 
 Without ``--force``, existing files are overwritten only if their seed/config
 matches; with ``--force``, the per-config subfolder is wiped clean first.

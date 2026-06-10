@@ -9,15 +9,15 @@ ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 
 pairs = [
     ("data/experiment_instances/scn_many-medium_seed1_P5_pl20.json",
-     "data/solutions/scn_many-medium_seed1_P5_pl20__topology_ms6__20260514_094643.json"),
+     "outputs/solutions/scn_many-medium_seed1_P5_pl20__topology_ms6__20260514_094643.json"),
     ("data/experiment_instances/scn_custom_many_tight_pl10.json",
-     "data/solutions/scn_custom_many_tight_pl10__topology_ms6__20260514_093617.json"),
+     "outputs/solutions/scn_custom_many_tight_pl10__topology_ms6__20260514_093617.json"),
     ("data/experiment_instances/scn_heavy-tight_seed1_P4_pl30.json",
-     "data/solutions/scn_heavy-tight_seed1_P4_pl30__topology_ms6__20260514_094232.json"),
+     "outputs/solutions/scn_heavy-tight_seed1_P4_pl30__topology_ms6__20260514_094232.json"),
     ("data/experiment_instances/scn_few-loose_seed1_P3_pl5.json",
-     "data/solutions/scn_few-loose_seed1_P3_pl5__topology_ms6__20260514_093727.json"),
+     "outputs/solutions/scn_few-loose_seed1_P3_pl5__topology_ms6__20260514_093727.json"),
     ("data/experiment_instances/scn_few-tight_seed1_P2_pl5.json",
-     "data/solutions/scn_few-tight_seed1_P2_pl5__topology_ms6__20260514_093838.json"),
+     "outputs/solutions/scn_few-tight_seed1_P2_pl5__topology_ms6__20260514_093838.json"),
 ]
 
 print(f"{'Instance':<35} {'RQ08':6} {'viol':5} {'min_gap':10} {'worst':8}")
