@@ -22,8 +22,8 @@ from __future__ import annotations
 import os
 import sys
 
-# Make the models directory importable regardless of cwd
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "models"))
+# Sibling model files (milp_jobs_pyomo) live in the same dir after restructure.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from milp_jobs_pyomo import model as _abstract_model, prepare_data, get_solution  # noqa: E402
 

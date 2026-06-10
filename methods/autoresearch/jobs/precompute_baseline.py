@@ -28,17 +28,16 @@ import sys
 import time
 from pathlib import Path
 
-_HERE = Path(__file__).resolve().parent
-_ROOT = _HERE.parent
+_HERE = Path(__file__).resolve().parent          # methods/autoresearch/jobs/
+_ROOT = _HERE.parent.parent.parent               # repo root
 
-sys.path.insert(0, str(_ROOT / "scripts" / "input_data"))
-sys.path.insert(0, str(_ROOT / "scripts" / "output_data"))
-sys.path.insert(0, str(_ROOT / "solvers"))
-sys.path.insert(0, str(_ROOT / "models"))
+sys.path.insert(0, str(_ROOT / "shared"))                          # instance_io, rcl
+sys.path.insert(0, str(_ROOT / "problems" / "jobs"))               # checker (paper #2)
+sys.path.insert(0, str(_ROOT / "methods" / "manual" / "jobs"))     # baseline MILP
 
-from instance_io           import load_json                # noqa: E402
-from check_solution_jobs_v2 import check_solution           # noqa: E402
-from milp_jobs_v2_solver   import MILPJobsV2Solver         # noqa: E402
+from instance_io        import load_json                   # noqa: E402
+from checker            import check_solution              # noqa: E402  (paper #2 checker)
+from milp_jobs_v2_solver import MILPJobsV2Solver           # noqa: E402
 
 
 _BENCHMARK = _HERE / "benchmark.json"

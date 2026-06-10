@@ -39,16 +39,20 @@ import time
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Path setup — make sub-packages importable regardless of cwd
+# Path setup — make the repo root importable so the package-style
+# imports below (``problems.aircraft.checker``, …) resolve even when
+# Application is loaded via a flat ``from application import …``.
 # ---------------------------------------------------------------------------
-_ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(_ROOT / "scripts" / "input_data"))
-sys.path.insert(0, str(_ROOT / "scripts" / "output_data"))
-sys.path.insert(0, str(_ROOT / "solvers"))
+_HERE = Path(__file__).resolve().parent             # shared/
+_ROOT = _HERE.parent                                # repo root
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+if str(_HERE) not in sys.path:
+    sys.path.insert(0, str(_HERE))                  # for instance_io, plotting siblings
 
-from instance_io import load_json, read_xlsx                          # noqa: E402
-from check_solution import check_solution as _check_fn, print_check  # noqa: E402
-from plot_schedule import plot_schedule                               # noqa: E402
+from instance_io import load_json, read_xlsx                              # noqa: E402
+from problems.aircraft.checker import check_solution as _check_fn, print_check  # noqa: E402
+from plotting import plot_schedule                                        # noqa: E402
 
 
 class Application:

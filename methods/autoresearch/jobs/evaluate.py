@@ -41,20 +41,18 @@ import time
 from pathlib import Path
 
 
-_HERE = Path(__file__).resolve().parent
-_ROOT = _HERE.parent
+_HERE = Path(__file__).resolve().parent          # methods/autoresearch/jobs/
+_ROOT = _HERE.parent.parent.parent               # repo root
 
-# Make the rest of the repo importable.  The working copy of
+# Post-restructure import paths.  The working copy of
 # topology_heuristic_job lives next to this file — we import it explicitly
 # rather than through sys.path so that there is no risk of accidentally
-# picking up solvers/topology_heuristic_job.py.
-sys.path.insert(0, str(_ROOT / "scripts" / "input_data"))
-sys.path.insert(0, str(_ROOT / "scripts" / "output_data"))
-sys.path.insert(0, str(_ROOT / "solvers"))
-sys.path.insert(0, str(_ROOT / "models"))
+# picking up the canonical methods/manual/jobs/topology_heuristic_job.py.
+sys.path.insert(0, str(_ROOT / "shared"))                    # instance_io, rcl
+sys.path.insert(0, str(_ROOT / "problems" / "jobs"))         # checker (paper #2)
 
-from instance_io           import load_json                # noqa: E402
-from check_solution_jobs_v2 import check_solution           # noqa: E402
+from instance_io import load_json                            # noqa: E402
+from checker     import check_solution                       # noqa: E402  (paper #2 checker)
 
 
 _BENCHMARK_PATH = _HERE / "benchmark.json"

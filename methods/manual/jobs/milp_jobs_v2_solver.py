@@ -18,7 +18,7 @@ from __future__ import annotations
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "models"))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # sibling model files (gurobipy, pyomo) co-located here
 
 # Keys consumed by this class as model parameters; everything else is
 # forwarded verbatim to the Gurobi backend.

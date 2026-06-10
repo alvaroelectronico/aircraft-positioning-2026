@@ -31,8 +31,9 @@ from __future__ import annotations
 import os
 import sys
 
-# Make the models directory importable regardless of cwd
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "models"))
+# Make sibling model files (milp_aircraft_gurobipy / _pyomo) importable
+# regardless of cwd.  After the restructure they live in the same dir.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Keys consumed by this class; everything else is forwarded verbatim to the
 # backend solver.  time_limit_s is the generic time-limit key set by

@@ -45,7 +45,7 @@ except Exception:
     _gurobi_env = None
 
 # Optional sub-MILP repair — Pyomo fallback (slower, kept for compatibility)
-_sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "..", "models"))
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))   # sibling milp_jobs_pyomo.py co-located here
 try:
     from milp_jobs_pyomo import model as _abstract_milp_model, prepare_data as _milp_prepare_data
     from pyomo.environ import SolverFactory as _SolverFactory

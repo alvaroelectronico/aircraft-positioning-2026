@@ -19,13 +19,24 @@ from datetime import datetime
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Path setup
+# Path setup — repo restructured into shared/, problems/, methods/.
+# The flat sys.path additions below import the existing file names from
+# their new locations.  All file names were preserved across the move so
+# the ``from <name> import ...`` lines do not change.
 # ---------------------------------------------------------------------------
 _ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(_ROOT))                            # aircraft_positioning.py
-sys.path.insert(0, str(_ROOT / "solvers"))
-sys.path.insert(0, str(_ROOT / "scripts" / "input_data"))
-sys.path.insert(0, str(_ROOT / "scripts" / "output_data"))
+sys.path.insert(0, str(_ROOT))                                      # for package imports (problems.*, methods.*, shared.*)
+sys.path.insert(0, str(_ROOT / "shared"))                           # application, instance_io, plotting, rcl
+sys.path.insert(0, str(_ROOT / "problems" / "aircraft"))            # checker (paper #1)
+sys.path.insert(0, str(_ROOT / "problems" / "jobs"))                # checker (paper #2) — see name-clash note below
+sys.path.insert(0, str(_ROOT / "methods" / "manual" / "aircraft"))  # paper #1 MILP + heuristics
+sys.path.insert(0, str(_ROOT / "methods" / "manual" / "jobs"))      # paper #2 MILPs + heuristics
+
+# Both problems define a top-level ``checker.py`` (with distinct contents).
+# To disambiguate we import them via their package paths and alias the
+# module symbol.
+from problems.aircraft import checker as _checker_aircraft        # noqa: E402
+from problems.jobs     import checker as _checker_jobs            # noqa: E402
 
 from milp_jobs_solver import MILPSolver                     # noqa: E402
 from milp_aircraft_solver import MILPAircraftSolver         # noqa: E402
@@ -40,7 +51,7 @@ from topology_heuristic_job      import TopologyHeuristicJob       # noqa: E402
 # canonical one already imported above.  Same public class name, distinct
 # in-memory class object.
 import importlib.util as _il_util                                  # noqa: E402
-_AR_PATH = _ROOT / "autoresearch_heuristics" / "topology_heuristic_job.py"
+_AR_PATH = _ROOT / "methods" / "autoresearch" / "jobs" / "topology_heuristic_job.py"
 _ar_spec = _il_util.spec_from_file_location(
     "_ar_topology_heuristic_job", str(_AR_PATH),
 )
@@ -50,7 +61,7 @@ TopologyHeuristicJobAR = _ar_mod.TopologyHeuristicJob
 from tgr_solver import TGRSolver                            # noqa: E402
 from fixed_assignment_scheduler_aircraft import FixedAssignmentSchedulerAircraft  # noqa: E402
 from fixed_assignment_scheduler_job      import FixedAssignmentSchedulerJob       # noqa: E402
-from aircraft_positioning import Application                 # noqa: E402  (also sets up remaining paths)
+from application import Application                         # noqa: E402  (was aircraft_positioning.py — now shared/application.py)
 
 
 # =============================================================================

@@ -38,7 +38,7 @@ import time
 
 # Shared RCL helpers — paper-#1 aircraft and paper-#2 job heuristics can
 # both consume these without coupling.
-from constructive_heuristic import (
+from rcl import (
     _grasp_weights,
     _biased_random_select_logged,
 )
@@ -979,10 +979,12 @@ if __name__ == "__main__":
     except (AttributeError, OSError):
         pass
 
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts", "input_data"))
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts", "output_data"))
-    from instance_io           import load_json as load_instance       # noqa: E402
-    from check_solution_jobs_v2 import check_solution, print_check     # noqa: E402
+    # methods/autoresearch/jobs/ -> repo root is three parents up.
+    _here_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    sys.path.insert(0, os.path.join(_here_root, "shared"))                 # instance_io, rcl
+    sys.path.insert(0, os.path.join(_here_root, "problems", "jobs"))       # checker (paper #2)
+    from instance_io import load_json as load_instance                    # noqa: E402
+    from checker     import check_solution, print_check                   # noqa: E402
 
     default_path = os.path.join(
         os.path.dirname(__file__), "..",
