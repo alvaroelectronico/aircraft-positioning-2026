@@ -43,6 +43,8 @@ methods/                 # ONE subtree per solving approach. ISOLATED.
   autoresearch/          # LLM-iterative loop (snapshot + evaluate harness)
     aircraft/                # (placeholder — no autoresearch yet)
     jobs/                    # paper #2 autoresearch (only one done so far)
+  theory_assisted/       # literature-informed, clean-room implementation
+    jobs/                    # paper #2 (the only scope so far)
 
 experiments/             # Cross-method orchestration; imports any method.
   run_experiments.py         # batch runner (the bridge across methods)
