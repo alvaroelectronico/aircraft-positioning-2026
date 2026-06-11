@@ -31,8 +31,15 @@ exception.
 1. Read `problems/jobs/problem_statement.md` end-to-end.  This is the
    complete brief — no other internal docs.
 2. Skim `literature_review/report_consensus.txt` to map the literature.
-   Then deep-read the 2–4 papers that look most applicable.  Take notes
-   under `methods/theory_assisted/jobs/notes/`.
+   Then digest the 2–4 papers that look most applicable using the
+   project skill (it runs the `theory-paper-digest` subagent and writes
+   to `methods/theory_assisted/jobs/notes/literature_digest/`):
+   ```
+   /digest-paper literature_review/papers/qin2019.pdf
+   /digest-paper literature_review/papers/festa2008.pdf  GRASP construction
+   ```
+   Take any cross-paper synthesis or design sketches under
+   `methods/theory_assisted/jobs/notes/`.
 3. Sketch a design.  Put it in `methods/theory_assisted/jobs/notes/design.md`.
 4. Implement in `methods/theory_assisted/jobs/theory_assisted_job.py`.
    Keep the class name `TheoryAssistedJobSolver` and the contract from

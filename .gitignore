@@ -12,8 +12,11 @@ Thumbs.db
 *.swp
 *~
 
-# Claude Code harness state
-.claude/
+# Claude Code harness state — ignore everything inside .claude/ EXCEPT
+# project-level tooling (agents and skills) that the whole team shares.
+.claude/*
+!.claude/agents/
+!.claude/skills/
 
 # LaTeX build artifacts (paper sources are versioned; transient artefacts are not)
 papers/**/*.aux
