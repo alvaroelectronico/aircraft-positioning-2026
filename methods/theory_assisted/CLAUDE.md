@@ -15,14 +15,18 @@ attempt at the problem.
   the JSON inputs.
 - `shared/**` — Application dispatcher contract, instance_io, plotting,
   RCL helpers.
-- `literature_review/**` — external scheduling/OR literature.  This is
-  the **defining input** of this method.  Read PDFs, the consensus
-  report, and any digests the human has produced.
+- `methods/theory_assisted/inspiration/**` — the **curated theory
+  input** for this method.  This is the defining input: PDFs and any
+  supporting material the human has placed there.  Digests of these
+  sources live in `methods/theory_assisted/digest/`.
 - `experiments/run_experiments.py` — the integration point (to see how
   a new method registers itself for batch runs).
 
 ## You MUST NOT read
 
+- `literature_review/**`            (repo-wide bucket — not this
+                                     method's input; only the curated
+                                     `inspiration/` folder is)
 - `methods/manual/**`               (other method)
 - `methods/autoresearch/**`         (other method)
 - `papers/cejor_aircraft/**`        (manuscript discussing other methods)
