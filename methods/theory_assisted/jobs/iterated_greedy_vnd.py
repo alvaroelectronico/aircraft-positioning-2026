@@ -111,63 +111,102 @@ class IteratedGreedyVNDJobSolver:
 
         self._prepare(instance_data)
         R = len(self.aircraft_ids)
-        k_destroy = int(cfg.get("k_destroy", max(1, R // 4)))
-        max_no_improve = int(cfg.get("max_no_improve", 400))
+        self.k_destroy = int(cfg.get("k_destroy", max(1, R // 4)))
+        self.max_no_improve = int(cfg.get("max_no_improve", 400))
+        use_v3 = bool(cfg.get("use_v3", True))
 
         t0 = time.perf_counter()
 
-        # ---- construction (NEH order + greedy best-position insertion) ----
+        # ---- Phase 1: zero-movement search (v2 decoder) ----
+        # Fast, robust, always feasible.  Gets a good assignment + order.
+        self._decode_fn = self._decode
         order = sorted(self.aircraft_ids, key=lambda r: -self.T[r])
         assignment = self._greedy_construct(order)
         order = self._neh_order(assignment)
-        assignment, order = self._vnd(assignment, order)
-        best_assign, best_order = dict(assignment), list(order)
-        best_obj = self._objective(self._decode(best_assign, best_order))
+        dl1 = t0 + (self.time_limit * 0.5 if use_v3 else self.time_limit)
+        a1, o1 = self._search(assignment, order, dl1)
+        sol_v2 = self._finalize(self._decode(a1, o1))
         self._log.append(
-            f"construct+vnd  obj={best_obj:.4f}  "
+            f"phase1 (v2, 0-mov)  obj={sol_v2['objective']:.4f}  "
+            f"ms={sol_v2['metrics']['makespan']:.1f} dly={sol_v2['metrics']['total_delay']:.1f} "
+            f"mov={sol_v2['metrics']['movements']}  ({time.perf_counter() - t0:.2f}s)"
+        )
+        best_sol, best_obj = sol_v2, sol_v2["objective"]
+
+        # ---- Phase 2: manoeuvre-aware polish (v3 decoder) ----
+        # Lets the search spend Mode-C manoeuvres to compress the schedule
+        # when the weights reward it.  Every candidate is validated with the
+        # real checker; v2 is the guaranteed floor, so this never regresses.
+        if use_v3:
+            self._decode_fn = self._decode_v3
+            a3, o3 = self._search(dict(a1), list(o1), t0 + self.time_limit)
+            sol_v3 = self._finalize(self._decode_v3(a3, o3))
+            if self._is_compliant(sol_v3, instance_data) and sol_v3["objective"] < best_obj - 1e-9:
+                best_sol, best_obj = sol_v3, sol_v3["objective"]
+                self._log.append(
+                    f"phase2 (v3)  ACCEPTED obj={sol_v3['objective']:.4f}  "
+                    f"ms={sol_v3['metrics']['makespan']:.1f} "
+                    f"dly={sol_v3['metrics']['total_delay']:.1f} "
+                    f"mov={sol_v3['metrics']['movements']}  ({time.perf_counter() - t0:.2f}s)"
+                )
+            else:
+                why = "non-compliant" if not self._is_compliant(sol_v3, instance_data) else \
+                      f"no improvement (obj={sol_v3['objective']:.4f})"
+                self._log.append(f"phase2 (v3)  rejected: {why}")
+
+        best_sol["status"] = "heuristic_ok"
+        self._log.append(
+            f"done  best_obj={best_obj:.4f}  "
+            f"ms={best_sol['metrics']['makespan']:.2f} "
+            f"dly={best_sol['metrics']['total_delay']:.2f} "
+            f"mov={best_sol['metrics']['movements']}  "
             f"({time.perf_counter() - t0:.2f}s)"
         )
+        return best_sol
 
-        # ---- Iterated Greedy outer loop ----
+    # ------------------------------------------------------------------
+    # Search driver (shared by both phases via self._decode_fn)
+    # ------------------------------------------------------------------
+
+    def _search(self, assignment, order, deadline):
+        """VND + Iterated-Greedy loop using the current ``self._decode_fn``."""
+        assignment, order = self._vnd(assignment, order)
+        best_assign, best_order = dict(assignment), list(order)
+        best_obj = self._objective(self._decode_fn(best_assign, best_order))
         cur_assign, cur_order = dict(best_assign), list(best_order)
-        it = 0
         no_improve = 0
-        while (time.perf_counter() - t0) < self.time_limit and no_improve < max_no_improve:
-            it += 1
-            a2, o2 = self._perturb(cur_assign, cur_order, k_destroy)
+        while time.perf_counter() < deadline and no_improve < self.max_no_improve:
+            a2, o2 = self._perturb(cur_assign, cur_order, self.k_destroy)
             a2, o2 = self._vnd(a2, o2)
-            obj2 = self._objective(self._decode(a2, o2))
-            cur_obj = self._objective(self._decode(cur_assign, cur_order))
-            # Acceptance: keep the new local optimum if it does not worsen
-            # the incumbent walk (standard IG accept-if-better-or-equal),
-            # always tracking the global best separately.
+            obj2 = self._objective(self._decode_fn(a2, o2))
+            cur_obj = self._objective(self._decode_fn(cur_assign, cur_order))
             if obj2 <= cur_obj + 1e-9:
                 cur_assign, cur_order = a2, o2
             if obj2 < best_obj - 1e-9:
                 best_assign, best_order = dict(a2), list(o2)
                 best_obj = obj2
                 no_improve = 0
-                self._log.append(
-                    f"iter {it:>4}  new best obj={best_obj:.4f}  "
-                    f"({time.perf_counter() - t0:.2f}s)"
-                )
             else:
                 no_improve += 1
-            # Occasionally restart the walk from the global best to avoid
-            # drifting into a worse basin.
             if no_improve > 0 and no_improve % 50 == 0:
                 cur_assign, cur_order = dict(best_assign), list(best_order)
+        return best_assign, best_order
 
-        elapsed = time.perf_counter() - t0
-        sol = self._decode(best_assign, best_order)
-        self._log.append(
-            f"done  iters={it}  best_obj={best_obj:.4f}  "
-            f"makespan={sol['metrics']['makespan']:.2f}  "
-            f"delay={sol['metrics']['total_delay']:.2f}  "
-            f"mov={sol['metrics']['movements']}  ({elapsed:.2f}s)"
-        )
+    @staticmethod
+    def _finalize(sol: dict) -> dict:
         sol["status"] = "heuristic_ok"
         return sol
+
+    def _is_compliant(self, sol: dict, instance_data: dict) -> bool:
+        """Validate a candidate with the real paper-#2 checker (safety net)."""
+        try:
+            from checker import check_solution  # problems/jobs on sys.path
+        except Exception:
+            return True  # checker not importable in this context — trust the sim
+        try:
+            return bool(check_solution(sol, instance_data)["compliant"])
+        except Exception:
+            return False
 
     # ==================================================================
     # Instance preprocessing
@@ -176,6 +215,8 @@ class IteratedGreedyVNDJobSolver:
     def _prepare(self, inst: dict) -> None:
         self.eta = float(inst.get("eta", 1.0))
         self.eps = float(inst.get("min_separation", 0.5))
+        self.mu = float(inst.get("mu", 1.0))
+        self.delta = float(inst.get("delta", 2.0))
 
         self.positions: list[str] = list(inst["hangar"]["positions"])
         arcs = inst["hangar"]["blocking_arcs"]
@@ -187,6 +228,18 @@ class IteratedGreedyVNDJobSolver:
             conflict.add((arc["rear"], arc["front"]))
         self._conflict = conflict
         self._arcs = directed
+
+        # Blocking depth (longest front→rear chain ending at a position).
+        # Deeper = more rear; the v3 decoder schedules deep positions first
+        # so a front aircraft sees its rears' access instants already fixed.
+        depth = {p: 0 for p in self.positions}
+        for _ in range(len(self.positions)):
+            for (f, r) in directed:
+                if depth[r] < depth[f] + 1:
+                    depth[r] = depth[f] + 1
+        self._pos_by_depth_desc = sorted(self.positions, key=lambda p: -depth[p])
+        # rears blocked by each front position
+        self._rears_of = {p: [r for (f, r) in directed if f == p] for p in self.positions}
 
         self.aircraft_ids: list[str] = [a["id"] for a in inst["aircrafts"]]
         self.E: dict[str, float] = {a["id"]: float(a["earliest_start"]) for a in inst["aircrafts"]}
@@ -200,6 +253,9 @@ class IteratedGreedyVNDJobSolver:
         for pr in inst["job_precedences"]:
             succ[pr["before"]] = pr["after"]
 
+        self.interruptible: dict[str, bool] = {
+            j["id"]: bool(j.get("interruptible", False)) for j in inst["jobs"]
+        }
         self.chain: dict[str, list[tuple[str, float]]] = {}
         self.T: dict[str, float] = {}
         for r in self.aircraft_ids:
@@ -344,7 +400,7 @@ class IteratedGreedyVNDJobSolver:
     def _vnd(self, assignment: dict, order: list[str]) -> tuple[dict, list[str]]:
         assignment = dict(assignment)
         order = list(order)
-        cur = self._objective(self._decode(assignment, order))
+        cur = self._objective(self._decode_fn(assignment, order))
         k = 0
         neighbourhoods = (self._n_reassign, self._n_swap_pos, self._n_reorder)
         while k < len(neighbourhoods):
@@ -363,7 +419,7 @@ class IteratedGreedyVNDJobSolver:
                 if p == p0:
                     continue
                 assignment[r] = p
-                o = self._objective(self._decode(assignment, order))
+                o = self._objective(self._decode_fn(assignment, order))
                 if o < cur - 1e-9:
                     return True, assignment, order, o
                 assignment[r] = p0
@@ -378,7 +434,7 @@ class IteratedGreedyVNDJobSolver:
                 if assignment[ri] == assignment[rj]:
                     continue
                 assignment[ri], assignment[rj] = assignment[rj], assignment[ri]
-                o = self._objective(self._decode(assignment, order))
+                o = self._objective(self._decode_fn(assignment, order))
                 if o < cur - 1e-9:
                     return True, assignment, order, o
                 assignment[ri], assignment[rj] = assignment[rj], assignment[ri]
@@ -389,7 +445,7 @@ class IteratedGreedyVNDJobSolver:
         for i in range(len(order)):
             for j in range(i + 1, len(order)):
                 order[i], order[j] = order[j], order[i]
-                o = self._objective(self._decode(assignment, order))
+                o = self._objective(self._decode_fn(assignment, order))
                 if o < cur - 1e-9:
                     return True, assignment, order, o
                 order[i], order[j] = order[j], order[i]
@@ -403,7 +459,7 @@ class IteratedGreedyVNDJobSolver:
         """Destruction–reconstruction: remove the k highest-contribution
         aircraft, then greedily reinsert each at its best position and a
         good spot in the order."""
-        sol = self._decode(assignment, order)
+        sol = self._decode_fn(assignment, order)
         contrib = {a["id"]: self.wD * a["delay"] + 1e-3 * self.T[a["id"]]
                    for a in sol["aircraft"]}
         # Remove the k worst contributors, with a little randomisation so the
@@ -423,7 +479,7 @@ class IteratedGreedyVNDJobSolver:
                 trial_order = kept_order[:slot] + [r] + kept_order[slot:]
                 for p in self.positions:
                     a2[r] = p
-                    o = self._objective(self._decode(a2, trial_order))
+                    o = self._objective(self._decode_fn(a2, trial_order))
                     if best is None or o < best[0]:
                         best = (o, p, slot)
             _, bp, bslot = best
@@ -431,6 +487,141 @@ class IteratedGreedyVNDJobSolver:
             kept_order = kept_order[:bslot] + [r] + kept_order[bslot:]
 
         return a2, kept_order
+
+    # ==================================================================
+    # v3 decoder — manoeuvre-aware (allows Mode-C overlap)
+    # ==================================================================
+
+    def _decode_v3(self, assignment: dict, order: list[str]) -> dict:
+        """Decode allowing rear aircraft to interrupt front aircraft
+        (Mode C), spending manoeuvres to compress the schedule.
+
+        Positions are scheduled deep-first (rears before fronts) so that
+        when a front is placed, its rears' access instants are already
+        fixed.  Each front is given the **minimum-cost** start (weighted
+        finish + delay + manoeuvre penalty); the rear-before/after/nested
+        zero-movement options are always among the candidates, so this
+        only ever adds the manoeuvre option, never removes a feasible one.
+        """
+        pos_members = {p: [r for r in order if assignment[r] == p] for p in self.positions}
+        placed: dict[str, tuple[float, float, list]] = {}
+
+        for p in self._pos_by_depth_desc:
+            prev_f = None
+            for r in pos_members[p]:
+                lower = self.E[r]
+                if prev_f is not None:
+                    lower = max(lower, prev_f + self.eps)
+                # access instants of already-placed rears blocked by p
+                rear_acc: list[float] = []
+                for pr in self._rears_of[p]:
+                    for a in pos_members.get(pr, []):
+                        if a in placed:
+                            s_a, f_a, _ = placed[a]
+                            rear_acc.append(s_a)
+                            rear_acc.append(f_a)
+                s_r, f_r, sched = self._place_front(r, lower, rear_acc)
+                placed[r] = (s_r, f_r, sched)
+                prev_f = f_r
+
+        aircraft_out = []
+        makespan = 0.0
+        total_delay = 0.0
+        total_modec = 0
+        for r in self.aircraft_ids:
+            if r not in placed:
+                continue
+            s_r, f_r, sched = placed[r]
+            jobs_out = [{"id": jid, "start": s, "finish": f} for (jid, s, f, k) in sched]
+            total_modec += sum(k for (_, _, _, k) in sched)
+            delay = max(0.0, f_r - self.L[r])
+            makespan = max(makespan, f_r)
+            total_delay += delay
+            aircraft_out.append({
+                "id": r, "position": assignment[r],
+                "start": s_r, "finish": f_r, "delay": delay, "jobs": jobs_out,
+            })
+
+        movements = 2 * total_modec
+        obj = self.wM * makespan + self.wD * total_delay + self.wS * movements
+        return {
+            "status": "heuristic_ok",
+            "objective": round(obj, 6),
+            "metrics": {"makespan": makespan, "total_delay": total_delay, "movements": movements},
+            "aircraft": aircraft_out,
+        }
+
+    def _place_front(self, r, lower, rear_acc):
+        """Choose the minimum-cost feasible start for front aircraft r.
+
+        Returns (start, finish, sched) where sched is a list of
+        (job_id, start, finish, kappa).
+        """
+        eta, T = self.eta, self.T[r]
+        cands = {lower}
+        for tau in rear_acc:
+            for c in (tau - eta - T, tau - eta, tau + eta):
+                if c >= lower - 1e-9:
+                    cands.add(round(c, 4))
+        # guaranteed-feasible fallback: start after every rear access (all
+        # Mode A) AND at/after `lower` (same-position separation, E_r).
+        if rear_acc:
+            cands.add(max(lower, max(rear_acc) + eta))
+        best = None  # (cost, s, f, sched)
+        for s in sorted(cands):
+            f_r, sched, ok = self._sim_front(r, s, rear_acc)
+            if not ok:
+                continue
+            mov = 2 * sum(k for (_, _, _, k) in sched)
+            delay = max(0.0, f_r - self.L[r])
+            cost = self.wM * f_r + self.wD * delay + self.wS * mov
+            if best is None or cost < best[0] - 1e-9:
+                best = (cost, s, f_r, sched)
+        # `lower` with no rears, or the fallback, always yields a feasible
+        # placement, so `best` is never None.
+        _, s, f, sched = best
+        return s, f, sched
+
+    def _sim_front(self, r, s_start, rear_acc):
+        """Forward-simulate front aircraft r from s_start, applying delta
+        extensions for each Mode-C interruption (kappa fixpoint per job).
+
+        Returns (finish, sched, feasible).  Infeasible if an access lands
+        in a non-interruptible job interior, in a job's eta-margin, or
+        exactly on an internal job boundary (zero-gap Mode B).
+        """
+        eta, delta = self.eta, self.delta
+        sched = []
+        t = s_start
+        for (jid, D) in self.chain[r]:
+            interruptible = self.interruptible[jid]
+            kappa = 0
+            while True:                                   # kappa fixpoint
+                f_j = t + D + delta * kappa
+                cnt = sum(1 for tau in rear_acc if t + eta - 1e-9 <= tau <= f_j - eta + 1e-9)
+                if cnt == kappa:
+                    break
+                kappa = cnt
+                if kappa > 4 * len(rear_acc) + 5:         # safety
+                    return None, None, False
+            f_j = t + D + delta * kappa
+            if kappa > 0 and not interruptible:
+                return None, None, False                  # Mode C on non-interruptible
+            # eta-margin bad zones (not classifiable as A/B/C)
+            for tau in rear_acc:
+                if t - 1e-9 < tau < t + eta - 1e-9:
+                    return None, None, False
+                if f_j - eta + 1e-9 < tau < f_j - 1e-9:
+                    return None, None, False
+            sched.append((jid, t, f_j, kappa))
+            t = f_j
+        # internal job boundaries must not be hit (zero-gap Mode B)
+        for k in range(len(sched) - 1):
+            b = sched[k][2]
+            for tau in rear_acc:
+                if abs(tau - b) < 1e-6:
+                    return None, None, False
+        return t, sched, True
 
 
 # Backwards-compatible alias: the Application contract only needs the

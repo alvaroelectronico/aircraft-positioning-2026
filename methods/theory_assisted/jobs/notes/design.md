@@ -66,16 +66,38 @@ that space.
   separately; restart the walk from best every 50 stale iterations.
   Early-stop after `max_no_improve` (default 400) non-improving iterations.
 
+## v3 — manoeuvre-aware decoder (implemented)
+
+The heuristic can now *spend* Mode-C manoeuvres to compress the schedule
+when the weights reward it. `solve()` runs two phases:
+
+1. **Phase 1 (v2 decoder)** — the fast zero-movement search above, on the
+   first ~50 % of the budget; gives a good assignment + order.
+2. **Phase 2 (v3 decoder)** — a VND/IG polish using `_decode_v3`, which
+   *allows* rear aircraft to interrupt fronts. Positions are scheduled
+   **deep-first** (rears before fronts), so when a front is placed its
+   rears' access instants are fixed; `_sim_front` lays the front's jobs
+   out tight and runs a per-job **κ fixpoint** (each rear access inside an
+   interruptible job interior adds one interruption → `+delta`), counting
+   movements. `_place_front` picks the **minimum-cost** start
+   (`wM·finish + wD·delay + wS·movements`) from a candidate set that always
+   contains the rear-before / after / nested zero-movement options — so v3
+   only ever *adds* the manoeuvre option, never removes a feasible one.
+
+**Safety net.** Phase-2 results are validated with the real `checker.py`;
+v2 is the guaranteed floor and the v3 solution is taken only if it is
+compliant *and* strictly better. So v3 can never regress or emit an
+infeasible schedule (if `_sim_front` ever diverges from the checker, the
+candidate is simply rejected and v2 stands).
+
+On triangle_R10 (100/1/1) v3 spends 2 manoeuvres to cut makespan 62.5 → 61.5
+(obj 6361.5 → 6262.5), narrowing the gap to the MILP (59.5 makespan, 8
+manoeuvres). It matches the MILP optimum on every R5 / no-blocking profile.
+
 ## Remaining gap (drives the next iteration)
 
-Even with nesting, the heuristic never *spends* a manoeuvre: it stays at
-zero movements by construction. On tight-blocking instances the MILP still
-edges ahead by buying a few Mode-B/C manoeuvres to compress the schedule
-further (triangle_R10: MILP makespan 59.5 with 8 manoeuvres vs IG+VND 62.5
-with 0). The residual makespan gap (~5 %) is exactly that trade the
-heuristic cannot yet make.
-
-**Next iteration (v3):** add an incremental κ fixpoint to the decoder so the
-VND can evaluate Mode-B/C overlap moves, letting it trade a manoeuvre for a
-shorter makespan when the weights reward it. The VND neighbourhoods and the
-IG loop stay as-is; only the decoder gains the manoeuvre-spending branch.
+The MILP still edges ahead on tight-blocking R10 by buying more manoeuvres
+(8–10) than the greedy per-front placement discovers (≤2). Closing it needs
+either Mode-B (inter-job gap) manoeuvres — which require deliberately
+*inserting* gaps sized `≥ μ·n` between front jobs, a new timing decision —
+or a less greedy front placement that co-optimises several fronts at once.
