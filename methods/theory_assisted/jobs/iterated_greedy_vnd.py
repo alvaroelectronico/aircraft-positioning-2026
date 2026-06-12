@@ -107,62 +107,74 @@ class IteratedGreedyVNDJobSolver:
         self.wM = float(cfg.get("weight_makespan", 0.1))
         self.wD = float(cfg.get("weight_delay", 1.0))
         self.wS = float(cfg.get("weight_movements", 10.0))
-        self.rng = random.Random(int(cfg.get("seed", 1) or 1))
 
         self._prepare(instance_data)
         R = len(self.aircraft_ids)
         self.k_destroy = int(cfg.get("k_destroy", max(1, R // 4)))
         self.max_no_improve = int(cfg.get("max_no_improve", 400))
-        use_v3 = bool(cfg.get("use_v3", True))
+        self.use_v3 = bool(cfg.get("use_v3", True))
+        base_seed = int(cfg.get("seed", 1) or 1)
+        n_starts = int(cfg.get("n_starts", 4))
+
+        # Shared deterministic construction (the per-start variety comes from
+        # the IG perturbation RNG, re-seeded per start).
+        self._decode_fn = self._decode
+        ctor_order = sorted(self.aircraft_ids, key=lambda r: -self.T[r])
+        self._ctor_assignment = self._greedy_construct(ctor_order)
+        self._ctor_order = self._neh_order(self._ctor_assignment)
 
         t0 = time.perf_counter()
+        global_dl = t0 + self.time_limit
+        per_start = self.time_limit / max(1, n_starts)
 
-        # ---- Phase 1: zero-movement search (v2 decoder) ----
-        # Fast, robust, always feasible.  Gets a good assignment + order.
-        self._decode_fn = self._decode
-        order = sorted(self.aircraft_ids, key=lambda r: -self.T[r])
-        assignment = self._greedy_construct(order)
-        order = self._neh_order(assignment)
-        dl1 = t0 + (self.time_limit * 0.5 if use_v3 else self.time_limit)
-        a1, o1 = self._search(assignment, order, dl1)
-        sol_v2 = self._finalize(self._decode(a1, o1))
-        self._log.append(
-            f"phase1 (v2, 0-mov)  obj={sol_v2['objective']:.4f}  "
-            f"ms={sol_v2['metrics']['makespan']:.1f} dly={sol_v2['metrics']['total_delay']:.1f} "
-            f"mov={sol_v2['metrics']['movements']}  ({time.perf_counter() - t0:.2f}s)"
-        )
-        best_sol, best_obj = sol_v2, sol_v2["objective"]
-
-        # ---- Phase 2: manoeuvre-aware polish (v3 decoder) ----
-        # Lets the search spend Mode-C manoeuvres to compress the schedule
-        # when the weights reward it.  Every candidate is validated with the
-        # real checker; v2 is the guaranteed floor, so this never regresses.
-        if use_v3:
-            self._decode_fn = self._decode_v3
-            a3, o3 = self._search(dict(a1), list(o1), t0 + self.time_limit)
-            sol_v3 = self._finalize(self._decode_v3(a3, o3))
-            if self._is_compliant(sol_v3, instance_data) and sol_v3["objective"] < best_obj - 1e-9:
-                best_sol, best_obj = sol_v3, sol_v3["objective"]
-                self._log.append(
-                    f"phase2 (v3)  ACCEPTED obj={sol_v3['objective']:.4f}  "
-                    f"ms={sol_v3['metrics']['makespan']:.1f} "
-                    f"dly={sol_v3['metrics']['total_delay']:.1f} "
-                    f"mov={sol_v3['metrics']['movements']}  ({time.perf_counter() - t0:.2f}s)"
-                )
-            else:
-                why = "non-compliant" if not self._is_compliant(sol_v3, instance_data) else \
-                      f"no improvement (obj={sol_v3['objective']:.4f})"
-                self._log.append(f"phase2 (v3)  rejected: {why}")
+        best_sol, best_obj = None, float("inf")
+        i = 0
+        while time.perf_counter() < global_dl - 0.05 and i < n_starts:
+            self.rng = random.Random(base_seed + i)
+            start_dl = min(global_dl, time.perf_counter() + per_start)
+            sol, obj = self._one_start(instance_data, start_dl)
+            if obj < best_obj - 1e-9:
+                best_sol, best_obj = sol, obj
+            self._log.append(
+                f"start {i} (seed {base_seed + i})  obj={obj:.4f}  "
+                f"ms={sol['metrics']['makespan']:.1f} dly={sol['metrics']['total_delay']:.1f} "
+                f"mov={sol['metrics']['movements']}  best={best_obj:.4f}"
+            )
+            i += 1
 
         best_sol["status"] = "heuristic_ok"
         self._log.append(
-            f"done  best_obj={best_obj:.4f}  "
+            f"done  starts={i}  best_obj={best_obj:.4f}  "
             f"ms={best_sol['metrics']['makespan']:.2f} "
             f"dly={best_sol['metrics']['total_delay']:.2f} "
             f"mov={best_sol['metrics']['movements']}  "
             f"({time.perf_counter() - t0:.2f}s)"
         )
         return best_sol
+
+    def _one_start(self, instance_data: dict, deadline: float) -> tuple[dict, float]:
+        """One multi-start restart: zero-movement (v2) search, then an
+        optional manoeuvre-aware (v3) polish validated by the real checker.
+        Returns (solution, objective)."""
+        # ---- Phase 1: zero-movement search (v2 decoder) ----
+        self._decode_fn = self._decode
+        dl1 = min(deadline, time.perf_counter() + (deadline - time.perf_counter()) *
+                  (0.5 if self.use_v3 else 1.0))
+        a1, o1 = self._search(dict(self._ctor_assignment), list(self._ctor_order), dl1)
+        best_sol = self._finalize(self._decode(a1, o1))
+        best_obj = best_sol["objective"]
+
+        # ---- Phase 2: manoeuvre-aware polish (v3 decoder) ----
+        # v2 is the guaranteed floor; the v3 candidate is taken only if the
+        # real checker certifies it AND it strictly improves.
+        if self.use_v3:
+            self._decode_fn = self._decode_v3
+            a3, o3 = self._search(dict(a1), list(o1), deadline)
+            sol_v3 = self._finalize(self._decode_v3(a3, o3))
+            if (sol_v3["objective"] < best_obj - 1e-9
+                    and self._is_compliant(sol_v3, instance_data)):
+                best_sol, best_obj = sol_v3, sol_v3["objective"]
+        return best_sol, best_obj
 
     # ------------------------------------------------------------------
     # Search driver (shared by both phases via self._decode_fn)
@@ -558,11 +570,29 @@ class IteratedGreedyVNDJobSolver:
         (job_id, start, finish, kappa).
         """
         eta, T = self.eta, self.T[r]
+        chain = self.chain[r]
+        # prefix offset of each job's start relative to the aircraft start,
+        # ignoring delta extensions (approximate seed; the sim corrects it).
+        prefix, acc = [], 0.0
+        for (_, D) in chain:
+            prefix.append(acc)
+            acc += D
+
         cands = {lower}
         for tau in rear_acc:
+            # zero-movement options: front entirely before / after / nested
             for c in (tau - eta - T, tau - eta, tau + eta):
                 if c >= lower - 1e-9:
                     cands.add(round(c, 4))
+            # Mode-C alignment: slide the front so an *interruptible* job's
+            # interior sits over this rear access (so it can be absorbed as a
+            # feasible Mode-C interruption rather than forcing a shift).
+            for (jid, D), pj in zip(chain, prefix):
+                if not self.interruptible[jid]:
+                    continue
+                for c in (tau - pj - eta, tau - pj - D + eta, tau - pj - D / 2.0):
+                    if c >= lower - 1e-9:
+                        cands.add(round(c, 4))
         # guaranteed-feasible fallback: start after every rear access (all
         # Mode A) AND at/after `lower` (same-position separation, E_r).
         if rear_acc:

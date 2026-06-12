@@ -90,14 +90,35 @@ compliant *and* strictly better. So v3 can never regress or emit an
 infeasible schedule (if `_sim_front` ever diverges from the checker, the
 candidate is simply rejected and v2 stands).
 
-On triangle_R10 (100/1/1) v3 spends 2 manoeuvres to cut makespan 62.5 → 61.5
-(obj 6361.5 → 6262.5), narrowing the gap to the MILP (59.5 makespan, 8
-manoeuvres). It matches the MILP optimum on every R5 / no-blocking profile.
+### v3 candidate generation + multi-start
+
+`_place_front` seeds its start-time candidate set with, for every rear
+access and every *interruptible* job, the start that slides that job's
+interior over the access — so the front can absorb an access as a feasible
+Mode-C interruption instead of being pushed past it. `solve()` also wraps
+the whole two-phase search in a **multi-start** loop (`n_starts`, default 4;
+seeds `base..base+n`), keeping the global best — the per-start variety comes
+from the IG perturbation RNG and matters: on triangle_R10 (100/1/1)
+different seeds find 60.5 (0 mov) vs 61.5 (2 mov).
+
+## Where we stand vs the MILP
+
+Matches the MILP **exactly on every instance where the MILP proves
+optimality** — all R5 profiles and all no-blocking profiles — at 0
+manoeuvres. On `triangle_R10`:
+
+| profile | MILP (ms/dly/mov) | IG+VND (ms/dly/mov) | gap |
+| ------- | ----------------- | ------------------- | --- |
+| wMK (100/1/1) | 59.5 / 101.5 / 8  *(optimal)*       | 60.5 / 110.0 / 0 | +1.7 % |
+| wDLY (1/100/1) | 60.5 / 101.5 / 10 *(not proven)*   | 64.5 / 105.0 / 2 | +3.4 % |
+| wMOV (1/1/100) | 62.5 / 103.5 / 0  *(not proven)*   | 62.5 / 108.5 / 0 | +3.0 % |
 
 ## Remaining gap (drives the next iteration)
 
-The MILP still edges ahead on tight-blocking R10 by buying more manoeuvres
-(8–10) than the greedy per-front placement discovers (≤2). Closing it needs
-either Mode-B (inter-job gap) manoeuvres — which require deliberately
-*inserting* gaps sized `≥ μ·n` between front jobs, a new timing decision —
-or a less greedy front placement that co-optimises several fronts at once.
+The last ~1.7 % on `triangle_R10` makespan-priority is structural: the MILP
+reaches 59.5 by buying **Mode-B** manoeuvres (a rear slips through a front's
+inter-job *gap*, **no** δ extension), whereas the heuristic only does
+Mode-C (δ inflates makespan, so it never beats the 60.5 nested 0-mov
+schedule). Closing it needs deliberate inter-job gap insertion sized
+`≥ μ·n` — a new timing decision in the decoder — or a front placement that
+co-optimises several fronts at once instead of greedily one at a time.
