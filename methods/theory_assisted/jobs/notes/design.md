@@ -90,35 +90,42 @@ compliant *and* strictly better. So v3 can never regress or emit an
 infeasible schedule (if `_sim_front` ever diverges from the checker, the
 candidate is simply rejected and v2 stands).
 
-### v3 candidate generation + multi-start
+### v3 candidate generation, Mode-B gaps, multi-start
 
 `_place_front` seeds its start-time candidate set with, for every rear
-access and every *interruptible* job, the start that slides that job's
-interior over the access — so the front can absorb an access as a feasible
-Mode-C interruption instead of being pushed past it. `solve()` also wraps
-the whole two-phase search in a **multi-start** loop (`n_starts`, default 4;
-seeds `base..base+n`), keeping the global best — the per-start variety comes
-from the IG perturbation RNG and matters: on triangle_R10 (100/1/1)
-different seeds find 60.5 (0 mov) vs 61.5 (2 mov).
+access, starts that align an *interruptible* job interior over it (Mode-C)
+**and** starts that align a job *end* just before it (so it falls into a
+Mode-B gap). `_sim_front` then classifies each access and, after a job,
+opens an inter-job **gap** (sized `≥ μ·n`) for the accesses just past its
+end when that beats Mode-C (within δ of the end) or when the next job is
+non-interruptible (the access *must* pass through a gap). `solve()` wraps
+the two-phase search in a **multi-start** loop (`n_starts`, default 4;
+seeds `base..base+n`) keeping the global best — per-start variety comes from
+the IG perturbation RNG and matters on the tight-blocking instances.
 
 ## Where we stand vs the MILP
 
-Matches the MILP **exactly on every instance where the MILP proves
-optimality** — all R5 profiles and all no-blocking profiles — at 0
-manoeuvres. On `triangle_R10`:
+Matches the MILP optimum on every R5 and every no-blocking profile (0
+manoeuvres). With Mode-B it now **reaches or beats** the MILP's reported
+objective on tight-blocking `triangle_R10`:
 
-| profile | MILP (ms/dly/mov) | IG+VND (ms/dly/mov) | gap |
-| ------- | ----------------- | ------------------- | --- |
-| wMK (100/1/1) | 59.5 / 101.5 / 8  *(optimal)*       | 60.5 / 110.0 / 0 | +1.7 % |
-| wDLY (1/100/1) | 60.5 / 101.5 / 10 *(not proven)*   | 64.5 / 105.0 / 2 | +3.4 % |
-| wMOV (1/1/100) | 62.5 / 103.5 / 0  *(not proven)*   | 62.5 / 108.5 / 0 | +3.0 % |
+| profile | MILP (ms/dly/mov) | IG+VND (ms/dly/mov) | vs MILP |
+| ------- | ----------------- | ------------------- | ------- |
+| wMK (100/1/1) | 59.5 / 101.5 / 8  *(optimal)*    | **58.5 / 103.0 / 8**  | −1.6 % |
+| wDLY (1/100/1) | 60.5 / 101.5 / 10 *(not proven)* | **61.5 / 100.0 / 10** | −1.5 % |
+| wMOV (1/1/100) | 62.5 / 103.5 / 0  *(not proven)* | 62.5 / 108.5 / 0      | +3.0 % |
+
+Beating the MILP on wMK/wDLY is legitimate: the MILP discretises time to an
+integer grid, whereas the checker (the problem's source of truth) admits
+the `ε = 0.5` fractional placements the heuristic uses. Every accepted
+schedule passes `checker.py` (RQ01–RQ09: movement count matches, 0
+infeasibilities, 0 μ-gap violations).
 
 ## Remaining gap (drives the next iteration)
 
-The last ~1.7 % on `triangle_R10` makespan-priority is structural: the MILP
-reaches 59.5 by buying **Mode-B** manoeuvres (a rear slips through a front's
-inter-job *gap*, **no** δ extension), whereas the heuristic only does
-Mode-C (δ inflates makespan, so it never beats the 60.5 nested 0-mov
-schedule). Closing it needs deliberate inter-job gap insertion sized
-`≥ μ·n` — a new timing decision in the decoder — or a front placement that
-co-optimises several fronts at once instead of greedily one at a time.
+Only `triangle_R10` movement-priority (wMOV) still trails (+3 %): there the
+best schedule uses **0** manoeuvres, so it lives entirely in the v2
+zero-movement regime, and the residual is the *delay* component (108.5 vs
+103.5) — a search-quality gap in zero-movement delay minimisation, not a
+manoeuvre-modelling one. Likely closed by more starts / a delay-targeted
+neighbourhood. (The MILP itself is not proven optimal there.)

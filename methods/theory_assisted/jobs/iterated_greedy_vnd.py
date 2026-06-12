@@ -516,7 +516,7 @@ class IteratedGreedyVNDJobSolver:
         only ever adds the manoeuvre option, never removes a feasible one.
         """
         pos_members = {p: [r for r in order if assignment[r] == p] for p in self.positions}
-        placed: dict[str, tuple[float, float, list]] = {}
+        placed: dict[str, tuple] = {}
 
         for p in self._pos_by_depth_desc:
             prev_f = None
@@ -529,23 +529,23 @@ class IteratedGreedyVNDJobSolver:
                 for pr in self._rears_of[p]:
                     for a in pos_members.get(pr, []):
                         if a in placed:
-                            s_a, f_a, _ = placed[a]
+                            s_a, f_a = placed[a][0], placed[a][1]
                             rear_acc.append(s_a)
                             rear_acc.append(f_a)
-                s_r, f_r, sched = self._place_front(r, lower, rear_acc)
-                placed[r] = (s_r, f_r, sched)
+                s_r, f_r, sched, mov_events = self._place_front(r, lower, rear_acc)
+                placed[r] = (s_r, f_r, sched, mov_events)
                 prev_f = f_r
 
         aircraft_out = []
         makespan = 0.0
         total_delay = 0.0
-        total_modec = 0
+        total_events = 0
         for r in self.aircraft_ids:
             if r not in placed:
                 continue
-            s_r, f_r, sched = placed[r]
+            s_r, f_r, sched, mov_events = placed[r]
             jobs_out = [{"id": jid, "start": s, "finish": f} for (jid, s, f, k) in sched]
-            total_modec += sum(k for (_, _, _, k) in sched)
+            total_events += mov_events
             delay = max(0.0, f_r - self.L[r])
             makespan = max(makespan, f_r)
             total_delay += delay
@@ -554,7 +554,7 @@ class IteratedGreedyVNDJobSolver:
                 "start": s_r, "finish": f_r, "delay": delay, "jobs": jobs_out,
             })
 
-        movements = 2 * total_modec
+        movements = 2 * total_events
         obj = self.wM * makespan + self.wD * total_delay + self.wS * movements
         return {
             "status": "heuristic_ok",
@@ -566,12 +566,11 @@ class IteratedGreedyVNDJobSolver:
     def _place_front(self, r, lower, rear_acc):
         """Choose the minimum-cost feasible start for front aircraft r.
 
-        Returns (start, finish, sched) where sched is a list of
-        (job_id, start, finish, kappa).
+        Returns (start, finish, sched, mov_events).
         """
         eta, T = self.eta, self.T[r]
         chain = self.chain[r]
-        # prefix offset of each job's start relative to the aircraft start,
+        # prefix start / end offset of each job relative to the aircraft start,
         # ignoring delta extensions (approximate seed; the sim corrects it).
         prefix, acc = [], 0.0
         for (_, D) in chain:
@@ -584,74 +583,126 @@ class IteratedGreedyVNDJobSolver:
             for c in (tau - eta - T, tau - eta, tau + eta):
                 if c >= lower - 1e-9:
                     cands.add(round(c, 4))
-            # Mode-C alignment: slide the front so an *interruptible* job's
-            # interior sits over this rear access (so it can be absorbed as a
-            # feasible Mode-C interruption rather than forcing a shift).
             for (jid, D), pj in zip(chain, prefix):
-                if not self.interruptible[jid]:
-                    continue
-                for c in (tau - pj - eta, tau - pj - D + eta, tau - pj - D / 2.0):
+                # Mode-C alignment: an interruptible job's interior over tau.
+                if self.interruptible[jid]:
+                    for c in (tau - pj - eta, tau - pj - D + eta, tau - pj - D / 2.0):
+                        if c >= lower - 1e-9:
+                            cands.add(round(c, 4))
+                # Mode-B alignment: a job *end* just before tau, so tau falls
+                # into the gap opened after it (no delta extension).
+                for c in (tau - pj - D, tau - pj - D - eta):
                     if c >= lower - 1e-9:
                         cands.add(round(c, 4))
         # guaranteed-feasible fallback: start after every rear access (all
         # Mode A) AND at/after `lower` (same-position separation, E_r).
         if rear_acc:
             cands.add(max(lower, max(rear_acc) + eta))
-        best = None  # (cost, s, f, sched)
+
+        best = None  # (cost, s, f, sched, mov_events)
         for s in sorted(cands):
-            f_r, sched, ok = self._sim_front(r, s, rear_acc)
+            f_r, sched, mov_events, ok = self._sim_front(r, s, rear_acc)
             if not ok:
                 continue
-            mov = 2 * sum(k for (_, _, _, k) in sched)
             delay = max(0.0, f_r - self.L[r])
-            cost = self.wM * f_r + self.wD * delay + self.wS * mov
+            cost = self.wM * f_r + self.wD * delay + self.wS * (2 * mov_events)
             if best is None or cost < best[0] - 1e-9:
-                best = (cost, s, f_r, sched)
+                best = (cost, s, f_r, sched, mov_events)
         # `lower` with no rears, or the fallback, always yields a feasible
         # placement, so `best` is never None.
-        _, s, f, sched = best
-        return s, f, sched
+        _, s, f, sched, mov_events = best
+        return s, f, sched, mov_events
 
     def _sim_front(self, r, s_start, rear_acc):
-        """Forward-simulate front aircraft r from s_start, applying delta
-        extensions for each Mode-C interruption (kappa fixpoint per job).
+        """Forward-simulate front aircraft r from s_start.
 
-        Returns (finish, sched, feasible).  Infeasible if an access lands
-        in a non-interruptible job interior, in a job's eta-margin, or
-        exactly on an internal job boundary (zero-gap Mode B).
+        Each rear access is classified against r's laid-out jobs:
+          * Mode C — strictly inside an interruptible job interior; the job
+            is extended by ``delta`` (kappa fixpoint per job).
+          * Mode B — routed through a deliberately inserted inter-job *gap*
+            (no job extension); the gap is sized ``>= mu * (#accesses in it)``.
+            A gap is opened after job j for the accesses just past its end
+            when that is cheaper than Mode C (within ``delta`` of the end) or
+            when the next job is non-interruptible (so the access cannot be
+            absorbed and must pass through a gap).
+          * Mode A — outside r's stay; free.
+
+        Returns (finish, sched, mov_events, feasible), where ``sched`` is a
+        list of (job_id, start, finish, kappa) and ``mov_events`` is the
+        number of Mode-B + Mode-C access events (movements = 2 * mov_events).
+        Infeasible if an access lands in a non-interruptible job interior, in
+        a job's eta-margin, or cannot be classified.
         """
-        eta, delta = self.eta, self.delta
+        eta, delta, mu = self.eta, self.delta, self.mu
+        chain = self.chain[r]
+        acc = sorted(rear_acc)
+        used = [False] * len(acc)
         sched = []
+        mov_events = 0
         t = s_start
-        for (jid, D) in self.chain[r]:
+        n = len(chain)
+
+        for j in range(n):
+            jid, D = chain[j]
             interruptible = self.interruptible[jid]
+
             kappa = 0
-            while True:                                   # kappa fixpoint
+            while True:                                   # Mode-C kappa fixpoint
                 f_j = t + D + delta * kappa
-                cnt = sum(1 for tau in rear_acc if t + eta - 1e-9 <= tau <= f_j - eta + 1e-9)
+                cnt = sum(1 for i, tau in enumerate(acc)
+                          if not used[i] and t + eta - 1e-9 <= tau <= f_j - eta + 1e-9)
                 if cnt == kappa:
                     break
                 kappa = cnt
-                if kappa > 4 * len(rear_acc) + 5:         # safety
-                    return None, None, False
+                if kappa > len(acc) + 5:                  # safety
+                    return None, None, None, False
             f_j = t + D + delta * kappa
             if kappa > 0 and not interruptible:
-                return None, None, False                  # Mode C on non-interruptible
-            # eta-margin bad zones (not classifiable as A/B/C)
-            for tau in rear_acc:
+                return None, None, None, False            # Mode C on non-interruptible
+            for i, tau in enumerate(acc):                 # eta-margin bad zones
+                if used[i]:
+                    continue
                 if t - 1e-9 < tau < t + eta - 1e-9:
-                    return None, None, False
+                    return None, None, None, False
                 if f_j - eta + 1e-9 < tau < f_j - 1e-9:
-                    return None, None, False
+                    return None, None, None, False
+            for i, tau in enumerate(acc):                 # consume Mode-C accesses
+                if not used[i] and t + eta - 1e-9 <= tau <= f_j - eta + 1e-9:
+                    used[i] = True
+            mov_events += kappa
             sched.append((jid, t, f_j, kappa))
             t = f_j
-        # internal job boundaries must not be hit (zero-gap Mode B)
-        for k in range(len(sched) - 1):
-            b = sched[k][2]
-            for tau in rear_acc:
-                if abs(tau - b) < 1e-6:
-                    return None, None, False
-        return t, sched, True
+
+            # Mode-B gap before the next job
+            if j < n - 1:
+                next_interruptible = self.interruptible[chain[j + 1][0]]
+                window = chain[j + 1][1] if not next_interruptible else delta
+                batch = [i for i in range(len(acc))
+                         if not used[i] and f_j + 1e-9 < acc[i] <= f_j + window + 1e-9]
+                if batch:
+                    s_next = max(max(acc[i] for i in batch), f_j + mu * len(batch))
+                    # reconcile: every unused access in (f_j, s_next] is in the
+                    # gap (Mode B) and must be counted, which may widen the gap.
+                    while True:
+                        extra = [i for i in range(len(acc))
+                                 if not used[i] and i not in batch
+                                 and f_j + 1e-9 < acc[i] <= s_next + 1e-9]
+                        if not extra:
+                            break
+                        batch += extra
+                        s_next = max(s_next, max(acc[i] for i in batch), f_j + mu * len(batch))
+                    for i in batch:
+                        used[i] = True
+                    mov_events += len(batch)
+                    t = s_next
+
+        f_r = t
+        # Any unused access strictly inside the stay is an unclassifiable /
+        # zero-gap boundary case — reject (the checker would too).
+        for i, tau in enumerate(acc):
+            if not used[i] and s_start + eta - 1e-9 <= tau <= f_r - eta + 1e-9:
+                return None, None, None, False
+        return f_r, sched, mov_events, True
 
 
 # Backwards-compatible alias: the Application contract only needs the
