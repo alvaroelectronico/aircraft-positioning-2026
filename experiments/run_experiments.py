@@ -58,6 +58,14 @@ _ar_spec = _il_util.spec_from_file_location(
 _ar_mod = _il_util.module_from_spec(_ar_spec)
 _ar_spec.loader.exec_module(_ar_mod)
 TopologyHeuristicJobAR = _ar_mod.TopologyHeuristicJob
+
+# theory_assisted method — Iterated Greedy + VND (Candidate A).  Imported
+# from its own package path; this runner is NOT under methods/<X>/ so it is
+# exempt from the cross-method isolation scan, and importing the solver here
+# is the sanctioned batch-registration step (README step 6).
+sys.path.insert(0, str(_ROOT / "methods" / "theory_assisted" / "jobs"))  # iterated_greedy_vnd
+from iterated_greedy_vnd import IteratedGreedyVNDJobSolver  # noqa: E402
+
 from tgr_solver import TGRSolver                            # noqa: E402
 from fixed_assignment_scheduler_aircraft import FixedAssignmentSchedulerAircraft  # noqa: E402
 from fixed_assignment_scheduler_job      import FixedAssignmentSchedulerJob       # noqa: E402
@@ -104,6 +112,15 @@ _BASE_CONFIG_WB: dict = {**_BASE_CONFIG, "weight_makespan": 1, "weight_delay": 1
 
 # Weight variant C — makespan-priority
 _BASE_CONFIG_WC: dict = {**_BASE_CONFIG, "weight_makespan": 10, "weight_delay": 0.1, "weight_movements": 1}
+
+# ---------------------------------------------------------------------------
+# theory_assisted comparison — three single-dominant weight permutations
+# (the dominant weight = 100, the other two = 1), 60 s cap.  Used to compare
+# the job-level MILP baseline against the IG+VND heuristic across objectives.
+# ---------------------------------------------------------------------------
+_W_MK:  dict = {**_BASE_CONFIG, "weight_makespan": 100, "weight_delay": 1,   "weight_movements": 1,   "time_limit_s": 60}
+_W_DLY: dict = {**_BASE_CONFIG, "weight_makespan": 1,   "weight_delay": 100, "weight_movements": 1,   "time_limit_s": 60}
+_W_MOV: dict = {**_BASE_CONFIG, "weight_makespan": 1,   "weight_delay": 1,   "weight_movements": 100, "time_limit_s": 60}
 
 EXPERIMENTS: list[dict] = [
     # =========================================================================
@@ -379,6 +396,19 @@ EXPERIMENTS: list[dict] = [
         "safe_from": ["topology_ms6_job", "fas_on_topo_job"],
         "config":    {**_BASE_CONFIG},
     },
+
+    # =========================================================================
+    # THEORY_ASSISTED — IG+VND (Candidate A) vs job-level MILP baseline,
+    # three single-dominant weight permutations (100/1/1), 60 s cap.
+    # Interleaved MILP/heuristic per weight profile so each MILP row is
+    # immediately followed by the IG+VND row for the same problem.
+    # =========================================================================
+    {"label": "milp_job_wMK",  "solver_class": MILPJobsV2Solver,           "config": {**_W_MK}},
+    {"label": "igvnd_wMK",     "solver_class": IteratedGreedyVNDJobSolver, "config": {**_W_MK,  "seed": 1}},
+    {"label": "milp_job_wDLY", "solver_class": MILPJobsV2Solver,           "config": {**_W_DLY}},
+    {"label": "igvnd_wDLY",    "solver_class": IteratedGreedyVNDJobSolver, "config": {**_W_DLY, "seed": 1}},
+    {"label": "milp_job_wMOV", "solver_class": MILPJobsV2Solver,           "config": {**_W_MOV}},
+    {"label": "igvnd_wMOV",    "solver_class": IteratedGreedyVNDJobSolver, "config": {**_W_MOV, "seed": 1}},
 
     # =========================================================================
     # ARCHIVED — uncomment to reproduce earlier experiments

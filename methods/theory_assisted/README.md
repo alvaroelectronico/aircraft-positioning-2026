@@ -43,20 +43,29 @@ exception.
    /digest-paper methods/theory_assisted/inspiration/qin2019.pdf
    /digest-paper methods/theory_assisted/inspiration/festa2008.pdf  GRASP construction
    ```
-   Synthesise across digests under
-   `methods/theory_assisted/jobs/notes/`.
-3. Sketch a design.  Put it in `methods/theory_assisted/jobs/notes/design.md`.
-4. Implement in `methods/theory_assisted/jobs/theory_assisted_job.py`.
+3. Synthesise across digests with the project skill — it forks the
+   `theory-synthesize` subagent and writes
+   `methods/theory_assisted/jobs/notes/synthesis.md` with convergent
+   themes, distinct angles and 2–4 concrete candidate approaches:
+   ```
+   /synthesize-theory
+   /synthesize-theory  GRASP-heavy   # bias the candidates toward one angle
+   ```
+4. Pick ONE candidate from the synthesis and develop it in
+   `methods/theory_assisted/jobs/notes/design.md` (normal Claude
+   session, no extra agent — by this point the design.md is concrete
+   enough that regular coding workflow takes over).
+5. Implement in `methods/theory_assisted/jobs/theory_assisted_job.py`.
    Keep the class name `TheoryAssistedJobSolver` and the contract from
    `shared/application.py`.
-5. Register a label in `experiments/run_experiments.py` so the batch
+6. Register a label in `experiments/run_experiments.py` so the batch
    runner can dispatch your method against the benchmark.
-6. Run the isolation test:
+7. Run the isolation test:
    ```
    py -3 experiments/tests/test_method_isolation.py
    ```
    Must report `0 violations`.
-7. Run a smoke test:
+8. Run a smoke test:
    ```
    py -3 experiments/run_experiments.py "scn_triangle_tight_P5_R5_seed1$" \
        "<your_label>" problems/jobs/instances
