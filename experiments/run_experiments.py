@@ -859,11 +859,19 @@ def _fmt(v) -> str:
 
 
 def _write_log(log_path: Path, config_header: str, summary: list[dict]) -> None:
-    """Overwrite *log_path* with the config header and the latest summary table."""
+    """Overwrite *log_path* with the config header, the heuristic-vs-MILP
+    relative-gap summary, and then the per-instance detail table."""
     log_path.parent.mkdir(parents=True, exist_ok=True)
     buf = io.StringIO()
     buf.write(config_header)
     buf.write("\n")
+    # Heuristic-vs-MILP relative gap per instance type (before the detail).
+    try:
+        from gap_summary import format_gap_table   # experiments/ on sys.path
+        buf.write(format_gap_table(summary))
+        buf.write("\n")
+    except Exception as exc:  # noqa: BLE001 — never let logging crash a run
+        buf.write(f"  (gap summary unavailable: {exc})\n\n")
     _format_summary(buf, summary)
     log_path.write_text(buf.getvalue(), encoding="utf-8")
 
