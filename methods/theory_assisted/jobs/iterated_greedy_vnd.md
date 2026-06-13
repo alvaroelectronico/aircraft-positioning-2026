@@ -196,13 +196,13 @@ schedule is `F = Wᴹ·makespan + Wᴰ·Σ delay + Wˢ·movements`.
 ```
 ALGORITHM  Solve(instance, time_limit, weights, n_starts, base_seed):
     preprocess instance  (job chains, Tᵣ, blocking arcs, position depths)
-    σ₀ ← aircraft sorted by Tᵣ descending                 # NEH order
+    σ₀ ← NEHorder(∅)                                      # NEH order (Tᵣ desc)
     π₀ ← GreedyConstruct(σ₀)                              # shared seed
     best ← ∅ ;  best_F ← +∞
     for i in 0 … n_starts−1  while time remains:
         seed the RNG with base_seed + i
         deadline_i ← now + time_limit / n_starts
-        (sol, F) ← OneStart(π₀, NEHorder(π₀), deadline_i)
+        (sol, F) ← OneStart(π₀, σ₀, deadline_i)              # σ₀ = NEHorder(π₀) here
         if F < best_F:  best, best_F ← sol, F
     return best
 
