@@ -284,7 +284,224 @@ Prints the per-run log, the objective/metrics, and the full checker report.
 
 ---
 
+# Part III — Results and analysis (heuristic at commit `68dc201`)
+
+> This section documents the performance of the solver **as it stands at
+> commit `68dc201`** (the Mode-B build; solver logic unchanged since
+> `d00af90`). Later commits will append their own Part III / Part IV blocks,
+> so each snapshot stays attached to the code that produced it.
+
+## Experimental setup
+
+- **Battery:** all 120 benchmark instances —
+  12 configurations (`chain / full / hub / none / triangle_loose /
+  triangle_medium / triangle_tight / two_rows`, at `P5` with
+  `R5 / R10 / R20 / R30`) × 10 seeds.
+- **Methods:** the job-level MILP baseline (`milp_baseline_job`,
+  `MILPJobsV2Solver`) vs this heuristic (`iterated_greedy_vnd`).
+- **Weight profiles:** `wMK = (100,1,1)` makespan-priority,
+  `wDLY = (1,100,1)` delay-priority, `wMOV = (1,1,100)` movement-priority.
+- **Budget:** 60 s nominal per solve. **720 runs, 0 failures.**
+- **Metric:** relative gap `g = (MILP_obj − heuristic_obj) / MILP_obj`
+  (`g > 0` ⇒ heuristic better). Mean / min / max over the 10 seeds of each
+  type, disaggregated per profile and aggregated.
+- **Full log:**
+  [`outputs/logs/instances_main_methods_20260612_143618.log`](../../../outputs/logs/instances_main_methods_20260612_143618.log)
+  (the gap table below is its header table; the per-instance detail follows
+  it in the file).
+
+## Gap table (from the log header)
+
+```
+[wMK  (100/1/1  makespan-priority)]            N     Mean      Min      Max
+  scn_chain_tight_P5_R10                       10   -1.44%   -4.41%   +2.08%
+  scn_full_tight_P5_R10                        10   +1.12%   -4.22%   +6.72%
+  scn_full_tight_P5_R20                        10  +46.17%  +26.49%  +63.27%
+  scn_hub_tight_P5_R10                         10   -2.33%   -4.53%   +0.01%
+  scn_none_tight_P5_R10                        10   +0.00%   +0.00%   +0.00%
+  scn_triangle_loose_P5_R10                    10   -1.02%   -4.71%   +1.53%
+  scn_triangle_medium_P5_R10                   10   -0.32%   -3.24%   +1.91%
+  scn_triangle_tight_P5_R10                    10   -1.02%   -4.73%   +1.63%
+  scn_triangle_tight_P5_R20                    10  +17.28%  +11.47%  +23.06%
+  scn_triangle_tight_P5_R30                    10  +36.66%  +26.87%  +42.91%
+  scn_triangle_tight_P5_R5                     10   -0.04%   -0.37%   +0.00%
+  scn_two_rows_tight_P5_R10                    10   -0.05%   -0.62%   +0.36%
+
+[wDLY (1/100/1  delay-priority)]               N     Mean        Min       Max
+  scn_chain_tight_P5_R10                       10   +5.76%     -3.00%   +13.13%
+  scn_full_tight_P5_R10                        10  +21.22%    +12.84%   +34.15%
+  scn_full_tight_P5_R20                        10  +58.53%    +44.15%   +71.80%
+  scn_hub_tight_P5_R10                         10   +3.30%     -3.42%   +10.23%
+  scn_none_tight_P5_R10                        10   -0.79%     -7.70%    +0.00%
+  scn_triangle_loose_P5_R10                    10 -303.75%  -1273.64%   +11.75%
+  scn_triangle_medium_P5_R10                   10   +3.72%     -3.95%    +9.21%
+  scn_triangle_tight_P5_R10                    10   +4.54%     -3.37%   +10.89%
+  scn_triangle_tight_P5_R20                    10  +12.68%     -1.07%   +23.48%
+  scn_triangle_tight_P5_R30                    10  +35.08%    +18.41%   +48.70%
+  scn_triangle_tight_P5_R5                     10  -95.78%   -647.83%    +0.00%
+  scn_two_rows_tight_P5_R10                    10   +0.41%     -3.17%    +4.78%
+
+[wMOV (1/1/100  movement-priority)]            N     Mean       Min      Max
+  scn_chain_tight_P5_R10                       10  -13.47%   -29.15%   +5.06%
+  scn_full_tight_P5_R10                        10  -30.62%   -83.06%  +14.47%
+  scn_full_tight_P5_R20                        10  +23.61%   +10.40%  +37.68%
+  scn_hub_tight_P5_R10                         10   -7.75%   -25.73%   +5.00%
+  scn_none_tight_P5_R10                        10   -2.51%   -13.12%   +0.00%
+  scn_triangle_loose_P5_R10                    10   -6.28%   -21.14%   +6.12%
+  scn_triangle_medium_P5_R10                   10   -1.54%   -26.32%   +5.47%
+  scn_triangle_tight_P5_R10                    10   -0.90%    -8.42%   +5.76%
+  scn_triangle_tight_P5_R20                    10   +9.49%    +2.82%  +17.24%
+  scn_triangle_tight_P5_R30                    10  +32.59%   +18.63%  +40.21%
+  scn_triangle_tight_P5_R5                     10  -30.68%  -114.29%   +0.00%
+  scn_two_rows_tight_P5_R10                    10   -0.32%    -6.51%   +2.37%
+
+[ALL profiles]                                 N     Mean        Min       Max
+  scn_chain_tight_P5_R10                       30   -3.05%    -29.15%   +13.13%
+  scn_full_tight_P5_R10                        30   -2.76%    -83.06%   +34.15%
+  scn_full_tight_P5_R20                        30  +42.77%    +10.40%   +71.80%
+  scn_hub_tight_P5_R10                         30   -2.26%    -25.73%   +10.23%
+  scn_none_tight_P5_R10                        30   -1.10%    -13.12%    +0.00%
+  scn_triangle_loose_P5_R10                    30 -103.69%  -1273.64%   +11.75%
+  scn_triangle_medium_P5_R10                   30   +0.62%    -26.32%    +9.21%
+  scn_triangle_tight_P5_R10                    30   +0.87%     -8.42%   +10.89%
+  scn_triangle_tight_P5_R20                    30  +13.15%     -1.07%   +23.48%
+  scn_triangle_tight_P5_R30                    30  +34.78%    +18.41%   +48.70%
+  scn_triangle_tight_P5_R5                     30  -42.17%   -647.83%    +0.00%
+  scn_two_rows_tight_P5_R10                    30   +0.01%     -6.51%    +4.78%
+```
+
+## Performance summary
+
+- **Makespan-priority (`wMK`) on R5–R10: genuinely competitive.** Within
+  about ±2.5 % of the MILP on every R10 topology (and exact on `none` and
+  `R5`). Mode-B/nesting do their job here.
+- **Delay-priority (`wDLY`) and movement-priority (`wMOV`): systematically
+  behind**, across topologies and even on tiny R5 instances. The big
+  negative numbers are partly a small-denominator artefact (see caveats) but
+  reflect a real, repeated failure mode.
+- **R20 / R30: the large positive gaps are *not* a real win.** They combine
+  two confounds — the MILP times out with 80–99 % optimality gaps, **and the
+  heuristic itself overruns the 60 s budget** (88 s on `full_R20`, **413 s**
+  on `R30`). The comparison there is neither fair nor a like-for-like 60 s.
+- **High variance.** The same type swings from exact match to large loss
+  across seeds (e.g. `R5` `wDLY` seed1 = 0 %, seed10 = −297 %).
+
+## Analysis by weight profile
+
+### `wMK` — makespan-priority
+The heuristic is at parity on R10 (chain −1.4 %, hub −2.3 %, triangle
+−1.0/−0.3/−1.0 % for tight/medium/loose, two_rows −0.05 %, full +1.1 %,
+none 0 %). This is the regime the Mode-B work targeted, and it holds up: the
+manoeuvre-aware decoder finds compact overlapping schedules close to the
+MILP optimum. The R20/R30 "+17 %…+46 %" are timeout/over-budget artefacts
+(below).
+
+### `wDLY` — delay-priority (the dominant weakness)
+The catastrophic relative numbers come from instances whose optimum has
+**zero delay** (loose targets), so the MILP objective is tiny and any delay
+the heuristic incurs explodes the ratio. But the underlying loss is real and
+is a **search failure to trade manoeuvres for delay**:
+
+- `triangle_loose_R10` seed10: MILP `ms 69 / delay 0 / 8 mov → obj 77`
+  (spends 8 manoeuvres to wipe out delay); heuristic
+  `ms 70.5 / delay 5 / 0 mov → obj 570` (stays at 0 manoeuvres and eats the
+  delay, ×100).
+- `triangle_tight_R5` seed10: optimum is `ms 35 / delay 0 / 0 mov` (MILP
+  obj 35); the heuristic returns `ms 35 / delay 1 / 4 mov → obj 139` — it
+  both *misses* the zero-delay schedule **and** wastes 4 manoeuvres. A pure
+  search/decoder failure on a five-aircraft instance.
+
+The decoder's per-front cost does include `Wᴰ·delay`, so the lever exists —
+but the **greedy, due-date-blind placement and the NEH-by-processing-time
+ordering do not steer tight-target aircraft into early slots**, and the
+search does not reliably discover the "spend a manoeuvre to remove a delay"
+move when `Wᴰ` is large. Where targets are not the binding constraint the
+gaps are small and often positive (chain +5.8 %, full +21 %, two_rows +0.4 %).
+
+### `wMOV` — movement-priority
+Here both methods drive movements to 0, so the contest is *who packs a
+zero-movement schedule tightest*. The heuristic's zero-movement decoder is
+**too loose in dense topologies**:
+
+- `full_R10` seed1: MILP `ms 71.5 / delay 189.5 / 0 mov`; heuristic
+  `ms 116.5 / delay 326.5 / 0 mov`. The nesting + greedy-order placement
+  serialises far more than the MILP's zero-movement schedule.
+
+Hence `full` −30.6 % (min −83 %), `chain` −13.5 %, `hub` −7.8 %; on sparse
+or easy topologies it is fine (`none` −2.5 %, `two_rows` −0.3 %, `triangle`
+−0.9 %).
+
+### Scaling (R20 / R30) — read with care
+The MILP cannot solve these in 60 s (e.g. `triangle_R30` `wMK`:
+`maxTimeLim`, 81 % gap; `full_R20` `wDLY`: 99.98 % gap), so its objective is
+a weak incumbent. The heuristic returns a much lower objective
+(`triangle_R30` `wMK`: 24 517 vs 37 537), which *suggests* a real
+large-instance advantage — **but it used 413 s, not 60 s**, so this is not a
+valid 60 s comparison. The genuine takeaway is qualitative: where the MILP
+flounders, the heuristic still produces good feasible schedules — once the
+time budget is actually enforced.
+
+## Caveats on the metric
+
+1. **Small-denominator inflation.** When the optimum has ~0 delay (loose
+   instances under `wDLY`), `MILP_obj` is small and the relative gap is huge
+   for a tiny absolute difference. Means like −303 % / −1273 % should be read
+   as "the heuristic incurred a few delay units the MILP avoided", not as a
+   13× worse schedule. A future log should add the **absolute objective gap**
+   and a **per-component (makespan / delay / movements) breakdown**.
+2. **Time-limit overrun.** The heuristic exceeds 60 s on R20/R30, so all
+   large-instance rows are not like-for-like. Must be fixed before the
+   scaling comparison means anything.
+3. **MILP not optimal at scale.** R20/R30 MILP objectives are unconverged
+   incumbents; "beating" them is expected and not informative about optimality.
+
+---
+
+# Part IV — Candidate improvements (for the next commit)
+
+Derived from the Part III analysis, in rough priority order. These are the
+candidates to discuss and pick from; the next commit will implement a subset
+and refresh Part III with the new numbers.
+
+1. **Enforce the time budget (correctness, blocking).** The deadline is only
+   checked between IG iterations and VND neighbourhoods, so a single VND
+   sweep or decode on R20/R30 blows past 60 s (413 s observed). Add deadline
+   checks *inside* the neighbourhood scans and bound per-decode work so the
+   solver always returns within `time_limit_s`. Without this no scaling
+   comparison is valid.
+
+2. **Due-date-aware construction and ordering (targets `wDLY`).** Add EDD
+   seeds (order aircraft by `Lᵣ`, or a `Wᴰ`-dependent blend of `Tᵣ` and
+   `Lᵣ`) to the multi-start, and a within-position reconciliation that puts
+   the tighter-target aircraft in the earlier slot. Directly attacks the
+   R5/loose `wDLY` failures where tight-target aircraft are stranded in late
+   slots.
+
+3. **Manoeuvre-for-delay move under high `Wᴰ` (targets `wDLY`).** A polishing
+   move that, for the most-delayed aircraft, tries to pull it earlier by
+   spending a Mode-B/Mode-C manoeuvre on the blocking front, accepted only if
+   the (checker-validated) objective improves. The local cost already prices
+   this; the search just needs an operator that proposes it.
+
+4. **Tighter zero-movement packing in dense topologies (targets `wMOV`).**
+   The greedy per-front placement serialises too much on `full`/`hub`.
+   Options: a better processing order for the deep-first sweep, a richer
+   nesting search (consider enclosing several shorts in one long), or
+   co-optimising the aircraft of a fully-connected block together.
+
+5. **Variance reduction / smarter multi-start.** Diversify the restart seeds
+   (NEH + EDD + a couple of randomised orders) and spend more starts on small
+   instances (they are cheap), to remove the seed1-perfect / seed10-broken
+   swings.
+
+6. **Better evaluation logging.** Add absolute-objective and per-component
+   (makespan / delay / movements) gaps alongside the relative gap, so the
+   next Part III is not distorted by small denominators.
+
+---
+
 *Keep this file in sync with `iterated_greedy_vnd.py`: when the code changes
 (new regime, neighbourhood, config knob, behaviour), update the matching
-section here. Design rationale and the reading behind the method live in
+section here, and append a new Part III / Part IV snapshot tagged with the
+new commit. Design rationale and the reading behind the method live in
 [`notes/design.md`](notes/design.md) and [`notes/synthesis.md`](notes/synthesis.md).*
