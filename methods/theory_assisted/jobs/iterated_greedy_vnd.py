@@ -70,6 +70,11 @@ class IteratedGreedyVNDJobSolver:
         self._config: dict = {}
         self._log: list[str] = []
         self._deadline: float = float("inf")   # wall-clock cap for search loops
+        self._decoder_tag: str = "v2"          # identifies the active decoder
+        self._cache: dict = {}                 # decode memoisation (per solve)
+        self._cache_max: int = 400_000
+        self._cache_hits: int = 0
+        self._cache_misses: int = 0
 
     # ------------------------------------------------------------------
     # Contract
@@ -121,10 +126,15 @@ class IteratedGreedyVNDJobSolver:
         global_dl = t0 + self.time_limit
         per_start = self.time_limit / max(1, n_starts)
 
+        # Per-solve decode cache (instance + weights are fixed within a solve).
+        self._cache = {}
+        self._cache_hits = self._cache_misses = 0
+
         # Shared deterministic construction (the per-start variety comes from
         # the IG perturbation RNG, re-seeded per start).  Bounded by the
         # global deadline so it cannot itself blow the budget on large R.
         self._decode_fn = self._decode
+        self._decoder_tag = "v2"
         self._deadline = global_dl
         ctor_order = sorted(self.aircraft_ids, key=lambda r: -self.T[r])
         self._ctor_assignment = self._greedy_construct(ctor_order)
@@ -145,13 +155,19 @@ class IteratedGreedyVNDJobSolver:
             )
             i += 1
 
+        elapsed = time.perf_counter() - t0
         best_sol["status"] = "heuristic_ok"
+        best_sol["timed_out"] = elapsed >= self.time_limit - 0.5
+        best_sol["solve_time_s"] = round(elapsed, 3)
+        n_eval = self._cache_hits + self._cache_misses
+        hit_rate = self._cache_hits / n_eval if n_eval else 0.0
         self._log.append(
             f"done  starts={i}  best_obj={best_obj:.4f}  "
             f"ms={best_sol['metrics']['makespan']:.2f} "
             f"dly={best_sol['metrics']['total_delay']:.2f} "
             f"mov={best_sol['metrics']['movements']}  "
-            f"({time.perf_counter() - t0:.2f}s)"
+            f"phase={best_sol.get('phase')}  timed_out={best_sol['timed_out']}  "
+            f"decodes={n_eval} cache_hit={hit_rate:.0%}  ({elapsed:.2f}s)"
         )
         return best_sol
 
@@ -160,22 +176,29 @@ class IteratedGreedyVNDJobSolver:
         optional manoeuvre-aware (v3) polish validated by the real checker.
         Returns (solution, objective)."""
         # ---- Phase 1: zero-movement search (v2 decoder) ----
+        # The v2 floor is feasible by construction, so the incumbent returned
+        # here is always a complete, valid schedule.
         self._decode_fn = self._decode
+        self._decoder_tag = "v2"
         dl1 = min(deadline, time.perf_counter() + (deadline - time.perf_counter()) *
                   (0.5 if self.use_v3 else 1.0))
         a1, o1 = self._search(dict(self._ctor_assignment), list(self._ctor_order), dl1)
         best_sol = self._finalize(self._decode(a1, o1))
         best_obj = best_sol["objective"]
+        best_sol["phase"] = "zero"
 
         # ---- Phase 2: manoeuvre-aware polish (v3 decoder) ----
         # v2 is the guaranteed floor; the v3 candidate is taken only if the
-        # real checker certifies it AND it strictly improves.
+        # real checker certifies it AND it strictly improves — so a timed-out
+        # or invalid manoeuvre-aware search can never worsen the incumbent.
         if self.use_v3:
             self._decode_fn = self._decode_v3
+            self._decoder_tag = "v3"
             a3, o3 = self._search(dict(a1), list(o1), deadline)
             sol_v3 = self._finalize(self._decode_v3(a3, o3))
             if (sol_v3["objective"] < best_obj - 1e-9
                     and self._is_compliant(sol_v3, instance_data)):
+                sol_v3["phase"] = "manoeuvre"
                 best_sol, best_obj = sol_v3, sol_v3["objective"]
         return best_sol, best_obj
 
@@ -188,14 +211,14 @@ class IteratedGreedyVNDJobSolver:
         self._deadline = deadline
         assignment, order = self._vnd(assignment, order)
         best_assign, best_order = dict(assignment), list(order)
-        best_obj = self._objective(self._decode_fn(best_assign, best_order))
+        best_obj = self._objective(self._eval(best_assign, best_order))
         cur_assign, cur_order = dict(best_assign), list(best_order)
         no_improve = 0
         while time.perf_counter() < deadline and no_improve < self.max_no_improve:
             a2, o2 = self._perturb(cur_assign, cur_order, self.k_destroy)
             a2, o2 = self._vnd(a2, o2)
-            obj2 = self._objective(self._decode_fn(a2, o2))
-            cur_obj = self._objective(self._decode_fn(cur_assign, cur_order))
+            obj2 = self._objective(self._eval(a2, o2))
+            cur_obj = self._objective(self._eval(cur_assign, cur_order))
             if obj2 <= cur_obj + 1e-9:
                 cur_assign, cur_order = a2, o2
             if obj2 < best_obj - 1e-9:
@@ -392,6 +415,26 @@ class IteratedGreedyVNDJobSolver:
     def _objective(self, sol: dict) -> float:
         return float(sol["objective"])
 
+    def _eval(self, assignment: dict, order: list[str]) -> dict:
+        """Decode ``(assignment, order)`` with the active decoder, memoised.
+
+        The decode depends only on the active decoder and, for the aircraft in
+        ``order``, their positions and sequence — so the key captures exactly
+        that.  Cache is reset per solve (instance + weights are fixed there).
+        Returned dicts must be treated as read-only by callers.
+        """
+        key = (self._decoder_tag, tuple(order),
+               tuple(assignment[r] for r in order))
+        cached = self._cache.get(key)
+        if cached is not None:
+            self._cache_hits += 1
+            return cached
+        self._cache_misses += 1
+        sol = self._decode_fn(assignment, order)
+        if len(self._cache) < self._cache_max:
+            self._cache[key] = sol
+        return sol
+
     # ==================================================================
     # Construction
     # ==================================================================
@@ -412,7 +455,7 @@ class IteratedGreedyVNDJobSolver:
             best_p, best_o = None, float("inf")
             for p in self.positions:
                 assignment[r] = p
-                o = self._objective(self._decode(assignment, partial_order))
+                o = self._objective(self._eval(assignment, partial_order))
                 if o < best_o:
                     best_o, best_p = o, p
             assignment[r] = best_p
@@ -428,7 +471,7 @@ class IteratedGreedyVNDJobSolver:
     def _vnd(self, assignment: dict, order: list[str]) -> tuple[dict, list[str]]:
         assignment = dict(assignment)
         order = list(order)
-        cur = self._objective(self._decode_fn(assignment, order))
+        cur = self._objective(self._eval(assignment, order))
         k = 0
         neighbourhoods = (self._n_reassign, self._n_swap_pos, self._n_reorder)
         while k < len(neighbourhoods):
@@ -451,7 +494,7 @@ class IteratedGreedyVNDJobSolver:
                 if p == p0:
                     continue
                 assignment[r] = p
-                o = self._objective(self._decode_fn(assignment, order))
+                o = self._objective(self._eval(assignment, order))
                 if o < cur - 1e-9:
                     return True, assignment, order, o
                 assignment[r] = p0
@@ -468,7 +511,7 @@ class IteratedGreedyVNDJobSolver:
                 if assignment[ri] == assignment[rj]:
                     continue
                 assignment[ri], assignment[rj] = assignment[rj], assignment[ri]
-                o = self._objective(self._decode_fn(assignment, order))
+                o = self._objective(self._eval(assignment, order))
                 if o < cur - 1e-9:
                     return True, assignment, order, o
                 assignment[ri], assignment[rj] = assignment[rj], assignment[ri]
@@ -481,7 +524,7 @@ class IteratedGreedyVNDJobSolver:
                 return False, assignment, order, cur
             for j in range(i + 1, len(order)):
                 order[i], order[j] = order[j], order[i]
-                o = self._objective(self._decode_fn(assignment, order))
+                o = self._objective(self._eval(assignment, order))
                 if o < cur - 1e-9:
                     return True, assignment, order, o
                 order[i], order[j] = order[j], order[i]
@@ -495,7 +538,7 @@ class IteratedGreedyVNDJobSolver:
         """Destruction–reconstruction: remove the k highest-contribution
         aircraft, then greedily reinsert each at its best position and a
         good spot in the order."""
-        sol = self._decode_fn(assignment, order)
+        sol = self._eval(assignment, order)
         contrib = {a["id"]: self.wD * a["delay"] + 1e-3 * self.T[a["id"]]
                    for a in sol["aircraft"]}
         # Remove the k worst contributors, with a little randomisation so the
@@ -522,7 +565,7 @@ class IteratedGreedyVNDJobSolver:
                 trial_order = kept_order[:slot] + [r] + kept_order[slot:]
                 for p in self.positions:
                     a2[r] = p
-                    o = self._objective(self._decode_fn(a2, trial_order))
+                    o = self._objective(self._eval(a2, trial_order))
                     if best is None or o < best[0]:
                         best = (o, p, slot)
             _, bp, bslot = best

@@ -775,6 +775,26 @@ the evidence says the failures are structural, not budget-bound.
 
 ---
 
+# Change log
+
+Track the heuristic's evolution here so each Part III snapshot stays tied to
+the code that produced it. Behaviour-affecting commits (newest last):
+
+| commit | change | effect on results |
+| --- | --- | --- |
+| `d00af90` | Mode-B manoeuvre-aware decoder (`DecodeManoeuvre`, §3.2) | reaches/beats MILP on tight-blocking `wMK`/`wDLY` |
+| `68dc201` | gap-summary logging prepended to the run log | **Part III battery ran at this commit** |
+| `1f36bd7` | enforce the wall-clock budget inside every search loop (P0 #1) | R30/`full_R20` 413 s/88 s → ~60 s; R20/R30 Part III rows now stale |
+| *this commit* | rest of P0: decode cache (`_eval`, 90–100 % hit), always-valid incumbent with `phase`/`timed_out` fields, per-component (Δmakespan/Δdelay/Δmov) gap logging, and `experiments/ablation_subset.py` (heuristic-only subset reusing the cached MILP) | same objectives, far more search per second; faster ablation loop |
+
+**Evaluation shortcut.** The MILP baseline is fixed, so re-running it is
+wasteful. To judge a heuristic change, run `ablation_subset.py` (heuristic
+only on a stratified subset) and pair against the MILP rows already in
+`outputs/solutions/results.csv`; only refresh the full Part III battery once
+a milestone (a group of Part IV items) lands.
+
+---
+
 *Keep this file in sync with `iterated_greedy_vnd.py`: when the code changes
 (new regime, neighbourhood, config knob, behaviour), update the matching
 section here, and append a new Part III / Part IV snapshot tagged with the
