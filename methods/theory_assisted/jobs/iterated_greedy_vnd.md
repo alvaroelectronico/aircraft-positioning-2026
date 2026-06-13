@@ -134,13 +134,24 @@ extension, and it is the only way to move a rear aircraft past a
 non-interruptible front job. It lets the heuristic find compact overlapping
 schedules that pure nesting cannot.
 
-## 4. Construction
+## 4. Construction — a portfolio of seeds
 
-The initial solution uses an **NEH-style greedy insertion**: aircraft are
-ordered by decreasing total processing time `Tᵣ` (longest first), and each
-is inserted, in turn, at the position that minimises the partial objective
-of the aircraft placed so far. This deterministic seed is strong and is
-shared by every restart.
+Each multi-start restart builds its own seed from a different **construction
+rule**, so the restarts differ by *construction* (not only by the
+perturbation RNG):
+
+- **NEH-style greedy insertion** under an ordering rule: aircraft are taken in
+  the rule's order and each is inserted, in turn, at the position minimising
+  the partial objective of the aircraft placed so far. The ordering rule is
+  one of: `−Tᵣ` (NEH, makespan), `Lᵣ` (EDD, earliest due date), slack
+  `Lᵣ−Eᵣ−Tᵣ`, critical ratio `Lᵣ/Tᵣ`, or a rank blend.
+- **Regret-2 insertion**: a *dynamic* order — at each step insert the aircraft
+  whose 2nd-best position is much worse than its best (largest regret), at its
+  best position.
+
+The due-date rules (EDD / slack / critical-ratio) and regret-2 are what steer
+**tight-target aircraft into early slots**, the lever the delay-priority
+profile needs; NEH remains the strong makespan seed.
 
 ## 5. Local search — Variable Neighbourhood Descent
 
@@ -169,11 +180,14 @@ Around the VND runs an Iterated-Greedy perturbation loop:
 
 ## 7. Multi-start
 
-The whole construct-and-improve procedure is run several times from
-different random streams (the construction is shared, but the IG
-perturbation randomness differs per start), and the best result is kept. The
-restart-to-restart variety matters on tight-blocking instances, where
-different streams settle in different basins.
+The whole construct-and-improve procedure is run several times — each restart
+with its own construction rule (§4) *and* its own perturbation RNG — and the
+best result is kept. The restart count is **adaptive to instance size** (more
+restarts on the cheap small instances, fewer on large ones that need their
+per-start time). This matters because the search is *time-limited and hence
+non-deterministic*: on some instances a single run occasionally settles in a
+bad (high-delay) basin, and independent restarts make finding the good basin
+reliable.
 
 ## 8. How the two regimes are combined
 
@@ -194,38 +208,57 @@ time, access margin, Mode-B gap unit and Mode-C extension. The cost of a
 schedule is `F = Wᴹ·makespan + Wᴰ·Σ delay + Wˢ·movements`.
 
 ```
-ALGORITHM  Solve(instance, time_limit, weights, n_starts, base_seed):
+ALGORITHM  Solve(instance, time_limit, weights, base_seed):
     preprocess instance  (job chains, Tᵣ, blocking arcs, position depths)
-    σ₀ ← NEHorder()                                       # NEH order (R by Tᵣ desc)
-    π₀ ← GreedyConstruct(σ₀)                              # shared seed
+    reset the decode cache                               # memoised per solve
+    portfolio ← BuildPortfolio()                         # construction rules
+    n_starts  ← 8 if R ≤ 10 else 4 if R ≤ 20 else 3      # adaptive: small = cheap
     best ← ∅ ;  best_F ← +∞
     for i in 0 … n_starts−1  while time remains:
         seed the RNG with base_seed + i
         deadline_i ← now + time_limit / n_starts
-        (sol, F) ← OneStart(π₀, σ₀, deadline_i)              # σ₀ is the NEH order
+        (π₀, σ₀) ← portfolio[i mod |portfolio|]()        # this start's seed
+        (sol, F) ← OneStart(π₀, σ₀, deadline_i)
         if F < best_F:  best, best_F ← sol, F
     return best
+    # Each restart differs by construction rule AND RNG.  The time-limited
+    # search is non-deterministic, so more *independent* restarts on the cheap
+    # small instances reliably avoid the occasional bad (high-delay) basin.
+
+
+PROCEDURE  BuildPortfolio():        # construction rules; each returns a seed (π, σ)
+    return [
+        NEH     :  GreedyConstruct( R sorted by −Tᵣ        )    # makespan
+        EDD     :  GreedyConstruct( R sorted by Lᵣ         )    # earliest due date
+        SLACK   :  GreedyConstruct( R sorted by Lᵣ−Eᵣ−Tᵣ   )
+        regret2 :  Regret2Construct()
+        CR      :  GreedyConstruct( R sorted by Lᵣ/Tᵣ      )    # critical ratio
+        BLEND   :  GreedyConstruct( R sorted by rank-blend )
+    ]
+    # The due-date rules (EDD / SLACK / CR) and regret-2 steer tight-target
+    # aircraft into early slots — the lever `wDLY` needs.
 
 
 PROCEDURE  GreedyConstruct(σ):              # NEH-style greedy insertion
-    π ← ∅                                    # empty assignment
-    placed ← []                              # prefix of σ already situated
-    for r in σ:                              # longest Tᵣ first
+    π ← ∅ ;  placed ← []                     # prefix of σ already situated
+    for r in σ:                              # in the rule's order
         placed ← placed + [r]
         for each position p ∈ P:
             π[r] ← p                          # tentative
-            evaluate F of the partial decode of 'placed'
+            evaluate F of the partial decode of 'placed'   (cached)
         π[r] ← the position p with the lowest partial F
-    return π
-    # decides positions only; σ is the insertion sequence, refined later by
-    # NEHorder and the search.  Deterministic — shared by every multi-start.
+    return (π, σ)                             # σ is the start's priority order
 
 
-PROCEDURE  NEHorder():                      # priority order for the search
-    return the aircraft set R sorted by Tᵣ descending
-    # Orders all aircraft R; depends only on Tᵣ (not on any assignment).
-    # A due-date-aware variant (also reading Lᵣ) is a Part IV candidate, e.g.
-    # EDD.  The order is then refined by the Reorder neighbourhood.
+PROCEDURE  Regret2Construct():      # dynamic insertion order, by regret
+    π ← ∅ ;  order ← []
+    while aircraft remain unplaced:
+        for each unplaced r:
+            (best, second) ← the two lowest F of inserting r at each position
+            regret[r] ← second − best
+        place the r with the largest regret at its best position; append to order
+    return (π, order)
+    # Prioritises low-slack / high-Wᴰ aircraft that have few good slots.
 
 
 PROCEDURE  OneStart(π, σ, deadline):
@@ -390,7 +423,7 @@ The returned dict matches `problems/jobs/checker.py`: `status`, `objective`,
 | `time_limit_s` | 60 | wall-clock cap |
 | `weight_makespan` / `weight_delay` / `weight_movements` | 0.1 / 1 / 10 | `Wᴹ, Wᴰ, Wˢ` |
 | `seed` | 1 | base RNG seed; start *i* uses `seed+i` |
-| `n_starts` | 4 | multi-start restarts (§I.7) |
+| `n_starts` | adaptive: 8 / 4 / 3 for R≤10 / ≤20 / else | multi-start restarts (§I.7); overridable |
 | `k_destroy` | `max(1, R//4)` | aircraft removed per IG perturbation (§I.6) |
 | `max_no_improve` | 400 | stale-iteration early stop per search |
 | `use_v3` | `True` | enable the manoeuvre-aware polish (§I.3.2) |
@@ -403,12 +436,14 @@ The returned dict matches `problems/jobs/checker.py`: `status`, `objective`,
 | Two-layer state | `assignment: dict[r→p]` + `order: list[r]` |
 | Zero-movement decoder (§3.1) | `_decode`; admissible-placement bands in `_forbidden` |
 | Manoeuvre-aware decoder (§3.2) | `_decode_v3`; per-front placement `_place_front`; forward simulation with Mode-B/C `_sim_front` |
-| NEH construction (§4) | `_greedy_construct`, `_neh_order` |
+| Cached decode (memoised eval) | `_eval` (keyed by decoder tag, order, positions-along-order; reset per solve) |
+| Construction portfolio (§4) | `_build_portfolio`; `_greedy_construct(order)`; `_regret2_construct` |
 | VND neighbourhoods (§5) | `_vnd`, `_n_reassign`, `_n_swap_pos`, `_n_reorder` |
 | IG perturbation (§6) | `_perturb` |
 | Search driver (decoder-agnostic via `self._decode_fn`) | `_search` |
-| Two-regime combination per restart (§8) | `_one_start` (phase 1 = `_decode`, phase 2 = `_decode_v3`) |
-| Multi-start (§7) | loop in `solve` |
+| Two-regime combination per restart (§8) | `_one_start(a0, o0, …)` (phase 1 = `_decode`, phase 2 = `_decode_v3`) |
+| Multi-start, adaptive count (§7) | loop in `solve` over `_build_portfolio()` |
+| Time budget enforced in every loop | `_time_up` (`self._deadline`) |
 | Safety net (§8) | `_is_compliant` calls the real `check_solution` |
 
 ## Key implementation notes

@@ -14,40 +14,42 @@ Architecture (two layers, as the synthesis recommends)
 2. **Inner timing decision** — a deterministic *decoder* that, given an
    assignment and an order, produces job start/finish times.
 
-The decoder (this first version)
---------------------------------
-We adopt a **zero-movement** decoding rule that is feasible by
-construction.  For any blocking arc ``(front, rear)``, the rear
-aircraft's two access instants (its own entry and exit) must each land
-**Mode A** (front vacant) relative to the front aircraft's stay.  With a
-margin ``eta`` that leaves three feasible relative placements:
+Two decoders
+------------
+The inner layer comes in two regimes (selected per phase, see ``solve``):
 
-* rear **before** the front  (rear exit <= front start - eta),
-* rear **after**  the front  (rear entry >= front finish + eta), or
-* rear **encloses** the front (rear entry <= front start - eta *and*
-  rear exit >= front finish + eta) — both instants still Mode A.
+* **Zero-movement** (``_decode``): feasible by construction with no
+  manoeuvres.  For every blocking arc the rear aircraft is placed
+  *before* / *after* / *enclosing* the front (margin ``eta``), so both
+  its access instants are Mode A.  The *enclose* (nesting) option lets
+  blocking-related aircraft overlap in time.  Always the guaranteed-
+  feasible floor.
+* **Manoeuvre-aware** (``_decode_v3``): may *spend* Mode-B (inter-job
+  gap, no extension) and Mode-C (interruptible job, ``+delta``)
+  manoeuvres to compress the schedule when the weights reward it;
+  positions are scheduled deepest-rear first and each front takes its
+  min-cost start.  Validated against the real checker; accepted only if
+  compliant and strictly better than the zero-movement floor.
 
-The third option (containment / nesting) lets blocking-related aircraft
-**overlap in time** when one is long enough to wrap the other, which is
-what breaks the full-serialisation bottleneck on tight-blocking
-topologies while keeping ``movements = 0`` and ``kappa = 0`` (no Mode-C
-feedback on timing).  Aircraft sharing a position are separated by
-``epsilon`` (RQ08); aircraft on non-conflicting positions run fully in
-parallel.
+Search
+------
+The outer combinatorial state ``(assignment, order)`` is optimised by a
+multi-start Iterated-Greedy + VND loop.  Highlights (full detail in the
+companion ``iterated_greedy_vnd.md``):
 
-Consequences:
-- ``movements = 0`` always; the heuristic optimises ``makespan`` and
-  ``total_delay`` only, by choosing the assignment and the order.
-- For the movement-priority weight profile this is automatically strong;
-  for makespan/delay-priority profiles it trades the MILP's ability to
-  overlap-via-manoeuvre for guaranteed feasibility and speed.  Allowing
-  controlled Mode-B/C overlaps is the obvious next iteration (it needs an
-  incremental kappa fixpoint in the decoder); kept out of v1 on purpose.
+- **Construction portfolio** (``_build_portfolio``): each restart seeds
+  from a different rule — NEH / EDD / slack / regret-2 / critical-ratio /
+  blend — so due-date rules steer tight-target aircraft into early slots.
+- **Adaptive multi-start**: more restarts on the cheap small instances
+  (the time-limited search is non-deterministic; restarts avoid bad
+  basins).
+- **Decode cache** (``_eval``) memoises decodes within a solve.
+- **Time budget** (``_time_up``) is polled inside every loop, so the
+  solver respects ``time_limit_s`` even on large instances.
 
-The optimisation that *is* exposed (assignment + order) is driven by the
-IG+VND loop, exactly the architecture cross-validated by
-[[Scheduling_Heuristics]], [[Variable_Neighborhood_Descent]] and
-[[Iterated_Local_Search]] in the synthesis.
+This architecture is the one cross-validated by [[Scheduling_Heuristics]],
+[[Variable_Neighborhood_Descent]] and [[Iterated_Local_Search]] in the
+synthesis.
 
 Solution dict shape (consumed by ``problems/jobs/checker.py``)::
 
@@ -87,12 +89,15 @@ class IteratedGreedyVNDJobSolver:
             time_limit_s      : wall-clock cap in seconds (default 60)
             weight_makespan   : W^M (default 0.1)
             weight_delay      : W^D (default 1.0)
-            weight_movements  : W^S (default 10.0)  — informational here
-            seed              : RNG seed for reproducibility (default 1)
+            weight_movements  : W^S (default 10.0)
+            seed              : base RNG seed (default 1); start i uses seed+i
+            n_starts          : multi-start restarts (default adaptive to R:
+                                8 / 4 / 3 for R<=10 / <=20 / else)
             k_destroy         : aircraft removed per IG perturbation
                                 (default max(1, R // 4))
             max_no_improve    : early-stop after this many non-improving
                                 IG iterations (default 400)
+            use_v3            : enable the manoeuvre-aware polish (default True)
         """
         self._config.update(kwargs)
 
