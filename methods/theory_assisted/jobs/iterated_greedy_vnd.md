@@ -207,6 +207,20 @@ ALGORITHM  Solve(instance, time_limit, weights, n_starts, base_seed):
     return best
 
 
+PROCEDURE  GreedyConstruct(σ):              # NEH-style greedy insertion
+    π ← ∅                                    # empty assignment
+    placed ← []                              # prefix of σ already situated
+    for r in σ:                              # longest Tᵣ first
+        placed ← placed + [r]
+        for each position p ∈ P:
+            π[r] ← p                          # tentative
+            evaluate F of the partial decode of 'placed'
+        π[r] ← the position p with the lowest partial F
+    return π
+    # decides positions only; σ is the insertion sequence, refined later by
+    # NEHorder and the search.  Deterministic — shared by every multi-start.
+
+
 PROCEDURE  OneStart(π, σ, deadline):
     # Phase 1 — zero-movement regime (a guaranteed-feasible floor)
     (π,σ) ← Search(π, σ, DecodeZeroMov, deadline·½)
