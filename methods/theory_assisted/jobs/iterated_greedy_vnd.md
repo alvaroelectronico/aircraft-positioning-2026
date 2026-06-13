@@ -260,8 +260,17 @@ PROCEDURE  VND(π, σ, Decode):                        # sequential B-VND
         (improved, π, σ) ← FirstImprovement(neighbourhoods[k], π, σ, Decode)
         k ← 0 if improved else k+1                   # reset on improvement
     return (π, σ)
+
+
+PROCEDURE  FirstImprovement(N, π, σ, Decode):        # take the first better move
+    base ← F(Decode(π, σ))
+    for each move m in neighbourhood N of (π, σ):
+        (π′, σ′) ← apply m to (π, σ)
+        if F(Decode(π′, σ′)) < base:                 # strictly better
+            return (true, π′, σ′)                    # stop at the first one
+    return (false, π, σ)                             # local optimum for N
     #  Reassign      : move one aircraft to another position
-    #  SwapPositions : exchange the positions of two aircraft
+    #  SwapPositions : swap the positions of two aircraft
     #  Reorder       : swap two aircraft in σ
 
 
