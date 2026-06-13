@@ -200,6 +200,22 @@ the zero-movement floor. Consequently the method can never return an
 infeasible schedule and can never do worse than its zero-movement result,
 regardless of any approximation inside the manoeuvre-aware decoder.
 
+When the **movement-priority** profile meets a **blocking topology**, one
+extra candidate is also built once and folded in by the same best-of /
+checker rule: a **dense concentric-nesting schedule**. In a dense component
+the zero-movement optimum packs aircraft into a few *concentric-nesting
+waves* — a long aircraft wraps shorter ones, all overlapping in one wave's
+span — but the earliest-feasible decode cannot produce that (it always
+prefers placing *before* over *nested*). So this candidate is written with
+**explicit start times**, not via the decode: sort aircraft by stay length,
+group into waves of ≤ |P|, make the longest of each wave the outer container
+on the deepest position, and *stretch* shorter aircraft with idle so the
+stay lengths step down by ≥ 2·η (the nesting condition) even when their work
+durations are equal. A tiny beam (two wave partitions) is tried and the best
+kept. On the complete-blocking `full` topology this reaches — and beats — the
+MILP's reported makespan-at-zero-movements; on other topologies it is simply
+ignored by best-of.
+
 ## 9. The complete algorithm in pseudocode
 
 Notation: a *state* is `(π, σ)` — an assignment `π : R → P` and a priority
@@ -642,7 +658,21 @@ makespan saving vs manoeuvre + front-time cost) so it fires under `wDLY` but
 not `wMOV`. Also add due-date-critical `PlaceFront` candidates `s = Lᵣ−Tᵣ`,
 `Lᵣ−Tᵣ−δ·q`, `Lᵣ−Tᵣ−μ·q`: the objective's slope changes at `Lᵣ`.
 
-## Priority 3 — dense zero-movement repacking (targets `wMOV`) — DEFERRED
+## Priority 3 — dense zero-movement repacking (targets `wMOV`) — DONE
+
+**Resolution (Commit 4, `_dense_nest_solution`).** The fix that worked is a
+dedicated **dense concentric-nesting builder** that writes **explicit start
+times** (not via the earliest-feasible decode) and — crucially — **stretches**
+shorter aircraft with inter-job idle so their *stay lengths* step down by
+≥ 2·η even when work durations tie (the MILP does the same: it stretched
+`R10` to a 34-long stay though its work is 30). It groups aircraft into waves
+of ≤ |P| (longest = outer container on the deepest position), tries two wave
+partitions (chunk + round-robin, a tiny beam), and is folded in by best-of +
+checker, gated to `Wˢ`-dominant with a blocking topology. Result on
+`full_R10` seed1 `wMOV`: **352.5 → 258** (ms 114.5 → 71), **beating the MILP's
+261**; also adopted on `full_R20`. Safely ignored where it does not help (no
+regression). The two earlier failed attempts are kept below as the rationale
+for why this specific design (explicit starts + stretching) was needed.
 
 When `Wˢ` dominates the problem becomes "best schedule with `n = 0`", and
 `DecodeZeroMov` packs loosely on `full`/`hub`/`chain`.
@@ -729,16 +759,19 @@ denominators (see Part II caveats), hence the absolute/per-component fields.
    multi-start count* (more restarts on the cheap small instances) reliably
    finds the good basin — this is what shipped, and it fixed the catastrophic
    `triangle_loose wDLY` seeds (886 → ≈MILP).
-4. **Commit 4 — ATTEMPTED & DEFERRED** — dense `wMOV` zero-movement repacker.
-   A left-shift compaction (regressed `wMK` via per-decode slowdown) and a
-   concentric-nesting construction seed (decode didn't preserve nesting) both
-   failed: the earliest-feasible decode fundamentally cannot nest. Needs a
-   dedicated nesting decode — a larger effort (this Part's Priority 3).
-5. **Next options** — (a) the dedicated nesting decode for dense `wMOV`;
-   (b) a local micro-MILP (Priority 6) that would reliably crack both the
-   residual `wDLY` and dense `wMOV` small cases; (c) consolidate — Commits 1–3
-   are solid wins and the remaining gaps are narrow (hardest `wDLY` seeds) or
-   structural (dense `wMOV`).
+4. **Commit 4 — DONE** — dense `wMOV` nesting. Two incremental attempts
+   failed (left-shift compaction regressed `wMK` via per-decode slowdown; a
+   construction seed wasn't preserved by the earliest-feasible decode). What
+   shipped is `_dense_nest_solution`: an **explicit-start** concentric-nesting
+   builder with aircraft **stretching** (so stay lengths step down by ≥ 2·η
+   even with equal work), a two-partition beam, gated to `Wˢ`-dominant +
+   blocking, under best-of + checker. `full_R10 wMOV` 352.5 → **258** (beats
+   MILP 261).
+5. **Next options** (this is option **C** from the assessment) — a local
+   **micro-MILP/CP** (Priority 6, *own model*, isolation-safe) to crack the
+   residual outliers (hardest `wDLY` seeds; dense `wMOV` seeds the nest beam
+   misses, e.g. `full_R10` seed2). Otherwise **consolidate**: all of Part III
+   Priorities 0–3 are now done and the method is competitive across profiles.
 
 Lesson learned: a *targeted neighbourhood* is not automatically helpful — with
 B-VND first-improvement the neighbourhood **order** changes the basin reached,
@@ -789,6 +822,7 @@ The returned dict matches `problems/jobs/checker.py`: `status`, `objective`,
 | Zero-movement decoder (§3.1) | `_decode`; admissible-placement bands in `_forbidden` |
 | Manoeuvre-aware decoder (§3.2) | `_decode_v3`; per-front placement `_place_front`; forward simulation with Mode-B/C `_sim_front` |
 | Cached decode (memoised eval) | `_eval` (keyed by decoder tag, order, positions-along-order; reset per solve) |
+| Dense concentric-nesting builder (§8; explicit starts, best-of) | `_dense_nest_solution` (called once in `solve` when `Wˢ`-dominant + arcs) |
 | Construction portfolio (§4) | `_build_portfolio`; `_greedy_construct(order)`; `_regret2_construct` |
 | VND neighbourhoods (§5) | `_vnd`, `_n_reassign`, `_n_swap_pos`, `_n_reorder` |
 | IG perturbation (§6) | `_perturb` |
@@ -857,6 +891,7 @@ the code that produced it. Behaviour-affecting commits (newest last):
 | `0620092` | doc sync — Parts I/II + module docstring updated to the current two-decoder / portfolio / adaptive-multi-start / cache state | no behaviour change |
 | (no commit) | **Commit 4 attempted & deferred** — dense `wMOV` repacker. Both a left-shift compaction (regressed `wMK` via per-decode slowdown) and a concentric-nesting construction seed (decode didn't preserve nesting) failed; the earliest-feasible decode fundamentally cannot nest. See Part III Priority 3 — needs a dedicated nesting decode (larger effort). Code reverted to `0620092`. | no change shipped |
 | `21ad222` | experiment runner only (not the solver): run **seed-first** (early cross-type read) and **stamp the git commit in every log header** so each `.log` self-identifies its code state. | enabled the definitive full-battery snapshot in Part II above (log `…122208`); solver unchanged (still Commits 1–3) |
+| *this commit* | **Commit 4 (dense nesting) — shipped.** `_dense_nest_solution`: explicit-start concentric-nesting schedule with aircraft *stretching*, two-partition beam, best-of + checker, gated to `Wˢ`-dominant + blocking topology (Part III Priority 3). | `full_R10 wMOV` 352.5 → **258** (beats MILP 261); also helps `full_R20`; ignored elsewhere (no regression). **Part II is now stale for dense `wMOV`** — needs a re-run. |
 
 **Evaluation shortcut.** The MILP baseline is fixed, so re-running it is
 wasteful. To judge a heuristic change, run `ablation_subset.py` (heuristic

@@ -59,6 +59,7 @@ Solution dict shape (consumed by ``problems/jobs/checker.py``)::
 """
 from __future__ import annotations
 
+import math
 import random
 import time
 
@@ -167,6 +168,20 @@ class IteratedGreedyVNDJobSolver:
                 f"mov={sol['metrics']['movements']}  best={best_obj:.4f}"
             )
             i += 1
+
+        # Option B — dense concentric-nesting schedule (targets dense `wMOV`).
+        # Built ONCE with explicit start times (not via the earliest-feasible
+        # decode, which cannot nest), validated by the checker, and adopted
+        # only if it beats the multi-start best.  Gated to the movement-priority
+        # regime with a blocking topology, where it is relevant.
+        if self._arcs and self.wS >= self.wM and self.wS >= self.wD:
+            nest = self._dense_nest_solution()
+            if (nest is not None and nest["objective"] < best_obj - 1e-9
+                    and self._is_compliant(nest, instance_data)):
+                nest["phase"] = "dense_nest"
+                best_sol, best_obj = nest, nest["objective"]
+                self._log.append(f"dense-nest ACCEPTED obj={best_obj:.4f} "
+                                 f"ms={nest['metrics']['makespan']:.1f}")
 
         elapsed = time.perf_counter() - t0
         best_sol["status"] = "heuristic_ok"
@@ -424,6 +439,99 @@ class IteratedGreedyVNDJobSolver:
             },
             "aircraft": aircraft_out,
         }
+
+    def _dense_nest_solution(self):
+        """Option B — explicit concentric-nesting schedule for dense blocking.
+
+        Groups aircraft into **waves** that nest concentrically: sorted by
+        duration descending, each aircraft joins the wave whose innermost
+        member can still wrap it (`Tᵣ ≤ inner − 2·eta`) and has a free
+        position, else opens a new wave.  Within a wave the longest member is
+        the outer container and is assigned the **deepest** position (so the
+        rear aircraft encloses the fronts); successive members start `eta`
+        later (concentric nesting).  Waves are serialised (`+eta`).  Start
+        times are written **explicitly** — this does NOT go through the
+        earliest-feasible decode (which would un-nest it) — and every rear
+        access lands Mode A, so movements = 0 by construction.  Returns a full
+        solution dict, or None.  (Checker-validated and best-of in `solve`.)
+        """
+        eta = self.eta
+        P = self._pos_by_depth_desc                       # deepest (rear) first
+        cap = len(P)
+        by_dur = sorted(self.aircraft_ids, key=lambda r: -self.T[r])
+        # Try a small "beam" of wave partitions (each wave <= |P|), keep the
+        # lowest-objective one.  Within a wave the *stay length* (not the work
+        # T) must decrease by >= 2*eta to nest, achieved by stretching shorter
+        # aircraft with idle.
+        n_waves = max(1, math.ceil(len(by_dur) / cap))
+        chunk = [by_dur[k:k + cap] for k in range(0, len(by_dur), cap)]
+        rr = [[] for _ in range(n_waves)]                 # round-robin (balances waves)
+        for idx, r in enumerate(by_dur):
+            rr[idx % n_waves].append(r)
+        partitions = [chunk, [w for w in rr if w]]
+
+        def stay_lengths(w):
+            # minimal stay L_i (outer..inner) with L_i >= T_i and
+            # L_{i-1} >= L_i + 2*eta; computed inner->outer to stay minimal.
+            T = [self.T[r] for r in w]
+            L = [0.0] * len(w)
+            L[-1] = T[-1]
+            for i in range(len(w) - 2, -1, -1):
+                L[i] = max(T[i], L[i + 1] + 2 * eta)
+            return L
+
+        def build_jobs(r, s, L):
+            # lay jobs from s; insert the idle (L - T) after the first job so
+            # the last job finishes at s + L (needs >= 2 jobs; else stay = T).
+            chain = self.chain[r]
+            extra = max(0.0, L - self.T[r]) if len(chain) > 1 else 0.0
+            t, jobs = s, []
+            for idx, (jid, d) in enumerate(chain):
+                jobs.append({"id": jid, "start": t, "finish": t + d})
+                t += d
+                if idx == 0:
+                    t += extra
+            return jobs, t                                # t = final finish
+
+        def build_from(waves):
+            placed: dict[str, tuple] = {}
+            assignment: dict[str, str] = {}
+            prev_finish = None
+            for w in waves:                               # w sorted by dur desc
+                L = stay_lengths(w)
+                anchor_lb = max(self.E[w[i]] - i * eta for i in range(len(w)))
+                anchor = anchor_lb if prev_finish is None else max(prev_finish + eta, anchor_lb)
+                w_finish = None
+                for i, r in enumerate(w):
+                    s = anchor + i * eta
+                    jobs, f = build_jobs(r, s, L[i])
+                    placed[r] = (s, f, jobs)
+                    assignment[r] = P[i]
+                    w_finish = f if w_finish is None else max(w_finish, f)
+                prev_finish = w_finish
+
+            aircraft_out, makespan, total_delay = [], 0.0, 0.0
+            for r in self.aircraft_ids:
+                s_r, f_r, jobs_out = placed[r]
+                delay = max(0.0, f_r - self.L[r])
+                makespan = max(makespan, f_r)
+                total_delay += delay
+                aircraft_out.append({"id": r, "position": assignment[r], "start": s_r,
+                                     "finish": f_r, "delay": delay, "jobs": jobs_out})
+            obj = self.wM * makespan + self.wD * total_delay   # movements == 0
+            return {
+                "status": "heuristic_ok",
+                "objective": round(obj, 6),
+                "metrics": {"makespan": makespan, "total_delay": total_delay, "movements": 0},
+                "aircraft": aircraft_out,
+            }
+
+        best = None
+        for waves in partitions:
+            sol = build_from(waves)
+            if best is None or sol["objective"] < best["objective"]:
+                best = sol
+        return best
 
     def _objective(self, sol: dict) -> float:
         return float(sol["objective"])
