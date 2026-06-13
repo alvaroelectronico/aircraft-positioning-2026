@@ -671,11 +671,14 @@ A3 regret → A4 delay-manoeuvre → A5 zero-move repack → A6 ALNS`.
    run carries `timed_out`; R20/R30 reported separately for strict-60 s vs
    no-hard-limit.
 
-## Priority 1 — due-date-aware construction (targets `wDLY`)
+## Priority 1 — due-date-aware construction (targets `wDLY`) — DONE
 
-`PlaceFront` already prices `Wᴰ·delay`; the gap is that the search rarely
-*proposes* states with tight-target aircraft early. Keep NEH but turn
-construction into a **seed portfolio** for the multi-start:
+Implemented in Commit 2 (`_build_portfolio` + `_regret2_construct`): each
+multi-start restart builds its seed from a different rule (NEH / EDD / SLACK
+/ regret-2 / CR / BLEND). `PlaceFront` already prices `Wᴰ·delay`; the gap was
+that the search rarely *proposed* states with tight-target aircraft early.
+The due-date seeds fix that — `R5 wDLY` seed10 went 139 → 35 (= MILP
+optimum), `triangle_loose_R10 wDLY` ~570 → 323, with no `wMK` regression.
 
 ```
 σ_NEH   = sort by −Tᵣ          σ_EDD   = sort by Lᵣ
@@ -785,7 +788,8 @@ the code that produced it. Behaviour-affecting commits (newest last):
 | `d00af90` | Mode-B manoeuvre-aware decoder (`DecodeManoeuvre`, §3.2) | reaches/beats MILP on tight-blocking `wMK`/`wDLY` |
 | `68dc201` | gap-summary logging prepended to the run log | **Part III battery ran at this commit** |
 | `1f36bd7` | enforce the wall-clock budget inside every search loop (P0 #1) | R30/`full_R20` 413 s/88 s → ~60 s; R20/R30 Part III rows now stale |
-| *this commit* | rest of P0: decode cache (`_eval`, 90–100 % hit), always-valid incumbent with `phase`/`timed_out` fields, per-component (Δmakespan/Δdelay/Δmov) gap logging, and `experiments/ablation_subset.py` (heuristic-only subset reusing the cached MILP) | same objectives, far more search per second; faster ablation loop |
+| `f4e10f0` | Commit 1 (P0): decode cache (`_eval`, 90–100 % hit), always-valid incumbent with `phase`/`timed_out` fields, per-component (Δmakespan/Δdelay/Δmov) gap logging, and `experiments/ablation_subset.py` (heuristic-only subset reusing the cached MILP) | same objectives, far more search per second; faster ablation loop |
+| *this commit* | Commit 2 (P1): construction portfolio per multi-start (`_build_portfolio`: NEH / EDD / SLACK / regret-2 / CR / BLEND) + regret-2 insertion (`_regret2_construct`), targeting `wDLY` | due-date seeds steer tight-target aircraft early; `R5 wDLY` seed10 139 → **35 = MILP optimum**, `triangle_loose_R10 wDLY` ~570 → 323; no `wMK` regression |
 
 **Evaluation shortcut.** The MILP baseline is fixed, so re-running it is
 wasteful. To judge a heuristic change, run `ablation_subset.py` (heuristic

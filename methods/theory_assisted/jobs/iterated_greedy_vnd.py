@@ -130,26 +130,28 @@ class IteratedGreedyVNDJobSolver:
         self._cache = {}
         self._cache_hits = self._cache_misses = 0
 
-        # Shared deterministic construction (the per-start variety comes from
-        # the IG perturbation RNG, re-seeded per start).  Bounded by the
-        # global deadline so it cannot itself blow the budget on large R.
-        self._decode_fn = self._decode
-        self._decoder_tag = "v2"
-        self._deadline = global_dl
-        ctor_order = sorted(self.aircraft_ids, key=lambda r: -self.T[r])
-        self._ctor_assignment = self._greedy_construct(ctor_order)
-        self._ctor_order = self._neh_order(self._ctor_assignment)
+        # Construction portfolio: each multi-start restart builds its own seed
+        # from a different rule, so the starts differ by *construction* (not
+        # only by the IG perturbation RNG).  The due-date rules (EDD / slack /
+        # critical-ratio) and regret-2 steer tight-target aircraft into early
+        # slots, which is what `wDLY` needs.
+        portfolio = self._build_portfolio()
 
         best_sol, best_obj = None, float("inf")
         i = 0
         while time.perf_counter() < global_dl - 0.05 and i < n_starts:
             self.rng = random.Random(base_seed + i)
             start_dl = min(global_dl, time.perf_counter() + per_start)
-            sol, obj = self._one_start(instance_data, start_dl)
+            self._deadline = start_dl
+            self._decode_fn = self._decode
+            self._decoder_tag = "v2"
+            ctor_name, ctor = portfolio[i % len(portfolio)]
+            a0, o0 = ctor()
+            sol, obj = self._one_start(instance_data, a0, o0, start_dl)
             if obj < best_obj - 1e-9:
                 best_sol, best_obj = sol, obj
             self._log.append(
-                f"start {i} (seed {base_seed + i})  obj={obj:.4f}  "
+                f"start {i} (seed {base_seed + i}, ctor {ctor_name})  obj={obj:.4f}  "
                 f"ms={sol['metrics']['makespan']:.1f} dly={sol['metrics']['total_delay']:.1f} "
                 f"mov={sol['metrics']['movements']}  best={best_obj:.4f}"
             )
@@ -171,10 +173,10 @@ class IteratedGreedyVNDJobSolver:
         )
         return best_sol
 
-    def _one_start(self, instance_data: dict, deadline: float) -> tuple[dict, float]:
-        """One multi-start restart: zero-movement (v2) search, then an
-        optional manoeuvre-aware (v3) polish validated by the real checker.
-        Returns (solution, objective)."""
+    def _one_start(self, instance_data: dict, a0: dict, o0: list, deadline: float) -> tuple[dict, float]:
+        """One multi-start restart from the seed ``(a0, o0)``: zero-movement
+        (v2) search, then an optional manoeuvre-aware (v3) polish validated by
+        the real checker.  Returns (solution, objective)."""
         # ---- Phase 1: zero-movement search (v2 decoder) ----
         # The v2 floor is feasible by construction, so the incumbent returned
         # here is always a complete, valid schedule.
@@ -182,7 +184,7 @@ class IteratedGreedyVNDJobSolver:
         self._decoder_tag = "v2"
         dl1 = min(deadline, time.perf_counter() + (deadline - time.perf_counter()) *
                   (0.5 if self.use_v3 else 1.0))
-        a1, o1 = self._search(dict(self._ctor_assignment), list(self._ctor_order), dl1)
+        a1, o1 = self._search(dict(a0), list(o0), dl1)
         best_sol = self._finalize(self._decode(a1, o1))
         best_obj = best_sol["objective"]
         best_sol["phase"] = "zero"
@@ -463,6 +465,66 @@ class IteratedGreedyVNDJobSolver:
 
     def _neh_order(self, assignment: dict) -> list[str]:
         return sorted(self.aircraft_ids, key=lambda r: -self.T[r])
+
+    def _build_portfolio(self):
+        """Construction portfolio for the multi-start.  Each entry returns a
+        seed ``(assignment, order)``.  The order rules diversify the starts;
+        the due-date rules (EDD / slack / critical-ratio) and regret-2 steer
+        tight-target aircraft into early slots — the lever `wDLY` needs."""
+        ids = self.aircraft_ids
+        by_neh   = sorted(ids, key=lambda r: -self.T[r])                      # makespan
+        by_edd   = sorted(ids, key=lambda r: self.L[r])                       # earliest due date
+        by_slack = sorted(ids, key=lambda r: self.L[r] - self.E[r] - self.T[r])
+        by_cr    = sorted(ids, key=lambda r: (self.L[r] / self.T[r]) if self.T[r] > 0 else float("inf"))
+        rT = {r: i for i, r in enumerate(by_neh)}
+        rL = {r: i for i, r in enumerate(by_edd)}
+        rS = {r: i for i, r in enumerate(by_slack)}
+        by_blend = sorted(ids, key=lambda r: 0.4 * rT[r] + 0.3 * rL[r] + 0.3 * rS[r])
+
+        def fixed(o):
+            return lambda o=o: (self._greedy_construct(o), list(o))
+
+        # Order chosen so the first n_starts cover makespan + two due-date
+        # rules + regret-2 (the most useful mix for a small n_starts).
+        return [
+            ("NEH",     fixed(by_neh)),
+            ("EDD",     fixed(by_edd)),
+            ("SLACK",   fixed(by_slack)),
+            ("regret2", self._regret2_construct),
+            ("CR",      fixed(by_cr)),
+            ("BLEND",   fixed(by_blend)),
+        ]
+
+    def _regret2_construct(self):
+        """Regret-2 insertion: at each step insert the aircraft whose 2nd-best
+        position is much worse than its best (largest regret), at its best
+        position (appended to the order).  Targets low-slack / high-`Wᴰ`
+        aircraft that have few good slots."""
+        assignment: dict = {}
+        order: list[str] = []
+        unplaced = list(self.aircraft_ids)
+        while unplaced and not self._time_up():
+            choice = None  # (regret, r, best_p)
+            for r in unplaced:
+                costs = []
+                for p in self.positions:
+                    assignment[r] = p
+                    costs.append((self._objective(self._eval(assignment, order + [r])), p))
+                del assignment[r]
+                costs.sort(key=lambda c: c[0])
+                best_o, best_p = costs[0]
+                second_o = costs[1][0] if len(costs) > 1 else best_o
+                regret = second_o - best_o
+                if choice is None or regret > choice[0]:
+                    choice = (regret, r, best_p)
+            _, r, p = choice
+            assignment[r] = p
+            order.append(r)
+            unplaced.remove(r)
+        for r in unplaced:                         # budget-exhausted fallback
+            assignment[r] = self.positions[0]
+            order.append(r)
+        return assignment, order
 
     # ==================================================================
     # VND  (sequential, B-VND reset over three neighbourhoods)
