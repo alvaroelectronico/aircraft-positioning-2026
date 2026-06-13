@@ -221,6 +221,14 @@ PROCEDURE  GreedyConstruct(σ):              # NEH-style greedy insertion
     # NEHorder and the search.  Deterministic — shared by every multi-start.
 
 
+PROCEDURE  NEHorder(π):                     # priority order for the search
+    return aircraft sorted by Tᵣ descending
+    # In this version it depends only on Tᵣ, so NEHorder(π₀) = σ₀; the π
+    # argument is the hook for an assignment-/due-date-aware order
+    # (a Part IV candidate, e.g. EDD).  The order is then refined by the
+    # Reorder neighbourhood inside the search.
+
+
 PROCEDURE  OneStart(π, σ, deadline):
     # Phase 1 — zero-movement regime (a guaranteed-feasible floor)
     (π,σ) ← Search(π, σ, DecodeZeroMov, deadline·½)
