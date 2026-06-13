@@ -745,19 +745,42 @@ makespan saving vs manoeuvre + front-time cost) so it fires under `wDLY` but
 not `wMOV`. Also add due-date-critical `PlaceFront` candidates `s = Lᵣ−Tᵣ`,
 `Lᵣ−Tᵣ−δ·q`, `Lᵣ−Tᵣ−μ·q`: the objective's slope changes at `Lᵣ`.
 
-## Priority 3 — dense zero-movement repacking (targets `wMOV`)
+## Priority 3 — dense zero-movement repacking (targets `wMOV`) — DEFERRED
 
 When `Wˢ` dominates the problem becomes "best schedule with `n = 0`", and
-`DecodeZeroMov` packs loosely on `full`/`hub`/`chain` (`full_R10` seed1:
-116.5 vs 71.5 makespan, both 0 mov). Add a **blocking-component repacker**:
-for a small position component, fix the outside and pick the
-before/after/enclose disjunction per front/rear pair (and the ε-order per
-shared position); a fixed choice is a system of difference constraints
-solvable by longest-path / Bellman-Ford (a cycle ⇒ infeasible). Explore the
-disjunctions with a small **beam** under a lower bound. Add a **compaction
-pass** (left-shift preserving Mode-A; treat *enclosing* as a container that
-can wrap several shorts, not a pairwise option). Activate only when
-`Wˢ / max(Wᴹ,Wᴰ)` is high, movements are already 0, and density is high.
+`DecodeZeroMov` packs loosely on `full`/`hub`/`chain`.
+
+**Autopsy (`full_R10` seed1, both 0 mov).** `full` is a *complete* blocking
+graph, so all aircraft mutually conflict. The MILP (ms 71.5) packs them into
+**two concentric-nesting waves of 5**: durations staggered (34/32/30/28/26
+and 31/29/27/23/17) so each wave's span ≈ its longest member, two waves
+serialised. The heuristic (ms 114.5) fills 3 into wave 1, 5 into wave 2, then
+**serialises the 2-aircraft tail** → +52 makespan.
+
+**Two attempts, both failed (reverted):**
+1. *Left-shift compaction* (re-place each aircraft, latest-first, at its
+   earliest feasible start vs all others). Could not restructure the nesting
+   (left-shifting one aircraft can't open a nested slot that requires moving
+   several), so `full_R10` stayed 114.5 — and the 4 extra O(R²) passes per
+   decode **slowed the search enough to regress `wMK` 5961 → 6082**.
+2. *Concentric-nesting construction seed* (group by duration into nesting
+   waves; safe portfolio seed, best-kept). Still ms ~116 — the seed had the
+   right structure but the decode did not preserve it.
+
+**Root cause (fundamental).** The zero-movement decode is *earliest-feasible*,
+which always prefers placing an aircraft **before** (earliest) rather than
+**nested** (later, inside a container) — so it serialises. Concentric nesting
+needs the decode to *choose* a later nested start; neither a post-pass nor a
+seed can impose that on an earliest-feasible decode.
+
+**Proper fix (a larger, separate effort).** A *dedicated nesting decode* for
+dense components: pick the before/after/enclose disjunction per pair (a
+difference-constraint system, longest-path/Bellman-Ford; cycle ⇒ infeasible)
+and explore disjunctions with a small beam. The risk is the per-decode cost
+(it must not slow the whole search — cf. attempt 1); likely run it only as a
+*specialised seed/decode* when `Wˢ / max(Wᴹ,Wᴰ)` is high and density is high,
+kept under the best-of safety net. **Deferred** rather than shipped as a
+fragile incremental change.
 
 ## Priority 4 — weight-profile-dependent VND
 
@@ -809,10 +832,16 @@ denominators (see Part III caveats), hence the absolute/per-component fields.
    multi-start count* (more restarts on the cheap small instances) reliably
    finds the good basin — this is what shipped, and it fixed the catastrophic
    `triangle_loose wDLY` seeds (886 → ≈MILP).
-4. **Commit 4** — `N_delay_manoeuvre` for the residual `wDLY` (still a gap on
-   the hardest seeds where the MILP spends manoeuvres to reach delay 0).
-5. **Commit 5** — zero-move block repacker + compaction (fixes dense `wMOV`).
-6. **Commit 6** — local micro-MILP for small / clearly-failing cases; ALNS-lite.
+4. **Commit 4 — ATTEMPTED & DEFERRED** — dense `wMOV` zero-movement repacker.
+   A left-shift compaction (regressed `wMK` via per-decode slowdown) and a
+   concentric-nesting construction seed (decode didn't preserve nesting) both
+   failed: the earliest-feasible decode fundamentally cannot nest. Needs a
+   dedicated nesting decode — a larger effort (Part IV Priority 3).
+5. **Next options** — (a) the dedicated nesting decode for dense `wMOV`;
+   (b) a local micro-MILP (Priority 6) that would reliably crack both the
+   residual `wDLY` and dense `wMOV` small cases; (c) consolidate — Commits 1–3
+   are solid wins and the remaining gaps are narrow (hardest `wDLY` seeds) or
+   structural (dense `wMOV`).
 
 Lesson learned: a *targeted neighbourhood* is not automatically helpful — with
 B-VND first-improvement the neighbourhood **order** changes the basin reached,
@@ -833,7 +862,9 @@ the code that produced it. Behaviour-affecting commits (newest last):
 | `1f36bd7` | enforce the wall-clock budget inside every search loop (P0 #1) | R30/`full_R20` 413 s/88 s → ~60 s; R20/R30 Part III rows now stale |
 | `f4e10f0` | Commit 1 (P0): decode cache (`_eval`, 90–100 % hit), always-valid incumbent with `phase`/`timed_out` fields, per-component (Δmakespan/Δdelay/Δmov) gap logging, and `experiments/ablation_subset.py` (heuristic-only subset reusing the cached MILP) | same objectives, far more search per second; faster ablation loop |
 | `ab33af4` | Commit 2 (P1): construction portfolio per multi-start (`_build_portfolio`: NEH / EDD / SLACK / regret-2 / CR / BLEND) + regret-2 insertion (`_regret2_construct`), targeting `wDLY` | due-date seeds steer tight-target aircraft early; `R5 wDLY` seed10 139 → **35 = MILP optimum**, `triangle_loose_R10 wDLY` ~570 → 323; no `wMK` regression |
-| *this commit* | Commit 3 (variance reduction): adaptive multi-start count (`n_starts` default 8 / 4 / 3 for R≤10 / ≤20 / else). **The planned delay-specific neighbourhoods were tried and dropped** — they were basin-dependent and unstable (helped some seeds, regressed others; the per-VND slowdown cost more than it gained). | the time-limited search is non-deterministic and occasionally lands in a bad basin; more independent restarts make the good basin reliable. `triangle_loose_R10 wDLY` seed7 886 → **67.5 ≈ MILP 64.5**, seed5 487 → 78.5; `wMK` 5961 and R20/R30 unaffected |
+| `dd12d3e` | Commit 3 (variance reduction): adaptive multi-start count (`n_starts` default 8 / 4 / 3 for R≤10 / ≤20 / else). **The planned delay-specific neighbourhoods were tried and dropped** — basin-dependent and unstable. | search is non-deterministic; more independent restarts make the good basin reliable. `triangle_loose_R10 wDLY` seed7 886 → **67.5 ≈ MILP 64.5**, seed5 487 → 78.5; `wMK` 5961 and R20/R30 unaffected |
+| `0620092` | doc sync — Parts I/II + module docstring updated to the current two-decoder / portfolio / adaptive-multi-start / cache state | no behaviour change |
+| (no commit) | **Commit 4 attempted & deferred** — dense `wMOV` repacker. Both a left-shift compaction (regressed `wMK` via per-decode slowdown) and a concentric-nesting construction seed (decode didn't preserve nesting) failed; the earliest-feasible decode fundamentally cannot nest. See Part IV Priority 3 — needs a dedicated nesting decode (larger effort). Code reverted to `0620092`. | no change shipped |
 
 **Evaluation shortcut.** The MILP baseline is fixed, so re-running it is
 wasteful. To judge a heuristic change, run `ablation_subset.py` (heuristic
