@@ -185,7 +185,141 @@ the zero-movement floor. Consequently the method can never return an
 infeasible schedule and can never do worse than its zero-movement result,
 regardless of any approximation inside the manoeuvre-aware decoder.
 
-## 9. Behaviour observed
+## 9. The complete algorithm in pseudocode
+
+Notation: a *state* is `(π, σ)` — an assignment `π : R → P` and a priority
+order `σ` over the aircraft. `Eᵣ, Lᵣ, Tᵣ` are aircraft `r`'s earliest start,
+target finish and total processing time; `ε, η, μ, δ` are the instance's tow
+time, access margin, Mode-B gap unit and Mode-C extension. The cost of a
+schedule is `F = Wᴹ·makespan + Wᴰ·Σ delay + Wˢ·movements`.
+
+```
+ALGORITHM  Solve(instance, time_limit, weights, n_starts, base_seed):
+    preprocess instance  (job chains, Tᵣ, blocking arcs, position depths)
+    σ₀ ← aircraft sorted by Tᵣ descending                 # NEH order
+    π₀ ← GreedyConstruct(σ₀)                              # shared seed
+    best ← ∅ ;  best_F ← +∞
+    for i in 0 … n_starts−1  while time remains:
+        seed the RNG with base_seed + i
+        deadline_i ← now + time_limit / n_starts
+        (sol, F) ← OneStart(π₀, NEHorder(π₀), deadline_i)
+        if F < best_F:  best, best_F ← sol, F
+    return best
+
+
+PROCEDURE  OneStart(π, σ, deadline):
+    # Phase 1 — zero-movement regime (a guaranteed-feasible floor)
+    (π,σ) ← Search(π, σ, DecodeZeroMov, deadline·½)
+    floor ← DecodeZeroMov(π, σ) ;  bestF ← F(floor)
+    # Phase 2 — manoeuvre-aware polish, only kept if certified and better
+    (π′,σ′) ← Search(π, σ, DecodeManoeuvre, deadline)
+    cand ← DecodeManoeuvre(π′, σ′)
+    if F(cand) < bestF  and  CompliantByChecker(cand):
+        return (cand, F(cand))
+    return (floor, bestF)
+
+
+PROCEDURE  Search(π, σ, Decode, deadline):          # VND + Iterated Greedy
+    (π,σ) ← VND(π, σ, Decode)
+    best ← (π,σ) ;  cur ← (π,σ)
+    while now < deadline and stale < max_no_improve:
+        cand ← Perturb(cur)                          # destroy k + reinsert
+        cand ← VND(cand, Decode)
+        if F(Decode(cand)) ≤ F(Decode(cur)):  cur ← cand
+        if F(Decode(cand)) < F(Decode(best)):  best ← cand ; stale ← 0
+        else: stale ← stale + 1
+        every 50 stale steps:  cur ← best            # restart the walk
+    return best
+
+
+PROCEDURE  VND(π, σ, Decode):                        # sequential B-VND
+    neighbourhoods ← [Reassign, SwapPositions, Reorder]
+    k ← 0
+    while k < 3:
+        (improved, π, σ) ← FirstImprovement(neighbourhoods[k], π, σ, Decode)
+        k ← 0 if improved else k+1                   # reset on improvement
+    return (π, σ)
+    #  Reassign      : move one aircraft to another position
+    #  SwapPositions : exchange the positions of two aircraft
+    #  Reorder       : swap two aircraft in σ
+
+
+PROCEDURE  Perturb(π, σ):                            # Iterated Greedy kick
+    remove the k aircraft of largest contribution (Wᴰ·delayᵣ + small·Tᵣ),
+        with light randomisation
+    for each removed r:                              # greedy reconstruction
+        insert r at the (position, slot in σ) minimising F of the decode
+    return the rebuilt state
+
+
+# ── Inner layer: the two decoders ────────────────────────────────────
+
+PROCEDURE  DecodeZeroMov(π, σ):        # feasible by construction, 0 moves
+    placed ← ∅
+    for r in σ:                                      # place in priority order
+        F ← forbidden start-intervals of r vs each already-placed neighbour:
+            same position p           → must keep gap ≥ ε  (before/after)
+            blocking pair (p,p′)       → keep both access instants Mode-A:
+                rear BEFORE front, or AFTER front, or ENCLOSING it (margin η)
+            (the “enclose’’ option leaves a feasible hole between two bands)
+        sᵣ ← earliest t ≥ Eᵣ not inside any forbidden interval
+        lay r’s jobs tight from sᵣ ;  κ = 0          # no extensions
+        placed ← placed ∪ {r}
+    return schedule with movements = 0
+
+
+PROCEDURE  DecodeManoeuvre(π, σ):      # may spend Mode-B / Mode-C manoeuvres
+    for p in positions, deepest-rear first:          # rears fixed before fronts
+        prev_finish ← −∞
+        for r in (aircraft at p, in σ order):
+            low ← max(Eᵣ, prev_finish + ε)
+            A   ← access instants {sₐ, fₐ} of every already-placed rear of p
+            (sᵣ, fᵣ, sched, moves) ← PlaceFront(r, low, A)
+            prev_finish ← fᵣ
+    return schedule with movements = 2 · Σ moves
+
+
+PROCEDURE  PlaceFront(r, low, A):      # choose r’s min-cost feasible start
+    candidates ← { low }
+      ∪ { τ−η−Tᵣ , τ−η , τ+η : τ ∈ A }                       # before/after/nest
+      ∪ { starts aligning an interruptible job interior over τ }  # invite Mode-C
+      ∪ { starts aligning a job END just before τ }              # invite Mode-B
+      ∪ { max(low, max A + η) }                                  # always feasible
+    best ← ∅
+    for s in candidates (ascending):
+        (fᵣ, sched, moves, ok) ← SimulateFront(r, s, A)
+        if ok:
+            cost ← Wᴹ·fᵣ + Wᴰ·max(0, fᵣ−Lᵣ) + Wˢ·2·moves
+            keep (s, …) if cost is the lowest so far
+    return best                                       # zero-move options are
+                                                      # always among candidates
+
+
+PROCEDURE  SimulateFront(r, s, A):     # forward sweep, classify each access
+    t ← s ;  moves ← 0 ;  sched ← []
+    for each job j of r (in chain order):
+        κ ← fixpoint: number of unused τ ∈ A strictly inside [t+η, fⱼ−η],
+                      where fⱼ = t + Dⱼ + δ·κ                       # Mode C
+        if κ>0 and j not interruptible:  return infeasible
+        if any τ ∈ A lies in an η-margin of j:  return infeasible
+        moves ← moves + κ ;  append (j, t, fⱼ, κ) ;  t ← fⱼ
+        if j is not the last job:                                  # Mode B?
+            open a gap before the next job for the unused τ just past fⱼ
+              when that beats Mode C (τ within δ of fⱼ) or the next job is
+              non-interruptible; size the gap ≥ μ·(#accesses in it);
+              count every τ inside the gap as a movement; advance t past it
+    if any access in (s, fᵣ) is still unclassified:  return infeasible
+    return (fᵣ = t, sched, moves, ok)
+```
+
+The decisive contrast: `DecodeZeroMov` only ever keeps rear access instants
+in Mode A (never paying a manoeuvre), while `DecodeManoeuvre` additionally
+*offers* the Mode-B and Mode-C options and lets the min-cost start choose
+them when the weights make a manoeuvre worth its makespan/delay saving — and
+the zero-movement placements remain candidates, so it never discards a
+feasible no-movement schedule.
+
+## 10. Behaviour observed
 
 - On instances with no blocking, and on the small five-aircraft instances,
   the method reaches the exact optimum on every weight profile, at zero
