@@ -1,8 +1,9 @@
 # Iterated Greedy + VND heuristic for job-level aircraft positioning
 
-This document has two parts. **Part I** explains the heuristic as a method,
-the way a paper would, with no reference to the source code. **Part II**
-explains how that method is realised in code.
+This document has four parts. **Part I** explains the heuristic as a method,
+the way a paper would, with no reference to the source code; **Part II**
+reports the results and their analysis; **Part III** is the improvement
+roadmap; **Part IV** explains how the method is realised in code.
 
 ---
 
@@ -395,101 +396,7 @@ feasible no-movement schedule.
 
 ---
 
-# Part II — How it is implemented
-
-Source: [`iterated_greedy_vnd.py`](iterated_greedy_vnd.py) — class
-`IteratedGreedyVNDJobSolver`, registered under the label
-`iterated_greedy_vnd`. `TheoryAssistedJobSolver` is kept as a
-backwards-compatible alias.
-
-## Solver contract (`shared/application.py`)
-
-| member | role |
-| --- | --- |
-| `name` | `"iterated_greedy_vnd"` |
-| `configure_solver(**kw)` | store config |
-| `solve(instance)` | run the search, return the solution dict |
-| `get_config()` | return stored config |
-| `get_log()` | per-run trace (construction, per-start objective, accept/reject) |
-
-The returned dict matches `problems/jobs/checker.py`: `status`, `objective`,
-`metrics.{makespan,total_delay,movements}`, and `aircraft[…]` with
-`id, position, start, finish, delay, jobs[…].{id,start,finish}`.
-
-### Config knobs
-
-| key | default | meaning |
-| --- | --- | --- |
-| `time_limit_s` | 60 | wall-clock cap |
-| `weight_makespan` / `weight_delay` / `weight_movements` | 0.1 / 1 / 10 | `Wᴹ, Wᴰ, Wˢ` |
-| `seed` | 1 | base RNG seed; start *i* uses `seed+i` |
-| `n_starts` | adaptive: 8 / 4 / 3 for R≤10 / ≤20 / else | multi-start restarts (§I.7); overridable |
-| `k_destroy` | `max(1, R//4)` | aircraft removed per IG perturbation (§I.6) |
-| `max_no_improve` | 400 | stale-iteration early stop per search |
-| `use_v3` | `True` | enable the manoeuvre-aware polish (§I.3.2) |
-
-## Method ↔ code map
-
-| Method concept (Part I) | Code |
-| --- | --- |
-| Instance preprocessing (chains, `Tᵣ`, blocking arcs, depths, interruptibility) | `_prepare` |
-| Two-layer state | `assignment: dict[r→p]` + `order: list[r]` |
-| Zero-movement decoder (§3.1) | `_decode`; admissible-placement bands in `_forbidden` |
-| Manoeuvre-aware decoder (§3.2) | `_decode_v3`; per-front placement `_place_front`; forward simulation with Mode-B/C `_sim_front` |
-| Cached decode (memoised eval) | `_eval` (keyed by decoder tag, order, positions-along-order; reset per solve) |
-| Construction portfolio (§4) | `_build_portfolio`; `_greedy_construct(order)`; `_regret2_construct` |
-| VND neighbourhoods (§5) | `_vnd`, `_n_reassign`, `_n_swap_pos`, `_n_reorder` |
-| IG perturbation (§6) | `_perturb` |
-| Search driver (decoder-agnostic via `self._decode_fn`) | `_search` |
-| Two-regime combination per restart (§8) | `_one_start(a0, o0, …)` (phase 1 = `_decode`, phase 2 = `_decode_v3`) |
-| Multi-start, adaptive count (§7) | loop in `solve` over `_build_portfolio()` |
-| Time budget enforced in every loop | `_time_up` (`self._deadline`) |
-| Safety net (§8) | `_is_compliant` calls the real `check_solution` |
-
-## Key implementation notes
-
-- `_forbidden` emits, per already-placed neighbour, the infeasible
-  start-time bands; for a blocking pair the *two* bands leave a feasible
-  hole between them — that hole is the nesting option of §3.1.
-- `_sim_front` returns `(finish, sched, mov_events, feasible)`; `mov_events`
-  folds Mode-B + Mode-C events and `movements = 2·mov_events`. It rejects a
-  start (returns infeasible) on an access in an `η`-margin, a Mode-C on a
-  non-interruptible job, or any access it cannot classify.
-- The objective inside the decoders is `Wᴹ·makespan + Wᴰ·total_delay +
-  Wˢ·movements`; the zero-movement decoder fixes `movements = 0`.
-- **Time budget.** `_time_up()` (a `time.perf_counter()` vs `self._deadline`
-  check) is polled inside every search loop — construction, VND, each
-  neighbourhood scan, and the IG reinsertion — so the solver returns within
-  `time_limit_s` even on large instances where a single sweep is expensive.
-  Loops that must leave a complete solution (construction, reinsertion) fall
-  back to a cheap feasible completion when the budget runs out.
-
-## Safety net and validation
-
-The zero-movement result is a guaranteed feasible floor. Every
-manoeuvre-aware candidate is validated against the real paper-#2 checker
-(`_is_compliant` → `problems/jobs/checker.py`) and accepted only if
-compliant and strictly better. So an imperfect simulation can only fail to
-improve — never produce a wrong answer.
-
-## Isolation
-
-The solver imports nothing from other methods. The lazy
-`from checker import check_solution` inside `_is_compliant` targets
-`problems/jobs/` (allowed), so `experiments/tests/test_method_isolation.py`
-reports 0 violations.
-
-## Smoke test
-
-```
-py -3 methods/theory_assisted/jobs/iterated_greedy_vnd.py \
-    problems/jobs/instances/scn_triangle_tight_P5_R5/scn_triangle_tight_P5_R5_seed1.json 10
-```
-Prints the per-run log, the objective/metrics, and the full checker report.
-
----
-
-# Part III — Results and analysis (solver at Commits 1–3; run under `21ad222`)
+# Part II — Results and analysis (solver at Commits 1–3; run under `21ad222`)
 
 > Snapshot of the solver **after Commits 1–3** (decode cache + enforced time
 > budget; construction portfolio + regret-2; adaptive multi-start). The
@@ -638,7 +545,7 @@ Prints the per-run log, the objective/metrics, and the full checker report.
   (`full_R10` −30.6 % → **−17.1 %**) but dense topologies still trail —
   `full_R10` Δmakespan **+24** at 0 manoeuvres: the zero-movement decode
   serialises where the MILP packs concentric-nesting waves. This is the
-  **deferred Priority-3** nesting-decode (see Part IV).
+  **deferred Priority-3** nesting-decode (see Part III).
 
 ## Caveats
 
@@ -650,7 +557,9 @@ Prints the per-run log, the objective/metrics, and the full checker report.
    (80–99 % optimality gap), so the heuristic "winning" there means "better
    feasible solution fast", not proven optimality.
 
-# Part IV — Improvement roadmap
+---
+
+# Part III — Improvement roadmap
 
 **Diagnosis.** The base architecture is well chosen: separating the
 combinatorial state `(π, σ)` from a deterministic decoder shrinks the search
@@ -658,7 +567,7 @@ space and lets the decoder price each assignment/order with timing, blocking
 and manoeuvres — aligned with NEH (a strong makespan constructor), Iterated
 Greedy (destruction/reconstruction) and VND/VNS (systematic neighbourhood
 change). The bottleneck now is **not "more metaheuristic"** but **missing
-operators that attack the specific per-weight failures** of Part III:
+operators that attack the specific per-weight failures** of Part II:
 
 - `wMK`: already near the MILP on R10 — Mode-B/nesting do their job.
 - `wDLY`: the search does not propose enough states with tight-target
@@ -679,7 +588,7 @@ A3 regret → A4 delay-manoeuvre → A5 zero-move repack → A6 ALNS`.
    is now polled inside construction, the VND loop, every neighbourhood scan
    and the IG reinsertion, with cheap feasible fallbacks where a complete
    solution is required. R30 and `full_R20` now return in ~60 s (was 413 s /
-   88 s), R10 unchanged. **Consequence: the Part III R20/R30 rows are stale**
+   88 s), R10 unchanged. **Consequence: the Part II R20/R30 rows are stale**
    (measured pre-fix) and need a re-run to be a valid 60 s comparison.
 2. **Always-valid incumbent.** Each phase must be abortable and return the
    best *checker-certified* schedule so far; if `DecodeManoeuvre` runs out of
@@ -806,7 +715,7 @@ not just mean gap**: for `wDLY`, #instances with `delay_heur > delay_milp`
 and mean `Δdelay` (and the `optimum-delay = 0` cases); for `wMOV`, gap
 *conditioned on `mov = 0`*; for scaling, quality at strict-60 s vs unlimited,
 reported separately. The relative gap alone is distorted by small
-denominators (see Part III caveats), hence the absolute/per-component fields.
+denominators (see Part II caveats), hence the absolute/per-component fields.
 
 ## Recommended implementation order
 
@@ -824,7 +733,7 @@ denominators (see Part III caveats), hence the absolute/per-component fields.
    A left-shift compaction (regressed `wMK` via per-decode slowdown) and a
    concentric-nesting construction seed (decode didn't preserve nesting) both
    failed: the earliest-feasible decode fundamentally cannot nest. Needs a
-   dedicated nesting decode — a larger effort (Part IV Priority 3).
+   dedicated nesting decode — a larger effort (this Part's Priority 3).
 5. **Next options** — (a) the dedicated nesting decode for dense `wMOV`;
    (b) a local micro-MILP (Priority 6) that would reliably crack both the
    residual `wDLY` and dense `wMOV` small cases; (c) consolidate — Commits 1–3
@@ -838,33 +747,127 @@ subset before keeping a search-operator change.
 
 ---
 
+# Part IV — How it is implemented
+
+Source: [`iterated_greedy_vnd.py`](iterated_greedy_vnd.py) — class
+`IteratedGreedyVNDJobSolver`, registered under the label
+`iterated_greedy_vnd`. `TheoryAssistedJobSolver` is kept as a
+backwards-compatible alias.
+
+## Solver contract (`shared/application.py`)
+
+| member | role |
+| --- | --- |
+| `name` | `"iterated_greedy_vnd"` |
+| `configure_solver(**kw)` | store config |
+| `solve(instance)` | run the search, return the solution dict |
+| `get_config()` | return stored config |
+| `get_log()` | per-run trace (construction, per-start objective, accept/reject) |
+
+The returned dict matches `problems/jobs/checker.py`: `status`, `objective`,
+`metrics.{makespan,total_delay,movements}`, and `aircraft[…]` with
+`id, position, start, finish, delay, jobs[…].{id,start,finish}`.
+
+### Config knobs
+
+| key | default | meaning |
+| --- | --- | --- |
+| `time_limit_s` | 60 | wall-clock cap |
+| `weight_makespan` / `weight_delay` / `weight_movements` | 0.1 / 1 / 10 | `Wᴹ, Wᴰ, Wˢ` |
+| `seed` | 1 | base RNG seed; start *i* uses `seed+i` |
+| `n_starts` | adaptive: 8 / 4 / 3 for R≤10 / ≤20 / else | multi-start restarts (§I.7); overridable |
+| `k_destroy` | `max(1, R//4)` | aircraft removed per IG perturbation (§I.6) |
+| `max_no_improve` | 400 | stale-iteration early stop per search |
+| `use_v3` | `True` | enable the manoeuvre-aware polish (§I.3.2) |
+
+## Method ↔ code map
+
+| Method concept (Part I) | Code |
+| --- | --- |
+| Instance preprocessing (chains, `Tᵣ`, blocking arcs, depths, interruptibility) | `_prepare` |
+| Two-layer state | `assignment: dict[r→p]` + `order: list[r]` |
+| Zero-movement decoder (§3.1) | `_decode`; admissible-placement bands in `_forbidden` |
+| Manoeuvre-aware decoder (§3.2) | `_decode_v3`; per-front placement `_place_front`; forward simulation with Mode-B/C `_sim_front` |
+| Cached decode (memoised eval) | `_eval` (keyed by decoder tag, order, positions-along-order; reset per solve) |
+| Construction portfolio (§4) | `_build_portfolio`; `_greedy_construct(order)`; `_regret2_construct` |
+| VND neighbourhoods (§5) | `_vnd`, `_n_reassign`, `_n_swap_pos`, `_n_reorder` |
+| IG perturbation (§6) | `_perturb` |
+| Search driver (decoder-agnostic via `self._decode_fn`) | `_search` |
+| Two-regime combination per restart (§8) | `_one_start(a0, o0, …)` (phase 1 = `_decode`, phase 2 = `_decode_v3`) |
+| Multi-start, adaptive count (§7) | loop in `solve` over `_build_portfolio()` |
+| Time budget enforced in every loop | `_time_up` (`self._deadline`) |
+| Safety net (§8) | `_is_compliant` calls the real `check_solution` |
+
+## Key implementation notes
+
+- `_forbidden` emits, per already-placed neighbour, the infeasible
+  start-time bands; for a blocking pair the *two* bands leave a feasible
+  hole between them — that hole is the nesting option of §3.1.
+- `_sim_front` returns `(finish, sched, mov_events, feasible)`; `mov_events`
+  folds Mode-B + Mode-C events and `movements = 2·mov_events`. It rejects a
+  start (returns infeasible) on an access in an `η`-margin, a Mode-C on a
+  non-interruptible job, or any access it cannot classify.
+- The objective inside the decoders is `Wᴹ·makespan + Wᴰ·total_delay +
+  Wˢ·movements`; the zero-movement decoder fixes `movements = 0`.
+- **Time budget.** `_time_up()` (a `time.perf_counter()` vs `self._deadline`
+  check) is polled inside every search loop — construction, VND, each
+  neighbourhood scan, and the IG reinsertion — so the solver returns within
+  `time_limit_s` even on large instances where a single sweep is expensive.
+  Loops that must leave a complete solution (construction, reinsertion) fall
+  back to a cheap feasible completion when the budget runs out.
+
+## Safety net and validation
+
+The zero-movement result is a guaranteed feasible floor. Every
+manoeuvre-aware candidate is validated against the real paper-#2 checker
+(`_is_compliant` → `problems/jobs/checker.py`) and accepted only if
+compliant and strictly better. So an imperfect simulation can only fail to
+improve — never produce a wrong answer.
+
+## Isolation
+
+The solver imports nothing from other methods. The lazy
+`from checker import check_solution` inside `_is_compliant` targets
+`problems/jobs/` (allowed), so `experiments/tests/test_method_isolation.py`
+reports 0 violations.
+
+## Smoke test
+
+```
+py -3 methods/theory_assisted/jobs/iterated_greedy_vnd.py \
+    problems/jobs/instances/scn_triangle_tight_P5_R5/scn_triangle_tight_P5_R5_seed1.json 10
+```
+Prints the per-run log, the objective/metrics, and the full checker report.
+
+---
+
 # Change log
 
-Track the heuristic's evolution here so each Part III snapshot stays tied to
+Track the heuristic's evolution here so each Part II snapshot stays tied to
 the code that produced it. Behaviour-affecting commits (newest last):
 
 | commit | change | effect on results |
 | --- | --- | --- |
 | `d00af90` | Mode-B manoeuvre-aware decoder (`DecodeManoeuvre`, §3.2) | reaches/beats MILP on tight-blocking `wMK`/`wDLY` |
-| `68dc201` | gap-summary logging prepended to the run log | **Part III battery ran at this commit** |
-| `1f36bd7` | enforce the wall-clock budget inside every search loop (P0 #1) | R30/`full_R20` 413 s/88 s → ~60 s; R20/R30 Part III rows now stale |
+| `68dc201` | gap-summary logging prepended to the run log | **Part II battery ran at this commit** |
+| `1f36bd7` | enforce the wall-clock budget inside every search loop (P0 #1) | R30/`full_R20` 413 s/88 s → ~60 s; R20/R30 Part II rows now stale |
 | `f4e10f0` | Commit 1 (P0): decode cache (`_eval`, 90–100 % hit), always-valid incumbent with `phase`/`timed_out` fields, per-component (Δmakespan/Δdelay/Δmov) gap logging, and `experiments/ablation_subset.py` (heuristic-only subset reusing the cached MILP) | same objectives, far more search per second; faster ablation loop |
 | `ab33af4` | Commit 2 (P1): construction portfolio per multi-start (`_build_portfolio`: NEH / EDD / SLACK / regret-2 / CR / BLEND) + regret-2 insertion (`_regret2_construct`), targeting `wDLY` | due-date seeds steer tight-target aircraft early; `R5 wDLY` seed10 139 → **35 = MILP optimum**, `triangle_loose_R10 wDLY` ~570 → 323; no `wMK` regression |
 | `dd12d3e` | Commit 3 (variance reduction): adaptive multi-start count (`n_starts` default 8 / 4 / 3 for R≤10 / ≤20 / else). **The planned delay-specific neighbourhoods were tried and dropped** — basin-dependent and unstable. | search is non-deterministic; more independent restarts make the good basin reliable. `triangle_loose_R10 wDLY` seed7 886 → **67.5 ≈ MILP 64.5**, seed5 487 → 78.5; `wMK` 5961 and R20/R30 unaffected |
 | `0620092` | doc sync — Parts I/II + module docstring updated to the current two-decoder / portfolio / adaptive-multi-start / cache state | no behaviour change |
-| (no commit) | **Commit 4 attempted & deferred** — dense `wMOV` repacker. Both a left-shift compaction (regressed `wMK` via per-decode slowdown) and a concentric-nesting construction seed (decode didn't preserve nesting) failed; the earliest-feasible decode fundamentally cannot nest. See Part IV Priority 3 — needs a dedicated nesting decode (larger effort). Code reverted to `0620092`. | no change shipped |
-| `21ad222` | experiment runner only (not the solver): run **seed-first** (early cross-type read) and **stamp the git commit in every log header** so each `.log` self-identifies its code state. | enabled the definitive full-battery snapshot in Part III above (log `…122208`); solver unchanged (still Commits 1–3) |
+| (no commit) | **Commit 4 attempted & deferred** — dense `wMOV` repacker. Both a left-shift compaction (regressed `wMK` via per-decode slowdown) and a concentric-nesting construction seed (decode didn't preserve nesting) failed; the earliest-feasible decode fundamentally cannot nest. See Part III Priority 3 — needs a dedicated nesting decode (larger effort). Code reverted to `0620092`. | no change shipped |
+| `21ad222` | experiment runner only (not the solver): run **seed-first** (early cross-type read) and **stamp the git commit in every log header** so each `.log` self-identifies its code state. | enabled the definitive full-battery snapshot in Part II above (log `…122208`); solver unchanged (still Commits 1–3) |
 
 **Evaluation shortcut.** The MILP baseline is fixed, so re-running it is
 wasteful. To judge a heuristic change, run `ablation_subset.py` (heuristic
 only on a stratified subset) and pair against the MILP rows already in
-`outputs/solutions/results.csv`; only refresh the full Part III battery once
-a milestone (a group of Part IV items) lands.
+`outputs/solutions/results.csv`; only refresh the full Part II battery once
+a milestone (a group of Part III items) lands.
 
 ---
 
 *Keep this file in sync with `iterated_greedy_vnd.py`: when the code changes
 (new regime, neighbourhood, config knob, behaviour), update the matching
-section here, and append a new Part III / Part IV snapshot tagged with the
+section here, and append a new Part II (results) / Part III (roadmap) snapshot tagged with the
 new commit. Design rationale and the reading behind the method live in
 [`notes/design.md`](notes/design.md) and [`notes/synthesis.md`](notes/synthesis.md).*
