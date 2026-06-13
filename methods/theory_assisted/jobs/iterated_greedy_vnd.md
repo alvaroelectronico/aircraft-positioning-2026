@@ -422,6 +422,12 @@ The returned dict matches `problems/jobs/checker.py`: `status`, `objective`,
   non-interruptible job, or any access it cannot classify.
 - The objective inside the decoders is `Wᴹ·makespan + Wᴰ·total_delay +
   Wˢ·movements`; the zero-movement decoder fixes `movements = 0`.
+- **Time budget.** `_time_up()` (a `time.perf_counter()` vs `self._deadline`
+  check) is polled inside every search loop — construction, VND, each
+  neighbourhood scan, and the IG reinsertion — so the solver returns within
+  `time_limit_s` even on large instances where a single sweep is expensive.
+  Loops that must leave a complete solution (construction, reinsertion) fall
+  back to a cheap feasible completion when the budget runs out.
 
 ## Safety net and validation
 
@@ -627,12 +633,15 @@ Derived from the Part III analysis, in rough priority order. These are the
 candidates to discuss and pick from; the next commit will implement a subset
 and refresh Part III with the new numbers.
 
-1. **Enforce the time budget (correctness, blocking).** The deadline is only
-   checked between IG iterations and VND neighbourhoods, so a single VND
-   sweep or decode on R20/R30 blows past 60 s (413 s observed). Add deadline
-   checks *inside* the neighbourhood scans and bound per-decode work so the
-   solver always returns within `time_limit_s`. Without this no scaling
-   comparison is valid.
+1. **Enforce the time budget (correctness, blocking). — DONE.** The deadline
+   used to be checked only between IG iterations and VND neighbourhoods, so a
+   single sweep on R20/R30 blew past 60 s (413 s observed). Now `_time_up()`
+   is polled inside construction, the VND loop, every neighbourhood scan and
+   the IG reinsertion, with cheap feasible fallbacks where a complete
+   solution is required. Verified: R30 and `full_R20` now return in ~60 s
+   (was 413 s / 88 s), with no change on R10. **The Part III R20/R30 rows
+   above are therefore stale** — they were produced before this fix and need
+   a re-run to be a valid 60 s comparison.
 
 2. **Due-date-aware construction and ordering (targets `wDLY`).** Add EDD
    seeds (order aircraft by `Lᵣ`, or a `Wᴰ`-dependent blend of `Tᵣ` and

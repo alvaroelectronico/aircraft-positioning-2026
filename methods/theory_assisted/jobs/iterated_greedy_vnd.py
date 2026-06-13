@@ -69,6 +69,7 @@ class IteratedGreedyVNDJobSolver:
     def __init__(self) -> None:
         self._config: dict = {}
         self._log: list[str] = []
+        self._deadline: float = float("inf")   # wall-clock cap for search loops
 
     # ------------------------------------------------------------------
     # Contract
@@ -116,16 +117,18 @@ class IteratedGreedyVNDJobSolver:
         base_seed = int(cfg.get("seed", 1) or 1)
         n_starts = int(cfg.get("n_starts", 4))
 
-        # Shared deterministic construction (the per-start variety comes from
-        # the IG perturbation RNG, re-seeded per start).
-        self._decode_fn = self._decode
-        ctor_order = sorted(self.aircraft_ids, key=lambda r: -self.T[r])
-        self._ctor_assignment = self._greedy_construct(ctor_order)
-        self._ctor_order = self._neh_order(self._ctor_assignment)
-
         t0 = time.perf_counter()
         global_dl = t0 + self.time_limit
         per_start = self.time_limit / max(1, n_starts)
+
+        # Shared deterministic construction (the per-start variety comes from
+        # the IG perturbation RNG, re-seeded per start).  Bounded by the
+        # global deadline so it cannot itself blow the budget on large R.
+        self._decode_fn = self._decode
+        self._deadline = global_dl
+        ctor_order = sorted(self.aircraft_ids, key=lambda r: -self.T[r])
+        self._ctor_assignment = self._greedy_construct(ctor_order)
+        self._ctor_order = self._neh_order(self._ctor_assignment)
 
         best_sol, best_obj = None, float("inf")
         i = 0
@@ -182,6 +185,7 @@ class IteratedGreedyVNDJobSolver:
 
     def _search(self, assignment, order, deadline):
         """VND + Iterated-Greedy loop using the current ``self._decode_fn``."""
+        self._deadline = deadline
         assignment, order = self._vnd(assignment, order)
         best_assign, best_order = dict(assignment), list(order)
         best_obj = self._objective(self._decode_fn(best_assign, best_order))
@@ -208,6 +212,12 @@ class IteratedGreedyVNDJobSolver:
     def _finalize(sol: dict) -> dict:
         sol["status"] = "heuristic_ok"
         return sol
+
+    def _time_up(self) -> bool:
+        """True once the current wall-clock budget is exhausted.  Checked
+        inside every search loop so the solver respects ``time_limit_s`` even
+        on large instances where a single sweep is expensive."""
+        return time.perf_counter() >= self._deadline
 
     def _is_compliant(self, sol: dict, instance_data: dict) -> bool:
         """Validate a candidate with the real paper-#2 checker (safety net)."""
@@ -393,6 +403,12 @@ class IteratedGreedyVNDJobSolver:
         partial_order: list[str] = []
         for r in order:
             partial_order.append(r)
+            if self._time_up():
+                # Budget exhausted mid-construction: assign the rest to a
+                # default position (any assignment is feasible for the v2
+                # decoder) so we still return a complete seed.
+                assignment[r] = self.positions[0]
+                continue
             best_p, best_o = None, float("inf")
             for p in self.positions:
                 assignment[r] = p
@@ -416,6 +432,8 @@ class IteratedGreedyVNDJobSolver:
         k = 0
         neighbourhoods = (self._n_reassign, self._n_swap_pos, self._n_reorder)
         while k < len(neighbourhoods):
+            if self._time_up():
+                break
             improved, assignment, order, cur = neighbourhoods[k](assignment, order, cur)
             if improved:
                 k = 0  # B-VND reset
@@ -426,6 +444,8 @@ class IteratedGreedyVNDJobSolver:
     def _n_reassign(self, assignment, order, cur):
         """N1 — move one aircraft to a different position (first improvement)."""
         for r in self.aircraft_ids:
+            if self._time_up():
+                return False, assignment, order, cur
             p0 = assignment[r]
             for p in self.positions:
                 if p == p0:
@@ -441,6 +461,8 @@ class IteratedGreedyVNDJobSolver:
         """N2 — swap the positions of two aircraft (first improvement)."""
         ids = self.aircraft_ids
         for i in range(len(ids)):
+            if self._time_up():
+                return False, assignment, order, cur
             for j in range(i + 1, len(ids)):
                 ri, rj = ids[i], ids[j]
                 if assignment[ri] == assignment[rj]:
@@ -455,6 +477,8 @@ class IteratedGreedyVNDJobSolver:
     def _n_reorder(self, assignment, order, cur):
         """N3 — swap two aircraft in the priority order (first improvement)."""
         for i in range(len(order)):
+            if self._time_up():
+                return False, assignment, order, cur
             for j in range(i + 1, len(order)):
                 order[i], order[j] = order[j], order[i]
                 o = self._objective(self._decode_fn(assignment, order))
@@ -486,6 +510,13 @@ class IteratedGreedyVNDJobSolver:
 
         # Reinsert each removed aircraft at the best (position, order-slot).
         for r in removed:
+            if self._time_up():
+                # Budget exhausted: reinsert the rest cheaply (keep their
+                # original position, append to the order) so the returned
+                # state is always complete and feasible.
+                a2[r] = assignment[r]
+                kept_order.append(r)
+                continue
             best = None  # (obj, position, slot)
             for slot in range(len(kept_order) + 1):
                 trial_order = kept_order[:slot] + [r] + kept_order[slot:]
