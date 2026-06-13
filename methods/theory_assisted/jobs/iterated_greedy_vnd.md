@@ -627,49 +627,151 @@ time budget is actually enforced.
 
 ---
 
-# Part IV — Candidate improvements (for the next commit)
+# Part IV — Improvement roadmap
 
-Derived from the Part III analysis, in rough priority order. These are the
-candidates to discuss and pick from; the next commit will implement a subset
-and refresh Part III with the new numbers.
+**Diagnosis.** The base architecture is well chosen: separating the
+combinatorial state `(π, σ)` from a deterministic decoder shrinks the search
+space and lets the decoder price each assignment/order with timing, blocking
+and manoeuvres — aligned with NEH (a strong makespan constructor), Iterated
+Greedy (destruction/reconstruction) and VND/VNS (systematic neighbourhood
+change). The bottleneck now is **not "more metaheuristic"** but **missing
+operators that attack the specific per-weight failures** of Part III:
 
-1. **Enforce the time budget (correctness, blocking). — DONE.** The deadline
-   used to be checked only between IG iterations and VND neighbourhoods, so a
-   single sweep on R20/R30 blew past 60 s (413 s observed). Now `_time_up()`
-   is polled inside construction, the VND loop, every neighbourhood scan and
-   the IG reinsertion, with cheap feasible fallbacks where a complete
-   solution is required. Verified: R30 and `full_R20` now return in ~60 s
-   (was 413 s / 88 s), with no change on R10. **The Part III R20/R30 rows
-   above are therefore stale** — they were produced before this fix and need
-   a re-run to be a valid 60 s comparison.
+- `wMK`: already near the MILP on R10 — Mode-B/nesting do their job.
+- `wDLY`: the search does not propose enough states with tight-target
+  aircraft scheduled early, nor the "spend a manoeuvre to remove a delay"
+  trade.
+- `wMOV`: with both methods at 0 manoeuvres, the winner is whoever packs a
+  zero-movement schedule tightest — and the decoder is too greedy on dense
+  topologies.
+- R20/R30: not interpretable until the budget is strictly enforced.
 
-2. **Due-date-aware construction and ordering (targets `wDLY`).** Add EDD
-   seeds (order aircraft by `Lᵣ`, or a `Wᴰ`-dependent blend of `Tᵣ` and
-   `Lᵣ`) to the multi-start, and a within-position reconciliation that puts
-   the tighter-target aircraft in the earlier slot. Directly attacks the
-   R5/loose `wDLY` failures where tight-target aircraft are stranded in late
-   slots.
+The items are ordered by impact/risk; each names the failure it targets.
+Cumulative ablations: `A0 = 68dc201 → A1 budget+cache+logging → A2 seeds →
+A3 regret → A4 delay-manoeuvre → A5 zero-move repack → A6 ALNS`.
 
-3. **Manoeuvre-for-delay move under high `Wᴰ` (targets `wDLY`).** A polishing
-   move that, for the most-delayed aircraft, tries to pull it earlier by
-   spending a Mode-B/Mode-C manoeuvre on the blocking front, accepted only if
-   the (checker-validated) objective improves. The local cost already prices
-   this; the search just needs an operator that proposes it.
+## Priority 0 — anytime correctness (foundation)
 
-4. **Tighter zero-movement packing in dense topologies (targets `wMOV`).**
-   The greedy per-front placement serialises too much on `full`/`hub`.
-   Options: a better processing order for the deep-first sweep, a richer
-   nesting search (consider enclosing several shorts in one long), or
-   co-optimising the aircraft of a fully-connected block together.
+1. **Enforce the time budget. — DONE** (commit after `68dc201`). `_time_up()`
+   is now polled inside construction, the VND loop, every neighbourhood scan
+   and the IG reinsertion, with cheap feasible fallbacks where a complete
+   solution is required. R30 and `full_R20` now return in ~60 s (was 413 s /
+   88 s), R10 unchanged. **Consequence: the Part III R20/R30 rows are stale**
+   (measured pre-fix) and need a re-run to be a valid 60 s comparison.
+2. **Always-valid incumbent.** Each phase must be abortable and return the
+   best *checker-certified* schedule so far; if `DecodeManoeuvre` runs out of
+   time it returns `+∞` / the last validated complete schedule, never a
+   partial one. Record `timed_out` and `phase_returned ∈ {zero, manoeuvre,
+   fallback}`.
+3. **Decode cache.** VND re-evaluates near-identical states after undone
+   swaps, walk restarts and close reconstructions. Add an LRU cache keyed by
+   `(decoder_id, positions-by-fixed-aircraft-id, priority-order, weights_id)`.
+4. **Per-component logging** (see Metrics) so we can tell whether a change
+   actually helps. *Acceptance for P0:* 0 overruns > 1 % of the limit; every
+   run carries `timed_out`; R20/R30 reported separately for strict-60 s vs
+   no-hard-limit.
 
-5. **Variance reduction / smarter multi-start.** Diversify the restart seeds
-   (NEH + EDD + a couple of randomised orders) and spend more starts on small
-   instances (they are cheap), to remove the seed1-perfect / seed10-broken
-   swings.
+## Priority 1 — due-date-aware construction (targets `wDLY`)
 
-6. **Better evaluation logging.** Add absolute-objective and per-component
-   (makespan / delay / movements) gaps alongside the relative gap, so the
-   next Part III is not distorted by small denominators.
+`PlaceFront` already prices `Wᴰ·delay`; the gap is that the search rarely
+*proposes* states with tight-target aircraft early. Keep NEH but turn
+construction into a **seed portfolio** for the multi-start:
+
+```
+σ_NEH   = sort by −Tᵣ          σ_EDD   = sort by Lᵣ
+σ_SLACK = sort by Lᵣ−Eᵣ−Tᵣ     σ_CR    = sort by (Lᵣ−now)/Tᵣ
+σ_BLEND = α·rank(−Tᵣ) + β·rank(Lᵣ) + γ·rank(slack)
+σ_RAND_EDD = EDD with controlled noise
+```
+
+EDD/ATC are the classical due-date / weighted-tardiness constructive rules;
+here they are *seeds* (positions, blocking, job chains and manoeuvres still
+matter), not the answer. Replace "insert the next fixed aircraft" with
+**regret-2 insertion** (commit the aircraft whose 2nd-best insertion is much
+worse than its best) — this helps exactly the low-slack / high-`Wᴰ` aircraft.
+
+## Priority 2 — "buy punctuality with manoeuvres" (targets `wDLY`)
+
+`triangle_loose_R10` seed10 is the canonical miss: the MILP spends 8
+manoeuvres for delay 0; the heuristic keeps 0 manoeuvres and eats delay 5
+(×100). Add a neighbourhood, tried first when `Wᴰ` dominates:
+
+```
+N_delay_manoeuvre: for a top-delayed r, try target starts {Eᵣ, Lᵣ−Tᵣ, …};
+  move r earlier in σ / reassign r or its blocker / force a Mode-B gap or a
+  Mode-C on the blocker; DecodeManoeuvre; accept iff checker-valid & better.
+```
+
+Gate it with a benefit/cost bound *before* calling the checker (delay +
+makespan saving vs manoeuvre + front-time cost) so it fires under `wDLY` but
+not `wMOV`. Also add due-date-critical `PlaceFront` candidates `s = Lᵣ−Tᵣ`,
+`Lᵣ−Tᵣ−δ·q`, `Lᵣ−Tᵣ−μ·q`: the objective's slope changes at `Lᵣ`.
+
+## Priority 3 — dense zero-movement repacking (targets `wMOV`)
+
+When `Wˢ` dominates the problem becomes "best schedule with `n = 0`", and
+`DecodeZeroMov` packs loosely on `full`/`hub`/`chain` (`full_R10` seed1:
+116.5 vs 71.5 makespan, both 0 mov). Add a **blocking-component repacker**:
+for a small position component, fix the outside and pick the
+before/after/enclose disjunction per front/rear pair (and the ε-order per
+shared position); a fixed choice is a system of difference constraints
+solvable by longest-path / Bellman-Ford (a cycle ⇒ infeasible). Explore the
+disjunctions with a small **beam** under a lower bound. Add a **compaction
+pass** (left-shift preserving Mode-A; treat *enclosing* as a container that
+can wrap several shorts, not a pairwise option). Activate only when
+`Wˢ / max(Wᴹ,Wᴰ)` is high, movements are already 0, and density is high.
+
+## Priority 4 — weight-profile-dependent VND
+
+Replace the fixed `[Reassign, SwapPositions, Reorder]` with a profile-aware
+ordering — semantic operators first, generic ones last: delay operators
+(PromoteDelayed, SwapDelayedWithBlocker, ReinsertDelayedAtBestSlot) when `Wᴰ`
+dominates; zero-move repack / nesting-flip when `Wˢ` dominates;
+critical-path-reassign / Mode-B-compression when `Wᴹ` dominates.
+
+## Priority 5 — ALNS-lite destroy/repair
+
+Costs here are *relational* (an aircraft is bad via its blocker / slot / due
+date), so single-contribution destruction is limited. Move IG to a small
+ALNS: destroy ∈ {delay, blocker+its fronts, dense-component, costly-movement,
+random}; repair ∈ {NEH, EDD/slack, regret-2, manoeuvre-aware, zero-move}.
+Adopt only after the operators above exist (premature otherwise).
+
+## Priority 6 — local matheuristic for small / clearly-failing cases
+
+Strong failures even on R5 (`wDLY`/`wMOV`) should not survive an exact local
+repair. Solve a **self-contained micro-MILP/CP** over a subset
+`S = delayed ∪ active blockers ∪ same-position neighbours ∪ dense-block
+members`, fixing everything outside `S`, with a 0.2–1.0 s cap. **Isolation
+caveat:** it must be *this method's own* model, **not** an import of
+`methods/manual` (that would break the isolation contract; running the MILP
+for comparison stays a subprocess via `run_experiments.py`). Trigger on
+`R ≤ 10`, a bad `wDLY` incumbent, dense `wMOV`, or a high stale count.
+
+## Metrics & ablations
+
+Log per run: `obj_milp/heur`, `abs_gap`, `rel_gap`, per-component
+`Δmakespan / Δdelay / Δmov`, `wall_time`, `timed_out`, `phase_returned`,
+`checker_ok`, `n_decodes`, `cache_hit_rate`. Judge by **per-profile success,
+not just mean gap**: for `wDLY`, #instances with `delay_heur > delay_milp`
+and mean `Δdelay` (and the `optimum-delay = 0` cases); for `wMOV`, gap
+*conditioned on `mov = 0`*; for scaling, quality at strict-60 s vs unlimited,
+reported separately. The relative gap alone is distorted by small
+denominators (see Part III caveats), hence the absolute/per-component fields.
+
+## Recommended implementation order
+
+1. **Commit 1** — time budget (done) + always-valid incumbent + decode cache
+   + per-component logging. Without this we cannot tell if the rest helps.
+2. **Commit 2** — seed portfolio (EDD/slack/CR/blend) + regret-2 insertion
+   (`wDLY`, cheap).
+3. **Commit 3** — delay-specific neighbourhoods (Priority 4 subset).
+4. **Commit 4** — `N_delay_manoeuvre` (fixes `triangle_loose`-type cases).
+5. **Commit 5** — zero-move block repacker + compaction (fixes dense `wMOV`).
+6. **Commit 6** — ALNS-lite.
+
+Do **not** start with "more iterations / more starts / parameter tuning":
+the evidence says the failures are structural, not budget-bound.
 
 ---
 
