@@ -13,6 +13,8 @@ Usage
 from __future__ import annotations
 
 import io
+import re
+import subprocess
 import sys
 import traceback
 from datetime import datetime
@@ -80,8 +82,43 @@ from application import Application                         # noqa: E402  (was a
 # Earlier flat layouts (data/experiment_instances/...) are no longer
 # scanned automatically; legacy validation files there are kept for
 # reference but not auto-discovered.
+
+
+def _seed_sort_key(path: Path) -> tuple[int, str]:
+    """Sort instances by SEED first, then by configuration.  This runs all
+    seed-1 instances (one per type) before any seed-2, so a batch gives an
+    early cross-type read on the techniques rather than finishing one type at
+    a time."""
+    m = re.search(r"_seed(\d+)", path.stem)
+    seed = int(m.group(1)) if m else 0
+    config = re.sub(r"_seed\d+$", "", path.stem)
+    return (seed, config)
+
+
+def _git_commit() -> str:
+    """Short git commit of the working tree (the code state these results
+    were produced under); '?' if unavailable."""
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=str(_ROOT), capture_output=True, text=True, timeout=5,
+        )
+        rev = out.stdout.strip()
+        status = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=no"],
+            cwd=str(_ROOT), capture_output=True, text=True, timeout=5,
+        ).stdout
+        # Only count *source* (.py) changes as "dirty"; ignore data artefacts
+        # such as outputs/solutions/results.csv that a run itself rewrites.
+        code_dirty = any(line.strip().endswith(".py") for line in status.splitlines())
+        return f"{rev}{'+dirty' if code_dirty else ''}" if rev else "?"
+    except Exception:  # noqa: BLE001
+        return "?"
+
+
 INSTANCE_PATHS: list[Path] = sorted(
     (_ROOT / "problems" / "aircraft" / "instances").glob("scn_*/scn_*.json"),
+    key=_seed_sort_key,
 )
 
 
@@ -791,6 +828,8 @@ def _build_config_header(experiments: list[dict]) -> str:
 
     buf.write(f"{sep}\n")
     buf.write(f"  EXPERIMENT CONFIGURATIONS  ({len(experiments)} experiments)\n")
+    buf.write(f"  Code state (git): {_git_commit()}\n")
+    buf.write(f"  Instance order  : by seed, then config (seed1 of all types first)\n")
     buf.write(f"{sep}\n")
 
     # Collect all configs and detect which keys are shared vs experiment-specific
@@ -1031,7 +1070,7 @@ if __name__ == "__main__":
     # benchmark folder), use that instead.
     if inst_root is not None:
         _root_path = inst_root if inst_root.is_absolute() else (_ROOT / inst_root)
-        _instance_paths = sorted(_root_path.glob("scn_*/scn_*.json"))
+        _instance_paths = sorted(_root_path.glob("scn_*/scn_*.json"), key=_seed_sort_key)
     else:
         _instance_paths = INSTANCE_PATHS
 
