@@ -120,7 +120,13 @@ class IteratedGreedyVNDJobSolver:
         self.max_no_improve = int(cfg.get("max_no_improve", 400))
         self.use_v3 = bool(cfg.get("use_v3", True))
         base_seed = int(cfg.get("seed", 1) or 1)
-        n_starts = int(cfg.get("n_starts", 4))
+        # Multi-start count, adaptive to instance size.  The time-limited
+        # search is non-deterministic and on some instances occasionally lands
+        # in a bad (high-delay) basin; more *independent* restarts make finding
+        # the good basin reliable.  Small instances are cheap, so they can
+        # afford many restarts; large ones need the per-start time, so fewer.
+        default_starts = 8 if R <= 10 else 4 if R <= 20 else 3
+        n_starts = int(cfg.get("n_starts", default_starts))
 
         t0 = time.perf_counter()
         global_dl = t0 + self.time_limit

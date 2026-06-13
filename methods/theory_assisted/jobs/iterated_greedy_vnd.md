@@ -764,17 +764,25 @@ denominators (see Part III caveats), hence the absolute/per-component fields.
 
 ## Recommended implementation order
 
-1. **Commit 1** — time budget (done) + always-valid incumbent + decode cache
-   + per-component logging. Without this we cannot tell if the rest helps.
-2. **Commit 2** — seed portfolio (EDD/slack/CR/blend) + regret-2 insertion
-   (`wDLY`, cheap).
-3. **Commit 3** — delay-specific neighbourhoods (Priority 4 subset).
-4. **Commit 4** — `N_delay_manoeuvre` (fixes `triangle_loose`-type cases).
+1. **Commit 1 — DONE** — time budget + always-valid incumbent + decode cache
+   + per-component logging.
+2. **Commit 2 — DONE** — seed portfolio (EDD/slack/CR/blend) + regret-2.
+3. **Commit 3 — DONE, pivoted** — the planned delay-specific neighbourhoods
+   were implemented and **dropped** (basin-dependent, unstable). What the data
+   actually pointed to was **variance reduction**: the time-limited search is
+   non-deterministic and occasionally lands in a bad basin, so an *adaptive
+   multi-start count* (more restarts on the cheap small instances) reliably
+   finds the good basin — this is what shipped, and it fixed the catastrophic
+   `triangle_loose wDLY` seeds (886 → ≈MILP).
+4. **Commit 4** — `N_delay_manoeuvre` for the residual `wDLY` (still a gap on
+   the hardest seeds where the MILP spends manoeuvres to reach delay 0).
 5. **Commit 5** — zero-move block repacker + compaction (fixes dense `wMOV`).
-6. **Commit 6** — ALNS-lite.
+6. **Commit 6** — local micro-MILP for small / clearly-failing cases; ALNS-lite.
 
-Do **not** start with "more iterations / more starts / parameter tuning":
-the evidence says the failures are structural, not budget-bound.
+Lesson learned: a *targeted neighbourhood* is not automatically helpful — with
+B-VND first-improvement the neighbourhood **order** changes the basin reached,
+and a slower VND can cut the number of restarts. Measure on the ablation
+subset before keeping a search-operator change.
 
 ---
 
@@ -789,7 +797,8 @@ the code that produced it. Behaviour-affecting commits (newest last):
 | `68dc201` | gap-summary logging prepended to the run log | **Part III battery ran at this commit** |
 | `1f36bd7` | enforce the wall-clock budget inside every search loop (P0 #1) | R30/`full_R20` 413 s/88 s → ~60 s; R20/R30 Part III rows now stale |
 | `f4e10f0` | Commit 1 (P0): decode cache (`_eval`, 90–100 % hit), always-valid incumbent with `phase`/`timed_out` fields, per-component (Δmakespan/Δdelay/Δmov) gap logging, and `experiments/ablation_subset.py` (heuristic-only subset reusing the cached MILP) | same objectives, far more search per second; faster ablation loop |
-| *this commit* | Commit 2 (P1): construction portfolio per multi-start (`_build_portfolio`: NEH / EDD / SLACK / regret-2 / CR / BLEND) + regret-2 insertion (`_regret2_construct`), targeting `wDLY` | due-date seeds steer tight-target aircraft early; `R5 wDLY` seed10 139 → **35 = MILP optimum**, `triangle_loose_R10 wDLY` ~570 → 323; no `wMK` regression |
+| `ab33af4` | Commit 2 (P1): construction portfolio per multi-start (`_build_portfolio`: NEH / EDD / SLACK / regret-2 / CR / BLEND) + regret-2 insertion (`_regret2_construct`), targeting `wDLY` | due-date seeds steer tight-target aircraft early; `R5 wDLY` seed10 139 → **35 = MILP optimum**, `triangle_loose_R10 wDLY` ~570 → 323; no `wMK` regression |
+| *this commit* | Commit 3 (variance reduction): adaptive multi-start count (`n_starts` default 8 / 4 / 3 for R≤10 / ≤20 / else). **The planned delay-specific neighbourhoods were tried and dropped** — they were basin-dependent and unstable (helped some seeds, regressed others; the per-VND slowdown cost more than it gained). | the time-limited search is non-deterministic and occasionally lands in a bad basin; more independent restarts make the good basin reliable. `triangle_loose_R10 wDLY` seed7 886 → **67.5 ≈ MILP 64.5**, seed5 487 → 78.5; `wMK` 5961 and R20/R30 unaffected |
 
 **Evaluation shortcut.** The MILP baseline is fixed, so re-running it is
 wasteful. To judge a heuristic change, run `ablation_subset.py` (heuristic
