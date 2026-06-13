@@ -196,13 +196,13 @@ schedule is `F = Wᴹ·makespan + Wᴰ·Σ delay + Wˢ·movements`.
 ```
 ALGORITHM  Solve(instance, time_limit, weights, n_starts, base_seed):
     preprocess instance  (job chains, Tᵣ, blocking arcs, position depths)
-    σ₀ ← NEHorder(∅)                                      # NEH order (Tᵣ desc)
+    σ₀ ← NEHorder()                                       # NEH order (R by Tᵣ desc)
     π₀ ← GreedyConstruct(σ₀)                              # shared seed
     best ← ∅ ;  best_F ← +∞
     for i in 0 … n_starts−1  while time remains:
         seed the RNG with base_seed + i
         deadline_i ← now + time_limit / n_starts
-        (sol, F) ← OneStart(π₀, σ₀, deadline_i)              # σ₀ = NEHorder(π₀) here
+        (sol, F) ← OneStart(π₀, σ₀, deadline_i)              # σ₀ is the NEH order
         if F < best_F:  best, best_F ← sol, F
     return best
 
@@ -221,12 +221,11 @@ PROCEDURE  GreedyConstruct(σ):              # NEH-style greedy insertion
     # NEHorder and the search.  Deterministic — shared by every multi-start.
 
 
-PROCEDURE  NEHorder(π):                     # priority order for the search
-    return aircraft sorted by Tᵣ descending
-    # In this version it depends only on Tᵣ, so NEHorder(π₀) = σ₀; the π
-    # argument is the hook for an assignment-/due-date-aware order
-    # (a Part IV candidate, e.g. EDD).  The order is then refined by the
-    # Reorder neighbourhood inside the search.
+PROCEDURE  NEHorder():                      # priority order for the search
+    return the aircraft set R sorted by Tᵣ descending
+    # Orders all aircraft R; depends only on Tᵣ (not on any assignment).
+    # A due-date-aware variant (also reading Lᵣ) is a Part IV candidate, e.g.
+    # EDD.  The order is then refined by the Reorder neighbourhood.
 
 
 PROCEDURE  OneStart(π, σ, deadline):
