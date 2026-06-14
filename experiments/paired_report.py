@@ -44,15 +44,15 @@ def _fmt(v, nd=2, width=10):
     return f"{v:>{width}.{nd}f}"
 
 
-def build(records: list[dict]) -> str:
+def detail_block(records: list[dict]) -> str:
+    """Per-instance MILP-row-then-heuristic-row detail (seed-first), without
+    the summary table — so callers can splice it into an existing log."""
     # index by (instance, label)
     by_key = {(r["instance"], r["experiment"]): r for r in records
               if r.get("error") is None and r.get("objective") is not None}
     instances = sorted({r["instance"] for r in records}, key=lambda s: (_seed(s), _type(s)))
 
     out = io.StringIO()
-    out.write(format_gap_table(records))
-    out.write("\n\n")
     sep = "=" * 86
     out.write(f"{sep}\n")
     out.write("  PER-INSTANCE DETAIL  —  MILP row followed by heuristic row (seed-first)\n")
@@ -82,6 +82,11 @@ def build(records: list[dict]) -> str:
                 )
     out.write(f"\n{sep}\n")
     return out.getvalue()
+
+
+def build(records: list[dict]) -> str:
+    """Full report: summary gap table followed by the per-instance detail."""
+    return format_gap_table(records) + "\n\n" + detail_block(records)
 
 
 if __name__ == "__main__":
