@@ -61,6 +61,7 @@ from __future__ import annotations
 
 import math
 import random
+import statistics
 import time
 
 
@@ -150,6 +151,7 @@ class IteratedGreedyVNDJobSolver:
         portfolio = self._build_portfolio()
 
         best_sol, best_obj = None, float("inf")
+        start_objs: list[float] = []          # per-start incumbents (search risk)
         i = 0
         while time.perf_counter() < global_dl - 0.05 and i < n_starts:
             self.rng = random.Random(base_seed + i)
@@ -160,6 +162,7 @@ class IteratedGreedyVNDJobSolver:
             ctor_name, ctor = portfolio[i % len(portfolio)]
             a0, o0 = ctor()
             sol, obj = self._one_start(instance_data, a0, o0, start_dl)
+            start_objs.append(obj)
             if obj < best_obj - 1e-9:
                 best_sol, best_obj = sol, obj
             self._log.append(
@@ -187,6 +190,23 @@ class IteratedGreedyVNDJobSolver:
         best_sol["status"] = "heuristic_ok"
         best_sol["timed_out"] = elapsed >= self.time_limit - 0.5
         best_sol["solve_time_s"] = round(elapsed, 3)
+
+        # Commit 5 — risk diagnostics (observability only, no behaviour change).
+        # Self-diagnosed internal symptoms that later commits fire repairs on,
+        # instead of an external "outlier-vs-MILP" label that a fresh instance
+        # cannot provide.  Attached to the solution and summarised in the log.
+        diag = self._diagnostics(best_sol, start_objs)
+        best_sol["diagnostics"] = diag
+        dr, nr, sr = diag["delay_risk"], diag["nesting_risk"], diag["search_risk"]
+        self._log.append(
+            "diagnostics  "
+            f"delay[n={dr['n_delayed']} tot={dr['total_delay']:.1f} "
+            f"max={dr['max_delay']:.1f} minslack={dr['min_slack_delayed']}]  "
+            f"nest[mov={nr['movements']} dens={nr['blocking_density']:.2f} "
+            f"serial={nr['serial_points']}/{nr['n_aircraft']}]  "
+            f"search[n={sr['n_starts']} std={sr['obj_std']:.3f} "
+            f"spread={sr['obj_spread']:.3f}]"
+        )
         n_eval = self._cache_hits + self._cache_misses
         hit_rate = self._cache_hits / n_eval if n_eval else 0.0
         self._log.append(
@@ -198,6 +218,76 @@ class IteratedGreedyVNDJobSolver:
             f"decodes={n_eval} cache_hit={hit_rate:.0%}  ({elapsed:.2f}s)"
         )
         return best_sol
+
+    # ------------------------------------------------------------------
+    # Risk diagnostics (Commit 5 — observability, no behaviour change)
+    # ------------------------------------------------------------------
+
+    def _diagnostics(self, sol: dict, start_objs: list[float]) -> dict:
+        """Self-diagnosed internal symptoms of the returned best solution.
+
+        Three families, each a *trigger* for a later specialised repair:
+
+        * ``delay_risk``  — is there real lateness with headroom to remove it?
+          ``min_slack_delayed`` < 0 means a delayed aircraft's target window
+          is itself infeasible (no repair can help); ≥ 0 means slack exists.
+        * ``nesting_risk`` — is the schedule serialised where blocking would
+          allow concentric nesting?  ``serial_points`` counts aircraft that
+          start only after everything earlier has finished (a serial break);
+          high relative to ``n_aircraft`` under a dense ``blocking_density``
+          is the ComponentNesting trigger.
+        * ``search_risk`` — did the multi-start incumbents disagree?  A large
+          ``obj_std`` / ``obj_spread`` means the basin is luck-dependent (an
+          ALNS / more-restarts trigger); ~0 means the search is stable.
+        """
+        acc = sol.get("aircraft", [])
+        m = sol.get("metrics", {})
+
+        delays = [a.get("delay", 0.0) for a in acc]
+        delayed = [a for a in acc if a.get("delay", 0.0) > 1e-9]
+        # slack of a delayed aircraft against its own target window
+        slacks = [self.L[a["id"]] - self.E[a["id"]] - self.T[a["id"]]
+                  for a in delayed if a["id"] in self.T]
+        delay_risk = {
+            "n_delayed": len(delayed),
+            "total_delay": float(m.get("total_delay", sum(delays))),
+            "max_delay": float(max(delays) if delays else 0.0),
+            "min_slack_delayed": round(min(slacks), 3) if slacks else None,
+        }
+
+        nP = len(self.positions)
+        density = (len(self._arcs) / (nP * (nP - 1) / 2)) if nP > 1 else 0.0
+        # serial breaks: walking aircraft by start time, count those that begin
+        # only after every earlier aircraft has finished (no temporal overlap
+        # with the prefix) — the opposite of nesting.
+        by_start = sorted(acc, key=lambda a: a.get("start", 0.0))
+        serial_points, prefix_finish = 0, float("-inf")
+        for a in by_start:
+            if a.get("start", 0.0) >= prefix_finish - 1e-9:
+                serial_points += 1
+            prefix_finish = max(prefix_finish, a.get("finish", 0.0))
+        nesting_risk = {
+            "movements": int(m.get("movements", 0)),
+            "blocking_density": round(density, 3),
+            "serial_points": serial_points,
+            "n_aircraft": len(acc),
+        }
+
+        if start_objs:
+            lo, hi = min(start_objs), max(start_objs)
+            search_risk = {
+                "n_starts": len(start_objs),
+                "obj_min": round(lo, 4),
+                "obj_max": round(hi, 4),
+                "obj_std": round(statistics.pstdev(start_objs), 4) if len(start_objs) > 1 else 0.0,
+                "obj_spread": round((hi - lo) / lo, 4) if lo > 1e-9 else 0.0,
+            }
+        else:
+            search_risk = {"n_starts": 0, "obj_min": None, "obj_max": None,
+                           "obj_std": 0.0, "obj_spread": 0.0}
+
+        return {"delay_risk": delay_risk, "nesting_risk": nesting_risk,
+                "search_risk": search_risk}
 
     def _one_start(self, instance_data: dict, a0: dict, o0: list, deadline: float) -> tuple[dict, float]:
         """One multi-start restart from the seed ``(a0, o0)``: zero-movement
