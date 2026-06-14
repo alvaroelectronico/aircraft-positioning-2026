@@ -5,6 +5,18 @@ the way a paper would, with no reference to the source code; **Part II**
 reports the results and their analysis; **Part III** is the improvement
 roadmap; **Part IV** explains how the method is realised in code.
 
+> **Status (code `4a80e79`, full battery `…114558`).** Commits 1–5 shipped:
+> enforced time budget + decode cache + construction portfolio + regret-2 +
+> adaptive multi-start + dense concentric-nesting builder, plus Commit-5 risk
+> diagnostics (observability). Commit 6 (DelayRiskRepair) was built, measured,
+> and **reverted** — no benefit above search noise (Part III). On the full
+> 120-instance battery the heuristic is **at or beyond the MILP wherever the
+> MILP is a reliable target** (within ±2.5 % on R10, winning on `wMOV`
+> blocking topologies and at R20/R30 scale where the MILP times out); the
+> remaining residuals are noise-level or against an unconverged MILP. The
+> method is **near its practical ceiling on small/medium instances**; next
+> direction (consolidate / scale up / variance experiment) is open.
+
 ---
 
 # Part I — The method
@@ -572,10 +584,12 @@ feasible no-movement schedule.
 - **`wMOV` (movements): the dense-nest (Commit 4) closed most of the gap on
   the complete-blocking `full` topology** — `full_R10` −17.1 % → **−5.05 %**
   (`Δmakespan` +24 → **+8.7** at 0 manoeuvres), and `full_R20` improved too.
-  `chain`/`hub` are *not* complete blocking graphs, so the nest does not
-  trigger there and they are unchanged (`chain` −10 %, `hub` −4 %): those are
-  the remaining dense-`wMOV` residual, for a generalised (non-complete)
-  nesting decode or the local micro-MILP (Part III, options).
+  The heuristic also **wins** outright on `chain` (−10.4 %) and `hub` (−4.0 %).
+  The only types where it trails on `wMOV` (`chain`/`hub`/`full_R10` at their
+  worst seeds) are against an **unconverged MILP** (45–85 % optimality gap, so
+  not a reliable target), and the Commit-5 diagnostics show those schedules are
+  already nested (`serial_points ≈ 1/10`), not serialised — so a further
+  nesting operator (Part III, Commit 8) is a weak prospect, not a clear win.
 
 ## Caveats
 
@@ -591,26 +605,39 @@ feasible no-movement schedule.
 
 # Part III — Improvement roadmap
 
-**Diagnosis.** The base architecture is well chosen: separating the
-combinatorial state `(π, σ)` from a deterministic decoder shrinks the search
-space and lets the decoder price each assignment/order with timing, blocking
-and manoeuvres — aligned with NEH (a strong makespan constructor), Iterated
-Greedy (destruction/reconstruction) and VND/VNS (systematic neighbourhood
-change). The bottleneck now is **not "more metaheuristic"** but **missing
-operators that attack the specific per-weight failures** of Part II:
+**Diagnosis (updated after Commits 1–6 + the full battery).** The base
+architecture is well chosen: separating the combinatorial state `(π, σ)` from a
+deterministic decoder shrinks the search space and lets the decoder price each
+assignment/order with timing, blocking and manoeuvres — aligned with NEH (a
+strong makespan constructor), Iterated Greedy (destruction/reconstruction) and
+VND/VNS (systematic neighbourhood change). After the planned per-weight
+operators were built and **measured**, the picture changed: the method is now
+**at or beyond the MILP wherever the MILP is a reliable target**, and the
+remaining gaps are *not* missing-operator gaps. Per weight:
 
-- `wMK`: already near the MILP on R10 — Mode-B/nesting do their job.
-- `wDLY`: the search does not propose enough states with tight-target
-  aircraft scheduled early, nor the "spend a manoeuvre to remove a delay"
-  trade.
-- `wMOV`: with both methods at 0 manoeuvres, the winner is whoever packs a
-  zero-movement schedule tightest — and the decoder is too greedy on dense
-  topologies.
-- R20/R30: not interpretable until the budget is strictly enforced.
+- `wMK`: near the MILP on R10 (±2.5 %, exact on `none`/`R5`); Mode-B/nesting do
+  their job. Wins at scale (R20/R30) where the MILP times out.
+- `wDLY`: at/above the MILP on R10. The residual that motivated Commit 6
+  (DelayRiskRepair) turned out to be **search-variance-bound, not
+  order-bound** — the repair never beat the multi-start incumbent (0/74), and
+  the run-to-run noise (≈19 delay units) is larger than the residual itself
+  (≤ 1.5 units on the one clean seed). The portfolio already reaches the good
+  delay basin; seeding it explicitly adds nothing.
+- `wMOV`: with both methods at 0 manoeuvres, the winner packs tightest. The
+  dense-nest (Commit 4) made the heuristic win on `full`/`chain`/`hub`; where
+  it still trails, the MILP is **unconverged** (no reliable target) and the
+  schedule is already nested (Commit-5 `serial_points ≈ 1/10`).
+- R20/R30: the budget is now strictly enforced (Priority 0 done), so these are
+  a fair 60-s comparison — and the heuristic wins decisively (the MILP is an
+  unconverged 60-s incumbent there).
 
-The items are ordered by impact/risk; each names the failure it targets.
-Cumulative ablations: `A0 = 68dc201 → A1 budget+cache+logging → A2 seeds →
-A3 regret → A4 delay-manoeuvre → A5 zero-move repack → A6 ALNS`.
+**Net:** the method is near its practical ceiling on small/medium instances.
+The remaining residuals are either noise-level or against an unconverged MILP,
+so further per-weight operators chase noise — the disciplined lesson of
+Commits 3 and 6 (*measure the noise floor before keeping an operator*). The
+items below are kept for the record and ordered by impact/risk. Cumulative
+ablations: `A0 = 68dc201 → A1 budget+cache+logging → A2 seeds → A3 regret →
+A4 delay-manoeuvre → A5 zero-move repack → A6 ALNS`.
 
 ## Priority 0 — anytime correctness (foundation)
 
