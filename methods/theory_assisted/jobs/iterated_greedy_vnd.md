@@ -412,15 +412,13 @@ feasible no-movement schedule.
 
 ---
 
-# Part II — Results and analysis (solver at Commits 1–3; run under `21ad222`)
+# Part II — Results and analysis (solver at Commits 1–4; run under `cb5656c`)
 
-> Snapshot of the solver **after Commits 1–3** (decode cache + enforced time
-> budget; construction portfolio + regret-2; adaptive multi-start). The
-> battery ran under commit `21ad222` — which changed only the experiment
-> runner (seed-first order; the code state is stamped in each log header).
-> The Change log below maps every commit to its effect; this section is the
-> current results. (It supersedes the earlier `68dc201` snapshot, whose
-> R20/R30 rows were invalid because the heuristic overran the budget.)
+> Snapshot of the solver **after Commits 1–4** (decode cache + enforced time
+> budget; construction portfolio + regret-2; adaptive multi-start; dense
+> concentric-nesting builder). Battery run under commit `cb5656c`, seed-first;
+> the code state is stamped in the log header. The Change log (Part III) maps
+> every commit to its effect; this section is the current results.
 
 ## Experimental setup
 
@@ -430,119 +428,118 @@ feasible no-movement schedule.
   of every type, then seed-2, …) for an early cross-type read.
 - **Methods:** job-level MILP baseline (`milp_baseline_job`) vs this heuristic.
 - **Weight profiles:** `wMK = (100,1,1)`, `wDLY = (1,100,1)`, `wMOV = (1,1,100)`.
-- **Budget:** 60 s, **now strictly enforced** — so R20/R30 are a fair 60-s
-  comparison (unlike the `68dc201` snapshot, where the heuristic overran).
+- **Budget:** 60 s, strictly enforced (R20/R30 are a fair 60-s comparison).
   **720 runs, 0 failures.**
 - **Metric:** relative gap `g = (MILP_obj − heuristic_obj) / MILP_obj`
   (`g > 0` ⇒ heuristic better), **plus** per-component Δ (heuristic − MILP)
   for makespan / delay / movements (the undistorted read).
 - **Log (this code state):**
-  [`outputs/logs/instances_main_methods_20260613_122208.log`](../../../outputs/logs/instances_main_methods_20260613_122208.log)
-  — self-stamped `Code state (git): 21ad222`.
+  [`outputs/logs/instances_main_methods_20260613_235129.log`](../../../outputs/logs/instances_main_methods_20260613_235129.log)
+  — self-stamped `Code state (git): cb5656c`.
 
 ## Relative objective gap (mean / min / max over 10 seeds)
 
 ```
 [wMK  (100/1/1  makespan-priority)]            N     Mean      Min      Max
-  scn_chain_tight_P5_R10                       10   -1.32%   -2.95%   -0.01%
-  scn_full_tight_P5_R10                        10   +1.30%   -3.55%   +6.35%
-  scn_full_tight_P5_R20                        10  +42.43%  +19.90%  +60.94%
-  scn_hub_tight_P5_R10                         10   -2.48%   -4.82%   +0.01%
+  scn_chain_tight_P5_R10                       10   -1.21%   -2.95%   -0.01%
+  scn_full_tight_P5_R10                        10   +1.40%   -3.18%   +6.35%
+  scn_full_tight_P5_R20                        10  +41.33%  +15.64%  +60.94%
+  scn_hub_tight_P5_R10                         10   -2.47%   -4.82%   +0.01%
   scn_none_tight_P5_R10                        10   +0.00%   +0.00%   +0.00%
-  scn_triangle_loose_P5_R10                    10   +0.11%   -1.76%   +1.66%
+  scn_triangle_loose_P5_R10                    10   +0.07%   -1.76%   +1.66%
   scn_triangle_medium_P5_R10                   10   +0.35%   -0.50%   +1.91%
-  scn_triangle_tight_P5_R10                    10   -0.13%   -2.77%   +1.67%
-  scn_triangle_tight_P5_R20                    10  +17.16%  +10.68%  +22.20%
-  scn_triangle_tight_P5_R30                    10  +36.03%  +24.45%  +40.32%
+  scn_triangle_tight_P5_R10                    10   -0.43%   -3.07%   +1.67%
+  scn_triangle_tight_P5_R20                    10  +17.18%  +10.68%  +22.20%
+  scn_triangle_tight_P5_R30                    10  +35.73%  +24.45%  +40.16%
   scn_triangle_tight_P5_R5                     10   -0.01%   -0.03%   +0.00%
-  scn_two_rows_tight_P5_R10                    10   -0.17%   -1.24%   +0.42%
+  scn_two_rows_tight_P5_R10                    10   -0.01%   -1.24%   +0.73%
 
 [wDLY (1/100/1  delay-priority)]               N     Mean        Min       Max
   scn_chain_tight_P5_R10                       10   +7.02%     +0.42%   +15.30%
-  scn_full_tight_P5_R10                        10  +24.14%    +14.19%   +37.12%
-  scn_full_tight_P5_R20                        10  +56.37%    +41.28%   +67.54%
+  scn_full_tight_P5_R10                        10  +24.09%    +14.19%   +37.12%
+  scn_full_tight_P5_R20                        10  +56.13%    +41.28%   +67.54%
   scn_hub_tight_P5_R10                         10   +3.56%     -3.42%   +10.23%
   scn_none_tight_P5_R10                        10   -0.00%     -0.00%    +0.00%
   scn_triangle_loose_P5_R10                    10  -19.03%   -199.35%   +18.55%
   scn_triangle_medium_P5_R10                   10   +5.48%     +0.76%   +14.62%
   scn_triangle_tight_P5_R10                    10   +6.01%     +1.49%   +10.96%
-  scn_triangle_tight_P5_R20                    10  +14.02%     +3.53%   +24.75%
-  scn_triangle_tight_P5_R30                    10  +37.04%    +23.47%   +50.02%
+  scn_triangle_tight_P5_R20                    10  +14.11%     +3.53%   +24.75%
+  scn_triangle_tight_P5_R30                    10  +37.06%    +23.47%   +50.02%
   scn_triangle_tight_P5_R5                     10   -0.22%     -2.17%    +0.00%
   scn_two_rows_tight_P5_R10                    10   +1.37%     -0.50%    +4.78%
 
 [wMOV (1/1/100  movement-priority)]            N     Mean       Min      Max
-  scn_chain_tight_P5_R10                       10  -10.44%   -26.26%   +5.06%
-  scn_full_tight_P5_R10                        10  -17.12%   -67.15%   +9.63%
-  scn_full_tight_P5_R20                        10  +25.53%    +7.34%  +40.46%
+  scn_chain_tight_P5_R10                       10  -10.42%   -26.26%   +5.06%
+  scn_full_tight_P5_R10                        10   -5.05%   -34.71%   +9.63%   <- dense-nest (was -17.1%)
+  scn_full_tight_P5_R20                        10  +26.32%    +7.34%  +40.46%
   scn_hub_tight_P5_R10                         10   -4.01%   -25.73%   +5.00%
   scn_none_tight_P5_R10                        10   +0.00%    +0.00%   +0.00%
-  scn_triangle_loose_P5_R10                    10   +0.13%    -8.21%   +6.12%
+  scn_triangle_loose_P5_R10                    10   -0.02%    -9.70%   +6.12%
   scn_triangle_medium_P5_R10                   10   +1.86%    -2.19%   +8.33%
   scn_triangle_tight_P5_R10                    10   +0.56%    -5.83%   +5.76%
-  scn_triangle_tight_P5_R20                    10  +11.94%    +3.62%  +19.09%
-  scn_triangle_tight_P5_R30                    10  +35.71%   +20.63%  +45.70%
-  scn_triangle_tight_P5_R5                     10   -9.52%   -76.92%   +0.00%
+  scn_triangle_tight_P5_R20                    10  +11.98%    +3.62%  +19.09%
+  scn_triangle_tight_P5_R30                    10  +35.37%   +21.04%  +42.31%
+  scn_triangle_tight_P5_R5                     10   -3.88%   -20.51%   +0.00%
   scn_two_rows_tight_P5_R10                    10   +0.41%    -3.55%   +4.12%
 
 [ALL profiles]                                 N     Mean        Min       Max
-  scn_chain_tight_P5_R10                       30   -1.58%   -26.26%   +15.30%
-  scn_full_tight_P5_R10                        30   +2.77%   -67.15%   +37.12%
-  scn_full_tight_P5_R20                        30  +41.44%    +7.34%   +67.54%
+  scn_chain_tight_P5_R10                       30   -1.54%   -26.26%   +15.30%
+  scn_full_tight_P5_R10                        30   +6.81%   -34.71%   +37.12%
+  scn_full_tight_P5_R20                        30  +41.26%    +7.34%   +67.54%
   scn_hub_tight_P5_R10                         30   -0.98%   -25.73%   +10.23%
   scn_none_tight_P5_R10                        30   -0.00%    -0.00%    +0.00%
-  scn_triangle_loose_P5_R10                    30   -6.26%  -199.35%   +18.55%
+  scn_triangle_loose_P5_R10                    30   -6.32%  -199.35%   +18.55%
   scn_triangle_medium_P5_R10                   30   +2.56%    -2.19%   +14.62%
-  scn_triangle_tight_P5_R10                    30   +2.14%    -5.83%   +10.96%
-  scn_triangle_tight_P5_R20                    30  +14.38%    +3.53%   +24.75%
-  scn_triangle_tight_P5_R30                    30  +36.26%   +20.63%   +50.02%
-  scn_triangle_tight_P5_R5                     30   -3.25%   -76.92%    +0.00%
-  scn_two_rows_tight_P5_R10                    30   +0.54%    -3.55%    +4.78%
+  scn_triangle_tight_P5_R10                    30   +2.04%    -5.83%   +10.96%
+  scn_triangle_tight_P5_R20                    30   +14.43%   +3.53%   +24.75%
+  scn_triangle_tight_P5_R30                    30   +36.05%  +21.04%   +50.02%
+  scn_triangle_tight_P5_R5                     30   -1.37%   -20.51%    +0.00%
+  scn_two_rows_tight_P5_R10                    30   +0.59%    -3.55%    +4.78%
 ```
 
 ## Per-component mean Δ (heuristic − MILP; negative = heuristic better)
 
 ```
 [wMK]                          Δmakespan      Δdelay      Δmov
-  chain_R10                       +0.90       -2.25       -1.80
-  full_R10                        -1.10       +1.85       +3.00
-  full_R20                      -128.60    -1096.10      +76.80
-  hub_R10                         +1.70       -5.55       -2.60
+  chain_R10                       +0.80       -0.35       -0.60
+  full_R10                        -1.15       -0.85       +3.20
+  full_R20                      -123.95    -1072.85      +77.80
+  hub_R10                         +1.70       -6.25       -2.60
   none_R10                        +0.00       +0.00       +0.00
-  triangle_loose_R10              -0.05       -0.15       -0.40
+  triangle_loose_R10              -0.05       +2.80       -1.40
   triangle_medium_R10             -0.15       -2.15       -3.20
-  triangle_tight_R10              +0.15       -1.15       -2.60
-  triangle_tight_R20             -26.45     -146.55       -7.20
-  triangle_tight_R30            -123.50    -1556.70       +8.20
+  triangle_tight_R10              +0.35       -2.05       -2.60
+  triangle_tight_R20             -26.35     -158.30       -8.60
+  triangle_tight_R30            -121.80    -1531.60       +8.20
   triangle_tight_R5               +0.00       +0.20       +0.00
-  two_rows_R10                    +0.15       -2.80       -0.80
+  two_rows_R10                    +0.05       -3.70       -0.60
 
 [wDLY]                         Δmakespan      Δdelay      Δmov
   chain_R10                       -1.25       -8.65       -1.20
-  full_R10                       -14.45      -49.00      +11.60
-  full_R20                      -164.90    -1341.95      +41.20
+  full_R10                       -14.20      -48.90      +10.40
+  full_R20                      -162.75    -1337.00      +41.20
   hub_R10                         -3.70       -4.40       -1.40
   none_R10                        +0.00       +0.00       +0.00
   triangle_loose_R10              +0.40       +0.00       +1.60
   triangle_medium_R10             -1.30       -3.25       -1.80
   triangle_tight_R10              -4.20       -6.65       -3.60
-  triangle_tight_R20             -19.75     -116.55       -3.80
-  triangle_tight_R30            -119.70    -1271.05       +5.40
+  triangle_tight_R20             -19.30     -117.40       -1.00
+  triangle_tight_R30            -120.25    -1271.80       +5.40
   triangle_tight_R5               +0.10       +0.00       +0.00
   two_rows_R10                    -2.20       -1.40       -0.40
 
 [wMOV]                         Δmakespan      Δdelay      Δmov
-  chain_R10                      +13.25      +10.65       +0.00
-  full_R10                       +23.95      +18.00       +0.00
-  full_R20                      -39.15     -391.90       +0.00
+  chain_R10                      +13.15      +10.70       +0.00
+  full_R10                        +8.70       +2.60       +0.00   <- was +23.95 (dense-nest)
+  full_R20                      -49.90     -394.80       +0.00
   hub_R10                         +4.30       +3.05       +0.00
   none_R10                        +0.00       +0.00       +0.00
-  triangle_loose_R10              +0.10       -0.25       +0.00
+  triangle_loose_R10              +0.10       -0.15       +0.00
   triangle_medium_R10             +0.00       -2.45       +0.00
   triangle_tight_R10              -0.10       -0.95       +0.00
-  triangle_tight_R20             -17.60      -97.45       +0.00
-  triangle_tight_R30            -131.65    -1182.40       +0.00
-  triangle_tight_R5               +1.15       +2.45       +0.00
+  triangle_tight_R20             -17.70      -97.75       +0.00
+  triangle_tight_R30            -126.35    -1163.60       +0.00
+  triangle_tight_R5               +0.00       +1.40       +0.00
   two_rows_R10                    +0.10       -0.80       +0.00
 ```
 
@@ -550,28 +547,30 @@ feasible no-movement schedule.
 
 - **`wMK` (makespan):** competitive on R5–R10 — within ~±2.5 % of the MILP on
   every topology (exact on `none` / `R5`). On R20/R30 the heuristic far
-  outperforms the MILP (+17 % / +36 %), now a **fair 60-s comparison** since
-  the budget is enforced (the MILP is unconverged there).
-- **`wDLY` (delay): the big win of Commits 2–3.** vs the `68dc201` snapshot:
-  `R5 wDLY` −95.78 % → **−0.22 %** (≈ optimum); `triangle_loose_R10` −303.75 %
-  → **−19.03 %** (only the single hardest seed, min −199 %, still trails where
-  the MILP spends 8 manoeuvres to reach delay 0). Competitive or winning on
-  every other type (chain +7 %, full +24 %, medium +5.5 %, triangle +6 %).
-- **`wMOV` (movements): the remaining structural gap.** Improved
-  (`full_R10` −30.6 % → **−17.1 %**) but dense topologies still trail —
-  `full_R10` Δmakespan **+24** at 0 manoeuvres: the zero-movement decode
-  serialises where the MILP packs concentric-nesting waves. This is the
-  **deferred Priority-3** nesting-decode (see Part III).
+  outperforms the MILP (+17 % / +36 %), a **fair 60-s comparison** (the MILP
+  is unconverged there).
+- **`wDLY` (delay): solid.** `R5 wDLY` ≈ optimum (−0.22 %); competitive or
+  winning on every type. The only outlier is `triangle_loose_R10` (−19 % mean,
+  −199 % on the single hardest seed) where the MILP spends manoeuvres to reach
+  delay 0; the per-component `Δdelay` is ≈0 there, confirming the relative gap
+  is small-denominator inflation, not a large absolute loss.
+- **`wMOV` (movements): the dense-nest (Commit 4) closed most of the gap on
+  the complete-blocking `full` topology** — `full_R10` −17.1 % → **−5.05 %**
+  (`Δmakespan` +24 → **+8.7** at 0 manoeuvres), and `full_R20` improved too.
+  `chain`/`hub` are *not* complete blocking graphs, so the nest does not
+  trigger there and they are unchanged (`chain` −10 %, `hub` −4 %): those are
+  the remaining dense-`wMOV` residual, for a generalised (non-complete)
+  nesting decode or the local micro-MILP (Part III, options).
 
 ## Caveats
 
 1. **Small-denominator inflation.** When the optimum delay ≈ 0 (`wDLY` on
    loose/easy instances), the relative gap explodes for a tiny absolute
-   difference (e.g. the −199 % outlier). The per-component Δ table is the
-   undistorted read.
+   difference (the −199 % outlier; its `Δdelay` ≈ 0). Read the per-component Δ.
 2. **MILP unconverged at scale.** R20/R30 MILP objectives are 60-s incumbents
    (80–99 % optimality gap), so the heuristic "winning" there means "better
    feasible solution fast", not proven optimality.
+
 
 ---
 
@@ -891,7 +890,7 @@ the code that produced it. Behaviour-affecting commits (newest last):
 | `0620092` | doc sync — Parts I/II + module docstring updated to the current two-decoder / portfolio / adaptive-multi-start / cache state | no behaviour change |
 | (no commit) | **Commit 4 attempted & deferred** — dense `wMOV` repacker. Both a left-shift compaction (regressed `wMK` via per-decode slowdown) and a concentric-nesting construction seed (decode didn't preserve nesting) failed; the earliest-feasible decode fundamentally cannot nest. See Part III Priority 3 — needs a dedicated nesting decode (larger effort). Code reverted to `0620092`. | no change shipped |
 | `21ad222` | experiment runner only (not the solver): run **seed-first** (early cross-type read) and **stamp the git commit in every log header** so each `.log` self-identifies its code state. | enabled the definitive full-battery snapshot in Part II above (log `…122208`); solver unchanged (still Commits 1–3) |
-| *this commit* | **Commit 4 (dense nesting) — shipped.** `_dense_nest_solution`: explicit-start concentric-nesting schedule with aircraft *stretching*, two-partition beam, best-of + checker, gated to `Wˢ`-dominant + blocking topology (Part III Priority 3). | `full_R10 wMOV` 352.5 → **258** (beats MILP 261); also helps `full_R20`; ignored elsewhere (no regression). **Part II is now stale for dense `wMOV`** — needs a re-run. |
+| `cb5656c` | **Commit 4 (dense nesting) — shipped.** `_dense_nest_solution`: explicit-start concentric-nesting schedule with aircraft *stretching*, two-partition beam, best-of + checker, gated to `Wˢ`-dominant + blocking topology (Part III Priority 3). | `full_R10 wMOV` 352.5 → **258** (beats MILP 261); also helps `full_R20`; ignored elsewhere (no regression). Part II refreshed to this state (battery log `…235129`): `full_R10 wMOV` mean −17.1 % → **−5.05 %**. |
 
 **Evaluation shortcut.** The MILP baseline is fixed, so re-running it is
 wasteful. To judge a heuristic change, run `ablation_subset.py` (heuristic
