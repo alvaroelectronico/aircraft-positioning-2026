@@ -797,16 +797,43 @@ denominators (see Part II caveats), hence the absolute/per-component fields.
    record `delay_risk / nesting_risk / search_risk` per solution so the next
    steps fire on *internal symptoms*, not on an external outlier label. Read
    them on the ablation subset to size the real headroom before building.
-6. **Commit 6 — DelayRiskRepair** (high confidence: the `wDLY` residual is
-   real and the MILP target is *optimal* there — e.g. `triangle_loose_R10`
-   seed10 MILP 77 / delay 0 vs heuristic 230 / delay 1.5). A separate
-   best-of'd candidate generator, **not** a VND neighbourhood.
-7. **Commit 7 — ComponentNestingRepair** for `chain`/`hub` (exploratory:
-   there the MILP is *unconverged* — `maxTimeLim`, 45–85 % gap — so judge by
-   **absolute makespan reduction at `Δmov = 0`**, not by gap-vs-MILP). Start
-   with `TailAbsorptionRepair` (the autopsy pattern) and measure.
-8. **Commit 8 — feature-triggered ALNS** only if `search_risk` shows high
-   variance / stagnation.
+6. **Commit 6 — DelayRiskRepair — ATTEMPTED & DROPPED.** Built as designed (a
+   best-of'd delay-biased re-search) and measured on the ablation subset: it
+   **never improved the incumbent (0/74 runs)** and left the one clean target
+   (`triangle_loose_R10` seed10 wDLY) at delay 1.5. The decisive evidence was
+   the `search_risk` diagnostic: that seed has an objective **spread of 1.73**
+   across the 8 starts (best 230.5, worst 628.5), and the run-to-run search
+   noise (≈19 delay units on `chain_R10` wMK, where the repair is gated out
+   and cannot act) is **larger than any effect the repair could have**. The
+   residual is *search-variance-bound, not order-bound* — the multi-start
+   portfolio already reaches an equally good delay-biased basin, so seeding it
+   there explicitly adds nothing. Reverted (Commit 3 lesson, again).
+7. **Commit 7 — variance reduction on high-`search_risk` instances** (this is
+   what the diagnostics actually point to, and what worked last time — the
+   adaptive-multi-start of the original Commit 3). The lever is *reducing the
+   spread*, not adding a delay operator: e.g. more independent restarts (or an
+   elite/restart-from-best ILS) on instances the `search_risk` spread flags as
+   luck-dependent. Expected payoff is small (the residuals are ≤ 3 delay units
+   on a couple of R10 seeds) and the risk is real (a slower loop cuts restarts
+   — exactly how Commit 3's first cut regressed), so **measure on the subset
+   before keeping**, and weigh against simply documenting the current strong
+   state.
+8. **Commit 8 — ComponentNestingRepair** for `chain`/`hub` remains *only* a
+   candidate, and a weak one: the `chain_R10 wMOV` residual is large in
+   absolute terms (Δms +13.5, Δdelay +9.0) **but the diagnostic shows it is
+   already nested** (`serial_points = 1/10`, not serialised), and the MILP
+   target there is *unconverged* (45–85 % gap) so there is no reliable target
+   to chase. Judge only by absolute makespan/delay reduction at `Δmov = 0`,
+   and do not expect much.
+
+**Where this leaves us.** The ablation subset shows the heuristic is at or
+beyond the MILP on almost every R10 type (± 2 % or better), wins clearly at
+scale (R20/R30, where the MILP times out), and the only genuine residuals are
+noise-level (≤ 3 delay units on a few R10 seeds) or against an unconverged
+MILP. The method is near its practical ceiling on small/medium instances;
+further operators chase noise. The honest next step is to **document the
+current state with a full battery** and treat variance reduction as a separate,
+carefully-measured experiment rather than an assumed win.
 
 We do **not** proceed with the local micro-MILP/CP as a core step (Priority 6):
 it relies on an external notion of failure that does not exist on a new
@@ -817,7 +844,13 @@ specialised decoders and repairs, no internal exact solver).
 Lesson carried forward: a *targeted operator* is not automatically helpful —
 build it as an **external best-of'd candidate** (like the dense-nest), never
 as an in-VND neighbourhood (Commit-3 changed the basin and slowed the loop),
-and **measure on the ablation subset before keeping it**.
+and **measure on the ablation subset before keeping it**. Commit 6 reconfirmed
+this and added a sharper rule: **measure the noise floor first.** The
+time-limited search is non-deterministic, so two runs of the *same* code
+differ; on this subset that run-to-run swing reached ≈19 delay units. Any
+operator whose effect is smaller than that swing cannot be shown to help and
+should not be kept. Commit 5's `search_risk` diagnostic exists precisely to
+make that floor visible (its `obj_spread` is the per-instance noise estimate).
 
 ---
 
@@ -865,7 +898,6 @@ The returned dict matches `problems/jobs/checker.py`: `status`, `objective`,
 | Cached decode (memoised eval) | `_eval` (keyed by decoder tag, order, positions-along-order; reset per solve) |
 | Dense concentric-nesting builder (§8; explicit starts, best-of) | `_dense_nest_solution` (called once in `solve` when `Wˢ`-dominant + arcs) |
 | Risk diagnostics (Commit 5; observability) | `_diagnostics(best_sol, start_objs)` → `delay_risk` / `nesting_risk` / `search_risk`, attached to the solution + one log line |
-| DelayRiskRepair (Commit 6; best-of'd lateness reduction) | `_delay_risk_repair(best_sol, …)` (called once in `solve` when `Wᴰ ≥ Wᴹ` and the incumbent has delayed aircraft) |
 | Construction portfolio (§4) | `_build_portfolio`; `_greedy_construct(order)`; `_regret2_construct` |
 | VND neighbourhoods (§5) | `_vnd`, `_n_reassign`, `_n_swap_pos`, `_n_reorder` |
 | IG perturbation (§6) | `_perturb` |
@@ -936,6 +968,7 @@ the code that produced it. Behaviour-affecting commits (newest last):
 | `21ad222` | experiment runner only (not the solver): run **seed-first** (early cross-type read) and **stamp the git commit in every log header** so each `.log` self-identifies its code state. | enabled the definitive full-battery snapshot in Part II above (log `…122208`); solver unchanged (still Commits 1–3) |
 | `cb5656c` | **Commit 4 (dense nesting) — shipped.** `_dense_nest_solution`: explicit-start concentric-nesting schedule with aircraft *stretching*, two-partition beam, best-of + checker, gated to `Wˢ`-dominant + blocking topology (Part III Priority 3). | `full_R10 wMOV` 352.5 → **258** (beats MILP 261); also helps `full_R20`; ignored elsewhere (no regression). Part II refreshed to this state (battery log `…235129`): `full_R10 wMOV` mean −17.1 % → **−5.05 %**. |
 | `dd20bf6` | **Commit 5 (risk diagnostics) — shipped.** `_diagnostics(best_sol, start_objs)` attaches `delay_risk` / `nesting_risk` / `search_risk` to the solution + a one-line log summary (Part III Priority 6, risk-triggered route). | no behaviour change (same search, same objectives); enables Commits 6–7 to fire on internal symptoms. First read: `chain_R10 wMOV` reports `min_slack_delayed=2.0` (removable lateness even at `mov=0`) and `serial_points=1/10` (already nested). |
+| `95669a2` → reverted | **Commit 6 (DelayRiskRepair) — attempted & DROPPED.** A best-of'd re-search from a delay-biased seed (delayed aircraft pulled to the front in EDD order) on leftover budget. | **Measured on the ablation subset (baseline `…103224`, repaired `…delayrepair`): never improved the incumbent (0/74 runs accepted).** The one clean target `triangle_loose_R10` seed10 wDLY stayed at delay 1.5; the run-to-run search noise (≈19 delay units on `chain_R10` wMK, where the repair is gated out and *cannot* act) dwarfed any apparent wMOV/wDLY gain (0.5–0.75 units, within noise). The `search_risk` diagnostic (spread 1.73 on that seed) had already flagged the residual as **search-variance-bound, not order-bound** — the multi-start portfolio already reaches an equally good delay-biased basin. Reverted; only a `NOTE` comment + this row remain. Lesson = Commit 3 again: measure before keeping. |
 
 **Evaluation shortcut.** The MILP baseline is fixed, so re-running it is
 wasteful. To judge a heuristic change, run `ablation_subset.py` (heuristic

@@ -186,23 +186,14 @@ class IteratedGreedyVNDJobSolver:
                 self._log.append(f"dense-nest ACCEPTED obj={best_obj:.4f} "
                                  f"ms={nest['metrics']['makespan']:.1f}")
 
-        # Commit 6 — DelayRiskRepair (targets residual lateness).  Fires when
-        # the incumbent still has delayed aircraft and delay matters at least
-        # as much as makespan (wDLY, and wMOV where wD = wM).  It pulls the
-        # delayed aircraft to the front of the order (EDD on their windows) and
-        # re-optimises from that seed.  A best-of'd, checker-validated candidate
-        # — never trusted blind, so it can only improve the incumbent.
-        if (best_sol is not None and self.wD >= self.wM
-                and time.perf_counter() < global_dl - 0.05
-                and any(a.get("delay", 0.0) > 1e-9 for a in best_sol["aircraft"])):
-            rep = self._delay_risk_repair(best_sol, instance_data, global_dl)
-            if (rep is not None and rep["objective"] < best_obj - 1e-9
-                    and self._is_compliant(rep, instance_data)):
-                rep["phase"] = "delay_repair"
-                best_sol, best_obj = rep, rep["objective"]
-                self._log.append(f"delay-repair ACCEPTED obj={best_obj:.4f} "
-                                 f"dly={rep['metrics']['total_delay']:.1f} "
-                                 f"mov={rep['metrics']['movements']}")
+        # NOTE (Commit 6 attempted & reverted): a DelayRiskRepair fired here —
+        # a re-search from a delay-biased seed (delayed aircraft pulled to the
+        # front in EDD order) on leftover budget.  Measured on the ablation
+        # subset it never once improved the incumbent (0/74 runs accepted) and
+        # left the one clean target, `triangle_loose_R10` seed10 wDLY, at delay
+        # 1.5.  The run-to-run search noise (≈19 delay units on `chain_R10`
+        # wMK, where the repair cannot even act) dwarfed any apparent effect.
+        # The residual is search-variance-bound, not order-bound — see Part III.
 
         elapsed = time.perf_counter() - t0
         best_sol["status"] = "heuristic_ok"
@@ -306,57 +297,6 @@ class IteratedGreedyVNDJobSolver:
 
         return {"delay_risk": delay_risk, "nesting_risk": nesting_risk,
                 "search_risk": search_risk}
-
-    # ------------------------------------------------------------------
-    # DelayRiskRepair (Commit 6 — targeted lateness reduction)
-    # ------------------------------------------------------------------
-
-    def _delay_risk_repair(self, base_sol: dict, instance_data: dict,
-                           deadline: float) -> dict | None:
-        """Re-optimise from a delay-biased seed derived from the incumbent.
-
-        The delayed aircraft are pulled to the front of the priority order in
-        EDD order (earliest ``target_finish`` first), the rest keep their
-        incumbent relative order; the resulting seed is re-searched with the
-        zero-movement decoder and, if it helps and the checker certifies it,
-        the manoeuvre-aware one.  Returns the better of the two (always a
-        compliant schedule), or ``None`` if there is nothing delayed.
-
-        This is a *best-of'd candidate generator*, not a VND neighbourhood:
-        the general first-improvement VND may never reach a basin where the
-        laggards are scheduled first, whereas this seeds it there directly.
-        """
-        acc = base_sol.get("aircraft", [])
-        delayed = {a["id"] for a in acc if a.get("delay", 0.0) > 1e-9}
-        if not delayed:
-            return None
-
-        assignment = {a["id"]: a["position"] for a in acc}
-        base_order = [a["id"] for a in
-                      sorted(acc, key=lambda x: (x.get("start", 0.0), x.get("finish", 0.0)))]
-        front = sorted((r for r in base_order if r in delayed),
-                       key=lambda r: (self.L[r], self.E[r]))
-        rest = [r for r in base_order if r not in delayed]
-        seed_order = front + rest
-
-        # Zero-movement re-optimisation from the delay-biased seed (the floor:
-        # feasible by construction, so always a valid candidate).
-        self._decode_fn = self._decode
-        self._decoder_tag = "v2"
-        a1, o1 = self._search(dict(assignment), list(seed_order), deadline)
-        cand = self._finalize(self._decode(a1, o1))
-
-        # Manoeuvre-aware polish — taken only if it strictly improves AND the
-        # real checker certifies it, mirroring the multi-start safety net.
-        if self.use_v3 and time.perf_counter() < deadline:
-            self._decode_fn = self._decode_v3
-            self._decoder_tag = "v3"
-            a2, o2 = self._search(dict(a1), list(o1), deadline)
-            v3 = self._finalize(self._decode_v3(a2, o2))
-            if (v3["objective"] < cand["objective"] - 1e-9
-                    and self._is_compliant(v3, instance_data)):
-                cand = v3
-        return cand
 
     def _one_start(self, instance_data: dict, a0: dict, o0: list, deadline: float) -> tuple[dict, float]:
         """One multi-start restart from the seed ``(a0, o0)``: zero-movement
