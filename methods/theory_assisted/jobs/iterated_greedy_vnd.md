@@ -864,6 +864,8 @@ The returned dict matches `problems/jobs/checker.py`: `status`, `objective`,
 | Manoeuvre-aware decoder (§3.2) | `_decode_v3`; per-front placement `_place_front`; forward simulation with Mode-B/C `_sim_front` |
 | Cached decode (memoised eval) | `_eval` (keyed by decoder tag, order, positions-along-order; reset per solve) |
 | Dense concentric-nesting builder (§8; explicit starts, best-of) | `_dense_nest_solution` (called once in `solve` when `Wˢ`-dominant + arcs) |
+| Risk diagnostics (Commit 5; observability) | `_diagnostics(best_sol, start_objs)` → `delay_risk` / `nesting_risk` / `search_risk`, attached to the solution + one log line |
+| DelayRiskRepair (Commit 6; best-of'd lateness reduction) | `_delay_risk_repair(best_sol, …)` (called once in `solve` when `Wᴰ ≥ Wᴹ` and the incumbent has delayed aircraft) |
 | Construction portfolio (§4) | `_build_portfolio`; `_greedy_construct(order)`; `_regret2_construct` |
 | VND neighbourhoods (§5) | `_vnd`, `_n_reassign`, `_n_swap_pos`, `_n_reorder` |
 | IG perturbation (§6) | `_perturb` |
