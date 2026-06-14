@@ -1,0 +1,1931 @@
+==================================================================
+  HEURISTIC vs MILP  —  relative gap per instance type
+  gap = (MILP_obj - heuristic_obj) / MILP_obj
+  gap > 0  =>  heuristic BETTER (lower objective);  < 0  => worse
+==================================================================
+  -- Relative objective gap, by weight profile --
+  [wMK  (100/1/1  makespan-priority)]
+    Type                          N      Mean       Min       Max
+    -----------------------------------------------------------
+    scn_chain_tight_P5_R10       10    -1.22%    -2.95%    +0.67%
+    scn_full_tight_P5_R10        10    +1.40%    -3.18%    +6.35%
+    scn_full_tight_P5_R20        10   +41.21%   +15.32%   +61.38%
+    scn_hub_tight_P5_R10         10    -2.48%    -4.82%    +0.01%
+    scn_none_tight_P5_R10        10    +0.00%    +0.00%    +0.00%
+    scn_triangle_loose_P5_R10    10    +0.12%    -1.76%    +1.66%
+    scn_triangle_medium_P5_R10   10    +0.35%    -0.50%    +1.91%
+    scn_triangle_tight_P5_R10    10    -0.42%    -3.07%    +1.67%
+    scn_triangle_tight_P5_R20    10   +17.20%   +10.68%   +22.20%
+    scn_triangle_tight_P5_R30    10   +35.73%   +24.45%   +40.16%
+    scn_triangle_tight_P5_R5     10    -0.01%    -0.03%    +0.00%
+    scn_two_rows_tight_P5_R10    10    -0.15%    -1.24%    +0.42%
+
+  [wDLY  (1/100/1  delay-priority)]
+    Type                          N      Mean       Min       Max
+    -----------------------------------------------------------
+    scn_chain_tight_P5_R10       10    +7.02%    +0.42%   +15.29%
+    scn_full_tight_P5_R10        10   +24.09%   +14.19%   +37.12%
+    scn_full_tight_P5_R20        10   +56.22%   +41.28%   +67.54%
+    scn_hub_tight_P5_R10         10    +3.56%    -3.42%   +10.23%
+    scn_none_tight_P5_R10        10    -0.00%    -0.00%    +0.00%
+    scn_triangle_loose_P5_R10    10   -19.03%  -199.35%   +18.55%
+    scn_triangle_medium_P5_R10   10    +5.48%    +0.76%   +14.62%
+    scn_triangle_tight_P5_R10    10    +6.01%    +1.49%   +10.96%
+    scn_triangle_tight_P5_R20    10   +14.30%    +3.53%   +24.75%
+    scn_triangle_tight_P5_R30    10   +37.02%   +23.47%   +50.02%
+    scn_triangle_tight_P5_R5     10    -0.22%    -2.17%    +0.00%
+    scn_two_rows_tight_P5_R10    10    +1.37%    -0.50%    +4.78%
+
+  [wMOV  (1/1/100  movement-priority)]
+    Type                          N      Mean       Min       Max
+    -----------------------------------------------------------
+    scn_chain_tight_P5_R10       10   -10.42%   -26.26%    +5.06%
+    scn_full_tight_P5_R10        10    -5.05%   -34.71%    +9.63%
+    scn_full_tight_P5_R20        10   +26.32%    +7.34%   +40.46%
+    scn_hub_tight_P5_R10         10    -4.01%   -25.73%    +5.00%
+    scn_none_tight_P5_R10        10    +0.00%    +0.00%    +0.00%
+    scn_triangle_loose_P5_R10    10    -0.02%    -9.70%    +6.12%
+    scn_triangle_medium_P5_R10   10    +1.86%    -2.19%    +8.33%
+    scn_triangle_tight_P5_R10    10    +0.56%    -5.83%    +5.76%
+    scn_triangle_tight_P5_R20    10   +11.98%    +3.62%   +19.09%
+    scn_triangle_tight_P5_R30    10   +35.30%   +20.63%   +42.31%
+    scn_triangle_tight_P5_R5     10    -3.88%   -20.51%    +0.00%
+    scn_two_rows_tight_P5_R10    10    +0.41%    -3.55%    +4.12%
+
+  -- Relative objective gap, aggregated over all profiles --
+  [ALL profiles]
+    Type                          N      Mean       Min       Max
+    -----------------------------------------------------------
+    scn_chain_tight_P5_R10       30    -1.54%   -26.26%   +15.29%
+    scn_full_tight_P5_R10        30    +6.81%   -34.71%   +37.12%
+    scn_full_tight_P5_R20        30   +41.25%    +7.34%   +67.54%
+    scn_hub_tight_P5_R10         30    -0.98%   -25.73%   +10.23%
+    scn_none_tight_P5_R10        30    -0.00%    -0.00%    +0.00%
+    scn_triangle_loose_P5_R10    30    -6.31%  -199.35%   +18.55%
+    scn_triangle_medium_P5_R10   30    +2.56%    -2.19%   +14.62%
+    scn_triangle_tight_P5_R10    30    +2.05%    -5.83%   +10.96%
+    scn_triangle_tight_P5_R20    30   +14.49%    +3.53%   +24.75%
+    scn_triangle_tight_P5_R30    30   +36.02%   +20.63%   +50.02%
+    scn_triangle_tight_P5_R5     30    -1.37%   -20.51%    +0.00%
+    scn_two_rows_tight_P5_R10    30    +0.54%    -3.55%    +4.78%
+
+  -- Per-component mean Δ (heuristic − MILP); negative = heuristic better --
+  -- (relative gap is distorted when the optimum delay ≈ 0; read these too)
+  [wMK  (100/1/1  makespan-priority)]
+    Type                          N   Δmakespan      Δdelay      Δmov
+    ---------------------------------------------------------------
+    scn_chain_tight_P5_R10       10       +0.80       +0.00     -0.20
+    scn_full_tight_P5_R10        10       -1.15       -0.85     +3.20
+    scn_full_tight_P5_R20        10     -123.65    -1077.75    +77.20
+    scn_hub_tight_P5_R10         10       +1.70       -5.55     -2.60
+    scn_none_tight_P5_R10        10       +0.00       +0.00     +0.00
+    scn_triangle_loose_P5_R10    10       -0.05       -0.20     -1.20
+    scn_triangle_medium_P5_R10   10       -0.15       -2.15     -3.20
+    scn_triangle_tight_P5_R10    10       +0.35       -2.05     -3.40
+    scn_triangle_tight_P5_R20    10      -26.50     -147.85     -7.60
+    scn_triangle_tight_P5_R30    10     -121.80    -1531.30     +8.20
+    scn_triangle_tight_P5_R5     10       +0.00       +0.20     +0.00
+    scn_two_rows_tight_P5_R10    10       +0.15       -3.95     -1.00
+
+  [wDLY  (1/100/1  delay-priority)]
+    Type                          N   Δmakespan      Δdelay      Δmov
+    ---------------------------------------------------------------
+    scn_chain_tight_P5_R10       10       -1.25       -8.65     -1.00
+    scn_full_tight_P5_R10        10      -14.20      -48.90    +10.40
+    scn_full_tight_P5_R20        10     -162.75    -1338.70    +42.00
+    scn_hub_tight_P5_R10         10       -3.70       -4.40     -1.40
+    scn_none_tight_P5_R10        10       +0.00       +0.00     +0.00
+    scn_triangle_loose_P5_R10    10       +0.40       +0.00     +1.60
+    scn_triangle_medium_P5_R10   10       -1.30       -3.25     -1.80
+    scn_triangle_tight_P5_R10    10       -4.20       -6.65     -3.60
+    scn_triangle_tight_P5_R20    10      -19.40     -118.50     -2.60
+    scn_triangle_tight_P5_R30    10     -119.60    -1270.55     +5.40
+    scn_triangle_tight_P5_R5     10       +0.10       +0.00     +0.00
+    scn_two_rows_tight_P5_R10    10       -2.20       -1.40     -0.40
+
+  [wMOV  (1/1/100  movement-priority)]
+    Type                          N   Δmakespan      Δdelay      Δmov
+    ---------------------------------------------------------------
+    scn_chain_tight_P5_R10       10      +13.15      +10.70     +0.00
+    scn_full_tight_P5_R10        10       +8.70       +2.60     +0.00
+    scn_full_tight_P5_R20        10      -49.90     -394.80     +0.00
+    scn_hub_tight_P5_R10         10       +4.30       +3.05     +0.00
+    scn_none_tight_P5_R10        10       +0.00       +0.00     +0.00
+    scn_triangle_loose_P5_R10    10       +0.10       -0.15     +0.00
+    scn_triangle_medium_P5_R10   10       +0.00       -2.45     +0.00
+    scn_triangle_tight_P5_R10    10       -0.10       -0.95     +0.00
+    scn_triangle_tight_P5_R20    10      -18.25      -97.15     +0.00
+    scn_triangle_tight_P5_R30    10     -124.95    -1162.75     +0.00
+    scn_triangle_tight_P5_R5     10       +0.00       +1.40     +0.00
+    scn_two_rows_tight_P5_R10    10       +0.10       -0.80     +0.00
+
+==================================================================
+
+
+======================================================================================
+  PER-INSTANCE DETAIL  —  MILP row followed by heuristic row (seed-first)
+  gap = (MILP_obj - heur_obj) / MILP_obj ;  >0 => heuristic better
+======================================================================================
+
+scn_chain_tight_P5_R10_seed1
+----------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6223.00      61.00     109.00     14          
+  heur         6298.50      61.50     126.50     22    -1.21%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        12491.00      77.00     124.00     14          
+  heur        10581.50      65.50     105.00     16   +15.29%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          232.00      69.50     162.50      0          
+  heur          254.50      83.00     171.50      0    -9.70%
+
+scn_full_tight_P5_R10_seed1
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6836.50      66.50     146.50     40          
+  heur         6706.00      65.50     150.00      6    +1.91%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        17079.00      71.00     170.00      8          
+  heur        14656.00      70.00     145.50     36   +14.19%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          261.00      71.50     189.50      0          
+  heur          258.00      71.00     187.00      0    +1.15%
+
+scn_full_tight_P5_R20_seed1
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        27844.00     258.00    2044.00      0          
+  heur        16971.00     158.00    1065.00    106   +39.05%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       248040.50     338.50    2477.00      2          
+  heur        95601.00     165.00     953.50     86   +61.46%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         1667.50     201.50    1466.00      0          
+  heur         1233.00     147.00    1086.00      0   +26.06%
+
+scn_hub_tight_P5_R10_seed1
+--------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6085.50      59.50     115.50     20          
+  heur         6163.00      60.50     113.00      0    -1.27%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        10919.50      63.50     108.50      6          
+  heur        10872.50      62.50     108.00     10    +0.43%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          174.00      60.50     113.50      0          
+  heur          174.00      60.50     113.50      0    +0.00%
+
+scn_none_tight_P5_R10_seed1
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         5844.50      57.50      94.50      0          
+  heur         5844.50      57.50      94.50      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         9408.50      58.50      93.50      0          
+  heur         9408.50      58.50      93.50      0    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          152.00      58.50      93.50      0          
+  heur          152.00      58.50      93.50      0    +0.00%
+
+scn_triangle_loose_P5_R10_seed1
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         5964.00      59.50       6.00      8          
+  heur         5872.50      58.50      14.50      8    +1.53%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          471.50      61.50       4.00     10          
+  heur          421.50      61.50       3.50     10   +10.60%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           70.00      61.50       8.50      0          
+  heur           67.50      61.50       6.00      0    +3.57%
+
+scn_triangle_medium_P5_R10_seed1
+--------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6018.50      59.50      60.50      8          
+  heur         5923.00      58.50      65.00      8    +1.59%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6320.00      60.00      62.50     10          
+  heur         5968.50      60.50      59.00      8    +5.56%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          125.00      62.50      62.50      0          
+  heur          125.50      61.50      64.00      0    -0.40%
+
+scn_triangle_tight_P5_R10_seed1
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6059.50      59.50     101.50      8          
+  heur         5961.00      58.50     103.00      8    +1.63%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        10220.50      60.50     101.50     10          
+  heur        10068.50      60.50     100.00      8    +1.49%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          166.00      62.50     103.50      0          
+  heur          167.50      61.50     106.00      0    -0.90%
+
+scn_triangle_tight_P5_R20_seed1
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        15507.50     146.50     855.50      2          
+  heur        12960.00     122.50     710.00      0   +16.43%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        77158.00     136.00     770.00     22          
+  heur        63733.50     133.50     636.00      0   +17.40%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          909.00     146.00     763.00      0          
+  heur          806.50     133.50     673.00      0   +11.28%
+
+scn_triangle_tight_P5_R30_seed1
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        37477.50     338.00    3677.50      0          
+  heur        24244.50     221.50    2094.50      0   +35.31%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       376094.00     394.00    3757.00      0          
+  heur       201083.50     233.50    2008.50      0   +46.53%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         3511.50     375.00    3136.50      0          
+  heur         2328.00     225.00    2103.00      0   +33.70%
+
+scn_triangle_tight_P5_R5_seed1
+------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         3000.00      30.00       0.00      0          
+  heur         3000.00      30.00       0.00      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           30.00      30.00       0.00      0          
+  heur           30.00      30.00       0.00      0    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           30.00      30.00       0.00      0          
+  heur           30.00      30.00       0.00      0    +0.00%
+
+scn_two_rows_tight_P5_R10_seed1
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         5959.00      58.50     101.00      8          
+  heur         5954.00      58.50      98.00      6    +0.08%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         9916.50      62.50      98.50      4          
+  heur         9763.50      59.50      97.00      4    +1.54%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          162.00      61.50     100.50      0          
+  heur          160.00      61.50      98.50      0    +1.23%
+
+scn_chain_tight_P5_R10_seed2
+----------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         7188.50      70.50     122.50     16          
+  heur         7200.00      70.50     130.00     20    -0.16%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        13146.00      76.00     130.50     20          
+  heur        12242.00      76.00     121.50     16    +6.88%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          238.00      76.50     161.50      0          
+  heur          300.50      98.00     202.50      0   -26.26%
+
+scn_full_tight_P5_R10_seed2
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         8675.50      84.50     215.50     10          
+  heur         8177.50      79.50     193.50     34    +5.74%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        19879.50     105.50     197.50     24          
+  heur        15232.50      78.50     151.50      4   +23.38%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          322.00      85.50     236.50      0          
+  heur          294.00     111.00     183.00      0    +8.70%
+
+scn_full_tight_P5_R20_seed2
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        26419.00     245.00    1919.00      0          
+  heur        17314.50     159.50    1260.50    104   +34.46%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       276575.00     421.00    2761.50      4          
+  heur        92829.00     179.00     926.50      0   +66.44%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         1659.50     245.50    1414.00      0          
+  heur         1120.50     183.00     937.50      0   +32.48%
+
+scn_hub_tight_P5_R10_seed2
+--------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6989.00      68.50     121.00     18          
+  heur         7175.00      70.50     123.00      2    -2.66%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        12522.50      70.50     124.50      2          
+  heur        12372.50      70.50     123.00      2    +1.20%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          196.00      70.50     125.50      0          
+  heur          194.50      70.50     124.00      0    +0.77%
+
+scn_none_tight_P5_R10_seed2
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6858.50      67.50     108.50      0          
+  heur         6858.50      67.50     108.50      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        10917.50      67.50     108.50      0          
+  heur        10917.50      67.50     108.50      0    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          176.00      67.50     108.50      0          
+  heur          176.00      67.50     108.50      0    +0.00%
+
+scn_triangle_loose_P5_R10_seed2
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6867.00      68.50       5.00     12          
+  heur         6871.50      68.50      13.50      8    -0.07%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           81.50      71.50       0.00     10          
+  heur           81.50      71.50       0.00     10    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           76.50      71.50       5.00      0          
+  heur           75.50      71.50       4.00      0    +1.31%
+
+scn_triangle_medium_P5_R10_seed2
+--------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6927.50      68.50      65.50     12          
+  heur         6927.50      68.50      65.50     12    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6733.00      71.00      66.50     12          
+  heur         6583.50      71.50      65.00     12    +2.22%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          139.00      71.50      67.50      0          
+  heur          139.00      71.50      67.50      0    +0.00%
+
+scn_triangle_tight_P5_R10_seed2
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6977.50      68.50     119.50      8          
+  heur         7171.00      70.50     119.00      2    -2.77%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        11935.50      71.50     118.50     14          
+  heur        11732.50      70.50     116.50     12    +1.70%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          192.00      70.50     121.50      0          
+  heur          190.50      71.50     119.00      0    +0.78%
+
+scn_triangle_tight_P5_R20_seed2
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        17403.00     164.00     985.00     18          
+  heur        13539.00     128.50     689.00      0   +22.20%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        89877.50     175.50     897.00      2          
+  heur        67629.50     129.50     675.00      0   +24.75%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          956.50     151.00     805.50      0          
+  heur          820.50     132.50     688.00      0   +14.22%
+
+scn_triangle_tight_P5_R30_seed2
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        34671.00     316.00    3069.00      2          
+  heur        23918.00     218.50    2014.00     54   +31.01%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       252743.00     261.00    2524.50     32          
+  heur       186877.50     227.50    1866.50      0   +26.06%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         3643.50     333.50    3310.00      0          
+  heur         2102.00     230.50    1871.50      0   +42.31%
+
+scn_triangle_tight_P5_R5_seed2
+------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         3700.00      37.00       0.00      0          
+  heur         3700.00      37.00       0.00      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           37.00      37.00       0.00      0          
+  heur           37.00      37.00       0.00      0    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           37.00      37.00       0.00      0          
+  heur           37.00      37.00       0.00      0    +0.00%
+
+scn_two_rows_tight_P5_R10_seed2
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6926.00      68.00     118.00      8          
+  heur         6969.00      68.50     115.00      4    -0.62%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        11530.50      74.50     114.50      6          
+  heur        11426.50      68.50     113.50      8    +0.90%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          191.00      71.50     119.50      0          
+  heur          190.00      70.50     119.50      0    +0.52%
+
+scn_chain_tight_P5_R10_seed3
+----------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6542.00      64.00     122.00     20          
+  heur         6498.00      63.50     128.00     20    +0.67%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        12587.00      71.00     125.00     16          
+  heur        11186.50      72.50     111.00     14   +11.13%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          270.00      75.50     194.50      0          
+  heur          258.50      85.00     173.50      0    +4.26%
+
+scn_full_tight_P5_R10_seed3
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         7625.50      74.50     175.50      0          
+  heur         7141.50      69.50     171.50     20    +6.35%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        21710.00     100.00     216.00     10          
+  heur        15646.50      68.50     155.50     28   +27.93%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          261.00      73.50     187.50      0          
+  heur          292.00      77.00     215.00      0   -11.88%
+
+scn_full_tight_P5_R20_seed3
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        20484.50     190.00    1484.50      0          
+  heur        17346.00     161.50    1102.00     94   +15.32%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       207542.50     264.50    2072.50     28          
+  heur       101981.00     175.00    1017.00    106   +50.86%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         1693.50     238.00    1455.50      0          
+  heur         1235.00     205.50    1029.50      0   +27.07%
+
+scn_hub_tight_P5_R10_seed3
+--------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6674.00      65.00     170.00      4          
+  heur         6774.00      66.50     118.00      6    -1.50%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        11841.50      75.50     117.50     16          
+  heur        11643.00      77.00     115.50     16    +1.68%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          192.00      66.50     125.50      0          
+  heur          192.00      66.50     125.50      0    +0.00%
+
+scn_none_tight_P5_R10_seed3
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6347.50      62.50      97.50      0          
+  heur         6347.50      62.50      97.50      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         9812.50      62.50      97.50      0          
+  heur         9812.50      62.50      97.50      0    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          160.00      62.50      97.50      0          
+  heur          160.00      62.50      97.50      0    +0.00%
+
+scn_triangle_loose_P5_R10_seed3
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6268.50      62.50       8.50     10          
+  heur         6268.50      62.50       8.50     10    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           73.00      65.00       0.00      8          
+  heur           78.50      64.50       0.00     14    -7.53%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           72.50      65.50       7.00      0          
+  heur           69.50      65.50       4.00      0    +4.14%
+
+scn_triangle_medium_P5_R10_seed3
+--------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6326.50      62.50      64.50     12          
+  heur         6319.00      62.50      69.00      0    +0.12%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6328.50      66.50      62.50     12          
+  heur         5875.50      67.50      58.00      8    +7.16%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          134.00      66.50      67.50      0          
+  heur          131.50      67.50      64.00      0    +1.87%
+
+scn_triangle_tight_P5_R10_seed3
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6368.50      62.50     108.50     10          
+  heur         6564.00      64.50     110.00      4    -3.07%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        11336.00      74.00     112.50     12          
+  heur        10374.50      66.50     103.00      8    +8.48%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          183.00      69.50     113.50      0          
+  heur          178.00      67.50     110.50      0    +2.73%
+
+scn_triangle_tight_P5_R20_seed3
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        16473.00     155.00     957.00     16          
+  heur        14015.00     132.50     765.00      0   +14.92%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        77109.00     145.00     769.50     14          
+  heur        74389.50     139.50     742.50      0    +3.53%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         1005.50     150.50     855.00      0          
+  heur          890.00     137.50     752.50      0   +11.49%
+
+scn_triangle_tight_P5_R30_seed3
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        38087.00     342.50    3837.00      0          
+  heur        23761.50     217.50    2011.50      0   +37.61%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       339120.00     360.00    3387.50     10          
+  heur       206632.50     232.50    2064.00      0   +39.07%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         3820.50     374.00    3446.50      0          
+  heur         2316.50     232.50    2084.00      0   +39.37%
+
+scn_triangle_tight_P5_R5_seed3
+------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         3101.00      31.00       1.00      0          
+  heur         3102.00      31.00       2.00      0    -0.03%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           33.00      31.00       0.00      2          
+  heur           33.00      31.00       0.00      2    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           32.00      31.00       1.00      0          
+  heur           33.00      31.00       2.00      0    -3.12%
+
+scn_two_rows_tight_P5_R10_seed3
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6360.50      62.50     110.50      0          
+  heur         6366.50      62.50     112.50      4    -0.09%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        10326.50      68.50     102.50      8          
+  heur        10324.50      66.50     102.50      8    +0.02%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          169.00      64.50     104.50      0          
+  heur          175.00      67.50     107.50      0    -3.55%
+
+scn_chain_tight_P5_R10_seed4
+----------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         7207.50      70.50     145.50     12          
+  heur         7208.00      70.50     148.00     10    -0.01%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        13497.50      77.50     134.00     20          
+  heur        12889.50      81.50     128.00      8    +4.50%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          237.00      82.50     154.50      0          
+  heur          225.00      81.50     143.50      0    +5.06%
+
+scn_full_tight_P5_R10_seed4
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         8143.00      79.00     209.00     34          
+  heur         7935.00      77.50     165.00     20    +2.55%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        23290.00      86.00     232.00      4          
+  heur        15336.50      84.50     152.50      2   +34.15%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          306.00      85.50     220.50      0          
+  heur          338.00     114.00     224.00      0   -10.46%
+
+scn_full_tight_P5_R20_seed4
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        34009.50     314.00    2581.50     28          
+  heur        17408.00     162.00    1108.00    100   +48.81%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       245350.00     328.00    2450.00     22          
+  heur       102940.50     166.50    1027.50     24   +58.04%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         1370.00     197.00    1173.00      0          
+  heur         1269.50     187.00    1082.50      0    +7.34%
+
+scn_hub_tight_P5_R10_seed4
+--------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6894.00      67.50     140.00      4          
+  heur         6893.50      67.50     139.50      4    +0.01%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        13633.50      81.50     135.50      2          
+  heur        12576.50      76.50     125.00      0    +7.75%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          202.00      76.50     125.50      0          
+  heur          201.50      76.50     125.00      0    +0.25%
+
+scn_none_tight_P5_R10_seed4
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6780.50      66.50     130.50      0          
+  heur         6780.50      66.50     130.50      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        11622.50      72.50     115.50      0          
+  heur        11622.50      72.50     115.50      0    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          188.00      72.50     115.50      0          
+  heur          188.00      72.50     115.50      0    +0.00%
+
+scn_triangle_loose_P5_R10_seed4
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6749.50      67.00      37.50     12          
+  heur         6809.00      67.50      51.00      8    -0.88%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          240.50      82.50       1.50      8          
+  heur          231.50      81.50       1.50      0    +3.74%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           82.50      72.50      10.00      0          
+  heur           85.50      72.50      13.00      0    -3.64%
+
+scn_triangle_medium_P5_R10_seed4
+--------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6810.00      67.00      98.00     12          
+  heur         6844.00      67.50      94.00      0    -0.50%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         7332.50      72.50      72.50     10          
+  heur         6984.50      76.50      69.00      8    +4.75%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          149.00      72.50      76.50      0          
+  heur          143.50      72.50      71.00      0    +3.69%
+
+scn_triangle_tight_P5_R10_seed4
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6854.50      67.00     142.50     12          
+  heur         6897.00      67.50     141.00      6    -0.62%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        12732.50      72.50     126.50     10          
+  heur        12376.50      72.50     123.00      4    +2.80%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          199.00      72.50     126.50      0          
+  heur          199.00      72.50     126.50      0    +0.00%
+
+scn_triangle_tight_P5_R20_seed4
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        15694.00     148.00     868.00     26          
+  heur        14018.50     131.50     852.50     16   +10.68%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        85023.50     147.50     848.50     26          
+  heur        73088.00     138.00     729.50      0   +14.04%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         1000.00     149.50     850.50      0          
+  heur          874.00     137.50     736.50      0   +12.60%
+
+scn_triangle_tight_P5_R30_seed4
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        33160.00     303.00    2860.00      0          
+  heur        25053.00     228.50    2203.00      0   +24.45%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       280089.50     289.50    2798.00      0          
+  heur       214355.00     247.00    2140.50     58   +23.47%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         3048.50     295.50    2753.00      0          
+  heur         2419.50     238.50    2181.00      0   +20.63%
+
+scn_triangle_tight_P5_R5_seed4
+------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         4401.00      44.00       1.00      0          
+  heur         4401.00      44.00       1.00      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           46.00      44.00       0.00      2          
+  heur           47.00      45.00       0.00      2    -2.17%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           45.00      44.00       1.00      0          
+  heur           45.00      44.00       1.00      0    +0.00%
+
+scn_two_rows_tight_P5_R10_seed4
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6789.50      66.50     135.50      4          
+  heur         6794.50      66.50     136.50      8    -0.07%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        12231.50      77.50     121.50      4          
+  heur        12034.50      76.50     119.50      8    +1.61%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          194.00      72.50     121.50      0          
+  heur          194.00      72.50     121.50      0    +0.00%
+
+scn_chain_tight_P5_R10_seed5
+----------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         5979.50      58.50     113.50     16          
+  heur         6066.00      59.50     106.00     10    -1.45%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        11778.00      66.00     117.00     12          
+  heur        10372.50      64.50     103.00      8   +11.93%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          223.00      69.50     153.50      0          
+  heur          231.50      75.00     156.50      0    -3.81%
+
+scn_full_tight_P5_R10_seed5
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         7100.50      69.00     174.50     26          
+  heur         6835.00      66.50     167.00     18    +3.74%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        17657.50      81.50     175.50     26          
+  heur        13565.50      75.50     134.50     40   +23.17%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          262.00      71.50     190.50      0          
+  heur          250.00      72.00     178.00      0    +4.58%
+
+scn_full_tight_P5_R20_seed5
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        34320.00     318.00    2520.00      0          
+  heur        15776.00     147.50     990.00     36   +54.03%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       214158.50     282.50    2138.50     26          
+  heur        97459.00     179.00     972.00     80   +54.49%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         1868.50     249.00    1619.50      0          
+  heur         1112.50     148.50     964.00      0   +40.46%
+
+scn_hub_tight_P5_R10_seed5
+--------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         5879.50      57.50     117.50     12          
+  heur         6078.50      59.50     108.50     20    -3.38%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        10593.00      75.00     105.00     18          
+  heur        10489.00      71.00     104.00     18    +0.98%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          180.00      61.50     118.50      0          
+  heur          171.00      60.50     110.50      0    +5.00%
+
+scn_none_tight_P5_R10_seed5
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         5635.50      55.50      85.50      0          
+  heur         5635.50      55.50      85.50      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         8605.50      55.50      85.50      0          
+  heur         8605.50      55.50      85.50      0    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          141.00      55.50      85.50      0          
+  heur          141.00      55.50      85.50      0    +0.00%
+
+scn_triangle_loose_P5_R10_seed5
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         5685.00      56.50      27.00      8          
+  heur         5670.00      56.50      12.00      8    +0.26%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           69.50      63.50       0.00      6          
+  heur           78.50      64.50       0.00     14   -12.95%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           61.50      60.50       1.00      0          
+  heur           66.00      64.50       1.50      0    -7.32%
+
+scn_triangle_medium_P5_R10_seed5
+--------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         5728.50      56.50      70.50      8          
+  heur         5619.00      55.50      61.00      8    +1.91%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         5585.00      73.00      55.00     12          
+  heur         4768.50      60.50      47.00      8   +14.62%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          114.00      60.50      53.50      0          
+  heur          116.50      61.50      55.00      0    -2.19%
+
+scn_triangle_tight_P5_R10_seed5
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         5762.50      56.50     104.50      8          
+  heur         5754.00      56.50      96.00      8    +0.15%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        10372.00      60.00     103.00     12          
+  heur         9468.50      60.50      94.00      8    +8.71%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          163.00      60.50     102.50      0          
+  heur          172.50      66.50     106.00      0    -5.83%
+
+scn_triangle_tight_P5_R20_seed5
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        16442.50     156.50     776.50     16          
+  heur        13278.00     125.50     728.00      0   +19.25%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        82773.50     165.50     826.00      8          
+  heur        64514.50     136.50     643.50     28   +22.06%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          980.00     160.50     819.50      0          
+  heur          810.00     134.00     676.00      0   +17.35%
+
+scn_triangle_tight_P5_R30_seed5
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        40389.00     366.00    3789.00      0          
+  heur        24227.50     220.50    2177.50      0   +40.01%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       385716.50     366.50    3853.50      0          
+  heur       205388.50     238.50    2051.50      0   +46.75%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         3481.50     374.00    3107.50      0          
+  heur         2297.00     235.50    2061.50      0   +34.02%
+
+scn_triangle_tight_P5_R5_seed5
+------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         3201.00      32.00       1.00      0          
+  heur         3201.00      32.00       1.00      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           34.00      32.00       0.00      2          
+  heur           34.00      32.00       0.00      2    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           33.00      32.00       1.00      0          
+  heur           38.00      32.00       6.00      0   -15.15%
+
+scn_two_rows_tight_P5_R10_seed5
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         5671.50      55.50     111.50     10          
+  heur         5647.50      55.50      95.50      2    +0.42%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         9414.50      60.50      93.50      4          
+  heur         8964.50      60.50      89.00      4    +4.78%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          156.00      60.50      95.50      0          
+  heur          153.00      60.50      92.50      0    +1.92%
+
+scn_chain_tight_P5_R10_seed6
+----------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6781.50      66.50     119.50     12          
+  heur         6882.00      67.50     120.00     12    -1.48%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        12735.50      69.50     126.50     16          
+  heur        12078.50      66.50     120.00     12    +5.16%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          271.00      77.50     193.50      0          
+  heur          284.50      90.00     194.50      0    -4.98%
+
+scn_full_tight_P5_R10_seed6
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         7524.50      73.50     156.50     18          
+  heur         7764.00      75.50     180.00     34    -3.18%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        21639.00     107.00     215.00     32          
+  heur        17007.50      79.50     169.00     28   +21.40%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          242.00      74.50     167.50      0          
+  heur          326.00      82.00     244.00      0   -34.71%
+
+scn_full_tight_P5_R20_seed6
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        39477.00     367.00    2753.00     24          
+  heur        16387.50     152.50    1035.50    102   +58.49%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       236130.50     326.50    2358.00      4          
+  heur       106231.50     159.50    1059.50    122   +55.01%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         1788.00     230.50    1557.50      0          
+  heur         1308.00     154.00    1154.00      0   +26.85%
+
+scn_hub_tight_P5_R10_seed6
+--------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6597.50      64.50     131.50     16          
+  heur         6915.50      67.50     149.50     16    -4.82%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        12632.50      74.50     125.50      8          
+  heur        11678.00      70.00     116.00      8    +7.56%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          195.00      66.50     128.50      0          
+  heur          223.00      88.00     135.00      0   -14.36%
+
+scn_none_tight_P5_R10_seed6
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6553.50      64.50     103.50      0          
+  heur         6553.50      64.50     103.50      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        10414.50      64.50     103.50      0          
+  heur        10414.50      64.50     103.50      0    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          168.00      64.50     103.50      0          
+  heur          168.00      64.50     103.50      0    +0.00%
+
+scn_triangle_loose_P5_R10_seed6
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6481.50      64.50      23.50      8          
+  heur         6454.00      64.50       4.00      0    +0.42%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          425.50      67.50       3.50      8          
+  heur          375.50      67.50       3.00      8   +11.75%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           73.50      65.50       8.00      0          
+  heur           69.00      64.50       4.50      0    +6.12%
+
+scn_triangle_medium_P5_R10_seed6
+--------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6536.50      64.50      78.50      8          
+  heur         6515.00      64.50      65.00      0    +0.33%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6928.50      68.50      68.50     10          
+  heur         6573.50      65.50      65.00      8    +5.12%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          137.00      65.50      71.50      0          
+  heur          129.50      64.50      65.00      0    +5.47%
+
+scn_triangle_tight_P5_R10_seed6
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6580.50      64.50     122.50      8          
+  heur         6661.00      65.50     111.00      0    -1.22%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        12538.50      76.50     124.50     12          
+  heur        11164.50      64.50     111.00      0   +10.96%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          185.00      65.50     119.50      0          
+  heur          182.50      66.50     116.00      0    +1.35%
+
+scn_triangle_tight_P5_R20_seed6
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        16478.50     156.00     862.50     16          
+  heur        13301.50     126.50     649.50      2   +19.28%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        70561.00     151.00     704.00     10          
+  heur        67456.50     128.50     673.00     28    +4.40%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          870.00     150.00     720.00      0          
+  heur          838.50     129.50     709.00      0    +3.62%
+
+scn_triangle_tight_P5_R30_seed6
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        40864.50     369.00    3964.50      0          
+  heur        24905.50     227.50    2155.50      0   +39.05%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       310400.50     350.50    3100.50      0          
+  heur       212132.50     232.50    2119.00      0   +31.66%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         4060.00     421.50    3638.50      0          
+  heur         2364.00     231.50    2132.50      0   +41.77%
+
+scn_triangle_tight_P5_R5_seed6
+------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         3900.00      39.00       0.00      0          
+  heur         3901.00      39.00       1.00      0    -0.03%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           39.00      39.00       0.00      0          
+  heur           39.00      39.00       0.00      0    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           39.00      39.00       0.00      0          
+  heur           47.00      39.00       8.00      0   -20.51%
+
+scn_two_rows_tight_P5_R10_seed6
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6561.50      64.50     111.50      0          
+  heur         6561.50      64.50     111.50      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        11121.50      67.50     110.50      4          
+  heur        10868.50      64.50     108.00      4    +2.27%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          177.00      65.50     111.50      0          
+  heur          175.00      65.50     109.50      0    +1.13%
+
+scn_chain_tight_P5_R10_seed7
+----------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6505.00      63.50     135.00     20          
+  heur         6688.00      65.50     122.00     16    -2.81%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        10237.00      73.00     101.50     14          
+  heur        10193.50      77.50     101.00     16    +0.42%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          224.00      74.50     149.50      0          
+  heur          260.50      94.00     166.50      0   -16.29%
+
+scn_full_tight_P5_R10_seed7
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         7528.50      73.50     160.50     18          
+  heur         7720.50      75.00     198.50     22    -2.55%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        16535.50      77.50     164.50      8          
+  heur        13756.50      78.50     136.50     28   +16.81%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          267.00      81.50     185.50      0          
+  heur          271.00      95.00     176.00      0    -1.50%
+
+scn_full_tight_P5_R20_seed7
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        24137.00     226.00    1521.00     16          
+  heur        16540.50     153.00    1152.50     88   +31.47%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       248121.00     371.00    2477.50      0          
+  heur       102931.00     181.00    1027.50      0   +58.52%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         1686.00     227.50    1458.50      0          
+  heur         1189.00     180.00    1009.00      0   +29.48%
+
+scn_hub_tight_P5_R10_seed7
+--------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6479.50      63.50     125.50      4          
+  heur         6773.00      66.50     117.00      6    -4.53%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         9617.50      67.50      95.50      0          
+  heur         9567.50      67.50      95.00      0    +0.52%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          163.00      67.50      95.50      0          
+  heur          162.50      67.50      95.00      0    +0.31%
+
+scn_none_tight_P5_R10_seed7
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6157.50      60.50     107.50      0          
+  heur         6157.50      60.50     107.50      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         8612.50      62.50      85.50      0          
+  heur         8612.50      62.50      85.50      0    -0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          148.00      62.50      85.50      0          
+  heur          148.00      62.50      85.50      0    +0.00%
+
+scn_triangle_loose_P5_R10_seed7
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6258.00      62.50       0.00      8          
+  heur         6250.00      62.50       0.00      0    +0.13%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           64.50      64.50       0.00      0          
+  heur           67.50      67.50       0.00      0    -4.65%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           64.50      64.50       0.00      0          
+  heur           62.50      62.50       0.00      0    +3.10%
+
+scn_triangle_medium_P5_R10_seed7
+--------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6303.50      62.50      45.50      8          
+  heur         6292.00      62.50      42.00      0    +0.18%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         4479.50      67.50      44.00     12          
+  heur         4175.50      67.50      41.00      8    +6.79%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          114.00      64.50      49.50      0          
+  heur          104.50      62.50      42.00      0    +8.33%
+
+scn_triangle_tight_P5_R10_seed7
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6355.50      62.50      97.50      8          
+  heur         6343.00      62.50      93.00      0    +0.20%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        10175.50      67.50     101.00      8          
+  heur         9175.50      67.50      91.00      8    +9.83%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          165.00      68.50      96.50      0          
+  heur          155.50      62.50      93.00      0    +5.76%
+
+scn_triangle_tight_P5_R20_seed7
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        16883.50     160.50     827.50      6          
+  heur        13310.50     125.00     800.50     10   +21.16%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        88091.50     177.50     879.00     14          
+  heur        67997.50     137.50     678.50     10   +22.81%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          920.00     142.00     778.00      0          
+  heur          812.50     128.50     684.00      0   +11.68%
+
+scn_triangle_tight_P5_R30_seed7
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        39556.50     355.00    4056.50      0          
+  heur        24777.00     226.50    2073.00     54   +37.36%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       327001.50     347.50    3266.50      4          
+  heur       207267.50     241.50    2070.00     26   +36.62%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         3990.00     344.50    3645.50      0          
+  heur         2338.50     230.50    2108.00      0   +41.39%
+
+scn_triangle_tight_P5_R5_seed7
+------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         3900.00      39.00       0.00      0          
+  heur         3900.00      39.00       0.00      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           39.00      39.00       0.00      0          
+  heur           39.00      39.00       0.00      0    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           39.00      39.00       0.00      0          
+  heur           39.00      39.00       0.00      0    +0.00%
+
+scn_two_rows_tight_P5_R10_seed7
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6268.50      61.50     114.50      4          
+  heur         6346.50      62.50      94.50      2    -1.24%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         9125.50      71.50      90.50      4          
+  heur         9171.50      67.50      91.00      4    -0.50%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          156.00      63.50      92.50      0          
+  heur          158.00      62.50      95.50      0    -1.28%
+
+scn_chain_tight_P5_R10_seed8
+----------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6492.00      63.50     122.00     20          
+  heur         6536.50      64.00     122.50     14    -0.69%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        12228.50      68.50     121.50     10          
+  heur        11683.50      67.50     116.00     16    +4.46%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          223.00      69.50     153.50      0          
+  heur          277.50      87.00     190.50      0   -24.44%
+
+scn_full_tight_P5_R10_seed8
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         7103.50      69.50     153.50      0          
+  heur         7327.50      71.50     157.50     20    -3.15%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        18599.00      99.00     185.00      0          
+  heur        14602.50      76.50     145.00     26   +21.49%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          231.00      71.50     159.50      0          
+  heur          281.00      74.00     207.00      0   -21.65%
+
+scn_full_tight_P5_R20_seed8
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        43271.00     400.50    3221.00      0          
+  heur        16709.50     155.50    1067.50     92   +61.38%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       308180.00     430.00    3077.50      0          
+  heur       100033.50     145.50     998.50     38   +67.54%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         1344.00     179.50    1164.50      0          
+  heur         1178.50     173.00    1005.50      0   +12.31%
+
+scn_hub_tight_P5_R10_seed8
+--------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6160.50      60.50     110.50      0          
+  heur         6261.00      61.50     109.00      2    -1.63%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        12213.50      63.50     121.50      0          
+  heur        10963.50      61.50     109.00      2   +10.23%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          171.00      60.50     110.50      0          
+  heur          215.00      83.00     132.00      0   -25.73%
+
+scn_none_tight_P5_R10_seed8
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6050.50      59.50     100.50      0          
+  heur         6050.50      59.50     100.50      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        10109.50      59.50     100.50      0          
+  heur        10109.50      59.50     100.50      0    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          160.00      59.50     100.50      0          
+  heur          160.00      59.50     100.50      0    +0.00%
+
+scn_triangle_loose_P5_R10_seed8
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6160.00      61.50       6.00      4          
+  heur         6057.50      60.50       7.50      0    +1.66%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          269.50      61.50       2.00      8          
+  heur          219.50      61.50       1.50      8   +18.55%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           67.50      62.50       5.00      0          
+  heur           66.00      62.50       3.50      0    +2.22%
+
+scn_triangle_medium_P5_R10_seed8
+--------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6221.50      61.50      63.50      8          
+  heur         6214.00      61.50      64.00      0    +0.12%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6419.50      61.50      63.50      8          
+  heur         6370.50      62.50      63.00      8    +0.76%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          131.00      62.50      68.50      0          
+  heur          128.50      62.50      66.00      0    +1.91%
+
+scn_triangle_tight_P5_R10_seed8
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6265.50      61.50     115.50      0          
+  heur         6161.00      60.50     111.00      0    +1.67%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        11420.50      62.50     113.50      8          
+  heur        10769.50      61.50     107.00      8    +5.70%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          175.00      63.50     111.50      0          
+  heur          171.50      61.50     110.00      0    +2.00%
+
+scn_triangle_tight_P5_R20_seed8
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        16407.50     155.00     905.50      2          
+  heur        13203.50     124.50     745.50      8   +19.53%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        83600.50     140.50     834.50     10          
+  heur        73029.50     129.50     729.00      0   +12.64%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          959.50     142.50     817.00      0          
+  heur          856.50     131.50     725.00      0   +10.73%
+
+scn_triangle_tight_P5_R30_seed8
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        40553.00     368.50    3703.00      0          
+  heur        24265.00     222.00    2065.00      0   +40.16%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       397610.50     460.50    3971.50      0          
+  heur       198708.50     220.50    1984.50     38   +50.02%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         3550.50     361.00    3189.50      0          
+  heur         2280.50     229.00    2051.50      0   +35.77%
+
+scn_triangle_tight_P5_R5_seed8
+------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         2800.00      28.00       0.00      0          
+  heur         2800.00      28.00       0.00      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           28.00      28.00       0.00      0          
+  heur           28.00      28.00       0.00      0    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           28.00      28.00       0.00      0          
+  heur           28.00      28.00       0.00      0    +0.00%
+
+scn_two_rows_tight_P5_R10_seed8
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6159.50      60.50     109.50      0          
+  heur         6160.50      60.50     110.50      0    -0.02%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        10565.50      61.50     105.00      4          
+  heur        10413.50      63.50     103.50      0    +1.44%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          169.00      62.50     106.50      0          
+  heur          168.00      61.50     106.50      0    +0.59%
+
+scn_chain_tight_P5_R10_seed9
+----------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6975.50      68.50     111.50     14          
+  heur         7181.00      70.50     115.00     16    -2.95%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        11641.50      75.50     115.50     16          
+  heur        10841.50      71.50     107.50     20    +6.87%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          256.00      77.50     178.50      0          
+  heur          272.50      93.50     179.00      0    -6.45%
+
+scn_full_tight_P5_R10_seed9
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         8249.50      80.50     175.50     24          
+  heur         8183.00      79.50     189.00     44    +0.81%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        23753.00     103.00     236.50      0          
+  heur        14936.00      84.00     148.00     52   +37.12%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          282.00      81.50     200.50      0          
+  heur          266.00      80.50     185.50      0    +5.67%
+
+scn_full_tight_P5_R20_seed9
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        28136.00     261.50    1940.00     46          
+  heur        15752.00     147.50     948.00     54   +44.01%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       174268.50     298.50    1739.50     20          
+  heur        89716.00     166.00     895.50      0   +48.52%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         1610.50     234.50    1376.00      0          
+  heur         1103.50     163.00     940.50      0   +31.48%
+
+scn_hub_tight_P5_R10_seed9
+--------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6986.00      68.50     128.00      8          
+  heur         7284.00      71.50     122.00     12    -4.27%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        11200.50      84.50     111.00     16          
+  heur        11583.50      71.50     115.00     12    -3.42%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          204.00      71.50     132.50      0          
+  heur          217.00      71.50     145.50      0    -6.37%
+
+scn_none_tight_P5_R10_seed9
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6942.50      68.50      92.50      0          
+  heur         6942.50      68.50      92.50      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         9318.50      68.50      92.50      0          
+  heur         9318.50      68.50      92.50      0    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          161.00      68.50      92.50      0          
+  heur          161.00      68.50      92.50      0    +0.00%
+
+scn_triangle_loose_P5_R10_seed9
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6858.00      68.50       8.00      0          
+  heur         6866.00      68.50       8.00      8    -0.12%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           76.50      76.50       0.00      0          
+  heur           84.50      76.50       0.00      8   -10.46%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           74.00      71.50       2.50      0          
+  heur           74.00      71.50       2.50      0    +0.00%
+
+scn_triangle_medium_P5_R10_seed9
+--------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6910.50      68.50      60.50      0          
+  heur         6912.50      68.50      54.50      8    -0.03%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         5329.50      69.50      52.50     10          
+  heur         5181.50      71.50      51.00     10    +2.78%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          129.00      68.50      60.50      0          
+  heur          127.50      71.50      56.00      0    +1.16%
+
+scn_triangle_tight_P5_R10_seed9
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6963.50      68.50     105.50      8          
+  heur         6960.50      68.50     110.50      0    +0.04%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        10437.50      77.50     103.50     10          
+  heur        10079.50      71.50     100.00      8    +3.43%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          184.00      68.50     115.50      0          
+  heur          183.00      72.50     110.50      0    +0.54%
+
+scn_triangle_tight_P5_R20_seed9
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        15478.50     146.00     870.50      8          
+  heur        13024.00     123.50     674.00      0   +15.86%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        64295.50     137.50     641.50      8          
+  heur        60449.00     125.00     603.00     24    +5.98%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          842.00     153.50     688.50      0          
+  heur          777.00     133.50     643.50      0    +7.72%
+
+scn_triangle_tight_P5_R30_seed9
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        36692.00     331.50    3542.00      0          
+  heur        24295.50     221.50    2145.50      0   +33.79%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       379745.00     395.00    3793.50      0          
+  heur       214276.50     226.50    2140.50      0   +43.57%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         3828.00     384.00    3444.00      0          
+  heur         2315.00     225.50    2089.50      0   +39.52%
+
+scn_triangle_tight_P5_R5_seed9
+------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         4300.00      43.00       0.00      0          
+  heur         4300.00      43.00       0.00      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           43.00      43.00       0.00      0          
+  heur           43.00      43.00       0.00      0    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           43.00      43.00       0.00      0          
+  heur           43.00      43.00       0.00      0    +0.00%
+
+scn_two_rows_tight_P5_R10_seed9
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6953.50      68.50      99.50      4          
+  heur         6952.50      68.50     100.50      2    +0.01%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         9836.50      76.50      97.50     10          
+  heur         9829.50      71.50      97.50      8    +0.07%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          172.00      69.50     102.50      0          
+  heur          173.00      71.50     101.50      0    -0.58%
+
+scn_chain_tight_P5_R10_seed10
+-----------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6487.50      63.50     125.50     12          
+  heur         6622.00      65.00     108.00     14    -2.07%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        11278.50      66.50     112.00     12          
+  heur        10879.00      65.00     108.00     14    +3.54%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          220.00      72.50     147.50      0          
+  heur          267.50      89.50     178.00      0   -21.59%
+
+scn_full_tight_P5_R10_seed10
+----------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         7325.50      71.50     155.50     20          
+  heur         7196.00      70.50     142.00      4    +1.77%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        16605.50      77.50     165.00     28          
+  heur        13070.50      70.50     130.00      0   +21.29%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          301.00      94.00     207.00      0          
+  heur          272.00     101.00     171.00      0    +9.63%
+
+scn_full_tight_P5_R20_seed10
+----------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        23017.50     214.00    1617.50      0          
+  heur        17255.00     160.50    1095.00    110   +25.04%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       172653.00     253.00    1724.00      0          
+  heur       101389.50     169.50    1011.50     70   +41.28%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         1717.50     235.50    1482.00      0          
+  heur         1208.50     198.50    1010.00      0   +29.64%
+
+scn_hub_tight_P5_R10_seed10
+---------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6422.00      63.00     114.00      8          
+  heur         6468.50      63.50     118.50      0    -0.72%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        11836.50      72.50     117.50     14          
+  heur        10813.50      63.50     107.50      0    +8.64%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          171.00      63.50     107.50      0          
+  heur          171.00      63.50     107.50      0    +0.00%
+
+scn_none_tight_P5_R10_seed10
+----------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6245.50      61.50      95.50      0          
+  heur         6245.50      61.50      95.50      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         9611.50      61.50      95.50      0          
+  heur         9611.50      61.50      95.50      0    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          157.00      61.50      95.50      0          
+  heur          157.00      61.50      95.50      0    +0.00%
+
+scn_triangle_loose_P5_R10_seed10
+--------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6161.50      61.50      11.50      0          
+  heur         6270.00      62.50      12.00      8    -1.76%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           77.00      69.00       0.00      8          
+  heur          230.50      70.50       1.50     10  -199.35%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           67.00      65.50       1.50      0          
+  heur           73.50      65.50       8.00      0    -9.70%
+
+scn_triangle_medium_P5_R10_seed10
+---------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6211.50      61.50      61.50      0          
+  heur         6225.00      61.50      67.00      8    -0.22%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6079.00      71.00      60.00      8          
+  heur         5772.50      64.50      57.00      8    +5.04%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          125.00      65.50      59.50      0          
+  heur          126.50      64.50      62.00      0    -1.20%
+
+scn_triangle_tight_P5_R10_seed10
+--------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6255.50      61.50     105.50      0          
+  heur         6266.00      61.50     108.00      8    -0.17%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        11038.50      76.50     109.50     12          
+  heur        10269.50      61.50     102.00      8    +6.97%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          171.00      66.50     104.50      0          
+  heur          172.50      64.50     108.00      0    -0.88%
+
+scn_triangle_tight_P5_R20_seed10
+--------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        15196.50     143.00     894.50      2          
+  heur        13260.00     125.50     710.00      0   +12.74%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        81455.00     153.00     813.00      2          
+  heur        68937.50     137.50     688.00      0   +15.37%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         1032.00     169.50     862.50      0          
+  heur          835.00     134.50     700.50      0   +19.09%
+
+scn_triangle_tight_P5_R30_seed10
+--------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        38995.00     353.00    3671.00     24          
+  heur        23967.00     220.50    1917.00      0   +38.54%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP       263876.00     304.00    2635.50     22          
+  heur       193982.50     232.50    1937.50      0   +26.49%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         2874.50     297.00    2577.50      0          
+  heur         2170.50     232.00    1938.50      0   +24.49%
+
+scn_triangle_tight_P5_R5_seed10
+-------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         3500.00      35.00       0.00      0          
+  heur         3500.00      35.00       0.00      0    +0.00%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           35.00      35.00       0.00      0          
+  heur           35.00      35.00       0.00      0    +0.00%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP           35.00      35.00       0.00      0          
+  heur           35.00      35.00       0.00      0    +0.00%
+
+scn_two_rows_tight_P5_R10_seed10
+--------------------------------
+  [wMK  100/1/1  makespan-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP         6254.50      61.50     100.50      4          
+  heur         6252.00      61.50      98.00      4    +0.04%
+  [wDLY  1/100/1  delay-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP        10019.50      61.50      99.50      8          
+  heur         9865.50      61.50      98.00      4    +1.54%
+  [wMOV  1/1/100  movement-priority]
+  Method     Objective   Makespan      Delay    Mov       Gap
+  MILP          170.00      64.50     105.50      0          
+  heur          163.00      63.50      99.50      0    +4.12%
+
+======================================================================================
+
