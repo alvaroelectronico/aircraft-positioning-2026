@@ -724,16 +724,43 @@ ALNS: destroy ∈ {delay, blocker+its fronts, dense-component, costly-movement,
 random}; repair ∈ {NEH, EDD/slack, regret-2, manoeuvre-aware, zero-move}.
 Adopt only after the operators above exist (premature otherwise).
 
-## Priority 6 — local matheuristic for small / clearly-failing cases
+## Priority 6 — heuristic risk repair for unseen instances (replaces micro-MILP)
 
-Strong failures even on R5 (`wDLY`/`wMOV`) should not survive an exact local
-repair. Solve a **self-contained micro-MILP/CP** over a subset
-`S = delayed ∪ active blockers ∪ same-position neighbours ∪ dense-block
-members`, fixing everything outside `S`, with a 0.2–1.0 s cap. **Isolation
-caveat:** it must be *this method's own* model, **not** an import of
-`methods/manual` (that would break the isolation contract; running the MILP
-for comparison stays a subprocess via `run_experiments.py`). Trigger on
-`R ≤ 10`, a bad `wDLY` incumbent, dense `wMOV`, or a high stale count.
+**The micro-MILP/CP idea is dropped as a core step.** It could repair known
+*benchmark* outliers, but it relies on an external notion of failure: on a new
+instance we do not know whether the incumbent is an outlier (there is no MILP
+to compare against), so an "is-outlier → run micro-MILP" trigger is not
+operational outside the lab. It would also turn the method into a hybrid
+matheuristic, diluting the contribution (good quality from *specialised
+decoding + structured multi-start + heuristic repairs, no internal exact
+solver*). It may still serve as a separate offline baseline, but not here.
+
+Instead the next stage replaces *"detect outlier (external)"* by
+**self-diagnosed internal risk → specialised heuristic candidate → checker →
+best-of**. The solver measures symptoms it can see without an optimum —
+`delay_risk` (positive delay under `Wᴰ`, tight-slack delayed aircraft, active
+blockers in front of them), `nesting_risk` (movements 0 but a serialised tail
+/ high block density / few waves), `search_risk` (high objective spread across
+starts, stale count) — and fires a matching repair only when its trigger is
+present. Every repair is a **separate candidate generator** (like the
+dense-nest, *not* a VND neighbourhood — cf. the Commit-3 lesson) folded in by
+best-of + checker, so it can only help. The repairs:
+
+- **DelayRiskRepair** (`Wᴰ`-dominant, positive delay): `PromoteDelayed`,
+  `ReinsertDelayedAtBestSlot`, `SwapDelayedWithBlocker`, `BuyPunctuality`
+  (try starts near `Eᵣ`, `Lᵣ−Tᵣ`, `Lᵣ−Tᵣ−δ`, …; force a Mode-B/Mode-C on the
+  blocker), gated by a benefit/cost bound before the checker call.
+- **ComponentNestingRepair** (`Wˢ`-dominant, 0 mov, dense/serialised):
+  generalise the dense-nest to non-complete blocking graphs —
+  `ChainWaveRepair`, `HubWaveRepair`, `DenseSubcliqueRepair`,
+  `TailAbsorptionRepair` (absorb a serialised tail into an earlier wave).
+- **Feature-triggered ALNS** (high search-risk): destroy/repair chosen by the
+  active risk, run a few times, never inside a decode.
+
+**Safety principle (unchanged):** all candidates pass the checker; one is
+adopted only if it strictly improves the incumbent; the zero-movement floor is
+never lost. This is portable — it uses internal features, not an
+externally-derived outlier label.
 
 ## Metrics & ablations
 
@@ -766,16 +793,31 @@ denominators (see Part II caveats), hence the absolute/per-component fields.
    even with equal work), a two-partition beam, gated to `Wˢ`-dominant +
    blocking, under best-of + checker. `full_R10 wMOV` 352.5 → **258** (beats
    MILP 261).
-5. **Next options** (this is option **C** from the assessment) — a local
-   **micro-MILP/CP** (Priority 6, *own model*, isolation-safe) to crack the
-   residual outliers (hardest `wDLY` seeds; dense `wMOV` seeds the nest beam
-   misses, e.g. `full_R10` seed2). Otherwise **consolidate**: all of Part III
-   Priorities 0–3 are now done and the method is competitive across profiles.
+5. **Commit 5 — risk diagnostics** (observability, no behaviour change):
+   record `delay_risk / nesting_risk / search_risk` per solution so the next
+   steps fire on *internal symptoms*, not on an external outlier label. Read
+   them on the ablation subset to size the real headroom before building.
+6. **Commit 6 — DelayRiskRepair** (high confidence: the `wDLY` residual is
+   real and the MILP target is *optimal* there — e.g. `triangle_loose_R10`
+   seed10 MILP 77 / delay 0 vs heuristic 230 / delay 1.5). A separate
+   best-of'd candidate generator, **not** a VND neighbourhood.
+7. **Commit 7 — ComponentNestingRepair** for `chain`/`hub` (exploratory:
+   there the MILP is *unconverged* — `maxTimeLim`, 45–85 % gap — so judge by
+   **absolute makespan reduction at `Δmov = 0`**, not by gap-vs-MILP). Start
+   with `TailAbsorptionRepair` (the autopsy pattern) and measure.
+8. **Commit 8 — feature-triggered ALNS** only if `search_risk` shows high
+   variance / stagnation.
 
-Lesson learned: a *targeted neighbourhood* is not automatically helpful — with
-B-VND first-improvement the neighbourhood **order** changes the basin reached,
-and a slower VND can cut the number of restarts. Measure on the ablation
-subset before keeping a search-operator change.
+We do **not** proceed with the local micro-MILP/CP as a core step (Priority 6):
+it relies on an external notion of failure that does not exist on a new
+instance. The route is heuristic-only — self-diagnosed risk → specialised
+candidate → checker → best-of — keeping the method's identity (IG+VND with
+specialised decoders and repairs, no internal exact solver).
+
+Lesson carried forward: a *targeted operator* is not automatically helpful —
+build it as an **external best-of'd candidate** (like the dense-nest), never
+as an in-VND neighbourhood (Commit-3 changed the basin and slowed the loop),
+and **measure on the ablation subset before keeping it**.
 
 ---
 
