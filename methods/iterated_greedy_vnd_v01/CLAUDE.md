@@ -71,6 +71,18 @@ What you must NOT do, even while comparing:
 - Open or grep any `.py` file under `methods/manual/`,
   `methods/autoresearch/`, or `methods/theory_assisted/`.
 
+## The standard battery
+
+The full benchmark composition (12 configs × 10 seeds × 3 weight
+profiles), the cached-MILP rule, the subset shortcuts, and how to
+read results are all defined in
+[`experiments/BATTERY.md`](../../experiments/BATTERY.md).  v01's
+Part II numbers were produced under this same convention.
+
+Since v01 is **frozen for algorithmic comparison**, re-running the
+battery on it is only useful as a sanity check (the numbers must
+reproduce within run-to-run noise).  Do not retune.
+
 ## Verification
 
 Before any commit on this method:
