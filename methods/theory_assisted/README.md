@@ -63,11 +63,27 @@ exception.
    `methods/theory_assisted/jobs/notes/design.md` (normal Claude
    session, no extra agent — by this point the design.md is concrete
    enough that regular coding workflow takes over).
-5. Implement in `methods/theory_assisted/jobs/theory_assisted_job.py`.
-   Keep the class name `TheoryAssistedJobSolver` and the contract from
+5. A starting IGVND implementation is **already present** at
+   `methods/theory_assisted/jobs/iterated_greedy_vnd.py`, restored
+   verbatim from commit `30e1af0` — the same baseline that v01
+   evolved from.  `jobs/notes/synthesis.md` and `jobs/notes/design.md`
+   are the same-vintage docs.  Iterate on this code (rename it or
+   the class as you see fit), or replace it entirely if a different
+   approach is chosen.  In either case keep the contract from
    `shared/application.py`.
+
+   v01's evolution from this baseline (`methods/iterated_greedy_vnd_v01/`)
+   remains off-limits per [`CLAUDE.md`](CLAUDE.md) — the experimental
+   purpose is to see how *this* attempt evolves from the same
+   starting point.
 6. Register a label in `experiments/run_experiments.py` so the batch
-   runner can dispatch your method against the benchmark.
+   runner can dispatch your method against the benchmark.  Pick a
+   fresh label prefix (e.g. `igvnd_v02_*`) to avoid colliding with
+   v01's `igvnd_*` rows already in `outputs/solutions/results.csv`;
+   if the file ends up sharing the name `iterated_greedy_vnd.py`
+   with v01's, load it via `importlib.util.spec_from_file_location`
+   (see how `autoresearch` does it in the same runner) to avoid
+   the `sys.path` module collision.
 7. Run the isolation test:
    ```
    py -3 experiments/tests/test_method_isolation.py

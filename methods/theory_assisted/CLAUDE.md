@@ -6,6 +6,24 @@ You are working inside `methods/theory_assisted/`.  This method is
 and any further methods that exist).  The point is that each attempt
 must produce its own answer without seeing prior implementations.
 
+## Starting state for this attempt
+
+The active code under `jobs/iterated_greedy_vnd.py` is **a verbatim
+restore of commit `30e1af0`** — the same IGVND baseline that v01 was
+built on top of.  `jobs/notes/synthesis.md` and `jobs/notes/design.md`
+are the same-vintage docs.  This is on purpose: the experiment is
+"two LLM-assisted developer workflows iterating from the same starting
+point" (v01 = ChatGPT, this attempt = Claude).
+
+What that means for you:
+
+- You **may** read and modify everything under
+  `methods/theory_assisted/` (it is yours to evolve).
+- You **may NOT** read `methods/iterated_greedy_vnd_v01/` — that is
+  ChatGPT's evolution from the same starting point, and seeing it
+  would contaminate the comparison.  Even though the v01 *baseline*
+  is what you have, v01's *trajectory* away from it is off-limits.
+
 ## You MAY read, freely
 
 - `methods/theory_assisted/**` — this method's own code, notes, docs.
