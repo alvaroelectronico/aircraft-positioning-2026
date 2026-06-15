@@ -985,7 +985,7 @@ reports 0 violations.
 ## Smoke test
 
 ```
-py -3 methods/theory_assisted/jobs/iterated_greedy_vnd.py \
+py -3 methods/iterated_greedy_vnd/jobs/iterated_greedy_vnd.py \
     problems/jobs/instances/scn_triangle_tight_P5_R5/scn_triangle_tight_P5_R5_seed1.json 10
 ```
 Prints the per-run log, the objective/metrics, and the full checker report.

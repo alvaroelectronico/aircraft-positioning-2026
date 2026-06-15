@@ -61,11 +61,12 @@ _ar_mod = _il_util.module_from_spec(_ar_spec)
 _ar_spec.loader.exec_module(_ar_mod)
 TopologyHeuristicJobAR = _ar_mod.TopologyHeuristicJob
 
-# theory_assisted method — Iterated Greedy + VND (Candidate A).  Imported
-# from its own package path; this runner is NOT under methods/<X>/ so it is
-# exempt from the cross-method isolation scan, and importing the solver here
-# is the sanctioned batch-registration step (README step 6).
-sys.path.insert(0, str(_ROOT / "methods" / "theory_assisted" / "jobs"))  # iterated_greedy_vnd
+# iterated_greedy_vnd method — Iterated Greedy + VND.  Originated from the
+# theory_assisted process (see methods/iterated_greedy_vnd/jobs/synthesis.md +
+# design.md) and graduated to its own isolated method.  This runner is NOT
+# under methods/<X>/ so it is exempt from the cross-method isolation scan,
+# and importing the solver here is the sanctioned batch-registration step.
+sys.path.insert(0, str(_ROOT / "methods" / "iterated_greedy_vnd" / "jobs"))  # iterated_greedy_vnd
 from iterated_greedy_vnd import IteratedGreedyVNDJobSolver  # noqa: E402
 
 from tgr_solver import TGRSolver                            # noqa: E402
@@ -151,7 +152,7 @@ _BASE_CONFIG_WB: dict = {**_BASE_CONFIG, "weight_makespan": 1, "weight_delay": 1
 _BASE_CONFIG_WC: dict = {**_BASE_CONFIG, "weight_makespan": 10, "weight_delay": 0.1, "weight_movements": 1}
 
 # ---------------------------------------------------------------------------
-# theory_assisted comparison — three single-dominant weight permutations
+# iterated_greedy_vnd comparison — three single-dominant weight permutations
 # (the dominant weight = 100, the other two = 1), 60 s cap.  Used to compare
 # the job-level MILP baseline against the IG+VND heuristic across objectives.
 # ---------------------------------------------------------------------------

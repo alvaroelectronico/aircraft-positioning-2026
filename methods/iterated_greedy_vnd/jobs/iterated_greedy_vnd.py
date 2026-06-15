@@ -1,11 +1,13 @@
 """Iterated Greedy + VND solver for paper #2 (job-level extension).
 
-This module implements **Candidate A** from
-``methods/theory_assisted/jobs/notes/synthesis.md``: an Iterated-Greedy
-outer loop (NEH-style greedy construction + worst-aircraft
-destruction/reconstruction) wrapped around a sequential Variable
-Neighbourhood Descent local search.  The design is drawn only from the
-curated theory in ``inspiration/`` / ``digest/`` — see CLAUDE.md.
+This module implements **Candidate A** from the literature synthesis
+that informed it (now archived alongside this file as
+``synthesis.md`` and ``design.md``): an Iterated-Greedy outer loop
+(NEH-style greedy construction + worst-aircraft destruction /
+reconstruction) wrapped around a sequential Variable Neighbourhood
+Descent local search.  The design was distilled from external theory
+that lived (and still lives) under ``methods/theory_assisted/`` — see
+CLAUDE.md for the isolation contract this method inherits.
 
 Architecture (two layers, as the synthesis recommends)
 ------------------------------------------------------
@@ -1073,7 +1075,7 @@ if __name__ == "__main__":
     except (AttributeError, OSError):
         pass
 
-    _HERE = Path(__file__).resolve().parent              # methods/theory_assisted/jobs/
+    _HERE = Path(__file__).resolve().parent              # methods/iterated_greedy_vnd/jobs/
     _ROOT = _HERE.parent.parent.parent                   # repo root
     sys.path.insert(0, str(_ROOT / "shared"))            # instance_io
     sys.path.insert(0, str(_ROOT / "problems" / "jobs")) # checker

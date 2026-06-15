@@ -1,9 +1,10 @@
 # Isolation contract for the `theory_assisted` method
 
 You are working inside `methods/theory_assisted/`.  This method is
-**developed in isolation** from `methods/manual/` and
-`methods/autoresearch/` so that it represents a genuinely independent
-attempt at the problem.
+**developed in isolation** from every other method in the repository
+(`methods/manual/`, `methods/autoresearch/`, `methods/iterated_greedy_vnd/`,
+and any further methods that exist).  The point is that each attempt
+must produce its own answer without seeing prior implementations.
 
 ## You MAY read, freely
 
@@ -29,6 +30,11 @@ attempt at the problem.
                                      `inspiration/` folder is)
 - `methods/manual/**`               (other method)
 - `methods/autoresearch/**`         (other method)
+- `methods/iterated_greedy_vnd/**`  (other method — descended from a
+                                     previous theory_assisted attempt;
+                                     its design notes are now part of
+                                     that method, not this scaffold)
+- Any further `methods/<other>/**`  that may exist in the future.
 - `papers/cejor_aircraft/**`        (manuscript discussing other methods)
 - `papers/jobs_extension/**`        (manuscript discussing other methods)
 - `papers/_legacy_draft/**`         (superseded drafts of methods)
@@ -57,6 +63,9 @@ registered method against an instance and writes the result to
   - `milp_baseline_job`        — the manual MILP (60 s default budget)
   - `milp_baseline_job_wB`     — same, with the wB weight profile
   - `milp_baseline_job_wC`     — same, with the wC weight profile
+  - `igvnd_wMK` / `igvnd_wDLY` / `igvnd_wMOV` — Iterated Greedy + VND,
+    three weight profiles.  Use these to compare your numbers, NOT
+    to peek at how IGVND solves the problem.
 - Read the resulting JSON solutions and metrics from
   `outputs/solutions/scn_…__milp_baseline_job__<timestamp>.json` and
   the aggregated `outputs/solutions/results.csv`.
@@ -64,9 +73,10 @@ registered method against an instance and writes the result to
 
 What you must NOT do, even while comparing:
 
-- Open or grep any `.py` file under `methods/manual/` or
-  `methods/autoresearch/`.  The CSV / JSON are the only legitimate
-  source of cross-method information.
+- Open or grep any `.py` file under `methods/manual/`,
+  `methods/autoresearch/`, or `methods/iterated_greedy_vnd/`.
+  The CSV / JSON are the only legitimate source of cross-method
+  information.
 - Decide a design choice for `theory_assisted` based on "how the MILP
   formulates this" — that information is reachable only by reading
   the source, which is exactly what the contract forbids.  Decide

@@ -43,8 +43,13 @@ methods/                 # ONE subtree per solving approach. ISOLATED.
   autoresearch/          # LLM-iterative loop (snapshot + evaluate harness)
     aircraft/                # (placeholder — no autoresearch yet)
     jobs/                    # paper #2 autoresearch (only one done so far)
-  theory_assisted/       # literature-informed, clean-room implementation
+  theory_assisted/       # scaffold for literature-informed attempts;
+                         # inspiration/ + digest/ carry reusable theory
+                         # across attempts, the rest is reset per attempt.
     jobs/                    # paper #2 (the only scope so far)
+  iterated_greedy_vnd/   # IG + VND solver — graduated from a theory_assisted
+                         # process (its synthesis.md + design.md travelled here).
+    jobs/                    # paper #2
 
 experiments/             # Cross-method orchestration; imports any method.
   run_experiments.py         # batch runner (the bridge across methods)

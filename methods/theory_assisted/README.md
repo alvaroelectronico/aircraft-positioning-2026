@@ -2,10 +2,16 @@
 
 A solving method whose defining input is the **external scheduling and
 OR theory** that the human curates into `inspiration/`.  The method
-does not see how `manual/` or `autoresearch/` solved the same problem,
-and it does NOT consume the repo-wide `literature_review/` either —
-only the curated `inspiration/` folder.  This is on purpose: each
-method owns its own diet of inputs.
+does not see how any other method (`manual/`, `autoresearch/`,
+`iterated_greedy_vnd/`, …) solved the same problem, and it does NOT
+consume the repo-wide `literature_review/` either — only the curated
+`inspiration/` folder.  This is on purpose: each method owns its own
+diet of inputs.
+
+This is a **template scaffold**: `digest/` and `inspiration/` carry
+reusable theory from prior attempts; everything else is reset to the
+starting state so a new attempt can begin from scratch without seeing
+any previous method's code.
 
 ## Reading list (the ONLY background to consume)
 
@@ -25,6 +31,8 @@ method owns its own diet of inputs.
   input; copy a paper into `inspiration/` to bring it in scope)
 - `methods/manual/**`
 - `methods/autoresearch/**`
+- `methods/iterated_greedy_vnd/**` (the previous theory_assisted
+  attempt — graduated to its own method, off this read path)
 - `papers/**` (publishable manuscripts of OUR work)
 
 See `CLAUDE.md` for the full rationale and the protocol if you need an
