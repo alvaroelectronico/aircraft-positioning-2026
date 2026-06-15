@@ -75,7 +75,7 @@ registered method against an instance and writes the result to
 
 - Invoke it via Bash (one-shot or in a script):
   ```
-  py -3 experiments/run_experiments.py "<inst_filter>" "<exp_label>" problems/jobs/instances
+  py -3 experiments/run_experiments.py "<inst_filter>" "<exp_label>" data/instances_202605_02
   ```
   Useful labels for paper #2 reference numbers:
   - `milp_baseline_job`        — the manual MILP (60 s default budget)
@@ -104,6 +104,68 @@ If you find yourself wanting to know HOW the other method works (not
 just its numbers), stop and tell the user — that is a contract
 violation, and the right response is either to update this file or to
 abandon the line of investigation.
+
+## Validating solver quality (the standard battery)
+
+The benchmark for paper #2 is **12 configurations × 10 seeds × 3
+weight profiles = 360 runs**, instances at `data/instances_202605_02/`:
+
+```
+scn_chain_tight_P5_R10           scn_triangle_loose_P5_R10
+scn_full_tight_P5_R10            scn_triangle_medium_P5_R10
+scn_full_tight_P5_R20            scn_triangle_tight_P5_R5
+scn_hub_tight_P5_R10             scn_triangle_tight_P5_R10
+scn_none_tight_P5_R10            scn_triangle_tight_P5_R20
+scn_two_rows_tight_P5_R10        scn_triangle_tight_P5_R30
+```
+
+The three weight profiles you must test under:
+
+- **wMK = (Wᴹ, Wᴰ, Wˢ) = (100, 1, 1)** — makespan-priority.
+- **wDLY = (1, 100, 1)** — delay-priority.
+- **wMOV = (1, 1, 100)** — movement-priority.
+
+(Profile names match the suffixes already used in
+`experiments/run_experiments.py`: e.g. `milp_baseline_job_wB` ≈ wDLY,
+`milp_baseline_job_wC` ≈ wMOV — read the file for the exact mapping.)
+
+**The MILP baseline is fixed.** Do not re-run it on every iteration —
+its rows are already in `outputs/solutions/results.csv` from prior
+batteries.  Re-running burns ~12 minutes × 3 profiles × 12 configs
+per seed for no information.  Use the cached MILP rows as the
+reference and run only the heuristic.  Helper:
+`experiments/paired_report.py` consumes the cached MILP +
+fresh-heuristic and emits the per-instance + summary tables.
+
+**As the solver advances, judge quality by:**
+
+1. Running the heuristic over a representative subset (or the full
+   battery on a milestone) at all three weight profiles, with a 60 s
+   budget per run:
+   ```
+   py -3 experiments/run_experiments.py "_seed1$" \
+       "<your_label>_wMK,<your_label>_wDLY,<your_label>_wMOV" \
+       data/instances_202605_02
+   ```
+2. Pairing the fresh heuristic rows against the cached MILP rows in
+   `outputs/solutions/results.csv` (same instance + same weight
+   profile) via `experiments/paired_report.py`.
+3. Reading the gap table per weight profile (mean / min / max over
+   seeds) and the per-component Δ (Δmakespan / Δdelay / Δmov).  The
+   relative gap alone is distorted by small denominators when MILP
+   delay ≈ 0 — always cross-read the absolute per-component Δ.
+4. Recording the result via `/sync-method-doc methods/theory_assisted
+   ... log: outputs/logs/<your_battery>.log` so Part II of the living
+   `.md` snapshots the comparison and the Change log gets a row.
+
+**Subset shortcuts during development** (not the final battery):
+
+- `_seed1$` filter (12 instances × 3 profiles ≈ 36 runs ≈ 35 min) —
+  the canonical "cross-type read" for a fast iteration.
+- `_seed1$,_seed2$,_seed3$` filter — three-seed sample, enough to
+  start estimating variance.
+- A single config + all seeds — when a specific instance type is the
+  bottleneck.
 
 ## Documenting your work
 

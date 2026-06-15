@@ -56,7 +56,7 @@ The bridge is `experiments/run_experiments.py`.  You may:
 
 - Invoke any registered method via Bash:
   ```
-  py -3 experiments/run_experiments.py "<inst_filter>" "<exp_label>" problems/jobs/instances
+  py -3 experiments/run_experiments.py "<inst_filter>" "<exp_label>" data/instances_202605_02
   ```
   Useful labels for cross-method comparison:
   - `milp_baseline_job`, `milp_baseline_job_wB`, `milp_baseline_job_wC`

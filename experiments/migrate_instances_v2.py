@@ -35,11 +35,11 @@ Usage
     python experiments/migrate_instances_v2.py
 
     # Custom root (e.g. the alternate-benchmark folder)
-    python experiments/migrate_instances_v2.py --root problems/jobs/instances
+    python experiments/migrate_instances_v2.py --root data/instances_202605_02
 
     # Annotate with 30 % random interruptibility, reproducibly
     python experiments/migrate_instances_v2.py \
-        --root problems/jobs/instances \
+        --root data/instances_202605_02 \
         --interruptible-rate 0.3 \
         --seed 42
 

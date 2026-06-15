@@ -52,9 +52,9 @@ Through `experiments/run_experiments.py`, with three weight-profile
 labels:
 
 ```
-py -3 experiments/run_experiments.py "_seed1$" "igvnd_wMK"  problems/jobs/instances
-py -3 experiments/run_experiments.py "_seed1$" "igvnd_wDLY" problems/jobs/instances
-py -3 experiments/run_experiments.py "_seed1$" "igvnd_wMOV" problems/jobs/instances
+py -3 experiments/run_experiments.py "_seed1$" "igvnd_wMK"  data/instances_202605_02
+py -3 experiments/run_experiments.py "_seed1$" "igvnd_wDLY" data/instances_202605_02
+py -3 experiments/run_experiments.py "_seed1$" "igvnd_wMOV" data/instances_202605_02
 ```
 
 Labels are kept as `igvnd_*` (without the `v01_` prefix) for backward
@@ -66,7 +66,7 @@ Or invoke the solver directly:
 
 ```
 py -3 methods/iterated_greedy_vnd_v01/jobs/iterated_greedy_vnd.py \
-    problems/jobs/instances/scn_triangle_tight_P5_R5/scn_triangle_tight_P5_R5_seed1.json 10
+    data/instances_202605_02/scn_triangle_tight_P5_R5/scn_triangle_tight_P5_R5_seed1.json 10
 ```
 
 ## Comparing against other methods

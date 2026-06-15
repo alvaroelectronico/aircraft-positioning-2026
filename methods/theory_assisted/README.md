@@ -92,7 +92,7 @@ exception.
 8. Run a smoke test:
    ```
    py -3 experiments/run_experiments.py "scn_triangle_tight_P5_R5_seed1$" \
-       "<your_label>" problems/jobs/instances
+       "<your_label>" data/instances_202605_02
    ```
 
 ## Comparing against other methods (after implementation)

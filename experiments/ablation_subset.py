@@ -58,7 +58,7 @@ def _run_heuristic() -> None:
     inst_filter = ",".join(s + "$" for s in SUBSET)   # exact-stem match
     cmd = [
         sys.executable, str(_ROOT / "experiments" / "run_experiments.py"),
-        inst_filter, HEUR_LABELS, "problems/jobs/instances",
+        inst_filter, HEUR_LABELS, "data/instances_202605_02",
     ]
     print(f"Running heuristic on {len(SUBSET)} instances × 3 profiles …\n")
     subprocess.run(cmd, cwd=str(_ROOT))

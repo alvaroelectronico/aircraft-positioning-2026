@@ -118,7 +118,7 @@ instance:
 
 ```
 py -3 experiments/run_experiments.py "scn_triangle_tight_P5_R5_seed1$" \
-    "milp_baseline_job,topology_ms6_job_ar" problems/jobs/instances
+    "milp_baseline_job,topology_ms6_job_ar" data/instances_202605_02
 ```
 
 Score the autoresearch working copy of `topology_heuristic_job.py`

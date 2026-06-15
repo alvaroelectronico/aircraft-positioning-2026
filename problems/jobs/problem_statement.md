@@ -210,7 +210,7 @@ further enlarge the combinatorial structure.
 ## Inputs / outputs (operational contract)
 
 A solving method consumes an instance JSON from
-`problems/jobs/instances/` (schema in
+`data/instances_202605_02/` (schema in
 [`instance_schema.json`](instance_schema.json)).  It produces a
 solution dict that must pass the compliance checker in
 [`checker.py`](checker.py).  The checker enforces all RQs including
