@@ -105,6 +105,27 @@ just its numbers), stop and tell the user — that is a contract
 violation, and the right response is either to update this file or to
 abandon the line of investigation.
 
+## Documenting your work
+
+When you commit a behaviour-affecting change to the solver, or
+produce a new battery, invoke the project skill:
+
+```
+/sync-method-doc methods/theory_assisted  <brief description> [log: <path>]
+```
+
+It forks the `method-doc` subagent, which keeps the living `.md`
+spec at `methods/theory_assisted/jobs/<solver_basename>.md` in
+sync with the code using a fixed four-part structure (Method /
+Results / Roadmap / Implementation) plus a Change log.  The
+agent refreshes Part IV (code map) always; Part II only when a
+battery log path is given via the hint; Parts I and III it leaves
+alone (those carry your design intent — edit them in normal
+sessions).
+
+Do NOT invoke `/sync-method-doc` after cosmetic changes — the
+Change log becomes noise.  Invoke it at real milestones.
+
 ## Exception protocol
 
 Beyond the above (running other methods for comparison), if a genuine
