@@ -1075,7 +1075,7 @@ if __name__ == "__main__":
     except (AttributeError, OSError):
         pass
 
-    _HERE = Path(__file__).resolve().parent              # methods/iterated_greedy_vnd/jobs/
+    _HERE = Path(__file__).resolve().parent              # methods/iterated_greedy_vnd_v01/jobs/
     _ROOT = _HERE.parent.parent.parent                   # repo root
     sys.path.insert(0, str(_ROOT / "shared"))            # instance_io
     sys.path.insert(0, str(_ROOT / "problems" / "jobs")) # checker

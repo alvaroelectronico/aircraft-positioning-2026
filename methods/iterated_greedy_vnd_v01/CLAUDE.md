@@ -1,14 +1,21 @@
-# Isolation contract for the `iterated_greedy_vnd` method
+# Isolation contract for the `iterated_greedy_vnd_v01` method
 
-You are working inside `methods/iterated_greedy_vnd/`.  This method is
-**developed in isolation** from the other methods in the repository,
-even though it originated from a `theory_assisted` process — the
-theoretical work is captured in `jobs/synthesis.md` + `jobs/design.md`
-right here.
+You are working inside `methods/iterated_greedy_vnd_v01/`.  This is the
+v01 attempt at paper #2 via the `theory_assisted` scaffold, built with
+ChatGPT assistance (see [`PROVENANCE.md`](PROVENANCE.md)).  It is
+**frozen for algorithmic comparison** with the in-progress v02
+(Claude-assisted) attempt — only bug fixes, doc cleanups, and
+non-algorithmic perf tweaks are in scope (see PROVENANCE for the full
+freeze policy).
+
+It is **developed in isolation** from the other methods in the
+repository, even though it originated from a `theory_assisted` process
+— the theoretical work is captured in `jobs/synthesis.md` +
+`jobs/design.md` right here.
 
 ## You MAY read, freely
 
-- `methods/iterated_greedy_vnd/**` — this method's own code, docs,
+- `methods/iterated_greedy_vnd_v01/**` — this method's own code, docs,
   synthesis, design.
 - `problems/jobs/**` — problem statement, schema, checker, instances.
   `problems/jobs/problem_statement.md` is the full self-contained brief;

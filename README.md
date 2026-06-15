@@ -47,9 +47,11 @@ methods/                 # ONE subtree per solving approach. ISOLATED.
                          # inspiration/ + digest/ carry reusable theory
                          # across attempts, the rest is reset per attempt.
     jobs/                    # paper #2 (the only scope so far)
-  iterated_greedy_vnd/   # IG + VND solver — graduated from a theory_assisted
-                         # process (its synthesis.md + design.md travelled here).
-    jobs/                    # paper #2
+  iterated_greedy_vnd_v01/  # IG + VND solver, ChatGPT-assisted v01 — graduated
+                            # from a theory_assisted process (its synthesis.md +
+                            # design.md travelled here).  Frozen for comparison
+                            # with the upcoming v02 (Claude-assisted) attempt.
+    jobs/                       # paper #2
 
 experiments/             # Cross-method orchestration; imports any method.
   run_experiments.py         # batch runner (the bridge across methods)

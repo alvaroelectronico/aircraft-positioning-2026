@@ -2,7 +2,7 @@
 
 You are working inside `methods/theory_assisted/`.  This method is
 **developed in isolation** from every other method in the repository
-(`methods/manual/`, `methods/autoresearch/`, `methods/iterated_greedy_vnd/`,
+(`methods/manual/`, `methods/autoresearch/`, `methods/iterated_greedy_vnd_v01/`,
 and any further methods that exist).  The point is that each attempt
 must produce its own answer without seeing prior implementations.
 
@@ -30,7 +30,7 @@ must produce its own answer without seeing prior implementations.
                                      `inspiration/` folder is)
 - `methods/manual/**`               (other method)
 - `methods/autoresearch/**`         (other method)
-- `methods/iterated_greedy_vnd/**`  (other method — descended from a
+- `methods/iterated_greedy_vnd_v01/**`  (other method — descended from a
                                      previous theory_assisted attempt;
                                      its design notes are now part of
                                      that method, not this scaffold)
@@ -74,7 +74,7 @@ registered method against an instance and writes the result to
 What you must NOT do, even while comparing:
 
 - Open or grep any `.py` file under `methods/manual/`,
-  `methods/autoresearch/`, or `methods/iterated_greedy_vnd/`.
+  `methods/autoresearch/`, or `methods/iterated_greedy_vnd_v01/`.
   The CSV / JSON are the only legitimate source of cross-method
   information.
 - Decide a design choice for `theory_assisted` based on "how the MILP

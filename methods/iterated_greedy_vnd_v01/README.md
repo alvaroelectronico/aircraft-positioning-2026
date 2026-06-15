@@ -1,4 +1,9 @@
-# `iterated_greedy_vnd` — method overview
+# `iterated_greedy_vnd_v01` — method overview
+
+**Version:** v01 (first LLM-assisted attempt on paper #2 via the
+`theory_assisted` scaffold).
+**LLM assistance:** ChatGPT (GPT-4-class model).  See
+[`PROVENANCE.md`](PROVENANCE.md) for the full record.
 
 Iterated Greedy outer loop (NEH-style construction + worst-aircraft
 destruction/reconstruction) wrapped around a sequential Variable
@@ -25,15 +30,21 @@ The original `inspiration/` PDFs and `digest/` notes remain under
 attempts; they are NOT on this method's read path any more (see
 [`CLAUDE.md`](CLAUDE.md)).
 
+A parallel **v02** attempt with Claude as the LLM assistant is starting
+on the same `theory_assisted` scaffold so the two developer workflows
+(human + GPT vs. human + Claude) can be compared head-to-head on
+identical theory inputs.  v02 will land in its own method directory
+once mature.
+
 ## Reading list
 
-| Path                                          | Purpose                                        |
-| --------------------------------------------- | ---------------------------------------------- |
-| `problems/jobs/problem_statement.md`          | Self-contained spec of paper #2.              |
-| `problems/jobs/checker.py`                    | Source of truth for feasibility / metrics.    |
-| `shared/application.py`                       | Solver contract.                              |
-| `shared/instance_io.py`, `shared/rcl.py`      | Loader + RCL helpers.                         |
-| `methods/iterated_greedy_vnd/jobs/*.md`       | Method's own docs (design, changelog).        |
+| Path                                              | Purpose                                        |
+| ------------------------------------------------- | ---------------------------------------------- |
+| `problems/jobs/problem_statement.md`              | Self-contained spec of paper #2.              |
+| `problems/jobs/checker.py`                        | Source of truth for feasibility / metrics.    |
+| `shared/application.py`                           | Solver contract.                              |
+| `shared/instance_io.py`, `shared/rcl.py`          | Loader + RCL helpers.                         |
+| `methods/iterated_greedy_vnd_v01/jobs/*.md`       | Method's own docs (design, changelog).        |
 
 ## Reproducing
 
@@ -46,10 +57,15 @@ py -3 experiments/run_experiments.py "_seed1$" "igvnd_wDLY" problems/jobs/instan
 py -3 experiments/run_experiments.py "_seed1$" "igvnd_wMOV" problems/jobs/instances
 ```
 
+Labels are kept as `igvnd_*` (without the `v01_` prefix) for backward
+compatibility with existing `outputs/solutions/results.csv` rows.
+When v02 lands it will register fresh labels (e.g. `igvnd_v02_*` or
+whatever the new algorithm is called).
+
 Or invoke the solver directly:
 
 ```
-py -3 methods/iterated_greedy_vnd/jobs/iterated_greedy_vnd.py \
+py -3 methods/iterated_greedy_vnd_v01/jobs/iterated_greedy_vnd.py \
     problems/jobs/instances/scn_triangle_tight_P5_R5/scn_triangle_tight_P5_R5_seed1.json 10
 ```
 

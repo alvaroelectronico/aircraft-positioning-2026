@@ -61,12 +61,14 @@ _ar_mod = _il_util.module_from_spec(_ar_spec)
 _ar_spec.loader.exec_module(_ar_mod)
 TopologyHeuristicJobAR = _ar_mod.TopologyHeuristicJob
 
-# iterated_greedy_vnd method — Iterated Greedy + VND.  Originated from the
-# theory_assisted process (see methods/iterated_greedy_vnd/jobs/synthesis.md +
-# design.md) and graduated to its own isolated method.  This runner is NOT
-# under methods/<X>/ so it is exempt from the cross-method isolation scan,
-# and importing the solver here is the sanctioned batch-registration step.
-sys.path.insert(0, str(_ROOT / "methods" / "iterated_greedy_vnd" / "jobs"))  # iterated_greedy_vnd
+# iterated_greedy_vnd_v01 method — Iterated Greedy + VND, ChatGPT-assisted
+# v01.  Originated from the theory_assisted process (see jobs/synthesis.md +
+# jobs/design.md inside the v01 dir) and graduated to its own isolated
+# method.  This runner is NOT under methods/<X>/ so it is exempt from the
+# cross-method isolation scan, and importing the solver here is the
+# sanctioned batch-registration step.  Labels remain "igvnd_*" without a
+# v01_ prefix for backward compatibility with existing results.csv rows.
+sys.path.insert(0, str(_ROOT / "methods" / "iterated_greedy_vnd_v01" / "jobs"))  # iterated_greedy_vnd
 from iterated_greedy_vnd import IteratedGreedyVNDJobSolver  # noqa: E402
 
 from tgr_solver import TGRSolver                            # noqa: E402
@@ -152,7 +154,7 @@ _BASE_CONFIG_WB: dict = {**_BASE_CONFIG, "weight_makespan": 1, "weight_delay": 1
 _BASE_CONFIG_WC: dict = {**_BASE_CONFIG, "weight_makespan": 10, "weight_delay": 0.1, "weight_movements": 1}
 
 # ---------------------------------------------------------------------------
-# iterated_greedy_vnd comparison — three single-dominant weight permutations
+# iterated_greedy_vnd_v01 comparison — three single-dominant weight permutations
 # (the dominant weight = 100, the other two = 1), 60 s cap.  Used to compare
 # the job-level MILP baseline against the IG+VND heuristic across objectives.
 # ---------------------------------------------------------------------------

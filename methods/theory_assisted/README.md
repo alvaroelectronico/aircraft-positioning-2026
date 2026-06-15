@@ -31,7 +31,7 @@ any previous method's code.
   input; copy a paper into `inspiration/` to bring it in scope)
 - `methods/manual/**`
 - `methods/autoresearch/**`
-- `methods/iterated_greedy_vnd/**` (the previous theory_assisted
+- `methods/iterated_greedy_vnd_v01/**` (the previous theory_assisted
   attempt — graduated to its own method, off this read path)
 - `papers/**` (publishable manuscripts of OUR work)
 
