@@ -1,0 +1,50 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (6 experiments)
+==================================================================
+  Shared parameters:
+    time_limit_s=60               NoRelHeurTime=0
+    MIPGap=0.0                    
+
+  Per-experiment parameters:
+  Label          Solver                      weight_makespan  weight_delay  weight_movements  seed
+  ------------------------------------------------------------------------------------------------
+  milp_job_wMK   MILPJobsV2Solver            100              1             1                 —   
+  igvnd_wMK      IteratedGreedyVNDJobSolver  100              1             1                 1   
+  milp_job_wDLY  MILPJobsV2Solver            1                100           1                 —   
+  igvnd_wDLY     IteratedGreedyVNDJobSolver  1                100           1                 1   
+  milp_job_wMOV  MILPJobsV2Solver            1                1             100               —   
+  igvnd_wMOV     IteratedGreedyVNDJobSolver  1                1             100               1   
+==================================================================
+
+
+
+==================================================================
+  SUMMARY  —  24 ok  /  0 failed  /  24 total
+==================================================================
+  Instance                         Experiment     Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  ----------------------------------------------------------------------------------------------------------------------
+  scn_none_tight_P5_R10_seed1      milp_job_wMK   optimal        5844.50      57.50      94.50     0     0.00%       0.1
+  scn_none_tight_P5_R10_seed1      igvnd_wMK      heuristic_     5844.50      57.50      94.50     0         -      39.3
+  scn_none_tight_P5_R10_seed1      milp_job_wDLY  optimal        9408.50      58.50      93.50     0     0.00%       4.6
+  scn_none_tight_P5_R10_seed1      igvnd_wDLY     heuristic_     9408.50      58.50      93.50     0         -      33.5
+  scn_none_tight_P5_R10_seed1      milp_job_wMOV  optimal         152.00      58.50      93.50     0     0.00%       2.8
+  scn_none_tight_P5_R10_seed1      igvnd_wMOV     heuristic_      152.00      58.50      93.50     0         -      33.9
+  scn_triangle_tight_P5_R10_seed1  milp_job_wMK   optimal        6059.50      59.50     101.50     8     0.00%      30.0
+  scn_triangle_tight_P5_R10_seed1  igvnd_wMK      heuristic_     6160.00      60.50     110.00     0         -      60.0
+  scn_triangle_tight_P5_R10_seed1  milp_job_wDLY  maxTimeLim    10220.50      60.50     101.50    10    99.64%      60.5
+  scn_triangle_tight_P5_R10_seed1  igvnd_wDLY     heuristic_    10566.50      64.50     105.00     2         -      60.1
+  scn_triangle_tight_P5_R10_seed1  milp_job_wMOV  maxTimeLim      166.00      62.50     103.50     0    62.85%      60.5
+  scn_triangle_tight_P5_R10_seed1  igvnd_wMOV     heuristic_      171.00      62.50     108.50     0         -      60.1
+  scn_triangle_tight_P5_R5_seed1   milp_job_wMK   optimal        3000.00      30.00       0.00     0     0.00%       0.3
+  scn_triangle_tight_P5_R5_seed1   igvnd_wMK      heuristic_     3000.00      30.00       0.00     0         -      20.3
+  scn_triangle_tight_P5_R5_seed1   milp_job_wDLY  optimal          30.00      30.00       0.00     0     0.00%       0.3
+  scn_triangle_tight_P5_R5_seed1   igvnd_wDLY     heuristic_       30.00      30.00       0.00     0         -      20.4
+  scn_triangle_tight_P5_R5_seed1   milp_job_wMOV  optimal          30.00      30.00       0.00     0     0.00%       0.2
+  scn_triangle_tight_P5_R5_seed1   igvnd_wMOV     heuristic_       30.00      30.00       0.00     0         -      20.7
+  scn_triangle_tight_P5_R5_seed2   milp_job_wMK   optimal        3700.00      37.00       0.00     0     0.00%       0.1
+  scn_triangle_tight_P5_R5_seed2   igvnd_wMK      heuristic_     3700.00      37.00       0.00     0         -      15.1
+  scn_triangle_tight_P5_R5_seed2   milp_job_wDLY  optimal          37.00      37.00       0.00     0     0.00%       0.1
+  scn_triangle_tight_P5_R5_seed2   igvnd_wDLY     heuristic_       37.00      37.00       0.00     0         -      15.1
+  scn_triangle_tight_P5_R5_seed2   milp_job_wMOV  optimal          37.00      37.00       0.00     0     0.00%       0.1
+  scn_triangle_tight_P5_R5_seed2   igvnd_wMOV     heuristic_       37.00      37.00       0.00     0         -      15.3
+==================================================================

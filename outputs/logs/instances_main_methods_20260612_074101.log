@@ -1,0 +1,25 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (2 experiments)
+==================================================================
+  Shared parameters:
+    weight_makespan=100           time_limit_s=60
+    weight_delay=1                MIPGap=0.0
+    weight_movements=1            NoRelHeurTime=0
+
+  Per-experiment parameters:
+  Label         Solver                      seed
+  ----------------------------------------------
+  milp_job_wMK  MILPJobsV2Solver            —   
+  igvnd_wMK     IteratedGreedyVNDJobSolver  1   
+==================================================================
+
+
+
+==================================================================
+  SUMMARY  —  2 ok  /  0 failed  /  2 total
+==================================================================
+  Instance                        Experiment    Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  --------------------------------------------------------------------------------------------------------------------
+  scn_triangle_tight_P5_R5_seed1  milp_job_wMK  optimal        3000.00      30.00       0.00     0     0.00%       0.5
+  scn_triangle_tight_P5_R5_seed1  igvnd_wMK     heuristic_     4380.00      43.50      30.00     0         -       0.3
+==================================================================

@@ -1,0 +1,58 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (1 experiments)
+  Code state (git): 72d2d03+dirty
+  Instance order  : by seed, then config (seed1 of all types first)
+==================================================================
+  Shared parameters:
+    weight_makespan=1             MIPGap=0.0
+    weight_delay=1                NoRelHeurTime=0
+    weight_movements=100          seed=1
+    time_limit_s=60               
+
+  Per-experiment parameters:
+  Label       Solver                    
+  --------------------------------------
+  igvnd_wMOV  IteratedGreedyVNDJobSolver
+==================================================================
+
+
+==================================================================
+  HEURISTIC vs MILP  —  relative gap per instance type
+  gap = (MILP_obj - heuristic_obj) / MILP_obj
+  gap > 0  =>  heuristic BETTER (lower objective);  < 0  => worse
+==================================================================
+  -- Relative objective gap, by weight profile --
+  [wMK  (100/1/1  makespan-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wDLY  (1/100/1  delay-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wMOV  (1/1/100  movement-priority)]
+    (no paired MILP/heuristic results yet)
+
+  -- Relative objective gap, aggregated over all profiles --
+  [ALL profiles]
+    (no paired MILP/heuristic results yet)
+
+  -- Per-component mean Δ (heuristic − MILP); negative = heuristic better --
+  -- (relative gap is distorted when the optimum delay ≈ 0; read these too)
+  [wMK  (100/1/1  makespan-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wDLY  (1/100/1  delay-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wMOV  (1/1/100  movement-priority)]
+    (no paired MILP/heuristic results yet)
+
+==================================================================
+
+
+==================================================================
+  SUMMARY  —  1 ok  /  0 failed  /  1 total
+==================================================================
+  Instance                      Experiment  Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  ----------------------------------------------------------------------------------------------------------------
+  scn_chain_tight_P5_R10_seed1  igvnd_wMOV  heuristic_      254.50      83.00     171.50     0         -      60.0
+==================================================================

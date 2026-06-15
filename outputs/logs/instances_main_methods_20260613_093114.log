@@ -1,0 +1,91 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (3 experiments)
+==================================================================
+  Shared parameters:
+    time_limit_s=60               NoRelHeurTime=0
+    MIPGap=0.0                    seed=1
+
+  Per-experiment parameters:
+  Label       Solver                      weight_makespan  weight_delay  weight_movements
+  ---------------------------------------------------------------------------------------
+  igvnd_wMK   IteratedGreedyVNDJobSolver  100              1             1               
+  igvnd_wDLY  IteratedGreedyVNDJobSolver  1                100           1               
+  igvnd_wMOV  IteratedGreedyVNDJobSolver  1                1             100             
+==================================================================
+
+
+==================================================================
+  HEURISTIC vs MILP  —  relative gap per instance type
+  gap = (MILP_obj - heuristic_obj) / MILP_obj
+  gap > 0  =>  heuristic BETTER (lower objective);  < 0  => worse
+==================================================================
+  -- Relative objective gap, by weight profile --
+  [wMK  (100/1/1  makespan-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wDLY  (1/100/1  delay-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wMOV  (1/1/100  movement-priority)]
+    (no paired MILP/heuristic results yet)
+
+  -- Relative objective gap, aggregated over all profiles --
+  [ALL profiles]
+    (no paired MILP/heuristic results yet)
+
+  -- Per-component mean Δ (heuristic − MILP); negative = heuristic better --
+  -- (relative gap is distorted when the optimum delay ≈ 0; read these too)
+  [wMK  (100/1/1  makespan-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wDLY  (1/100/1  delay-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wMOV  (1/1/100  movement-priority)]
+    (no paired MILP/heuristic results yet)
+
+==================================================================
+
+
+==================================================================
+  SUMMARY  —  36 ok  /  0 failed  /  36 total
+==================================================================
+  Instance                          Experiment  Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  --------------------------------------------------------------------------------------------------------------------
+  scn_chain_tight_P5_R10_seed1      igvnd_wMK   heuristic_     6267.00      61.50     107.00    10         -      60.1
+  scn_chain_tight_P5_R10_seed1      igvnd_wDLY  heuristic_    10579.50      65.50     105.00    14         -      60.0
+  scn_chain_tight_P5_R10_seed1      igvnd_wMOV  heuristic_      256.50      83.00     173.50     0         -      60.0
+  scn_full_tight_P5_R10_seed1       igvnd_wMK   heuristic_     6706.00      65.50     150.00     6         -      60.0
+  scn_full_tight_P5_R10_seed1       igvnd_wDLY  heuristic_    14355.50      67.50     142.50    38         -      60.0
+  scn_full_tight_P5_R10_seed1       igvnd_wMOV  heuristic_      334.50     116.50     218.00     0         -      60.0
+  scn_full_tight_P5_R20_seed1       igvnd_wMK   heuristic_    16683.00     154.50    1147.00    86         -      60.1
+  scn_full_tight_P5_R20_seed1       igvnd_wDLY  heuristic_    95601.00     165.00     953.50    86         -      60.2
+  scn_full_tight_P5_R20_seed1       igvnd_wMOV  heuristic_     1300.00     219.00    1081.00     0         -      60.7
+  scn_hub_tight_P5_R10_seed1        igvnd_wMK   heuristic_     6163.00      60.50     113.00     0         -      60.0
+  scn_hub_tight_P5_R10_seed1        igvnd_wDLY  heuristic_    10872.50      62.50     108.00    10         -      60.1
+  scn_hub_tight_P5_R10_seed1        igvnd_wMOV  heuristic_      173.50      60.50     113.00     0         -      60.0
+  scn_none_tight_P5_R10_seed1       igvnd_wMK   heuristic_     5844.50      57.50      94.50     0         -      22.4
+  scn_none_tight_P5_R10_seed1       igvnd_wDLY  heuristic_     9408.50      58.50      93.50     0         -      10.7
+  scn_none_tight_P5_R10_seed1       igvnd_wMOV  heuristic_      152.00      58.50      93.50     0         -      15.9
+  scn_triangle_loose_P5_R10_seed10  igvnd_wMK   heuristic_     6265.50      62.50       7.50     8         -      60.0
+  scn_triangle_loose_P5_R10_seed10  igvnd_wDLY  heuristic_      323.50      69.50       2.50     4         -      32.2
+  scn_triangle_loose_P5_R10_seed10  igvnd_wMOV  heuristic_       77.50      69.50       8.00     0         -      40.0
+  scn_triangle_loose_P5_R10_seed2   igvnd_wMK   heuristic_     6872.00      68.50      10.00    12         -      60.1
+  scn_triangle_loose_P5_R10_seed2   igvnd_wDLY  heuristic_       81.50      71.50       0.00    10         -      39.9
+  scn_triangle_loose_P5_R10_seed2   igvnd_wMOV  heuristic_       75.50      71.50       4.00     0         -      55.4
+  scn_triangle_tight_P5_R10_seed1   igvnd_wMK   heuristic_     5961.00      58.50     103.00     8         -      60.0
+  scn_triangle_tight_P5_R10_seed1   igvnd_wDLY  heuristic_    10068.50      60.50     100.00     8         -      54.6
+  scn_triangle_tight_P5_R10_seed1   igvnd_wMOV  heuristic_      167.50      61.50     106.00     0         -      56.5
+  scn_triangle_tight_P5_R10_seed5   igvnd_wMK   heuristic_     5754.00      56.50      96.00     8         -      57.4
+  scn_triangle_tight_P5_R10_seed5   igvnd_wDLY  heuristic_     9468.50      60.50      94.00     8         -      55.0
+  scn_triangle_tight_P5_R10_seed5   igvnd_wMOV  heuristic_      172.50      66.50     106.00     0         -      39.2
+  scn_triangle_tight_P5_R20_seed1   igvnd_wMK   heuristic_    12960.00     122.50     710.00     0         -      60.0
+  scn_triangle_tight_P5_R20_seed1   igvnd_wDLY  heuristic_    63733.50     133.50     636.00     0         -      60.1
+  scn_triangle_tight_P5_R20_seed1   igvnd_wMOV  heuristic_      780.50     130.50     650.00     0         -      60.0
+  scn_triangle_tight_P5_R5_seed10   igvnd_wMK   heuristic_     3500.00      35.00       0.00     0         -       0.5
+  scn_triangle_tight_P5_R5_seed10   igvnd_wDLY  heuristic_       35.00      35.00       0.00     0         -       0.6
+  scn_triangle_tight_P5_R5_seed10   igvnd_wMOV  heuristic_       35.00      35.00       0.00     0         -       0.4
+  scn_two_rows_tight_P5_R10_seed1   igvnd_wMK   heuristic_     5954.00      58.50      98.00     6         -      58.3
+  scn_two_rows_tight_P5_R10_seed1   igvnd_wDLY  heuristic_     9763.50      59.50      97.00     4         -      37.8
+  scn_two_rows_tight_P5_R10_seed1   igvnd_wMOV  heuristic_      160.00      61.50      98.50     0         -      34.1
+==================================================================
