@@ -86,6 +86,7 @@ class IteratedGreedyVNDJobSolver:
         self._config: dict = {}
         self._log: list[str] = []
         self._enable_b: bool = True   # Mode-B toggle for the staged fallback
+        self._deadline: float = float("inf")  # set per-solve; see _out_of_time
 
     # ------------------------------------------------------------------
     # Contract
@@ -115,6 +116,11 @@ class IteratedGreedyVNDJobSolver:
 
     def get_log(self) -> list[str]:
         return list(self._log)
+
+    def _out_of_time(self) -> bool:
+        """True once the wall-clock deadline is reached.  Polled by the inner
+        scans so no single sweep overruns ``time_limit_s``."""
+        return time.perf_counter() >= self._deadline
 
     # ------------------------------------------------------------------
     # Solve
@@ -156,6 +162,12 @@ class IteratedGreedyVNDJobSolver:
             man_phase_frac = 1.0
 
         t0 = time.perf_counter()
+        # Hard wall-clock deadline.  The IG loop checks time between iterations,
+        # but a single construction / VND sweep / perturbation on a large dense
+        # instance can itself overrun by minutes, so the inner scans poll this
+        # deadline and abort early (see _out_of_time).  This keeps every run
+        # within time_limit_s as the benchmark requires.
+        self._deadline = t0 + self.time_limit
 
         # Phase A always runs with the fast zero-movement decoder so a strong
         # incumbent is found cheaply.  Phase B (if manoeuvres are enabled)
@@ -716,6 +728,9 @@ class IteratedGreedyVNDJobSolver:
         partial_order: list[str] = []
         for r in order:
             partial_order.append(r)
+            if self._out_of_time():
+                assignment[r] = self.positions[0]  # finish fast, stay feasible
+                continue
             best_p, best_o = None, float("inf")
             for p in self.positions:
                 assignment[r] = p
@@ -739,6 +754,8 @@ class IteratedGreedyVNDJobSolver:
         k = 0
         neighbourhoods = (self._n_reassign, self._n_swap_pos, self._n_reorder)
         while k < len(neighbourhoods):
+            if self._out_of_time():
+                break
             improved, assignment, order, cur = neighbourhoods[k](assignment, order, cur)
             if improved:
                 k = 0  # B-VND reset
@@ -749,6 +766,8 @@ class IteratedGreedyVNDJobSolver:
     def _n_reassign(self, assignment, order, cur):
         """N1 — move one aircraft to a different position (first improvement)."""
         for r in self.aircraft_ids:
+            if self._out_of_time():
+                return False, assignment, order, cur
             p0 = assignment[r]
             for p in self.positions:
                 if p == p0:
@@ -764,6 +783,8 @@ class IteratedGreedyVNDJobSolver:
         """N2 — swap the positions of two aircraft (first improvement)."""
         ids = self.aircraft_ids
         for i in range(len(ids)):
+            if self._out_of_time():
+                return False, assignment, order, cur
             for j in range(i + 1, len(ids)):
                 ri, rj = ids[i], ids[j]
                 if assignment[ri] == assignment[rj]:
@@ -778,6 +799,8 @@ class IteratedGreedyVNDJobSolver:
     def _n_reorder(self, assignment, order, cur):
         """N3 — swap two aircraft in the priority order (first improvement)."""
         for i in range(len(order)):
+            if self._out_of_time():
+                return False, assignment, order, cur
             for j in range(i + 1, len(order)):
                 order[i], order[j] = order[j], order[i]
                 o = self._objective(self._decode(assignment, order))
@@ -806,6 +829,13 @@ class IteratedGreedyVNDJobSolver:
         kept_order = [r for r in order if r not in removed]
 
         for r in removed:
+            if self._out_of_time():
+                # Out of budget mid-reconstruction: place the rest cheaply
+                # (append at the end on the first position) so we still return
+                # a complete, feasible (assignment, order).
+                a2[r] = self.positions[0]
+                kept_order.append(r)
+                continue
             best = None  # (obj, position, slot)
             for slot in range(len(kept_order) + 1):
                 trial_order = kept_order[:slot] + [r] + kept_order[slot:]
