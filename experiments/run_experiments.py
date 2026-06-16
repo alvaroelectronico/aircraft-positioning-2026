@@ -71,6 +71,19 @@ TopologyHeuristicJobAR = _ar_mod.TopologyHeuristicJob
 sys.path.insert(0, str(_ROOT / "methods" / "iterated_greedy_vnd_v01" / "jobs"))  # iterated_greedy_vnd
 from iterated_greedy_vnd import IteratedGreedyVNDJobSolver  # noqa: E402
 
+# theory_assisted method — Claude-assisted v02, descended from the same IGVND
+# baseline as v01.  Its solver class shares the name IteratedGreedyVNDJobSolver,
+# so it is loaded via importlib under a distinct module name (mirroring the
+# autoresearch loader above) to avoid colliding with the v01 import.  This is
+# the sanctioned batch-registration step; the runner is outside methods/<X>/ so
+# it is exempt from the cross-method isolation scan.  Labels carry a "ta_"
+# prefix to stay distinct from v01's "igvnd_*".
+_TA_PATH = _ROOT / "methods" / "theory_assisted" / "jobs" / "iterated_greedy_vnd.py"
+_ta_spec = _il_util.spec_from_file_location("_ta_iterated_greedy_vnd", str(_TA_PATH))
+_ta_mod = _il_util.module_from_spec(_ta_spec)
+_ta_spec.loader.exec_module(_ta_mod)
+TheoryAssistedIGVND = _ta_mod.IteratedGreedyVNDJobSolver
+
 from tgr_solver import TGRSolver                            # noqa: E402
 from fixed_assignment_scheduler_aircraft import FixedAssignmentSchedulerAircraft  # noqa: E402
 from fixed_assignment_scheduler_job      import FixedAssignmentSchedulerJob       # noqa: E402
@@ -449,6 +462,12 @@ EXPERIMENTS: list[dict] = [
     {"label": "igvnd_wDLY",    "solver_class": IteratedGreedyVNDJobSolver, "config": {**_W_DLY, "seed": 1}},
     {"label": "milp_job_wMOV", "solver_class": MILPJobsV2Solver,           "config": {**_W_MOV}},
     {"label": "igvnd_wMOV",    "solver_class": IteratedGreedyVNDJobSolver, "config": {**_W_MOV, "seed": 1}},
+
+    # theory_assisted v02 (manoeuvre-aware IG+VND).  Same three weight profiles
+    # as v01's igvnd_*; "ta_" prefix keeps the rows distinct in results.csv.
+    {"label": "ta_igvnd_wMK",  "solver_class": TheoryAssistedIGVND, "config": {**_W_MK,  "seed": 1}},
+    {"label": "ta_igvnd_wDLY", "solver_class": TheoryAssistedIGVND, "config": {**_W_DLY, "seed": 1}},
+    {"label": "ta_igvnd_wMOV", "solver_class": TheoryAssistedIGVND, "config": {**_W_MOV, "seed": 1}},
 
     # =========================================================================
     # ARCHIVED — uncomment to reproduce earlier experiments

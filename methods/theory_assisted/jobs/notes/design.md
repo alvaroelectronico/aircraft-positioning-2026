@@ -66,16 +66,99 @@ that space.
   separately; restart the walk from best every 50 stale iterations.
   Early-stop after `max_no_improve` (default 400) non-improving iterations.
 
+## Remaining gap of v1 (drove v02)
+
+Even with nesting, v1 never *spends* a manoeuvre: it stays at zero movements
+by construction. On tight-blocking instances the MILP edges ahead by buying
+a few Mode-B/C manoeuvres to compress the schedule. That residual gap is
+exactly the trade v1 could not make.
+
+# v02 — manoeuvre-spending decoder (Mode C) + κ fixpoint
+
+**Status:** implemented in [`iterated_greedy_vnd.py`](../iterated_greedy_vnd.py)
+(2026-06-15). The two-layer architecture, the IG loop and the three VND
+neighbourhoods are **unchanged** — only the decoder and the search schedule
+gained capabilities, exactly as v1's "next iteration" note anticipated.
+
+## What changed and why
+
+The benchmark weight profiles this attempt targets are the three *pure*
+profiles `(W^M,W^D,W^S) ∈ {(100,1,1), (1,100,1), (1,1,100)}`. Measurement
+reframed the motivation away from v1's "compress makespan" story:
+
+- under the default `(0.1,1,10)` profile even the MILP picks **0 movements**
+  (R10 seed1: MILP obj 110.55, makespan 60.5, delay 104.5, mov 0), so
+  manoeuvres only pay on `(100,1,1)` (makespan) and `(1,100,1)` (delay);
+- under `(1,1,100)` (movements) the zero-movement decode is already optimal
+  on the dominant term — so a decoder that *may* spend manoeuvres but is
+  never forced to dominates all three.
+
+## The manoeuvre-aware decoder (`_decode_man`)
+
+A forward list-scheduler places each aircraft (in `order`) at the start time
+minimising a **weight-aware local cost** `wM·finish + wD·delay + wS·2·events`
+over a candidate set induced by the placed neighbours. A rear access instant
+may now land **Mode C** — strictly inside an *interruptible* front job —
+which pauses that job (`κ += 1`, the job grows by `δ`) at a cost of 2
+movements, whenever the weighted cost rewards it. Landing inside a
+non-interruptible job, or on a packed job boundary, is rejected as
+infeasible.
+
+**κ fixpoint.** A Mode-C interruption lengthens the front job, shifting the
+front aircraft's finish and its same-position successors, which changes the
+access windows other rears see. The decoder therefore iterates: place →
+re-classify every access (mirroring `checker.py`) → recompute κ → rebuild
+durations → re-place, until the interruption counts stabilise (cap 8). At
+convergence the durations used equal `D_j + δ·κ_j` and the classification
+reproduces exactly those κ, so the schedule is self-consistent and passes
+the checker.
+
+## Two safety guarantees (v02 ≥ v01, always feasible)
+
+1. **`_decode` returns `min(zero, man)`** per (assignment, order): it
+   evaluates both the v1 zero-movement decode and `_decode_man` and keeps the
+   lower-objective one. v02 is therefore never worse than v1 on any
+   (assignment, order). (Bonus: on several instances `_decode_man` wins
+   *at zero movements* — its weight-aware forward pass packs tighter than the
+   v1 earliest-fit rule.)
+2. **Non-convergence falls back** to the zero-movement decode, which is always
+   feasible and consistent.
+
+## Adaptive two-phase search (handles the decoder's cost)
+
+`_decode_man` is ~50× slower than the zero decode and *starves* the IG search
+on large instances (R20 hit 0 IG iterations once manoeuvres were on). The
+search is therefore split: **phase A** uses the fast zero decoder to fix a
+strong incumbent, **phase B** turns manoeuvres on to refine it. The split is
+adaptive to size (`man_phase_frac`): `R ≤ 12` → manoeuvres from the start;
+`13 ≤ R ≤ 22` → 50/50; `R ≥ 23` → full budget to phase A (identical to v1)
+plus a single manoeuvre *polish* at the end. The large-instance setting keeps
+phase A ≡ v1 and the final polish can only improve, so v02 never regresses.
+
+## Results (v02 vs v01 baseline, 20 s, all COMPLIANT)
+
+| instance         | wMK (100,1,1) | wDLY (1,100,1) | wMOV (1,1,100) |
+| ---------------- | ------------- | -------------- | -------------- |
+| triangle_R10     | −6.3 %        | −10.9 %        | −5.7 %         |
+| triangle_R20     | −1.1 %        | −2.5 %         | −7.1 %         |
+| triangle_R30     |  0.0 %        |  0.0 %         | −0.3 %         |
+| full_R20         | **−22.3 %**   | −9.5 %         | **−29.9 %**    |
+
+Manoeuvres are actually spent where the topology is dense (full_R20: up to
+38–60 movements under the makespan/delay profiles); on sparse triangle
+topologies most of the gain comes from the tighter weight-aware packing at
+zero movements.
+
 ## Remaining gap (drives the next iteration)
 
-Even with nesting, the heuristic never *spends* a manoeuvre: it stays at
-zero movements by construction. On tight-blocking instances the MILP still
-edges ahead by buying a few Mode-B/C manoeuvres to compress the schedule
-further (triangle_R10: MILP makespan 59.5 with 8 manoeuvres vs IG+VND 62.5
-with 0). The residual makespan gap (~5 %) is exactly that trade the
-heuristic cannot yet make.
-
-**Next iteration (v3):** add an incremental κ fixpoint to the decoder so the
-VND can evaluate Mode-B/C overlap moves, letting it trade a manoeuvre for a
-shorter makespan when the weights reward it. The VND neighbourhoods and the
-IG loop stay as-is; only the decoder gains the manoeuvre-spending branch.
+- **Mode B not yet created.** The decoder packs each aircraft's jobs tight,
+  so there are no inter-job gaps to route a Mode-B access through. Opening a
+  gap of `≥ μ` between two front jobs (cost 2 movements, no δ extension) is
+  the natural next lever — it lets a rear pass without lengthening any job,
+  which the makespan profile should favour.
+- **Polish only on the single best (a,o) for large R.** An elite pool of the
+  top-K phase-A solutions, each manoeuvre-polished, would likely recover more
+  on R ≥ 23 than polishing only the incumbent.
+- **Decoder speed.** Incremental re-classification (only arcs incident on the
+  moved aircraft change) would let manoeuvres run throughout the search even
+  on large instances, removing the need for the size-based phase split.

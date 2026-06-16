@@ -14,40 +14,47 @@ Architecture (two layers, as the synthesis recommends)
 2. **Inner timing decision** — a deterministic *decoder* that, given an
    assignment and an order, produces job start/finish times.
 
-The decoder (this first version)
---------------------------------
-We adopt a **zero-movement** decoding rule that is feasible by
-construction.  For any blocking arc ``(front, rear)``, the rear
-aircraft's two access instants (its own entry and exit) must each land
-**Mode A** (front vacant) relative to the front aircraft's stay.  With a
-margin ``eta`` that leaves three feasible relative placements:
+The decoder (v02): manoeuvre-aware, with a zero-movement fallback
+-----------------------------------------------------------------
+v01 used a **zero-movement** decoding rule that is feasible by
+construction: every rear access instant is forced **Mode A** (front
+vacant) by placing the rear before / after / enclosing the front stay
+(margin ``eta``); same-position aircraft are separated by ``epsilon``;
+non-conflicting positions run in parallel.  That rule guarantees
+``movements = 0`` and ``kappa = 0`` but can never *spend* a manoeuvre to
+compress the schedule.
 
-* rear **before** the front  (rear exit <= front start - eta),
-* rear **after**  the front  (rear entry >= front finish + eta), or
-* rear **encloses** the front (rear entry <= front start - eta *and*
-  rear exit >= front finish + eta) — both instants still Mode A.
+Under two of the three benchmark weight profiles that matters:
 
-The third option (containment / nesting) lets blocking-related aircraft
-**overlap in time** when one is long enough to wrap the other, which is
-what breaks the full-serialisation bottleneck on tight-blocking
-topologies while keeping ``movements = 0`` and ``kappa = 0`` (no Mode-C
-feedback on timing).  Aircraft sharing a position are separated by
-``epsilon`` (RQ08); aircraft on non-conflicting positions run fully in
-parallel.
+* ``(W^M,W^D,W^S) = (100,1,1)`` (makespan-priority) and ``(1,100,1)``
+  (delay-priority) both *reward* letting a rear aircraft access **during**
+  the front aircraft's stay, because it lets the rear finish earlier.
+* ``(1,1,100)`` (movement-priority) rewards exactly the opposite — and the
+  zero-movement decode is already optimal on the movement term there.
 
-Consequences:
-- ``movements = 0`` always; the heuristic optimises ``makespan`` and
-  ``total_delay`` only, by choosing the assignment and the order.
-- For the movement-priority weight profile this is automatically strong;
-  for makespan/delay-priority profiles it trades the MILP's ability to
-  overlap-via-manoeuvre for guaranteed feasibility and speed.  Allowing
-  controlled Mode-B/C overlaps is the obvious next iteration (it needs an
-  incremental kappa fixpoint in the decoder); kept out of v1 on purpose.
+So v02 adds a **manoeuvre-aware decoder** (``_decode_man``) that *may*
+route a rear access through **Mode C** — strictly inside an interruptible
+front job, which pauses that job (``kappa += 1``, the job grows by
+``delta``) and costs 2 movements — when the weighted objective rewards it.
+The Mode-C job extension feeds back into the front aircraft's finish (and
+its same-position successors), so the decoder iterates a **kappa fixpoint**
+until the interruption counts stabilise.
 
-The optimisation that *is* exposed (assignment + order) is driven by the
-IG+VND loop, exactly the architecture cross-validated by
-[[Scheduling_Heuristics]], [[Variable_Neighborhood_Descent]] and
-[[Iterated_Local_Search]] in the synthesis.
+Two safety guarantees keep v02 dominant over the v01 baseline and always
+feasible:
+
+1. ``_decode`` evaluates **both** ``_decode_zero`` (the v01 rule) and
+   ``_decode_man`` and returns whichever has the lower weighted objective.
+   v02 is therefore never worse than v01 on any (assignment, order).
+2. If the kappa fixpoint does not converge (durations and interruption
+   counts must be mutually consistent for ``checker.py`` to pass), the
+   manoeuvre decode is discarded and the zero-movement decode is used.
+
+Mode B (routing an access through an inter-job *gap* of the front) is not
+actively created in v02: the decoder packs each aircraft's jobs tight, so
+no gaps exist to route through, and any access that would land on a packed
+job boundary is rejected as infeasible.  Opening gaps for Mode-B
+manoeuvres is the natural next iteration.
 
 Solution dict shape (consumed by ``problems/jobs/checker.py``)::
 
@@ -60,9 +67,18 @@ from __future__ import annotations
 import random
 import time
 
+# Numerical tolerance.  Matches ``problems/jobs/checker.py`` (TOL = 1e-4) so
+# that the mode classification used inside the decoder agrees with the
+# checker's classification of the schedule we emit.
+TOL = 1e-4
+# Extra safety slack used only when *generating* candidate placements, so
+# that a placement intended as Mode A / Mode C lands comfortably away from
+# the eta boundary the checker tests against.
+SAFE = 1e-2
+
 
 class IteratedGreedyVNDJobSolver:
-    """Iterated Greedy + VND heuristic (Candidate A)."""
+    """Iterated Greedy + VND heuristic (Candidate A), manoeuvre-aware v02."""
 
     name = "iterated_greedy_vnd"
 
@@ -81,12 +97,15 @@ class IteratedGreedyVNDJobSolver:
             time_limit_s      : wall-clock cap in seconds (default 60)
             weight_makespan   : W^M (default 0.1)
             weight_delay      : W^D (default 1.0)
-            weight_movements  : W^S (default 10.0)  — informational here
+            weight_movements  : W^S (default 10.0)
             seed              : RNG seed for reproducibility (default 1)
             k_destroy         : aircraft removed per IG perturbation
                                 (default max(1, R // 4))
             max_no_improve    : early-stop after this many non-improving
                                 IG iterations (default 400)
+            allow_manoeuvres  : enable the Mode-C manoeuvre decoder
+                                (default True).  When False the solver is
+                                the pure v01 zero-movement heuristic.
         """
         self._config.update(kwargs)
 
@@ -107,6 +126,10 @@ class IteratedGreedyVNDJobSolver:
         self.wM = float(cfg.get("weight_makespan", 0.1))
         self.wD = float(cfg.get("weight_delay", 1.0))
         self.wS = float(cfg.get("weight_movements", 10.0))
+        # Master switch for the manoeuvre-aware decoder.  When True the search
+        # runs in two phases (see below); when False it is the pure v01
+        # zero-movement heuristic.
+        self._man_master = bool(cfg.get("allow_manoeuvres", True))
         self.rng = random.Random(int(cfg.get("seed", 1) or 1))
 
         self._prepare(instance_data)
@@ -114,7 +137,30 @@ class IteratedGreedyVNDJobSolver:
         k_destroy = int(cfg.get("k_destroy", max(1, R // 4)))
         max_no_improve = int(cfg.get("max_no_improve", 400))
 
+        # Fraction of the budget spent in the fast zero-movement phase before
+        # manoeuvres are switched on.  The manoeuvre decode is ~50x slower, so
+        # the split is adaptive to instance size: small instances can afford
+        # manoeuvres throughout (frac 0); mid-size instances split 50/50;
+        # large instances keep the whole budget for the fast search and only
+        # apply a single manoeuvre *polish* at the end (frac 1) — that keeps
+        # phase A identical to the v01 baseline and the final polish can only
+        # improve, so v02 never regresses against v01 on large instances.
+        if "man_phase_frac" in cfg:
+            man_phase_frac = float(cfg["man_phase_frac"])
+        elif R <= 12:
+            man_phase_frac = 0.0
+        elif R <= 22:
+            man_phase_frac = 0.5
+        else:
+            man_phase_frac = 1.0
+
         t0 = time.perf_counter()
+
+        # Phase A always runs with the fast zero-movement decoder so a strong
+        # incumbent is found cheaply.  Phase B (if manoeuvres are enabled)
+        # turns them on to refine that incumbent.
+        self.allow_man = False
+        switch_at = self.time_limit * man_phase_frac if self._man_master else self.time_limit
 
         # ---- construction (NEH order + greedy best-position insertion) ----
         order = sorted(self.aircraft_ids, key=lambda r: -self.T[r])
@@ -132,7 +178,21 @@ class IteratedGreedyVNDJobSolver:
         cur_assign, cur_order = dict(best_assign), list(best_order)
         it = 0
         no_improve = 0
+        switched = False
         while (time.perf_counter() - t0) < self.time_limit and no_improve < max_no_improve:
+            # Phase switch: enable manoeuvres once the fast phase budget is
+            # spent.  Re-evaluate the incumbent under the richer decoder (it
+            # may now score lower) and reset the stall counter for phase B.
+            if self._man_master and not switched and (time.perf_counter() - t0) >= switch_at:
+                self.allow_man = True
+                switched = True
+                best_obj = self._objective(self._decode(best_assign, best_order))
+                cur_assign, cur_order = dict(best_assign), list(best_order)
+                no_improve = 0
+                self._log.append(
+                    f"iter {it:>4}  manoeuvres ON  incumbent re-eval obj={best_obj:.4f}  "
+                    f"({time.perf_counter() - t0:.2f}s)"
+                )
             it += 1
             a2, o2 = self._perturb(cur_assign, cur_order, k_destroy)
             a2, o2 = self._vnd(a2, o2)
@@ -158,6 +218,11 @@ class IteratedGreedyVNDJobSolver:
             if no_improve > 0 and no_improve % 50 == 0:
                 cur_assign, cur_order = dict(best_assign), list(best_order)
 
+        # Final safety net: if manoeuvres never got switched on (e.g. phase A
+        # used the whole budget) but they are enabled, polish the best (a,o)
+        # once with the manoeuvre decoder and keep it only if it improves.
+        if self._man_master and not self.allow_man:
+            self.allow_man = True
         elapsed = time.perf_counter() - t0
         sol = self._decode(best_assign, best_order)
         self._log.append(
@@ -176,6 +241,8 @@ class IteratedGreedyVNDJobSolver:
     def _prepare(self, inst: dict) -> None:
         self.eta = float(inst.get("eta", 1.0))
         self.eps = float(inst.get("min_separation", 0.5))
+        self.delta = float(inst.get("delta", 2.0))
+        self.mu = float(inst.get("mu", 1.0))
 
         self.positions: list[str] = list(inst["hangar"]["positions"])
         arcs = inst["hangar"]["blocking_arcs"]
@@ -200,63 +267,176 @@ class IteratedGreedyVNDJobSolver:
         for pr in inst["job_precedences"]:
             succ[pr["before"]] = pr["after"]
 
-        self.chain: dict[str, list[tuple[str, float]]] = {}
+        # chain[r] = ordered list of (job_id, nominal_duration, interruptible)
+        self.chain: dict[str, list[tuple[str, float, bool]]] = {}
         self.T: dict[str, float] = {}
         for r in self.aircraft_ids:
             jl = jobs_by_ac.get(r, [])
             by_id = {j["id"]: j for j in jl}
             first = next((j for j in jl if j.get("is_first")), jl[0] if jl else None)
-            chain: list[tuple[str, float]] = []
+            chain: list[tuple[str, float, bool]] = []
             cur = first["id"] if first else None
             seen: set[str] = set()
             while cur is not None and cur in by_id and cur not in seen:
                 seen.add(cur)
-                chain.append((cur, float(by_id[cur]["duration"])))
+                jd = by_id[cur]
+                chain.append((cur, float(jd["duration"]), bool(jd.get("interruptible", False))))
                 cur = succ.get(cur)
             # Fallback: append any jobs not reached via the chain (defensive).
             for j in jl:
                 if j["id"] not in seen:
-                    chain.append((j["id"], float(j["duration"])))
+                    chain.append((j["id"], float(j["duration"]), bool(j.get("interruptible", False))))
             self.chain[r] = chain
-            self.T[r] = sum(d for _, d in chain)
+            self.T[r] = sum(d for _, d, _ in chain)
 
-    def _pos_conflict(self, p: str, q: str) -> bool:
-        return (p, q) in self._conflict
+    # ==================================================================
+    # Job-interval construction (packed tight from a start time)
+    # ==================================================================
+
+    def _job_intervals(self, r: str, start: float,
+                       kappa: dict[str, int] | None) -> list[tuple[str, float, float, bool]]:
+        """Return r's job intervals packed tight from ``start``.
+
+        Each entry is ``(job_id, job_start, job_finish, interruptible)``.
+        ``job_finish - job_start = D_j + delta * kappa_j`` so the intervals
+        already reflect any Mode-C extensions accumulated so far.
+        """
+        out: list[tuple[str, float, float, bool]] = []
+        t = start
+        for jid, d, intr in self.chain[r]:
+            dur = d + self.delta * (kappa.get(jid, 0) if kappa else 0)
+            out.append((jid, t, t + dur, intr))
+            t += dur
+        return out
+
+    def _duration(self, r: str, kappa: dict[str, int] | None) -> float:
+        if not kappa:
+            return self.T[r]
+        return self.T[r] + self.delta * sum(
+            kappa.get(jid, 0) for jid, _, _ in self.chain[r]
+        )
+
+    # ==================================================================
+    # Access-mode classification (mirrors problems/jobs/checker.py)
+    # ==================================================================
+
+    def _classify(self, tau: float, s: float, f: float,
+                  jobs: list[tuple[str, float, float, bool]]) -> tuple[str, object]:
+        """Classify access instant ``tau`` against a front stay ``[s, f]``.
+
+        Returns ``(kind, info)`` where kind is 'A' (no manoeuvre), 'B'
+        (inter-job gap, info = gap index), 'C' (inside interruptible job,
+        info = job_id) or 'X' (infeasible).  The inequalities mirror
+        ``_classify_access`` in the checker exactly.
+        """
+        eta = self.eta
+        if tau <= s - eta + TOL:
+            return ("A", None)
+        if tau >= f + eta - TOL:
+            return ("A", None)
+        for (jid, js, jf, intr) in jobs:
+            if js + eta - TOL <= tau <= jf - eta + TOL:
+                if intr:
+                    return ("C", jid)
+                return ("X", None)
+        for k in range(len(jobs) - 1):
+            fk = jobs[k][2]
+            sk1 = jobs[k + 1][1]
+            if fk - TOL <= tau <= sk1 + TOL:
+                return ("B", k)
+        if s - eta <= tau <= s + TOL:
+            return ("A", None)
+        if f - TOL <= tau <= f + eta:
+            return ("A", None)
+        return ("X", None)
+
+    # ==================================================================
+    # Decoder dispatcher: best of zero-movement and manoeuvre-aware
+    # ==================================================================
+
+    def _decode(self, assignment: dict, order: list[str]) -> dict:
+        zero = self._decode_zero(assignment, order)
+        if not self.allow_man:
+            return zero
+        man = self._decode_man(assignment, order)
+        if man is not None and man["objective"] < zero["objective"] - 1e-9:
+            return man
+        return zero
+
+    def _objective(self, sol: dict) -> float:
+        return float(sol["objective"])
+
+    def _finalise(self, placed: dict, assignment: dict,
+                  kappa: dict[str, int] | None, movements: int) -> dict:
+        """Build the solution dict and weighted objective from a placement.
+
+        ``placed[r] = (s_r, f_r)``.  Job finish times are rebuilt packed
+        tight with the supplied kappa extensions.
+        """
+        aircraft_out = []
+        makespan = 0.0
+        total_delay = 0.0
+        for r in self.aircraft_ids:
+            if r not in placed:
+                continue  # partial decode during greedy construction
+            s_r, _ = placed[r]
+            jobs_out = []
+            f_r = s_r
+            for jid, js, jf, _ in self._job_intervals(r, s_r, kappa):
+                jobs_out.append({"id": jid, "start": js, "finish": jf})
+                f_r = jf
+            delay = max(0.0, f_r - self.L[r])
+            makespan = max(makespan, f_r)
+            total_delay += delay
+            aircraft_out.append({
+                "id": r,
+                "position": assignment[r],
+                "start": s_r,
+                "finish": f_r,
+                "delay": delay,
+                "jobs": jobs_out,
+            })
+
+        obj = self.wM * makespan + self.wD * total_delay + self.wS * movements
+        return {
+            "status": "heuristic_ok",
+            "objective": round(obj, 6),
+            "metrics": {
+                "makespan": makespan,
+                "total_delay": total_delay,
+                "movements": movements,
+            },
+            "aircraft": aircraft_out,
+        }
+
+    # ==================================================================
+    # Zero-movement decoder (v01 rule) — always feasible, movements = 0
+    # ==================================================================
 
     def _forbidden(self, p, dur, p2, s2, f2):
         """Open intervals where our start ``t`` is infeasible against an
         already-placed aircraft on position ``p2`` occupying ``[s2, f2]``.
 
-        Returns 1 or 2 intervals.  Two intervals leave a feasible *hole*
-        between them — the nesting (containment) option — which the
-        earliest-fit scan can land in.
+        Two intervals leave a feasible *hole* between them — the nesting
+        (containment) option — which the earliest-fit scan can land in.
         """
         eta, eps = self.eta, self.eps
         if p2 == p:
-            # Same position: must be fully before/after with epsilon gap.
             return [(s2 - dur - eps, f2 + eps)]
         if (p2, p) in self._arcs:
-            # We are the REAR (p2 is the front).  Allowed: before, after,
-            # or our stay encloses the front stay.
-            if dur >= (f2 - s2) + 2 * eta - 1e-9:        # enclose feasible
+            # We are the REAR (p2 is the front): before, after, or enclose.
+            if dur >= (f2 - s2) + 2 * eta - 1e-9:
                 return [(s2 - eta - dur, f2 + eta - dur), (s2 - eta, f2 + eta)]
             return [(s2 - eta - dur, f2 + eta)]
         if (p, p2) in self._arcs:
-            # We are the FRONT (p2 is the rear).  Allowed: rear before,
-            # rear after, or the rear stay encloses ours.
-            if dur <= (f2 - s2) - 2 * eta + 1e-9:        # enclose feasible
+            # We are the FRONT (p2 is the rear): rear before, after, or enclose.
+            if dur <= (f2 - s2) - 2 * eta + 1e-9:
                 return [(s2 - dur - eta, s2 + eta), (f2 - dur - eta, f2 + eta)]
             return [(s2 - dur - eta, f2 + eta)]
-        return []  # non-conflicting positions: free overlap
+        return []
 
-    # ==================================================================
-    # Decoder  (assignment + order  ->  full solution dict)
-    # ==================================================================
-
-    def _decode(self, assignment: dict, order: list[str]) -> dict:
-        eta, eps = self.eta, self.eps
+    def _decode_zero(self, assignment: dict, order: list[str]) -> dict:
         placed: dict[str, tuple[float, float]] = {}
-
         for r in order:
             p = assignment[r]
             dur = self.T[r]
@@ -273,46 +453,191 @@ class IteratedGreedyVNDJobSolver:
                         t = hi
                         moved = True
             placed[r] = (t, t + dur)
+        return self._finalise(placed, assignment, kappa=None, movements=0)
 
-        # Build the solution dict (tight job chains, kappa = 0).
-        aircraft_out = []
-        makespan = 0.0
-        total_delay = 0.0
-        for r in self.aircraft_ids:
-            if r not in placed:
-                continue  # partial decode during greedy construction
-            s_r, f_r = placed[r]
-            jobs_out = []
-            tcur = s_r
-            for jid, d in self.chain[r]:
-                jobs_out.append({"id": jid, "start": tcur, "finish": tcur + d})
-                tcur += d
-            delay = max(0.0, f_r - self.L[r])
-            makespan = max(makespan, f_r)
-            total_delay += delay
-            aircraft_out.append({
-                "id": r,
-                "position": assignment[r],
-                "start": s_r,
-                "finish": f_r,
-                "delay": delay,
-                "jobs": jobs_out,
-            })
+    # ==================================================================
+    # Manoeuvre-aware decoder (Mode-C) with kappa fixpoint
+    # ==================================================================
 
-        obj = self.wM * makespan + self.wD * total_delay  # movements == 0
-        return {
-            "status": "heuristic_ok",
-            "objective": round(obj, 6),
-            "metrics": {
-                "makespan": makespan,
-                "total_delay": total_delay,
-                "movements": 0,
-            },
-            "aircraft": aircraft_out,
-        }
+    def _decode_man(self, assignment: dict, order: list[str]) -> dict | None:
+        """Forward list-scheduler that may spend Mode-C manoeuvres, wrapped
+        in a kappa fixpoint.  Returns a solution dict, or ``None`` if the
+        fixpoint does not converge to a self-consistent schedule (in which
+        case the caller falls back to the zero-movement decode)."""
+        kappa: dict[str, int] = {}
+        placed: dict[str, tuple[float, float]] = {}
+        for _ in range(8):  # fixpoint iteration cap
+            placed = self._forward_pass(assignment, order, kappa)
+            new_kappa, movements, feasible = self._classify_schedule(
+                assignment, placed, kappa
+            )
+            if not feasible:
+                return None
+            if new_kappa == kappa:
+                # Converged: durations used == D + delta*kappa and the
+                # classification reproduces exactly those kappa -> the
+                # schedule is self-consistent and will pass the checker.
+                return self._finalise(placed, assignment, kappa, movements)
+            kappa = new_kappa
+        return None  # did not converge within the cap
 
-    def _objective(self, sol: dict) -> float:
-        return float(sol["objective"])
+    def _forward_pass(self, assignment: dict, order: list[str],
+                      kappa: dict[str, int]) -> dict:
+        """Place every aircraft (in ``order``) at the start time minimising a
+        local weighted cost, given fixed durations (from ``kappa``) and the
+        already-placed neighbours.  Always returns a feasible placement."""
+        placed: dict[str, tuple[float, float]] = {}
+        for r in order:
+            dur = self._duration(r, kappa)
+            t = self._choose_start(r, assignment, dur, placed, kappa)
+            placed[r] = (t, t + dur)
+        return placed
+
+    def _choose_start(self, r: str, assignment: dict, dur: float,
+                      placed: dict, kappa: dict[str, int]) -> float:
+        """Pick the start time for ``r`` minimising local weighted cost.
+
+        Considers a set of candidate start times induced by the placed
+        neighbours, keeps only feasible ones (no same-position overlap, no
+        access inside a non-interruptible job, no access on a packed job
+        boundary), and scores each by
+        ``wM*finish + wD*delay + wS*2*events``.  A guaranteed-feasible
+        'after everything' candidate is always included.
+        """
+        p = assignment[r]
+        E_r = self.E[r]
+        cands: set[float] = {E_r}
+        latest = E_r
+        for r2, (s2, f2) in placed.items():
+            latest = max(latest, f2)
+            p2 = assignment[r2]
+            if p2 == p:
+                cands.add(f2 + self.eps + SAFE)
+                cands.add(s2 - self.eps - dur - SAFE)
+            if (p2, p) in self._arcs:
+                # r is REAR, r2 is FRONT.  r's entry (t) / exit (t+dur) vs r2.
+                cands.add(f2 + self.eta + SAFE)              # entry after front
+                cands.add(s2 - self.eta - SAFE)              # entry before front
+                cands.add(s2 - self.eta - dur - SAFE)        # exit before front
+                for (jid, js, jf, intr) in self._job_intervals(r2, s2, kappa):
+                    if intr and (jf - js) > 2 * self.eta + 2 * SAFE:
+                        mid = 0.5 * (js + jf)
+                        cands.add(mid)                       # entry mid-job (Mode C)
+                        cands.add(mid - dur)                 # exit mid-job (Mode C)
+            if (p, p2) in self._arcs:
+                # r is FRONT, r2 is REAR.  r2's fixed instants vs r's stay.
+                r_off = self._job_intervals(r, 0.0, kappa)   # offsets from t
+                for tau in (s2, f2):
+                    cands.add(tau + self.eta + SAFE)             # tau before r
+                    cands.add(tau - self.eta - dur - SAFE)       # tau after r
+                    for (jid, js, jf, intr) in r_off:
+                        if intr and (jf - js) > 2 * self.eta + 2 * SAFE:
+                            # centre r's job over tau -> tau is Mode C inside it
+                            cands.add(tau - 0.5 * (js + jf))
+        cands.add(latest + self.eta + self.eps + dur + SAFE)  # safe fallback
+
+        best_t = None
+        best_cost = float("inf")
+        for t in sorted(cands):
+            if t < E_r - 1e-9:
+                continue
+            ok, events = self._eval_start(r, assignment, t, dur, placed, kappa)
+            if not ok:
+                continue
+            f_r = t + dur
+            cost = (self.wM * f_r
+                    + self.wD * max(0.0, f_r - self.L[r])
+                    + self.wS * 2 * events)
+            if cost < best_cost - 1e-9:
+                best_cost = cost
+                best_t = t
+        if best_t is None:
+            # Should not happen (fallback candidate is always feasible), but
+            # be defensive: place strictly after everything.
+            best_t = latest + self.eta + self.eps + dur + SAFE
+        return best_t
+
+    def _eval_start(self, r: str, assignment: dict, t: float, dur: float,
+                    placed: dict, kappa: dict[str, int]):
+        """Return ``(feasible, events)`` for placing ``r`` at start ``t``.
+
+        ``events`` counts the Mode-B/C access events r's placement creates
+        against already-placed neighbours (each worth 2 movements).  Used as
+        a local cost guide only; authoritative movement counting happens in
+        ``_classify_schedule`` over the full placement.
+        """
+        p = assignment[r]
+        s_r, f_r = t, t + dur
+        r_jobs = self._job_intervals(r, t, kappa)
+        events = 0
+        for r2, (s2, f2) in placed.items():
+            p2 = assignment[r2]
+            if p2 == p:
+                # Same position: disjoint with >= eps gap on both sides.
+                if not (f_r + self.eps <= s2 + TOL or f2 + self.eps <= s_r + TOL):
+                    return (False, 0)
+            if (p2, p) in self._arcs:
+                jobs2 = self._job_intervals(r2, s2, kappa)
+                for tau in (s_r, f_r):
+                    kind, _ = self._classify(tau, s2, f2, jobs2)
+                    if kind == "X":
+                        return (False, 0)
+                    if kind in ("B", "C"):
+                        events += 1
+            if (p, p2) in self._arcs:
+                for tau in (s2, f2):
+                    kind, _ = self._classify(tau, s_r, f_r, r_jobs)
+                    if kind == "X":
+                        return (False, 0)
+                    if kind in ("B", "C"):
+                        events += 1
+        return (True, events)
+
+    def _classify_schedule(self, assignment: dict, placed: dict,
+                           kappa: dict[str, int]):
+        """Re-classify every access instant over the full placement.
+
+        Returns ``(new_kappa, movements, feasible)`` where ``new_kappa`` maps
+        each interrupted job to its Mode-C event count (so durations can be
+        rebuilt), ``movements`` is ``2 * (#Mode-B + #Mode-C events)`` and
+        ``feasible`` is False if any access is infeasible or a Mode-B gap is
+        too narrow for the cumulative mu rule.
+        """
+        new_kappa: dict[str, int] = {}
+        gap_uses: dict[tuple[str, int], int] = {}
+        events = 0
+        # Precompute job intervals per aircraft once.
+        jobs_of = {r: self._job_intervals(r, s, kappa) for r, (s, _) in placed.items()}
+        for (p_front, p_rear) in self._arcs:
+            fronts = [r for r in placed if assignment[r] == p_front]
+            rears = [r for r in placed if assignment[r] == p_rear]
+            for rf in fronts:
+                s_f, f_f = placed[rf]
+                jobs_f = jobs_of[rf]
+                for rr in rears:
+                    if rr == rf:
+                        continue
+                    s_r, f_r = placed[rr]
+                    for tau in (s_r, f_r):
+                        kind, info = self._classify(tau, s_f, f_f, jobs_f)
+                        if kind == "A":
+                            continue
+                        if kind == "X":
+                            return ({}, 0, False)
+                        if kind == "C":
+                            new_kappa[info] = new_kappa.get(info, 0) + 1
+                            events += 1
+                        elif kind == "B":
+                            gap_uses[(rf, info)] = gap_uses.get((rf, info), 0) + 1
+                            events += 1
+        # Cumulative Mode-B gap feasibility (gaps are zero in this decoder,
+        # so any Mode-B use is a failure; kept for completeness / future).
+        for (rf, k), n in gap_uses.items():
+            jobs_f = jobs_of[rf]
+            gap = jobs_f[k + 1][1] - jobs_f[k][2]
+            if gap + TOL < self.mu * n:
+                return ({}, 0, False)
+        return (new_kappa, 2 * events, True)
 
     # ==================================================================
     # Construction
@@ -406,9 +731,7 @@ class IteratedGreedyVNDJobSolver:
         sol = self._decode(assignment, order)
         contrib = {a["id"]: self.wD * a["delay"] + 1e-3 * self.T[a["id"]]
                    for a in sol["aircraft"]}
-        # Remove the k worst contributors, with a little randomisation so the
-        # loop explores rather than removing the same set every iteration.
-        ranked = sorted(self.aircraft_ids, key=lambda r: -contrib[r])
+        ranked = sorted(self.aircraft_ids, key=lambda r: -contrib.get(r, 0.0))
         pool = ranked[: min(len(ranked), k + 2)]
         self.rng.shuffle(pool)
         removed = pool[:k]
@@ -416,7 +739,6 @@ class IteratedGreedyVNDJobSolver:
         a2 = dict(assignment)
         kept_order = [r for r in order if r not in removed]
 
-        # Reinsert each removed aircraft at the best (position, order-slot).
         for r in removed:
             best = None  # (obj, position, slot)
             for slot in range(len(kept_order) + 1):
@@ -433,8 +755,7 @@ class IteratedGreedyVNDJobSolver:
         return a2, kept_order
 
 
-# Backwards-compatible alias: the Application contract only needs the
-# duck-typed methods, but earlier scaffolding referred to this name.
+# Backwards-compatible alias.
 TheoryAssistedJobSolver = IteratedGreedyVNDJobSolver
 
 
@@ -459,12 +780,15 @@ if __name__ == "__main__":
         "scn_triangle_tight_P5_R5" / "scn_triangle_tight_P5_R5_seed1.json"
     path = sys.argv[1] if len(sys.argv) > 1 else str(default)
     tlimit = float(sys.argv[2]) if len(sys.argv) > 2 else 10.0
+    wM = float(sys.argv[3]) if len(sys.argv) > 3 else 0.1
+    wD = float(sys.argv[4]) if len(sys.argv) > 4 else 1.0
+    wS = float(sys.argv[5]) if len(sys.argv) > 5 else 10.0
     inst = load_json(path)
 
     solver = IteratedGreedyVNDJobSolver()
     solver.configure_solver(
         time_limit_s=tlimit,
-        weight_makespan=0.1, weight_delay=1.0, weight_movements=10.0,
+        weight_makespan=wM, weight_delay=wD, weight_movements=wS,
         seed=1,
     )
     sol = solver.solve(inst)
