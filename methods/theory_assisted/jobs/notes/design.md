@@ -213,7 +213,16 @@ manoeuvres do not pay:
 - **Polish only on the single best (a,o) for large R.** An elite pool of the
   top-K phase-A solutions, each manoeuvre-polished, would likely recover more
   on R ≥ 23 than polishing only the incumbent.
-- **Decoder speed (partly done — interval caching).** Profiling the decode
+- **Decoder speed (v04 — light-objective path).** The search calls the decoder
+  only for its objective, but `_finalise` was building the full per-aircraft /
+  per-job solution dict on every call.  v04 adds a `full=False` path (used via
+  `_obj`) that computes makespan/delay/objective straight from the stored
+  `placed[r]` finishes and skips the dict; the full dict is built only for the
+  final solution `solve` returns.  Measured **+28–49 % more search iterations**
+  (triangle_R30 wMK 43→64, triangle_R20 wDLY 301→424, full_R20 wDLY 190→243)
+  with the objective computation unchanged — a pure speedup that helps the
+  time-limited large instances (still improving at 60 s).
+- **Decoder speed (v03.1 — interval caching).** Profiling the decode
   showed `_job_intervals` dominating (1.3 M calls, ~3.7 s of a 6 s run): every
   candidate in `_choose_start`/`_eval_start` rebuilt the *placed neighbours'*
   intervals, which do not change while later aircraft are placed. Caching them

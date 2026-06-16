@@ -309,7 +309,8 @@ compatibility).
 | Access-mode classifier (A / B / C / X) for one instant | `_classify(tau, s, f, jobs)` |
 | Job interval builder (kappa extensions + Mode-B inter-job gaps) | `_job_intervals(r, start, kappa, gaps)` |
 | Weighted duration of an aircraft (kappa + gaps) | `_duration(r, kappa, gaps)` |
-| Solution dict assembler + objective computation | `_finalise(placed, assignment, kappa, movements, gaps)` |
+| Dispatched objective only (search hot path, no dict) | `_obj(assignment, order)` |
+| Objective (+ full solution dict when `full`) from a placement | `_finalise(placed, assignment, kappa, movements, gaps, full)` |
 | Adaptive two-phase budget split (phase A: zero-movement, phase B: manoeuvre-on) | `man_phase_frac` logic in `solve()` |
 
 ## Key implementation notes
@@ -398,6 +399,7 @@ Track the method's evolution.  One row per behaviour-affecting commit
 | bcb71dd (main) | v03: **Mode-B** manoeuvres (open inter-job gaps via a `gaps` fixpoint state) so a rear can pass through a front gap with no δ cost; staged fallback (joint κ+gaps → κ-only → zero) fixes the dense-topology oscillation the gaps state introduces | `_seed1$` battery (36 runs, **36/36 COMPLIANT**) vs MILP: turns v02's dense-blocking R10 losses into wins (chain_R10 wDLY −7.2 %→**+11.7 %**, hub wDLY −4.5 %→+2.6 %, triangle_loose/medium up); dense `full` held at v02 level by the fallback; wMOV unchanged.  v03 ≥ v02 across the battery beyond noise |
 | 366273a (main) | v03.1: decode-speed refactor — cache placed neighbours' intervals (`placed_jobs`), shift r's offsets (`base_r`) instead of rebuilding, fast path in `_job_intervals` for the no-κ/no-gaps case | **Pure speedup, identical results** (deterministic construct+VND objectives byte-unchanged; spot-checks COMPLIANT).  `_job_intervals` calls 1.3 M→210 k; construct+VND **~1.4–2× faster** (full_R10 3.95 s→1.96 s).  More search iterations per budget, especially on dense/large instances |
 | 0ccd333 (main) | strict `time_limit_s` deadline polled inside `_vnd`, the 3 neighbourhoods, `_perturb` and `_greedy_construct` (a single VND sweep on a large instance used to overrun: full_R20 took 148–214 s).  Added `experiments/ta_battery_log.py` (single consolidated v01-structure `.log`, MILP interleaved in SUMMARY) | full_R20 now ~60.5 s, COMPLIANT.  **Full 360-run battery (10 seeds, strict 60 s, 360/360 COMPLIANT)** vs MILP: dominant on R20/R30 (full_R20 +34–55 %, triangle_R30 +34–36 %), competitive on R10; the large negative %s on loose/R5/none are small-denominator artefacts (absolute Δ ≈ 0–1 units) |
+| (branch `theory_assisted-v04-throughput`) | v04: light-objective decode path — `_finalise(full=False)` / `_obj` skip the per-aircraft/per-job solution dict during the search (built only for the final solution).  Objective computation unchanged | **+28–49 % more search iterations** (triangle_R30 wMK 43→64, triangle_R20 wDLY 301→424, full_R20 wDLY 190→243), COMPLIANT; obj equal-or-better except one noise-level case.  (A GRASP-restart diversification attempt for the R10 plateau was tried first and reverted — the R10 deficit is structural, not a starting-point issue.) |
 
 ---
 

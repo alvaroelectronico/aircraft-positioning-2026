@@ -181,7 +181,7 @@ class IteratedGreedyVNDJobSolver:
         order = self._neh_order(assignment)
         assignment, order = self._vnd(assignment, order)
         best_assign, best_order = dict(assignment), list(order)
-        best_obj = self._objective(self._decode(best_assign, best_order))
+        best_obj = self._obj(best_assign, best_order)
         self._log.append(
             f"construct+vnd  obj={best_obj:.4f}  "
             f"({time.perf_counter() - t0:.2f}s)"
@@ -199,7 +199,7 @@ class IteratedGreedyVNDJobSolver:
             if self._man_master and not switched and (time.perf_counter() - t0) >= switch_at:
                 self.allow_man = True
                 switched = True
-                best_obj = self._objective(self._decode(best_assign, best_order))
+                best_obj = self._obj(best_assign, best_order)
                 cur_assign, cur_order = dict(best_assign), list(best_order)
                 no_improve = 0
                 self._log.append(
@@ -209,8 +209,8 @@ class IteratedGreedyVNDJobSolver:
             it += 1
             a2, o2 = self._perturb(cur_assign, cur_order, k_destroy)
             a2, o2 = self._vnd(a2, o2)
-            obj2 = self._objective(self._decode(a2, o2))
-            cur_obj = self._objective(self._decode(cur_assign, cur_order))
+            obj2 = self._obj(a2, o2)
+            cur_obj = self._obj(cur_assign, cur_order)
             # Acceptance: keep the new local optimum if it does not worsen
             # the incumbent walk (standard IG accept-if-better-or-equal),
             # always tracking the global best separately.
@@ -382,59 +382,66 @@ class IteratedGreedyVNDJobSolver:
     # Decoder dispatcher: best of zero-movement and manoeuvre-aware
     # ==================================================================
 
-    def _decode(self, assignment: dict, order: list[str]) -> dict:
-        zero = self._decode_zero(assignment, order)
+    def _decode(self, assignment: dict, order: list[str], full: bool = True) -> dict:
+        zero = self._decode_zero(assignment, order, full=full)
         if not self.allow_man:
             return zero
-        man = self._decode_man(assignment, order)
+        man = self._decode_man(assignment, order, full=full)
         if man is not None and man["objective"] < zero["objective"] - 1e-9:
             return man
         return zero
+
+    def _obj(self, assignment: dict, order: list[str]) -> float:
+        """Dispatched objective only (no solution dict) — the search hot path."""
+        return self._decode(assignment, order, full=False)["objective"]
 
     def _objective(self, sol: dict) -> float:
         return float(sol["objective"])
 
     def _finalise(self, placed: dict, assignment: dict,
                   kappa: dict[str, int] | None, movements: int,
-                  gaps: dict[tuple[str, int], float] | None = None) -> dict:
-        """Build the solution dict and weighted objective from a placement.
+                  gaps: dict[tuple[str, int], float] | None = None,
+                  full: bool = True) -> dict:
+        """Weighted objective (and, when ``full``, the full solution dict) from
+        a placement.  ``placed[r] = (s_r, f_r)`` already carries each aircraft's
+        finish, so the objective needs no interval rebuild.
 
-        ``placed[r] = (s_r, f_r)``.  Job finish times are rebuilt from each
-        aircraft's start with the supplied kappa extensions and Mode-B gaps.
+        During the search (VND / IG / construction) only the objective is
+        needed, so callers pass ``full=False`` to skip building the per-aircraft
+        / per-job lists — the dominant cost of a decode (see profiling note in
+        design.md).  The final solution returned by ``solve`` is built with
+        ``full=True`` so it carries the job schedule the checker consumes.
         """
-        aircraft_out = []
         makespan = 0.0
         total_delay = 0.0
         for r in self.aircraft_ids:
             if r not in placed:
                 continue  # partial decode during greedy construction
-            s_r, _ = placed[r]
-            jobs_out = []
-            f_r = s_r
-            for jid, js, jf, _ in self._job_intervals(r, s_r, kappa, gaps):
-                jobs_out.append({"id": jid, "start": js, "finish": jf})
-                f_r = jf
-            delay = max(0.0, f_r - self.L[r])
-            makespan = max(makespan, f_r)
-            total_delay += delay
-            aircraft_out.append({
-                "id": r,
-                "position": assignment[r],
-                "start": s_r,
-                "finish": f_r,
-                "delay": delay,
-                "jobs": jobs_out,
-            })
-
+            f_r = placed[r][1]
+            total_delay += max(0.0, f_r - self.L[r])
+            if f_r > makespan:
+                makespan = f_r
         obj = self.wM * makespan + self.wD * total_delay + self.wS * movements
+        metrics = {"makespan": makespan, "total_delay": total_delay,
+                   "movements": movements}
+        if not full:
+            return {"objective": round(obj, 6), "metrics": metrics}
+
+        aircraft_out = []
+        for r in self.aircraft_ids:
+            if r not in placed:
+                continue
+            s_r, f_r = placed[r]
+            jobs_out = [{"id": jid, "start": js, "finish": jf}
+                        for jid, js, jf, _ in self._job_intervals(r, s_r, kappa, gaps)]
+            aircraft_out.append({
+                "id": r, "position": assignment[r], "start": s_r, "finish": f_r,
+                "delay": max(0.0, f_r - self.L[r]), "jobs": jobs_out,
+            })
         return {
             "status": "heuristic_ok",
             "objective": round(obj, 6),
-            "metrics": {
-                "makespan": makespan,
-                "total_delay": total_delay,
-                "movements": movements,
-            },
+            "metrics": metrics,
             "aircraft": aircraft_out,
         }
 
@@ -464,7 +471,7 @@ class IteratedGreedyVNDJobSolver:
             return [(s2 - dur - eta, f2 + eta)]
         return []
 
-    def _decode_zero(self, assignment: dict, order: list[str]) -> dict:
+    def _decode_zero(self, assignment: dict, order: list[str], full: bool = True) -> dict:
         placed: dict[str, tuple[float, float]] = {}
         for r in order:
             p = assignment[r]
@@ -482,13 +489,13 @@ class IteratedGreedyVNDJobSolver:
                         t = hi
                         moved = True
             placed[r] = (t, t + dur)
-        return self._finalise(placed, assignment, kappa=None, movements=0)
+        return self._finalise(placed, assignment, kappa=None, movements=0, full=full)
 
     # ==================================================================
     # Manoeuvre-aware decoder (Mode-C) with kappa fixpoint
     # ==================================================================
 
-    def _decode_man(self, assignment: dict, order: list[str]) -> dict | None:
+    def _decode_man(self, assignment: dict, order: list[str], full: bool = True) -> dict | None:
         """Manoeuvre-aware decode with a staged fallback.
 
         First tries the full joint (kappa, gaps) fixpoint — Mode-C *and*
@@ -498,16 +505,16 @@ class IteratedGreedyVNDJobSolver:
         before giving up to the zero-movement decode.  This keeps v03's
         Mode-B gains on sparse topologies without regressing the dense ones."""
         self._enable_b = True
-        res = self._man_fixpoint(assignment, order, cap=5)
+        res = self._man_fixpoint(assignment, order, cap=5, full=full)
         if res is not None:
             return res
         self._enable_b = False                    # v02 kappa-only behaviour
-        res = self._man_fixpoint(assignment, order, cap=8)
+        res = self._man_fixpoint(assignment, order, cap=8, full=full)
         self._enable_b = True
         return res  # may be None -> caller falls back to zero-movement decode
 
     def _man_fixpoint(self, assignment: dict, order: list[str],
-                      cap: int) -> dict | None:
+                      cap: int, full: bool = True) -> dict | None:
         """Iterate the (kappa[, gaps]) fixpoint up to ``cap`` times.  Returns a
         self-consistent solution dict, or ``None`` if it does not converge."""
         kappa: dict[str, int] = {}
@@ -524,7 +531,7 @@ class IteratedGreedyVNDJobSolver:
                 # Converged: the durations/gaps used reproduce exactly the
                 # interruption counts and gap requirements the classification
                 # infers -> the schedule is self-consistent and passes checker.
-                return self._finalise(placed, assignment, kappa, movements, gaps)
+                return self._finalise(placed, assignment, kappa, movements, gaps, full=full)
             kappa, gaps = new_kappa, new_gaps
         return None  # did not converge within the cap
 
@@ -734,7 +741,7 @@ class IteratedGreedyVNDJobSolver:
             best_p, best_o = None, float("inf")
             for p in self.positions:
                 assignment[r] = p
-                o = self._objective(self._decode(assignment, partial_order))
+                o = self._obj(assignment, partial_order)
                 if o < best_o:
                     best_o, best_p = o, p
             assignment[r] = best_p
@@ -750,7 +757,7 @@ class IteratedGreedyVNDJobSolver:
     def _vnd(self, assignment: dict, order: list[str]) -> tuple[dict, list[str]]:
         assignment = dict(assignment)
         order = list(order)
-        cur = self._objective(self._decode(assignment, order))
+        cur = self._obj(assignment, order)
         k = 0
         neighbourhoods = (self._n_reassign, self._n_swap_pos, self._n_reorder)
         while k < len(neighbourhoods):
@@ -773,7 +780,7 @@ class IteratedGreedyVNDJobSolver:
                 if p == p0:
                     continue
                 assignment[r] = p
-                o = self._objective(self._decode(assignment, order))
+                o = self._obj(assignment, order)
                 if o < cur - 1e-9:
                     return True, assignment, order, o
                 assignment[r] = p0
@@ -790,7 +797,7 @@ class IteratedGreedyVNDJobSolver:
                 if assignment[ri] == assignment[rj]:
                     continue
                 assignment[ri], assignment[rj] = assignment[rj], assignment[ri]
-                o = self._objective(self._decode(assignment, order))
+                o = self._obj(assignment, order)
                 if o < cur - 1e-9:
                     return True, assignment, order, o
                 assignment[ri], assignment[rj] = assignment[rj], assignment[ri]
@@ -803,7 +810,7 @@ class IteratedGreedyVNDJobSolver:
                 return False, assignment, order, cur
             for j in range(i + 1, len(order)):
                 order[i], order[j] = order[j], order[i]
-                o = self._objective(self._decode(assignment, order))
+                o = self._obj(assignment, order)
                 if o < cur - 1e-9:
                     return True, assignment, order, o
                 order[i], order[j] = order[j], order[i]
@@ -841,7 +848,7 @@ class IteratedGreedyVNDJobSolver:
                 trial_order = kept_order[:slot] + [r] + kept_order[slot:]
                 for p in self.positions:
                     a2[r] = p
-                    o = self._objective(self._decode(a2, trial_order))
+                    o = self._obj(a2, trial_order)
                     if best is None or o < best[0]:
                         best = (o, p, slot)
             _, bp, bslot = best
