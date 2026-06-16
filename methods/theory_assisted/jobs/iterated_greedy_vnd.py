@@ -85,6 +85,7 @@ class IteratedGreedyVNDJobSolver:
     def __init__(self) -> None:
         self._config: dict = {}
         self._log: list[str] = []
+        self._enable_b: bool = True   # Mode-B toggle for the staged fallback
 
     # ------------------------------------------------------------------
     # Contract
@@ -294,27 +295,36 @@ class IteratedGreedyVNDJobSolver:
     # ==================================================================
 
     def _job_intervals(self, r: str, start: float,
-                       kappa: dict[str, int] | None) -> list[tuple[str, float, float, bool]]:
-        """Return r's job intervals packed tight from ``start``.
+                       kappa: dict[str, int] | None,
+                       gaps: dict[tuple[str, int], float] | None = None
+                       ) -> list[tuple[str, float, float, bool]]:
+        """Return r's job intervals from ``start``.
 
         Each entry is ``(job_id, job_start, job_finish, interruptible)``.
-        ``job_finish - job_start = D_j + delta * kappa_j`` so the intervals
-        already reflect any Mode-C extensions accumulated so far.
+        ``job_finish - job_start = D_j + delta * kappa_j`` (Mode-C extensions);
+        after job ``k`` an inter-job *gap* of ``gaps[(r, k)]`` is inserted
+        (Mode-B routing windows).  With ``gaps`` empty the jobs are packed
+        tight (the v02 behaviour).
         """
         out: list[tuple[str, float, float, bool]] = []
         t = start
-        for jid, d, intr in self.chain[r]:
+        n = len(self.chain[r])
+        for k, (jid, d, intr) in enumerate(self.chain[r]):
             dur = d + self.delta * (kappa.get(jid, 0) if kappa else 0)
             out.append((jid, t, t + dur, intr))
             t += dur
+            if gaps and k < n - 1:
+                t += gaps.get((r, k), 0.0)
         return out
 
-    def _duration(self, r: str, kappa: dict[str, int] | None) -> float:
-        if not kappa:
-            return self.T[r]
-        return self.T[r] + self.delta * sum(
-            kappa.get(jid, 0) for jid, _, _ in self.chain[r]
-        )
+    def _duration(self, r: str, kappa: dict[str, int] | None,
+                  gaps: dict[tuple[str, int], float] | None = None) -> float:
+        dur = self.T[r]
+        if kappa:
+            dur += self.delta * sum(kappa.get(jid, 0) for jid, _, _ in self.chain[r])
+        if gaps:
+            dur += sum(g for (rr, _), g in gaps.items() if rr == r)
+        return dur
 
     # ==================================================================
     # Access-mode classification (mirrors problems/jobs/checker.py)
@@ -367,11 +377,12 @@ class IteratedGreedyVNDJobSolver:
         return float(sol["objective"])
 
     def _finalise(self, placed: dict, assignment: dict,
-                  kappa: dict[str, int] | None, movements: int) -> dict:
+                  kappa: dict[str, int] | None, movements: int,
+                  gaps: dict[tuple[str, int], float] | None = None) -> dict:
         """Build the solution dict and weighted objective from a placement.
 
-        ``placed[r] = (s_r, f_r)``.  Job finish times are rebuilt packed
-        tight with the supplied kappa extensions.
+        ``placed[r] = (s_r, f_r)``.  Job finish times are rebuilt from each
+        aircraft's start with the supplied kappa extensions and Mode-B gaps.
         """
         aircraft_out = []
         makespan = 0.0
@@ -382,7 +393,7 @@ class IteratedGreedyVNDJobSolver:
             s_r, _ = placed[r]
             jobs_out = []
             f_r = s_r
-            for jid, js, jf, _ in self._job_intervals(r, s_r, kappa):
+            for jid, js, jf, _ in self._job_intervals(r, s_r, kappa, gaps):
                 jobs_out.append({"id": jid, "start": js, "finish": jf})
                 f_r = jf
             delay = max(0.0, f_r - self.L[r])
@@ -460,49 +471,77 @@ class IteratedGreedyVNDJobSolver:
     # ==================================================================
 
     def _decode_man(self, assignment: dict, order: list[str]) -> dict | None:
-        """Forward list-scheduler that may spend Mode-C manoeuvres, wrapped
-        in a kappa fixpoint.  Returns a solution dict, or ``None`` if the
-        fixpoint does not converge to a self-consistent schedule (in which
-        case the caller falls back to the zero-movement decode)."""
+        """Manoeuvre-aware decode with a staged fallback.
+
+        First tries the full joint (kappa, gaps) fixpoint — Mode-C *and*
+        Mode-B.  The extra Mode-B state can oscillate on dense topologies, so
+        if it does not converge quickly we retry with Mode-B **disabled**
+        (the v02 kappa-only fixpoint, which is stable on those instances)
+        before giving up to the zero-movement decode.  This keeps v03's
+        Mode-B gains on sparse topologies without regressing the dense ones."""
+        self._enable_b = True
+        res = self._man_fixpoint(assignment, order, cap=5)
+        if res is not None:
+            return res
+        self._enable_b = False                    # v02 kappa-only behaviour
+        res = self._man_fixpoint(assignment, order, cap=8)
+        self._enable_b = True
+        return res  # may be None -> caller falls back to zero-movement decode
+
+    def _man_fixpoint(self, assignment: dict, order: list[str],
+                      cap: int) -> dict | None:
+        """Iterate the (kappa[, gaps]) fixpoint up to ``cap`` times.  Returns a
+        self-consistent solution dict, or ``None`` if it does not converge."""
         kappa: dict[str, int] = {}
+        gaps: dict[tuple[str, int], float] = {}
         placed: dict[str, tuple[float, float]] = {}
-        for _ in range(8):  # fixpoint iteration cap
-            placed = self._forward_pass(assignment, order, kappa)
-            new_kappa, movements, feasible = self._classify_schedule(
-                assignment, placed, kappa
+        for _ in range(cap):
+            placed = self._forward_pass(assignment, order, kappa, gaps)
+            new_kappa, new_gaps, movements, feasible = self._classify_schedule(
+                assignment, placed, kappa, gaps
             )
             if not feasible:
                 return None
-            if new_kappa == kappa:
-                # Converged: durations used == D + delta*kappa and the
-                # classification reproduces exactly those kappa -> the
-                # schedule is self-consistent and will pass the checker.
-                return self._finalise(placed, assignment, kappa, movements)
-            kappa = new_kappa
+            if new_kappa == kappa and self._gaps_equal(new_gaps, gaps):
+                # Converged: the durations/gaps used reproduce exactly the
+                # interruption counts and gap requirements the classification
+                # infers -> the schedule is self-consistent and passes checker.
+                return self._finalise(placed, assignment, kappa, movements, gaps)
+            kappa, gaps = new_kappa, new_gaps
         return None  # did not converge within the cap
 
+    @staticmethod
+    def _gaps_equal(a: dict, b: dict) -> bool:
+        if a.keys() != b.keys():
+            return False
+        return all(abs(a[k] - b[k]) <= TOL for k in a)
+
     def _forward_pass(self, assignment: dict, order: list[str],
-                      kappa: dict[str, int]) -> dict:
+                      kappa: dict[str, int],
+                      gaps: dict[tuple[str, int], float]) -> dict:
         """Place every aircraft (in ``order``) at the start time minimising a
-        local weighted cost, given fixed durations (from ``kappa``) and the
-        already-placed neighbours.  Always returns a feasible placement."""
+        local weighted cost, given fixed durations (from ``kappa``/``gaps``)
+        and the already-placed neighbours.  Always returns a feasible
+        placement."""
         placed: dict[str, tuple[float, float]] = {}
         for r in order:
-            dur = self._duration(r, kappa)
-            t = self._choose_start(r, assignment, dur, placed, kappa)
+            dur = self._duration(r, kappa, gaps)
+            t = self._choose_start(r, assignment, dur, placed, kappa, gaps)
             placed[r] = (t, t + dur)
         return placed
 
     def _choose_start(self, r: str, assignment: dict, dur: float,
-                      placed: dict, kappa: dict[str, int]) -> float:
+                      placed: dict, kappa: dict[str, int],
+                      gaps: dict[tuple[str, int], float]) -> float:
         """Pick the start time for ``r`` minimising local weighted cost.
 
         Considers a set of candidate start times induced by the placed
         neighbours, keeps only feasible ones (no same-position overlap, no
-        access inside a non-interruptible job, no access on a packed job
-        boundary), and scores each by
-        ``wM*finish + wD*delay + wS*2*events``.  A guaranteed-feasible
-        'after everything' candidate is always included.
+        access inside a non-interruptible job), and scores each by
+        ``wM*finish + wD*delay + wS*2*events``.  Candidates include Mode-A
+        (outside the front stay), Mode-C (inside an interruptible job) and
+        Mode-B (on a front inter-job boundary, where a gap can be opened).
+        A guaranteed-feasible 'after everything' candidate is always included.
         """
         p = assignment[r]
         E_r = self.E[r]
@@ -519,21 +558,27 @@ class IteratedGreedyVNDJobSolver:
                 cands.add(f2 + self.eta + SAFE)              # entry after front
                 cands.add(s2 - self.eta - SAFE)              # entry before front
                 cands.add(s2 - self.eta - dur - SAFE)        # exit before front
-                for (jid, js, jf, intr) in self._job_intervals(r2, s2, kappa):
+                jobs2 = self._job_intervals(r2, s2, kappa, gaps)
+                for k, (jid, js, jf, intr) in enumerate(jobs2):
                     if intr and (jf - js) > 2 * self.eta + 2 * SAFE:
                         mid = 0.5 * (js + jf)
                         cands.add(mid)                       # entry mid-job (Mode C)
                         cands.add(mid - dur)                 # exit mid-job (Mode C)
+                    if self._enable_b and k < len(jobs2) - 1:  # Mode B: front boundary
+                        cands.add(jf)                        # entry at front job-k end
+                        cands.add(jf - dur)                  # exit at front job-k end
             if (p, p2) in self._arcs:
                 # r is FRONT, r2 is REAR.  r2's fixed instants vs r's stay.
-                r_off = self._job_intervals(r, 0.0, kappa)   # offsets from t
+                r_off = self._job_intervals(r, 0.0, kappa, gaps)   # offsets from t
                 for tau in (s2, f2):
                     cands.add(tau + self.eta + SAFE)             # tau before r
                     cands.add(tau - self.eta - dur - SAFE)       # tau after r
-                    for (jid, js, jf, intr) in r_off:
+                    for k, (jid, js, jf, intr) in enumerate(r_off):
                         if intr and (jf - js) > 2 * self.eta + 2 * SAFE:
                             # centre r's job over tau -> tau is Mode C inside it
                             cands.add(tau - 0.5 * (js + jf))
+                        if self._enable_b and k < len(r_off) - 1:  # Mode B: align
+                            cands.add(tau - jf)              # r's job-k end with tau
         cands.add(latest + self.eta + self.eps + dur + SAFE)  # safe fallback
 
         best_t = None
@@ -541,7 +586,7 @@ class IteratedGreedyVNDJobSolver:
         for t in sorted(cands):
             if t < E_r - 1e-9:
                 continue
-            ok, events = self._eval_start(r, assignment, t, dur, placed, kappa)
+            ok, events = self._eval_start(r, assignment, t, dur, placed, kappa, gaps)
             if not ok:
                 continue
             f_r = t + dur
@@ -558,7 +603,8 @@ class IteratedGreedyVNDJobSolver:
         return best_t
 
     def _eval_start(self, r: str, assignment: dict, t: float, dur: float,
-                    placed: dict, kappa: dict[str, int]):
+                    placed: dict, kappa: dict[str, int],
+                    gaps: dict[tuple[str, int], float]):
         """Return ``(feasible, events)`` for placing ``r`` at start ``t``.
 
         ``events`` counts the Mode-B/C access events r's placement creates
@@ -568,7 +614,7 @@ class IteratedGreedyVNDJobSolver:
         """
         p = assignment[r]
         s_r, f_r = t, t + dur
-        r_jobs = self._job_intervals(r, t, kappa)
+        r_jobs = self._job_intervals(r, t, kappa, gaps)
         events = 0
         for r2, (s2, f2) in placed.items():
             p2 = assignment[r2]
@@ -577,37 +623,41 @@ class IteratedGreedyVNDJobSolver:
                 if not (f_r + self.eps <= s2 + TOL or f2 + self.eps <= s_r + TOL):
                     return (False, 0)
             if (p2, p) in self._arcs:
-                jobs2 = self._job_intervals(r2, s2, kappa)
+                jobs2 = self._job_intervals(r2, s2, kappa, gaps)
                 for tau in (s_r, f_r):
                     kind, _ = self._classify(tau, s2, f2, jobs2)
-                    if kind == "X":
+                    if kind == "X" or (kind == "B" and not self._enable_b):
                         return (False, 0)
                     if kind in ("B", "C"):
                         events += 1
             if (p, p2) in self._arcs:
                 for tau in (s2, f2):
                     kind, _ = self._classify(tau, s_r, f_r, r_jobs)
-                    if kind == "X":
+                    if kind == "X" or (kind == "B" and not self._enable_b):
                         return (False, 0)
                     if kind in ("B", "C"):
                         events += 1
         return (True, events)
 
     def _classify_schedule(self, assignment: dict, placed: dict,
-                           kappa: dict[str, int]):
+                           kappa: dict[str, int],
+                           gaps: dict[tuple[str, int], float]):
         """Re-classify every access instant over the full placement.
 
-        Returns ``(new_kappa, movements, feasible)`` where ``new_kappa`` maps
-        each interrupted job to its Mode-C event count (so durations can be
-        rebuilt), ``movements`` is ``2 * (#Mode-B + #Mode-C events)`` and
-        ``feasible`` is False if any access is infeasible or a Mode-B gap is
-        too narrow for the cumulative mu rule.
+        Returns ``(new_kappa, new_gaps, movements, feasible)``.  ``new_kappa``
+        maps each interrupted job to its Mode-C event count and ``new_gaps``
+        maps each used front inter-job gap ``(aircraft, k)`` to the cumulative
+        width ``mu * count`` it must be opened to — both feed the next forward
+        pass so durations and gaps become self-consistent.  ``movements`` is
+        ``2 * (#Mode-B + #Mode-C events)``; ``feasible`` is False only on a
+        genuine infeasibility (access inside a non-interruptible job).
         """
         new_kappa: dict[str, int] = {}
         gap_uses: dict[tuple[str, int], int] = {}
         events = 0
-        # Precompute job intervals per aircraft once.
-        jobs_of = {r: self._job_intervals(r, s, kappa) for r, (s, _) in placed.items()}
+        # Job intervals per aircraft under the current (kappa, gaps).
+        jobs_of = {r: self._job_intervals(r, s, kappa, gaps)
+                   for r, (s, _) in placed.items()}
         for (p_front, p_rear) in self._arcs:
             fronts = [r for r in placed if assignment[r] == p_front]
             rears = [r for r in placed if assignment[r] == p_rear]
@@ -622,22 +672,17 @@ class IteratedGreedyVNDJobSolver:
                         kind, info = self._classify(tau, s_f, f_f, jobs_f)
                         if kind == "A":
                             continue
-                        if kind == "X":
-                            return ({}, 0, False)
+                        if kind == "X" or (kind == "B" and not self._enable_b):
+                            return ({}, {}, 0, False)
                         if kind == "C":
                             new_kappa[info] = new_kappa.get(info, 0) + 1
                             events += 1
                         elif kind == "B":
                             gap_uses[(rf, info)] = gap_uses.get((rf, info), 0) + 1
                             events += 1
-        # Cumulative Mode-B gap feasibility (gaps are zero in this decoder,
-        # so any Mode-B use is a failure; kept for completeness / future).
-        for (rf, k), n in gap_uses.items():
-            jobs_f = jobs_of[rf]
-            gap = jobs_f[k + 1][1] - jobs_f[k][2]
-            if gap + TOL < self.mu * n:
-                return ({}, 0, False)
-        return (new_kappa, 2 * events, True)
+        # Each used inter-job gap must be opened to mu * (#accesses through it).
+        new_gaps = {key: self.mu * n for key, n in gap_uses.items()}
+        return (new_kappa, new_gaps, 2 * events, True)
 
     # ==================================================================
     # Construction
@@ -776,7 +821,7 @@ if __name__ == "__main__":
     from instance_io import load_json                    # noqa: E402
     from checker import check_solution, print_check       # noqa: E402
 
-    default = _ROOT / "problems" / "jobs" / "instances" / \
+    default = _ROOT / "data" / "instances_202605_02" / \
         "scn_triangle_tight_P5_R5" / "scn_triangle_tight_P5_R5_seed1.json"
     path = sys.argv[1] if len(sys.argv) > 1 else str(default)
     tlimit = float(sys.argv[2]) if len(sys.argv) > 2 else 10.0

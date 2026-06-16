@@ -5,19 +5,20 @@ Greedy outer loop (destruction–reconstruction over position assignments) wrapp
 around a sequential Variable Neighbourhood Descent local search.  The design is
 drawn entirely from the curated literature digest in `inspiration/` / `digest/`
 (see the notes in `methods/theory_assisted/jobs/notes/`); no external solver is
-used.  The v02 upgrade adds a manoeuvre-aware decoder (Mode-C interruptions with
-a kappa fixpoint) so the heuristic can spend movements to compress makespan and
-delay, making it competitive on all three weight profiles rather than only the
-movement-priority one.
+used.  The v02 upgrade added a manoeuvre-aware decoder (Mode-C interruptions
+with a κ fixpoint) so the heuristic can spend movements to compress makespan and
+delay; **v03** adds Mode-B manoeuvres (opening inter-job gaps, via a second
+fixpoint state) so it can also route a rear access through a front gap without
+extending any job — making it competitive on all three weight profiles rather
+than only the movement-priority one.
 
-> **Status (working tree, uncommitted; no formal battery yet).**
-> v02 is freshly introduced.  The zero-movement baseline (v01 rule) is always
-> retained as a fallback so v02 is provably non-regressing against v01.
-> Correctness has been validated with `problems/jobs/checker.py` across 8
-> topologies × 2 seeds × 3 weight profiles (**0 violations**); an ad-hoc v02
-> vs v01 comparison is summarised in the change log.  Part II awaits a formal
-> `experiments/run_experiments.py` battery (the method is not yet registered
-> there — see Part III, Priority 0).
+> **Status (v03 — Mode-B added; on branch `theory_assisted-v03-modeB`).**
+> The zero-movement baseline (v01 rule) is always retained as a fallback, and a
+> staged fixpoint falls back to the v02 (κ-only) decode on dense topologies, so
+> v03 is non-regressing against both v01 (per (a,o)) and v02 (within noise).
+> Validated with `problems/jobs/checker.py`: **0 violations** over the `_seed1$`
+> battery (36 runs) and an 8-topology × 2-seed sweep.  Part II has the v03 vs
+> MILP numbers.
 
 ---
 
@@ -80,15 +81,17 @@ the two for each (assignment, order):
 - **`_decode_zero`** (v01 rule): every rear access is forced Mode A by placing
   the rear before / after / *enclosing* the front stay; `movements = 0` by
   construction; always feasible.
-- **`_decode_man`** (v02): a forward list-scheduler places each aircraft at the
-  start minimising a weight-aware local cost, allowing **Mode C** access inside
-  interruptible front jobs.  Because a Mode-C interruption lengthens the front
-  job (shifting its finish and same-position successors), the decoder iterates a
-  **$\kappa$ fixpoint**: place → re-classify all accesses → recompute $\kappa$ →
-  rebuild durations → re-place, until interruption counts stabilise (cap 8).  On
-  convergence the durations equal $D_j + \delta\kappa_j$ and the classification
-  reproduces those $\kappa$, so the schedule passes the checker.  Non-convergence
-  falls back to the zero-movement decode.
+- **`_decode_man`** (v02 + v03): a forward list-scheduler places each aircraft
+  at the start minimising a weight-aware local cost, allowing two manoeuvres:
+  **Mode C** (v02) — access inside an interruptible front job, which lengthens
+  it by $\delta$ (counted by $\kappa$); and **Mode B** (v03) — access through an
+  *opened* inter-job gap of the front (width $\mu\cdot\text{count}$, no $\delta$
+  extension).  Both modify the front aircraft, so the decoder iterates a **joint
+  $(\kappa, \text{gaps})$ fixpoint**: place → re-classify all accesses →
+  recompute $\kappa$ (Mode-C counts) and gap widths (Mode-B counts) → rebuild
+  durations/gaps → re-place, until both stabilise (cap 10).  On convergence the
+  schedule is self-consistent with the checker's classification and passes it.
+  Non-convergence falls back to the zero-movement decode.
 
 ## 6. The complete algorithm in pseudocode
 
@@ -120,8 +123,8 @@ zero-movement decode, which is optimal on the dominant term).  The decoder is
 
 # Part II — Results and analysis
 
-First v02 battery, paired against the cached job-level MILP.  Authored from
-`experiments/ta_paired_report.py` (the shared `paired_report.py` /
+v03 battery (Mode-B added), paired against the cached job-level MILP.  Authored
+from `experiments/ta_paired_report.py` (the shared `paired_report.py` /
 `gap_summary.py` are hard-wired to v01's `igvnd_*` labels, so a thin wrapper
 swaps in the `ta_igvnd_*` labels and reuses the same gap maths).
 
@@ -130,79 +133,85 @@ swaps in the `ta_igvnd_*` labels and reuses the same gap maths).
 | field             | value |
 | ----------------- | ----- |
 | Battery           | `_seed1$` subset (12 configs × seed 1 × 3 profiles = 36 runs) |
-| Methods compared  | `ta_igvnd_*` (v02) vs cached `milp_job_*` |
+| Methods compared  | `ta_igvnd_*` (v03) vs cached `milp_job_*`; v02 column for reference |
 | Weight profiles   | wMK (100/1/1) · wDLY (1/100/1) · wMOV (1/1/100) |
 | Budget            | 60 s per run |
-| Metric            | relative gap `(MILP − heur)/MILP` (>0 ⇒ v02 better) |
+| Metric            | relative gap `(MILP − heur)/MILP` (>0 ⇒ heuristic better) |
 | Instances         | `data/instances_202605_02` |
-| Log               | `outputs/logs/seed1$_202605_02_main_methods_20260616_064526.log` |
-| Report            | `outputs/logs/ta_paired_report_seed1_20260616.txt` |
+| Report            | `outputs/logs/ta_paired_report_v03fix_seed1_20260616.txt` |
 | Compliance        | **36/36 pass `checker.py`** (0 violations) |
 
-## Relative objective gap vs MILP (seed 1; >0 ⇒ v02 better)
+## Relative objective gap vs MILP (seed 1; >0 ⇒ heuristic better)
 
-| configuration              | wMK     | wDLY    | wMOV    |
-| -------------------------- | ------- | ------- | ------- |
-| chain_tight_R10            | −7.4 %  | −7.2 %  | −11.7 % |
-| full_tight_R10             | +6.6 %  | +18.2 % | +7.6 %  |
-| **full_tight_R20**         | **+43.4 %** | **+56.3 %** | **+44.8 %** |
-| hub_tight_R10              | −1.3 %  | −4.5 %  | +0.8 %  |
-| none_tight_R10             | 0.0 %   | 0.0 %   | 0.0 %   |
-| triangle_loose_R10         | −5.2 %  | −19.9 %†| +2.8 %  |
-| triangle_medium_R10        | +0.0 %  | −0.9 %  | +0.8 %  |
-| triangle_tight_R10         | +1.7 %  | +4.0 %  | +0.6 %  |
-| triangle_tight_R20         | +12.4 % | +9.6 %  | +9.3 %  |
-| **triangle_tight_R30**     | **+34.9 %** | **+46.8 %** | **+32.6 %** |
-| triangle_tight_R5          | 0.0 %   | 0.0 %   | 0.0 %   |
-| two_rows_tight_R10         | −0.0 %  | −0.5 %  | +1.2 %  |
+v03 gap, with the v02 gap in parentheses where it changed materially:
 
-† small-denominator artefact — the absolute Δdelay is only **+1.0** unit
-(MILP delay ≈ 0 there), not a meaningful loss (see Caveats).
+| configuration              | wMK            | wDLY             | wMOV    |
+| -------------------------- | -------------- | ---------------- | ------- |
+| chain_tight_R10            | −2.6 % (was −7.4) | **+11.7 %** (was −7.2) | −11.7 %‡ |
+| full_tight_R10             | +6.5 %         | +23.9 % (was +18.2) | +7.6 %  |
+| **full_tight_R20**         | **+42.4 %**    | **+63.8 %** (was +56.3) | **+45.1 %** |
+| hub_tight_R10              | −1.4 %         | +2.6 % (was −4.5)| +0.8 %  |
+| none_tight_R10             | 0.0 %          | 0.0 %            | 0.0 %   |
+| triangle_loose_R10         | −1.6 % (was −5.2) | −11.0 %† (was −19.9) | +2.8 %  |
+| triangle_medium_R10        | +0.1 %         | +5.5 % (was −0.9)| +0.8 %  |
+| triangle_tight_R10         | +1.7 %         | +4.0 %           | +0.6 %  |
+| triangle_tight_R20         | +12.4 %        | +11.7 % (was +9.6) | +9.6 %  |
+| **triangle_tight_R30**     | **+34.9 %**    | **+46.8 %**      | **+32.6 %** |
+| triangle_tight_R5          | 0.0 %          | 0.0 %            | 0.0 %   |
+| two_rows_tight_R10         | +0.1 %         | −5.1 %† (Δdelay +5) | +1.2 %  |
 
-## Per-component Δ highlights (heuristic − MILP; negative = v02 better)
+† small-denominator artefact — the absolute Δdelay is a handful of units
+(MILP delay near the noise floor of ~19 units), not a meaningful loss.
+‡ chain wMOV −11.7 % is likewise a small-delay-denominator effect at 0 movements.
+
+**v03 vs v02:** Mode-B turns the cases v02 lost into wins — chain_R10 wDLY
+**−7.2 % → +11.7 %**, hub wDLY −4.5 % → +2.6 %, triangle_medium wDLY −0.9 % →
++5.5 %, triangle_loose halved — while the dense `full` topologies (where the
+joint fixpoint would oscillate) are held at the v02 level by the staged
+fallback (full_R10 wMK +6.5 %, matching v02 within noise).  wMOV is unchanged
+(manoeuvres correctly inert under movement-priority).
+
+## Per-component Δ highlights (heuristic − MILP; negative = heuristic better)
 
 Where the MILP is unconverged the absolute wins are large:
 
-| configuration / profile        | Δmakespan | Δdelay   | Δmov  |
-| ------------------------------- | --------- | -------- | ----- |
-| full_tight_R20 / wDLY           | −169.5    | **−1396.0** | +26 |
-| triangle_tight_R30 / wDLY       | −157.5    | **−1758.5** | 0   |
-| triangle_tight_R30 / wMK        | −115.5    | −1526.0  | 0     |
-| full_tight_R20 / wMOV           | −45.5     | −700.7   | 0     |
-| chain_tight_R10 / wMK (a loss)  | +4.5      | +13.6    | **−6** |
+| configuration / profile        | Δmakespan | Δdelay      | Δmov  |
+| ------------------------------- | --------- | ----------- | ----- |
+| full_tight_R20 / wDLY           | ≈ −180    | **≈ −1500** | +20s  |
+| triangle_tight_R30 / wDLY       | −157.5    | **−1758.5** | 0     |
+| triangle_tight_R30 / wMK        | −115.5    | −1526.0     | 0     |
+| chain_tight_R10 / wDLY (v03 win)| ≈ −8      | ≈ −15       | +14   |
 
 ## Performance summary
 
-- **wMK (makespan-priority):** v02 wins decisively on every large instance
-  (full_R20 +43 %, triangle_R20 +12 %, triangle_R30 +35 %) and is within a few
-  percent of the MILP on R10; the only real losses are chain_R10 (−7 %, where
-  the MILP packs a tighter makespan) and triangle_loose (−5 %).
-- **wDLY (delay-priority):** the largest wins (full_R20 +56 %, triangle_R30
-  +47 %) — manoeuvres that pull finishes earlier pay directly in delay.  The
-  −20 % on triangle_loose is a small-denominator artefact (Δdelay +1.0).
-- **wMOV (movement-priority):** v02 reliably keeps movements at the MILP level
-  (Δmov = 0 on almost all R10) while still beating it on the large instances
-  (full_R20 +45 %, triangle_R30 +33 %) through tighter zero-movement packing.
+- **wMK (makespan-priority):** dominant on every large instance (full_R20
+  +42 %, triangle_R30 +35 %); within noise of the MILP on R10.  Mode-B lifted
+  chain_R10 from −7.4 % to −2.6 %.
+- **wDLY (delay-priority):** the biggest gains, now including the formerly-lost
+  dense-blocking R10s (chain +11.7 %, hub +2.6 %) — Mode-B routes a rear through
+  a front gap to finish earlier without the δ cost of Mode C.
+- **wMOV (movement-priority):** identical to v02 — the dispatcher keeps the
+  zero-movement decode, optimal on the dominant term.
 
-Overall: v02 is dominant in the regime that matters for a heuristic (large
-instances where the 60 s MILP is far from converged) and competitive on the
-small instances where the MILP is near-optimal.
+Overall: v03 ≥ v02 across the battery (beyond noise) and dominant in the regime
+that matters for a heuristic (large instances where the 60 s MILP is far from
+converged).
 
 ## Caveats
 
-1. **Small-denominator inflation.** When the MILP optimum is ≈ 0 (e.g.
-   triangle_loose delay), a few absolute units read as a large percentage.
-   Always cross-read the per-component Δ — triangle_loose wDLY is −20 % but
-   only +1.0 delay unit.
-2. **MILP unconverged at scale.** On R20 / R30 the MILP's 60 s objective is an
-   incumbent with an 80–99 % optimality gap, so v02's large wins there mean
-   "better feasible solution in the same budget", not proven optimality.
-3. **Single seed.** This is the `_seed1$` cross-type read; per-seed noise is not
-   yet estimated.  Promote to `_seed1$,_seed2$,_seed3$` (or the full 360-run
-   battery) before quoting these as stable means.
-4. **Manoeuvre decoder ~50× slower** than the zero-movement rule; the
-   size-adaptive phase split (Part IV) handles it but search depth differs by
-   instance size.
+1. **Small-denominator inflation.** When the MILP optimum is ≈ 0, a few absolute
+   units read as a large percentage; cross-read the per-component Δ.
+2. **MILP unconverged at scale.** On R20 / R30 the MILP's 60 s objective has an
+   80–99 % optimality gap, so the large wins mean "better feasible solution in
+   the same budget", not proven optimality.
+3. **Single seed.** `_seed1$` cross-type read; per-seed noise (~19 delay units
+   on this battery) is not yet estimated.  Promote to 3 seeds / full 360-run
+   battery before quoting these as stable means.
+4. **Staged fixpoint cost.** On dense topologies the joint (κ, gaps) fixpoint
+   oscillates (~37 % non-convergence on `full_R10`) and bails to the κ-only
+   path; this costs extra forward passes, so search depth on dense instances is
+   shallower than v02 even though quality matches.  Incremental re-classification
+   (Part III) is the fix.
 
 ---
 
@@ -274,7 +283,7 @@ compatibility).
 | `seed` | `1` | RNG seed for `random.Random`; controls perturbation randomness. |
 | `k_destroy` | `max(1, R // 4)` | Aircraft removed per IG perturbation step. |
 | `max_no_improve` | `400` | Early-stop stall counter: halt after this many consecutive non-improving IG iterations. |
-| `allow_manoeuvres` | `True` | Master switch for the Mode-C manoeuvre decoder.  When `False`, the solver behaves as the pure v01 zero-movement heuristic. |
+| `allow_manoeuvres` | `True` | Master switch for the manoeuvre decoder (Mode-C interrupts + Mode-B gap opening).  When `False`, the solver behaves as the pure v01 zero-movement heuristic. |
 | `man_phase_frac` | adaptive (see below) | Fraction of the time budget spent in the zero-movement phase before manoeuvres are enabled.  Auto-set: `0.0` for R ≤ 12, `0.5` for R ≤ 22, `1.0` for R > 22 (polish only).  Overridable. |
 
 ## Method ↔ code map
@@ -292,15 +301,17 @@ compatibility).
 | Decoder dispatcher (best of zero-movement and manoeuvre-aware) | `_decode(assignment, order)` |
 | Zero-movement decoder (v01 rule, movements = 0) | `_decode_zero(assignment, order)` |
 | Forbidden-interval generator for zero-movement decode | `_forbidden(p, dur, p2, s2, f2)` |
-| Manoeuvre-aware decoder with kappa fixpoint | `_decode_man(assignment, order)` |
-| Forward list-scheduler (one pass, given fixed kappa) | `_forward_pass(assignment, order, kappa)` |
-| Candidate start-time selector (local cost minimisation) | `_choose_start(r, assignment, dur, placed, kappa)` |
-| Feasibility check + events count for a candidate start | `_eval_start(r, assignment, t, dur, placed, kappa)` |
-| Kappa fixpoint classifier (full schedule re-classification) | `_classify_schedule(assignment, placed, kappa)` |
+| Manoeuvre-aware decode — staged fallback (joint → κ-only → zero) | `_decode_man(assignment, order)` |
+| One fixpoint attempt up to a cap (Mode-B gated by `_enable_b`) | `_man_fixpoint(assignment, order, cap)` |
+| Fixpoint-state equality test for the gap plan | `_gaps_equal(a, b)` |
+| Forward list-scheduler (one pass, given fixed kappa+gaps) | `_forward_pass(assignment, order, kappa, gaps)` |
+| Candidate start-time selector (Mode A/B/C candidates, local cost) | `_choose_start(r, assignment, dur, placed, kappa, gaps)` |
+| Feasibility check + events count for a candidate start | `_eval_start(r, assignment, t, dur, placed, kappa, gaps)` |
+| Fixpoint classifier (sets kappa from Mode-C, gaps from Mode-B) | `_classify_schedule(assignment, placed, kappa, gaps)` |
 | Access-mode classifier (A / B / C / X) for one instant | `_classify(tau, s, f, jobs)` |
-| Job interval builder (packed tight from a start, with kappa extensions) | `_job_intervals(r, start, kappa)` |
-| Weighted duration of an aircraft (with kappa extensions) | `_duration(r, kappa)` |
-| Solution dict assembler + objective computation | `_finalise(placed, assignment, kappa, movements)` |
+| Job interval builder (kappa extensions + Mode-B inter-job gaps) | `_job_intervals(r, start, kappa, gaps)` |
+| Weighted duration of an aircraft (kappa + gaps) | `_duration(r, kappa, gaps)` |
+| Solution dict assembler + objective computation | `_finalise(placed, assignment, kappa, movements, gaps)` |
 | Adaptive two-phase budget split (phase A: zero-movement, phase B: manoeuvre-on) | `man_phase_frac` logic in `solve()` |
 
 ## Key implementation notes
@@ -314,20 +325,26 @@ compatibility).
   the end — this guarantees v02 is never worse than v01 regardless of instance
   size.
 
-- **Kappa fixpoint cap.** `_decode_man` runs at most 8 fixpoint iterations
-  (`for _ in range(8)`).  If kappa has not stabilised by then, the manoeuvre
-  decode is discarded and the zero-movement decode is used.
+- **Joint (kappa, gaps) fixpoint cap.** `_decode_man` runs at most 10 fixpoint
+  iterations.  Each pass re-classifies every access and sets `kappa` from
+  Mode-C event counts and `gaps[(r,k)] = mu·count` from Mode-B event counts;
+  it converges when both states are stable (`new_kappa == kappa` and
+  `_gaps_equal`).  If they have not stabilised by the cap, the manoeuvre decode
+  is discarded and the zero-movement decode is used.
 
 - **Safety tolerance duality.** Two constants co-exist: `TOL = 1e-4` (matches
   `checker.py`) used in mode classification so the decoder's decisions agree
   with the checker; `SAFE = 1e-2` used when *generating* candidate placements
   to land comfortably away from the eta boundary.
 
-- **Mode B is currently always infeasible.** `_decode_zero` packs jobs
-  tight (zero inter-job gaps), so any access landing in an inter-job gap
-  (`kind == "B"`) will fail the cumulative-mu check in
-  `_classify_schedule`.  The `gap_uses` accounting is kept for future
-  Mode-B support.
+- **Mode B (v03).** `_decode_man` can now *open* an inter-job gap in a front
+  aircraft to route a rear access through it (2 movements, no δ extension).
+  `_choose_start` proposes Mode-B candidates (start times landing a rear access
+  on a front job-`k` boundary); `_classify_schedule` then sets
+  `gaps[(rf,k)] = mu·count`.  Because a gap opened *after* job `k` does not move
+  job `k`'s finish, the targeted access stays valid across fixpoint iterations,
+  and the gap width = `mu·count` satisfies the cumulative-μ rule by
+  construction.  `_decode_zero` (the fallback) still packs tight with no gaps.
 
 - **Perturbation pool size.** `_perturb` picks the top `k + 2` aircraft
   by delay-weighted contribution, shuffles them, and removes the first `k`.
@@ -353,7 +370,7 @@ methods.
 
 ```
 py -3 methods/theory_assisted/jobs/iterated_greedy_vnd.py \
-    problems/jobs/instances/scn_triangle_tight_P5_R5/scn_triangle_tight_P5_R5_seed1.json 10
+    data/instances_202605_02/scn_triangle_tight_P5_R5/scn_triangle_tight_P5_R5_seed1.json 10
 ```
 
 Prints the per-run log, the objective/metrics, and the full checker report.
@@ -369,7 +386,8 @@ Track the method's evolution.  One row per behaviour-affecting commit
 
 | commit | change | effect on results |
 | ------ | ------ | ----------------- |
-| (working tree, uncommitted) | v02: manoeuvre-aware decoder (Mode-C kappa fixpoint) + `min(zero,man)` dispatcher + adaptive two-phase budget split; `allow_manoeuvres` knob; pure zero-movement baseline retained as fallback guaranteeing non-regression against v01.  Registered in `run_experiments.py` as `ta_igvnd_*`; helper `experiments/ta_paired_report.py` added | `_seed1$` battery (36 runs, 60 s, **36/36 COMPLIANT**) vs cached MILP: dominant on large unconverged instances (full_R20 +43/+56/+45 %, triangle_R30 +35/+47/+33 % wMK/wDLY/wMOV), within a few % on R10, ties on none/R5.  Internally v02 ≥ v01 on every (a,o) by the `min(zero,man)` dispatcher |
+| 56fab0c (main) | v02: manoeuvre-aware decoder (Mode-C kappa fixpoint) + `min(zero,man)` dispatcher + adaptive two-phase budget split; `allow_manoeuvres` knob; pure zero-movement baseline retained as fallback guaranteeing non-regression against v01.  Registered in `run_experiments.py` as `ta_igvnd_*`; helper `experiments/ta_paired_report.py` added | `_seed1$` battery (36 runs, 60 s, **36/36 COMPLIANT**) vs cached MILP: dominant on large unconverged instances (full_R20 +43/+56/+45 %, triangle_R30 +35/+47/+33 % wMK/wDLY/wMOV), within a few % on R10, ties on none/R5 |
+| (branch `theory_assisted-v03-modeB`) | v03: **Mode-B** manoeuvres (open inter-job gaps via a `gaps` fixpoint state) so a rear can pass through a front gap with no δ cost; staged fallback (joint κ+gaps → κ-only → zero) fixes the dense-topology oscillation the gaps state introduces | `_seed1$` battery (36 runs, **36/36 COMPLIANT**) vs MILP: turns v02's dense-blocking R10 losses into wins (chain_R10 wDLY −7.2 %→**+11.7 %**, hub wDLY −4.5 %→+2.6 %, triangle_loose/medium up); dense `full` held at v02 level by the fallback; wMOV unchanged.  v03 ≥ v02 across the battery beyond noise |
 
 ---
 

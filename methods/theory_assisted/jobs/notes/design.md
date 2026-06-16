@@ -149,16 +149,73 @@ Manoeuvres are actually spent where the topology is dense (full_R20: up to
 topologies most of the gain comes from the tighter weight-aware packing at
 zero movements.
 
+# v03 — Mode-B manoeuvres (open inter-job gaps)
+
+**Status:** implemented in [`iterated_greedy_vnd.py`](../iterated_greedy_vnd.py).
+v02's gap analysis named Mode B as the next lever; v03 adds it as a **second
+fixpoint state** alongside κ.
+
+## Why Mode B
+
+v02's battery (vs the cached MILP) trailed only on a few small dense R10
+instances — notably `chain_R10` (−7 % wMK) — where the MILP compresses the
+makespan by routing rear accesses through **inter-job gaps** of the front
+aircraft. v02 could not do this: its decoder packs each aircraft's jobs tight,
+so no gap exists, and any access landing on a packed boundary is rejected.
+Mode B is the cheap manoeuvre (2 movements, **no δ extension** — unlike Mode C)
+that the makespan/delay profiles reward.
+
+## The gaps fixpoint
+
+A new state `gaps[(aircraft, k)] = width` records the gap opened after job `k`
+of an aircraft; `_job_intervals` inserts it, so the aircraft's finish grows by
+the total opened width. The decoder now iterates a **joint (κ, gaps) fixpoint**:
+
+> place (forward pass, weight-aware `_choose_start` now also proposes
+> *Mode-B candidates* — start times that land a rear access on a front
+> inter-job boundary) → re-classify every access → set `κ` from Mode-C counts
+> **and** `gaps[(rf,k)] = μ · (#accesses through that gap)` from Mode-B counts
+> → rebuild durations/gaps → re-place, until **both** κ and gaps stabilise.
+
+A structural property helps: opening a gap *after* job `k` does not move job
+`k`'s finish, so a rear access targeted at that boundary stays valid across
+iterations, and the cumulative-μ rule holds by construction (gap = μ·count).
+
+**Staged fallback (the convergence fix).** Adding the gaps state makes the
+joint fixpoint *oscillate on dense topologies*: instrumenting `full_R10` showed
+**37 % of manoeuvre decodes hit the iteration cap without converging**, falling
+back to the (on dense topologies, very poor) zero-movement decode — which
+regressed those cases. The greedy per-pass `_choose_start` re-decision, now with
+more modes to flip between, is the oscillation driver, and κ must equal the
+classified Mode-C count *exactly* for the checker (so we cannot just damp it).
+The fix is a **staged decode** (`_decode_man` → `_man_fixpoint`): try the joint
+(κ, gaps) fixpoint with a short cap (5); if it does not converge, retry with
+**Mode-B disabled** (`_enable_b = False` → the v02 κ-only fixpoint, cap 8, which
+is stable on dense instances); only then fall back to zero. So dense topologies
+recover exactly the v02 result while sparse ones keep the Mode-B gains. The v02
+safety guarantees still hold — `_decode` returns `min(zero, man)`.
+
+## Results (v03 vs v02, 20 s spot-checks, all COMPLIANT)
+
+Mode B improves exactly the cases v02 left on the table, and is inert where
+manoeuvres do not pay:
+
+| instance / profile      | v02 obj  | v03 obj  | change |
+| ----------------------- | -------- | -------- | ------ |
+| chain_R10 / wMK         | 6681.6   | 6383.5   | −4.5 % |
+| chain_R10 / wDLY        | 13394.0  | 11083.5  | −17.3 %|
+| chain_R10 / wMOV        | 259.1    | 259.1    | —      |
+
+(Full `_seed1` battery vs MILP recorded in the living `.md` Part II.)
+
 ## Remaining gap (drives the next iteration)
 
-- **Mode B not yet created.** The decoder packs each aircraft's jobs tight,
-  so there are no inter-job gaps to route a Mode-B access through. Opening a
-  gap of `≥ μ` between two front jobs (cost 2 movements, no δ extension) is
-  the natural next lever — it lets a rear pass without lengthening any job,
-  which the makespan profile should favour.
 - **Polish only on the single best (a,o) for large R.** An elite pool of the
   top-K phase-A solutions, each manoeuvre-polished, would likely recover more
   on R ≥ 23 than polishing only the incumbent.
 - **Decoder speed.** Incremental re-classification (only arcs incident on the
   moved aircraft change) would let manoeuvres run throughout the search even
-  on large instances, removing the need for the size-based phase split.
+  on large instances, removing the need for the size-based phase split. With
+  two fixpoint states this matters more than at v02.
+- **Joint fixpoint convergence.** κ and gaps now co-evolve; the cap was raised
+  to 10 iterations. Worth instrumenting how often the fallback fires.
