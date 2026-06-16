@@ -213,9 +213,18 @@ manoeuvres do not pay:
 - **Polish only on the single best (a,o) for large R.** An elite pool of the
   top-K phase-A solutions, each manoeuvre-polished, would likely recover more
   on R ≥ 23 than polishing only the incumbent.
-- **Decoder speed.** Incremental re-classification (only arcs incident on the
-  moved aircraft change) would let manoeuvres run throughout the search even
-  on large instances, removing the need for the size-based phase split. With
-  two fixpoint states this matters more than at v02.
-- **Joint fixpoint convergence.** κ and gaps now co-evolve; the cap was raised
-  to 10 iterations. Worth instrumenting how often the fallback fires.
+- **Decoder speed (partly done — interval caching).** Profiling the decode
+  showed `_job_intervals` dominating (1.3 M calls, ~3.7 s of a 6 s run): every
+  candidate in `_choose_start`/`_eval_start` rebuilt the *placed neighbours'*
+  intervals, which do not change while later aircraft are placed. Caching them
+  once per forward pass (`placed_jobs`), shifting r's own offsets (`base_r`)
+  instead of rebuilding, and a fast path for the no-κ/no-gaps case cut decode
+  cost **~1.4–2× (denser topology → bigger win)** with **byte-identical
+  results** (verified: deterministic construct+VND objectives unchanged). The
+  *remaining* step is true **incremental move evaluation** — only re-classify
+  the arcs incident on the aircraft a VND move touched (don't-look bits /
+  `getAssignDelta`), which would let manoeuvres run throughout the search on
+  large instances and remove the need for the size-based phase split.
+- **Joint fixpoint convergence.** κ and gaps co-evolve; the staged fallback
+  bounds the cost (joint cap 5 → κ-only cap 8 → zero). Worth instrumenting how
+  often the fallback fires across the battery.

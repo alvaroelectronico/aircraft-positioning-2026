@@ -306,10 +306,16 @@ class IteratedGreedyVNDJobSolver:
         (Mode-B routing windows).  With ``gaps`` empty the jobs are packed
         tight (the v02 behaviour).
         """
+        chain = self.chain[r]
         out: list[tuple[str, float, float, bool]] = []
         t = start
-        n = len(self.chain[r])
-        for k, (jid, d, intr) in enumerate(self.chain[r]):
+        if not kappa and not gaps:           # fast path: pack tight (common)
+            for jid, d, intr in chain:
+                out.append((jid, t, t + d, intr))
+                t += d
+            return out
+        n = len(chain)
+        for k, (jid, d, intr) in enumerate(chain):
             dur = d + self.delta * (kappa.get(jid, 0) if kappa else 0)
             out.append((jid, t, t + dur, intr))
             t += dur
@@ -524,14 +530,20 @@ class IteratedGreedyVNDJobSolver:
         and the already-placed neighbours.  Always returns a feasible
         placement."""
         placed: dict[str, tuple[float, float]] = {}
+        # Cache each placed aircraft's job intervals once (they do not change
+        # while later aircraft are placed) so the per-candidate scans in
+        # _choose_start/_eval_start reuse them instead of rebuilding — the hot
+        # path by a wide margin (see profiling note in design.md).
+        placed_jobs: dict[str, list[tuple[str, float, float, bool]]] = {}
         for r in order:
             dur = self._duration(r, kappa, gaps)
-            t = self._choose_start(r, assignment, dur, placed, kappa, gaps)
+            t = self._choose_start(r, assignment, dur, placed, placed_jobs, kappa, gaps)
             placed[r] = (t, t + dur)
+            placed_jobs[r] = self._job_intervals(r, t, kappa, gaps)
         return placed
 
     def _choose_start(self, r: str, assignment: dict, dur: float,
-                      placed: dict, kappa: dict[str, int],
+                      placed: dict, placed_jobs: dict, kappa: dict[str, int],
                       gaps: dict[tuple[str, int], float]) -> float:
         """Pick the start time for ``r`` minimising local weighted cost.
 
@@ -542,11 +554,15 @@ class IteratedGreedyVNDJobSolver:
         (outside the front stay), Mode-C (inside an interruptible job) and
         Mode-B (on a front inter-job boundary, where a gap can be opened).
         A guaranteed-feasible 'after everything' candidate is always included.
+
+        ``placed_jobs`` caches each placed neighbour's intervals; ``base_r`` is
+        r's own intervals at start 0, computed once and shifted per candidate.
         """
         p = assignment[r]
         E_r = self.E[r]
         cands: set[float] = {E_r}
         latest = E_r
+        base_r = self._job_intervals(r, 0.0, kappa, gaps)   # r's offsets, once
         for r2, (s2, f2) in placed.items():
             latest = max(latest, f2)
             p2 = assignment[r2]
@@ -558,26 +574,27 @@ class IteratedGreedyVNDJobSolver:
                 cands.add(f2 + self.eta + SAFE)              # entry after front
                 cands.add(s2 - self.eta - SAFE)              # entry before front
                 cands.add(s2 - self.eta - dur - SAFE)        # exit before front
-                jobs2 = self._job_intervals(r2, s2, kappa, gaps)
+                jobs2 = placed_jobs[r2]
+                last2 = len(jobs2) - 1
                 for k, (jid, js, jf, intr) in enumerate(jobs2):
                     if intr and (jf - js) > 2 * self.eta + 2 * SAFE:
                         mid = 0.5 * (js + jf)
                         cands.add(mid)                       # entry mid-job (Mode C)
                         cands.add(mid - dur)                 # exit mid-job (Mode C)
-                    if self._enable_b and k < len(jobs2) - 1:  # Mode B: front boundary
+                    if self._enable_b and k < last2:         # Mode B: front boundary
                         cands.add(jf)                        # entry at front job-k end
                         cands.add(jf - dur)                  # exit at front job-k end
             if (p, p2) in self._arcs:
                 # r is FRONT, r2 is REAR.  r2's fixed instants vs r's stay.
-                r_off = self._job_intervals(r, 0.0, kappa, gaps)   # offsets from t
+                last_r = len(base_r) - 1
                 for tau in (s2, f2):
                     cands.add(tau + self.eta + SAFE)             # tau before r
                     cands.add(tau - self.eta - dur - SAFE)       # tau after r
-                    for k, (jid, js, jf, intr) in enumerate(r_off):
+                    for k, (jid, js, jf, intr) in enumerate(base_r):
                         if intr and (jf - js) > 2 * self.eta + 2 * SAFE:
                             # centre r's job over tau -> tau is Mode C inside it
                             cands.add(tau - 0.5 * (js + jf))
-                        if self._enable_b and k < len(r_off) - 1:  # Mode B: align
+                        if self._enable_b and k < last_r:        # Mode B: align
                             cands.add(tau - jf)              # r's job-k end with tau
         cands.add(latest + self.eta + self.eps + dur + SAFE)  # safe fallback
 
@@ -586,7 +603,8 @@ class IteratedGreedyVNDJobSolver:
         for t in sorted(cands):
             if t < E_r - 1e-9:
                 continue
-            ok, events = self._eval_start(r, assignment, t, dur, placed, kappa, gaps)
+            ok, events = self._eval_start(r, assignment, t, dur, placed,
+                                          placed_jobs, base_r, kappa, gaps)
             if not ok:
                 continue
             f_r = t + dur
@@ -603,18 +621,21 @@ class IteratedGreedyVNDJobSolver:
         return best_t
 
     def _eval_start(self, r: str, assignment: dict, t: float, dur: float,
-                    placed: dict, kappa: dict[str, int],
+                    placed: dict, placed_jobs: dict, base_r: list,
+                    kappa: dict[str, int],
                     gaps: dict[tuple[str, int], float]):
         """Return ``(feasible, events)`` for placing ``r`` at start ``t``.
 
         ``events`` counts the Mode-B/C access events r's placement creates
         against already-placed neighbours (each worth 2 movements).  Used as
         a local cost guide only; authoritative movement counting happens in
-        ``_classify_schedule`` over the full placement.
+        ``_classify_schedule`` over the full placement.  Neighbour intervals
+        come from the ``placed_jobs`` cache; r's own intervals are ``base_r``
+        (offsets from 0) shifted by ``t``.
         """
         p = assignment[r]
         s_r, f_r = t, t + dur
-        r_jobs = self._job_intervals(r, t, kappa, gaps)
+        r_jobs = [(jid, js + t, jf + t, intr) for (jid, js, jf, intr) in base_r]
         events = 0
         for r2, (s2, f2) in placed.items():
             p2 = assignment[r2]
@@ -623,7 +644,7 @@ class IteratedGreedyVNDJobSolver:
                 if not (f_r + self.eps <= s2 + TOL or f2 + self.eps <= s_r + TOL):
                     return (False, 0)
             if (p2, p) in self._arcs:
-                jobs2 = self._job_intervals(r2, s2, kappa, gaps)
+                jobs2 = placed_jobs[r2]
                 for tau in (s_r, f_r):
                     kind, _ = self._classify(tau, s2, f2, jobs2)
                     if kind == "X" or (kind == "B" and not self._enable_b):

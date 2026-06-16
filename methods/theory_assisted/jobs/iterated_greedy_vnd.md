@@ -304,9 +304,9 @@ compatibility).
 | Manoeuvre-aware decode — staged fallback (joint → κ-only → zero) | `_decode_man(assignment, order)` |
 | One fixpoint attempt up to a cap (Mode-B gated by `_enable_b`) | `_man_fixpoint(assignment, order, cap)` |
 | Fixpoint-state equality test for the gap plan | `_gaps_equal(a, b)` |
-| Forward list-scheduler (one pass, given fixed kappa+gaps) | `_forward_pass(assignment, order, kappa, gaps)` |
-| Candidate start-time selector (Mode A/B/C candidates, local cost) | `_choose_start(r, assignment, dur, placed, kappa, gaps)` |
-| Feasibility check + events count for a candidate start | `_eval_start(r, assignment, t, dur, placed, kappa, gaps)` |
+| Forward list-scheduler (one pass; caches `placed_jobs` intervals) | `_forward_pass(assignment, order, kappa, gaps)` |
+| Candidate start-time selector (Mode A/B/C candidates, local cost) | `_choose_start(r, assignment, dur, placed, placed_jobs, kappa, gaps)` |
+| Feasibility check + events count for a candidate start | `_eval_start(r, assignment, t, dur, placed, placed_jobs, base_r, kappa, gaps)` |
 | Fixpoint classifier (sets kappa from Mode-C, gaps from Mode-B) | `_classify_schedule(assignment, placed, kappa, gaps)` |
 | Access-mode classifier (A / B / C / X) for one instant | `_classify(tau, s, f, jobs)` |
 | Job interval builder (kappa extensions + Mode-B inter-job gaps) | `_job_intervals(r, start, kappa, gaps)` |
@@ -315,6 +315,16 @@ compatibility).
 | Adaptive two-phase budget split (phase A: zero-movement, phase B: manoeuvre-on) | `man_phase_frac` logic in `solve()` |
 
 ## Key implementation notes
+
+- **Interval caching (decode hot path).** Profiling showed `_job_intervals`
+  dominating the decode because every candidate in `_choose_start`/`_eval_start`
+  rebuilt each placed *neighbour's* job intervals.  `_forward_pass` now caches
+  them once in `placed_jobs`; `_choose_start` computes r's own offsets once as
+  `base_r` and `_eval_start` shifts them by the trial start instead of
+  rebuilding; `_job_intervals` has a fast path when both `kappa` and `gaps` are
+  empty.  This is ~1.4–2× faster (more on dense topologies) with **identical
+  results** — the deterministic construct+VND objective is unchanged, so it is
+  a pure speedup, not a behaviour change.
 
 - **Two-phase budget split.** The manoeuvre-aware decoder is approximately
   50× slower per evaluation than the zero-movement rule.  `solve()` spends the
@@ -387,7 +397,8 @@ Track the method's evolution.  One row per behaviour-affecting commit
 | commit | change | effect on results |
 | ------ | ------ | ----------------- |
 | 56fab0c (main) | v02: manoeuvre-aware decoder (Mode-C kappa fixpoint) + `min(zero,man)` dispatcher + adaptive two-phase budget split; `allow_manoeuvres` knob; pure zero-movement baseline retained as fallback guaranteeing non-regression against v01.  Registered in `run_experiments.py` as `ta_igvnd_*`; helper `experiments/ta_paired_report.py` added | `_seed1$` battery (36 runs, 60 s, **36/36 COMPLIANT**) vs cached MILP: dominant on large unconverged instances (full_R20 +43/+56/+45 %, triangle_R30 +35/+47/+33 % wMK/wDLY/wMOV), within a few % on R10, ties on none/R5 |
-| (branch `theory_assisted-v03-modeB`) | v03: **Mode-B** manoeuvres (open inter-job gaps via a `gaps` fixpoint state) so a rear can pass through a front gap with no δ cost; staged fallback (joint κ+gaps → κ-only → zero) fixes the dense-topology oscillation the gaps state introduces | `_seed1$` battery (36 runs, **36/36 COMPLIANT**) vs MILP: turns v02's dense-blocking R10 losses into wins (chain_R10 wDLY −7.2 %→**+11.7 %**, hub wDLY −4.5 %→+2.6 %, triangle_loose/medium up); dense `full` held at v02 level by the fallback; wMOV unchanged.  v03 ≥ v02 across the battery beyond noise |
+| bcb71dd (main) | v03: **Mode-B** manoeuvres (open inter-job gaps via a `gaps` fixpoint state) so a rear can pass through a front gap with no δ cost; staged fallback (joint κ+gaps → κ-only → zero) fixes the dense-topology oscillation the gaps state introduces | `_seed1$` battery (36 runs, **36/36 COMPLIANT**) vs MILP: turns v02's dense-blocking R10 losses into wins (chain_R10 wDLY −7.2 %→**+11.7 %**, hub wDLY −4.5 %→+2.6 %, triangle_loose/medium up); dense `full` held at v02 level by the fallback; wMOV unchanged.  v03 ≥ v02 across the battery beyond noise |
+| (branch `theory_assisted-v03_1-decode-speed`) | v03.1: decode-speed refactor — cache placed neighbours' intervals (`placed_jobs`), shift r's offsets (`base_r`) instead of rebuilding, fast path in `_job_intervals` for the no-κ/no-gaps case | **Pure speedup, identical results** (deterministic construct+VND objectives byte-unchanged; spot-checks COMPLIANT).  `_job_intervals` calls 1.3 M→210 k; construct+VND **~1.4–2× faster** (full_R10 3.95 s→1.96 s).  More search iterations per budget, especially on dense/large instances |
 
 ---
 
