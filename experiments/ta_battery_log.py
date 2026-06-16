@@ -178,7 +178,8 @@ def _summary(runs: dict) -> str:
 
 def main() -> None:
     out_path = Path(sys.argv[1]) if len(sys.argv) > 1 else \
-        _ROOT / "outputs" / "logs" / "ta_battery_202605_02.log"
+        _ROOT / "outputs" / "logs" / \
+        "instances_main_methods_20260616_112206_iterated_greedy_vnd_v02_01.log"
     csv_path = Path(sys.argv[2]) if len(sys.argv) > 2 else \
         _ROOT / "outputs" / "solutions" / "results.csv"
 
