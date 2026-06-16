@@ -213,6 +213,18 @@ manoeuvres do not pay:
 - **Polish only on the single best (a,o) for large R.** An elite pool of the
   top-K phase-A solutions, each manoeuvre-polished, would likely recover more
   on R ≥ 23 than polishing only the incumbent.
+- **Decoder speed (v05 — incremental zero decode).** The zero-movement forward
+  pass is *causal* — each aircraft's placement depends only on those before it
+  in `order` — so a VND move that changes the aircraft at order-index `k` only
+  needs `order[k:]` re-placed, reusing the cached prefix `order[:k]`
+  (`_zero_place(start=k)` / `_zero_obj_inc`).  The three neighbourhoods use this
+  in phase A (zero decode); phase B (manoeuvre decode) is not incrementalised.
+  **Exact** — the incremental objective equals the full zero decode (verified:
+  1701 random N1/N2/N3 probes, 0 mismatches).  Measured **+14–17 % more search
+  iterations** on R30 (phase-A-only) and R20.  Because the search is
+  time-limited and stochastic, the *extra* iterations shift the RNG/phase-B
+  trajectory, so the end objective is v04 ± noise per seed (equal at equal
+  iteration count); the net effect over seeds needs a battery to quantify.
 - **Decoder speed (v04 — light-objective path).** The search calls the decoder
   only for its objective, but `_finalise` was building the full per-aircraft /
   per-job solution dict on every call.  v04 adds a `full=False` path (used via

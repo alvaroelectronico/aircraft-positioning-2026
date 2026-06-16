@@ -471,9 +471,19 @@ class IteratedGreedyVNDJobSolver:
             return [(s2 - dur - eta, f2 + eta)]
         return []
 
-    def _decode_zero(self, assignment: dict, order: list[str], full: bool = True) -> dict:
-        placed: dict[str, tuple[float, float]] = {}
-        for r in order:
+    def _zero_place(self, assignment: dict, order: list[str], start: int = 0,
+                    placed: dict | None = None) -> dict:
+        """Earliest-feasible-start forward pass for the zero-movement rule.
+
+        Places ``order[start:]`` into ``placed`` (which must already hold the
+        placements of ``order[:start]``) and returns it.  Because the pass is
+        causal — each aircraft's placement depends only on those *before* it in
+        ``order`` — re-placing just a suffix from a cached prefix is exact,
+        which is what the incremental VND evaluation (`_zero_obj_inc`) exploits.
+        """
+        placed = {} if placed is None else placed
+        for idx in range(start, len(order)):
+            r = order[idx]
             p = assignment[r]
             dur = self.T[r]
             forbidden: list[tuple[float, float]] = []
@@ -489,6 +499,26 @@ class IteratedGreedyVNDJobSolver:
                         t = hi
                         moved = True
             placed[r] = (t, t + dur)
+        return placed
+
+    def _zero_obj_inc(self, assignment: dict, order: list[str], k: int,
+                      base_placed: dict) -> float:
+        """Zero-movement objective when only ``order[k:]`` may have changed:
+        reuse ``base_placed`` for the unchanged prefix ``order[:k]`` and
+        re-place only the suffix.  Exactly equal to a full zero decode."""
+        prefix = {order[t]: base_placed[order[t]] for t in range(k)}
+        placed = self._zero_place(assignment, order, start=k, placed=prefix)
+        makespan = 0.0
+        total_delay = 0.0
+        for r in order:
+            f_r = placed[r][1]
+            total_delay += max(0.0, f_r - self.L[r])
+            if f_r > makespan:
+                makespan = f_r
+        return round(self.wM * makespan + self.wD * total_delay, 6)
+
+    def _decode_zero(self, assignment: dict, order: list[str], full: bool = True) -> dict:
+        placed = self._zero_place(assignment, order)
         return self._finalise(placed, assignment, kappa=None, movements=0, full=full)
 
     # ==================================================================
@@ -771,16 +801,26 @@ class IteratedGreedyVNDJobSolver:
         return assignment, order
 
     def _n_reassign(self, assignment, order, cur):
-        """N1 — move one aircraft to a different position (first improvement)."""
+        """N1 — move one aircraft to a different position (first improvement).
+
+        In phase A (zero decode) each probe only changes the moved aircraft, so
+        the objective is evaluated incrementally — re-placing the order suffix
+        from the moved aircraft onward, reusing the cached prefix (`_zero_obj_inc`).
+        Phase B (manoeuvre decode) cannot be incrementalised and uses `_obj`."""
+        inc = not self.allow_man
+        base = self._zero_place(assignment, order) if inc else None
+        idx_of = {r: i for i, r in enumerate(order)} if inc else None
         for r in self.aircraft_ids:
             if self._out_of_time():
                 return False, assignment, order, cur
             p0 = assignment[r]
+            k = idx_of[r] if inc else 0
             for p in self.positions:
                 if p == p0:
                     continue
                 assignment[r] = p
-                o = self._obj(assignment, order)
+                o = (self._zero_obj_inc(assignment, order, k, base) if inc
+                     else self._obj(assignment, order))
                 if o < cur - 1e-9:
                     return True, assignment, order, o
                 assignment[r] = p0
@@ -788,6 +828,9 @@ class IteratedGreedyVNDJobSolver:
 
     def _n_swap_pos(self, assignment, order, cur):
         """N2 — swap the positions of two aircraft (first improvement)."""
+        inc = not self.allow_man
+        base = self._zero_place(assignment, order) if inc else None
+        idx_of = {r: i for i, r in enumerate(order)} if inc else None
         ids = self.aircraft_ids
         for i in range(len(ids)):
             if self._out_of_time():
@@ -797,7 +840,11 @@ class IteratedGreedyVNDJobSolver:
                 if assignment[ri] == assignment[rj]:
                     continue
                 assignment[ri], assignment[rj] = assignment[rj], assignment[ri]
-                o = self._obj(assignment, order)
+                if inc:
+                    k = idx_of[ri] if idx_of[ri] < idx_of[rj] else idx_of[rj]
+                    o = self._zero_obj_inc(assignment, order, k, base)
+                else:
+                    o = self._obj(assignment, order)
                 if o < cur - 1e-9:
                     return True, assignment, order, o
                 assignment[ri], assignment[rj] = assignment[rj], assignment[ri]
@@ -805,12 +852,15 @@ class IteratedGreedyVNDJobSolver:
 
     def _n_reorder(self, assignment, order, cur):
         """N3 — swap two aircraft in the priority order (first improvement)."""
+        inc = not self.allow_man
+        base = self._zero_place(assignment, order) if inc else None
         for i in range(len(order)):
             if self._out_of_time():
                 return False, assignment, order, cur
             for j in range(i + 1, len(order)):
                 order[i], order[j] = order[j], order[i]
-                o = self._obj(assignment, order)
+                o = (self._zero_obj_inc(assignment, order, i, base) if inc
+                     else self._obj(assignment, order))
                 if o < cur - 1e-9:
                     return True, assignment, order, o
                 order[i], order[j] = order[j], order[i]
