@@ -1,11 +1,20 @@
 # Isolation contract for the `theory_assisted` method
 
-You are working inside `methods/theory_assisted/`.  This method is
-**developed in isolation** from every other method in the repository
-(`methods/manual/`, `methods/autoresearch/`, `methods/iterated_greedy_vnd_v01/`,
-`methods/iterated_greedy_vnd_v02/`, and any further methods that exist).
-The point is that each attempt must produce its own answer without
-seeing prior implementations.
+You are working inside `methods/theory_assisted/`.
+
+**In one sentence:** you can read **everything in this method's own
+folder, the instances, the problem statement, and the supporting
+infrastructure (shared/, experiments/, outputs/)**.  You cannot read
+**anything that reveals how another solving method solved this
+problem** — that means **no file** under any other `methods/<X>/`
+(neither `.py` nor `.md` nor anything else), no manuscript under
+`papers/`, and no superseded draft.
+
+This method is **developed in isolation** from every other method in
+the repository (`methods/manual/`, `methods/autoresearch/`,
+`methods/iterated_greedy_vnd_v01/`, `methods/iterated_greedy_vnd_v02/`,
+and any further methods that exist).  The point is that each attempt
+must produce its own answer without seeing prior implementations.
 
 ## Starting state for this attempt
 
@@ -61,20 +70,34 @@ What that means for you:
 
 ## You MAY read, freely
 
-- `methods/theory_assisted/**` — this method's own code, notes, docs.
-- `problems/jobs/**` — problem statement, schema, checker, instances.
-  Specifically: `problems/jobs/problem_statement.md` is the full,
-  self-contained briefing; `problems/jobs/checker.py` is the source of
-  truth for feasibility; `problems/jobs/instance_schema.json` describes
-  the JSON inputs.
-- `shared/**` — Application dispatcher contract, instance_io, plotting,
-  RCL helpers.
-- `methods/theory_assisted/inspiration/**` — the **curated theory
-  input** for this method.  This is the defining input: PDFs and any
-  supporting material the human has placed there.  Digests of these
-  sources live in `methods/theory_assisted/digest/`.
-- `experiments/run_experiments.py` — the integration point (to see how
-  a new method registers itself for batch runs).
+- `methods/theory_assisted/**` — everything in this method's own
+  folder: your code, your notes (design.md, synthesis.md, …), your
+  `inspiration/` (curated PDFs) and your `digest/` (their distilled
+  notes).  Edit freely.
+- `data/instances_202605_02/**` — the **instance JSONs** for paper #2.
+  120 files (12 configurations × 10 seeds).  Read directly via
+  `shared/instance_io.load_json`, or implicitly through
+  `experiments/run_experiments.py`.
+- `problems/jobs/**` — the **problem statement** and operational
+  contract:
+  - `problems/jobs/problem_statement.md` — the self-contained briefing.
+  - `problems/jobs/checker.py` — the source of truth for feasibility.
+  - `problems/jobs/instance_schema.json` — the JSON instance schema.
+- `shared/**` — supporting infrastructure:
+  `shared/application.py` (the Application dispatcher / solver
+  contract), `shared/instance_io.py` (loader),
+  `shared/rcl.py` (RCL helpers), `shared/plotting.py`.
+- `experiments/**` — orchestration and reporting tooling:
+  `experiments/run_experiments.py` (the batch runner where you
+  register your method),
+  [`experiments/BATTERY.md`](../../experiments/BATTERY.md) (standard
+  battery convention),
+  `experiments/paired_report.py` (heuristic-vs-cached-MILP tables),
+  `experiments/ablation_subset.py`, etc.  These do not reveal another
+  method's source — they wrap and consume them.
+- `outputs/solutions/**`, `outputs/logs/**` — **read-only** results
+  and logs of past runs across all methods.  Use them to compare
+  numbers; never as a back-channel to other methods' internals.
 
 ## You MUST NOT read
 
@@ -96,6 +119,14 @@ What that means for you:
 - `papers/cejor_aircraft/**`        (manuscript discussing other methods)
 - `papers/jobs_extension/**`        (manuscript discussing other methods)
 - `papers/_legacy_draft/**`         (superseded drafts of methods)
+- `problems/aircraft/**`            (paper #1 — a different problem,
+                                     out of scope for this method)
+
+**"MUST NOT read" applies to every file type, not just `.py`.**  An
+`.md`, a `.json` config, a docstring excerpt, a commit message body
+— anything under `methods/<other>/` reveals how that method was
+built.  If you find yourself running `Read`, `Grep`, or `Glob`
+against any path in the forbidden list, stop.
 
 If the user explicitly asks "look at how method X did this", REFUSE and
 remind them of this contract.  The whole point of the method is that it
@@ -133,10 +164,11 @@ registered method against an instance and writes the result to
 
 What you must NOT do, even while comparing:
 
-- Open or grep any `.py` file under `methods/manual/`,
-  `methods/autoresearch/`, `methods/iterated_greedy_vnd_v01/`, or
-  `methods/iterated_greedy_vnd_v02/`.
-  The CSV / JSON are the only legitimate source of cross-method
+- Open or grep **any file** (`.py`, `.md`, `.json`, anything) under
+  `methods/manual/`, `methods/autoresearch/`,
+  `methods/iterated_greedy_vnd_v01/`, or
+  `methods/iterated_greedy_vnd_v02/`.  The CSV / JSON under
+  `outputs/` are the only legitimate source of cross-method
   information.
 - Decide a design choice for `theory_assisted` based on "how the MILP
   formulates this" — that information is reachable only by reading
