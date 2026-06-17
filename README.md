@@ -48,9 +48,12 @@ methods/                 # ONE subtree per solving approach. ISOLATED.
                          # across attempts, the rest is reset per attempt.
     jobs/                    # paper #2 (the only scope so far)
   iterated_greedy_vnd_v01/  # IG + VND solver, ChatGPT-assisted v01 — graduated
-                            # from a theory_assisted process (its synthesis.md +
-                            # design.md travelled here).  Frozen for comparison
-                            # with the upcoming v02 (Claude-assisted) attempt.
+                            # from a theory_assisted process.  Frozen for
+                            # comparison with v02.
+    jobs/                       # paper #2
+  iterated_greedy_vnd_v02/  # IG + VND solver, Claude-assisted v02 — graduated
+                            # from a theory_assisted process from the same
+                            # 30e1af0 baseline as v01.  Frozen for comparison.
     jobs/                       # paper #2
 
 experiments/             # Cross-method orchestration; imports any method.

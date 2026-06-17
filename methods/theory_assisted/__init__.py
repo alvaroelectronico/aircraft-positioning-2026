@@ -14,7 +14,9 @@ and reinforced by per-directory CLAUDE.md instructions):
                  methods/theory_assisted/ (own code, own inspiration,
                  own digests).
     MAY NOT read: literature_review/, methods/manual/,
-                  methods/autoresearch/, papers/, papers/_legacy_draft/.
+                  methods/autoresearch/, methods/iterated_greedy_vnd_v01/,
+                  methods/iterated_greedy_vnd_v02/, papers/,
+                  papers/_legacy_draft/.
 
 Rationale: a new method starts from a clean slate.  Curated theory is
 the defining input (and the human controls what enters scope by what

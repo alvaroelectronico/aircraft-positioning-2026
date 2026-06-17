@@ -20,7 +20,9 @@ plus the per-directory ``CLAUDE.md``):
     MAY read:    problems/<paper>/, shared/,
                  methods/iterated_greedy_vnd_v01/ (own code + docs).
     MAY NOT read: methods/manual/, methods/autoresearch/,
+                  methods/iterated_greedy_vnd_v02/ (the sibling
+                  Claude-assisted attempt from the same baseline —
+                  reading it contaminates the v01-vs-v02 comparison),
                   methods/theory_assisted/ (the scaffold reused for
-                  the upcoming v02 attempt), and any other future
-                  methods.
+                  future attempts), and any other future methods.
 """

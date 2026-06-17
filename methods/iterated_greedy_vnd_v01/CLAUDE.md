@@ -29,6 +29,10 @@ repository, even though it originated from a `theory_assisted` process
 
 - `methods/manual/**`               (other method)
 - `methods/autoresearch/**`         (other method)
+- `methods/iterated_greedy_vnd_v02/**` (sister attempt — Claude-assisted
+                                     trajectory from the same 30e1af0
+                                     baseline; reading it contaminates
+                                     the v01-vs-v02 comparison)
 - `methods/theory_assisted/**`      (the literature-informed process
                                      that birthed this method has
                                      already been distilled into

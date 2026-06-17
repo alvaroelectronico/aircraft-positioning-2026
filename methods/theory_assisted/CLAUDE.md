@@ -3,26 +3,43 @@
 You are working inside `methods/theory_assisted/`.  This method is
 **developed in isolation** from every other method in the repository
 (`methods/manual/`, `methods/autoresearch/`, `methods/iterated_greedy_vnd_v01/`,
-and any further methods that exist).  The point is that each attempt
-must produce its own answer without seeing prior implementations.
+`methods/iterated_greedy_vnd_v02/`, and any further methods that exist).
+The point is that each attempt must produce its own answer without
+seeing prior implementations.
 
 ## Starting state for this attempt
 
-The active code under `jobs/iterated_greedy_vnd.py` is **a verbatim
-restore of commit `30e1af0`** — the same IGVND baseline that v01 was
-built on top of.  `jobs/notes/synthesis.md` and `jobs/notes/design.md`
-are the same-vintage docs.  This is on purpose: the experiment is
-"two LLM-assisted developer workflows iterating from the same starting
-point" (v01 = ChatGPT, this attempt = Claude).
+This is a **clean scaffold** for a new attempt at paper #2.  Previous
+attempts have graduated to their own isolated method directories
+(`methods/iterated_greedy_vnd_v01/` = ChatGPT-assisted,
+`methods/iterated_greedy_vnd_v02/` = Claude-assisted from the same
+30e1af0 baseline).  This time you start fresh:
+
+- `jobs/theory_assisted_job.py` is a **stub** with the `Application`
+  contract wired and `solve()` raising `NotImplementedError`.  Replace
+  its body (or rename it / split it into multiple modules) with your
+  approach.
+- `jobs/notes/` is empty save its README template — fill it with your
+  design notes, synthesis, and experiments log as you iterate.
+- `digest/` and `inspiration/` carry the **same reusable theory base**
+  prior attempts had (10 PDFs + 10 digests).  Add more if you want
+  to widen the input.
+
+You have full freedom to pick the algorithmic angle.  IG+VND was the
+chosen candidate in v01 and v02; you might pick a different one
+(e.g. matheuristic, hyper-heuristic, ILS, GA with random keys, …).
+Use `/synthesize-theory` to (re)run the synthesis if helpful — it
+will produce a fresh `synthesis.md` with candidates given the current
+`digest/` content.
 
 What that means for you:
 
 - You **may** read and modify everything under
   `methods/theory_assisted/` (it is yours to evolve).
-- You **may NOT** read `methods/iterated_greedy_vnd_v01/` — that is
-  ChatGPT's evolution from the same starting point, and seeing it
-  would contaminate the comparison.  Even though the v01 *baseline*
-  is what you have, v01's *trajectory* away from it is off-limits.
+- You **may NOT** read any other `methods/<X>/` — including the v01
+  and v02 trajectories.  Their evolutions from earlier baselines are
+  off-limits even though the underlying theory (in `digest/`) is
+  shared.
 
 ## You MAY read, freely
 
@@ -48,10 +65,15 @@ What that means for you:
                                      `inspiration/` folder is)
 - `methods/manual/**`               (other method)
 - `methods/autoresearch/**`         (other method)
-- `methods/iterated_greedy_vnd_v01/**`  (other method — descended from a
-                                     previous theory_assisted attempt;
+- `methods/iterated_greedy_vnd_v01/**`  (other method — ChatGPT-assisted
+                                     descendent of a previous
+                                     theory_assisted attempt;
                                      its design notes are now part of
                                      that method, not this scaffold)
+- `methods/iterated_greedy_vnd_v02/**`  (other method — Claude-assisted
+                                     descendent of a previous
+                                     theory_assisted attempt; same
+                                     reasoning)
 - Any further `methods/<other>/**`  that may exist in the future.
 - `papers/cejor_aircraft/**`        (manuscript discussing other methods)
 - `papers/jobs_extension/**`        (manuscript discussing other methods)
@@ -81,9 +103,11 @@ registered method against an instance and writes the result to
   - `milp_baseline_job`        — the manual MILP (60 s default budget)
   - `milp_baseline_job_wB`     — same, with the wB weight profile
   - `milp_baseline_job_wC`     — same, with the wC weight profile
-  - `igvnd_wMK` / `igvnd_wDLY` / `igvnd_wMOV` — Iterated Greedy + VND,
-    three weight profiles.  Use these to compare your numbers, NOT
-    to peek at how IGVND solves the problem.
+  - `igvnd_wMK` / `igvnd_wDLY` / `igvnd_wMOV` — v01 IGVND (ChatGPT-
+    assisted), three weight profiles.  Use to compare your numbers,
+    NOT to peek at the solver's source.
+  - `ta_igvnd_wMK` / `ta_igvnd_wDLY` / `ta_igvnd_wMOV` — v02 IGVND
+    (Claude-assisted), three weight profiles.  Same rule.
 - Read the resulting JSON solutions and metrics from
   `outputs/solutions/scn_…__milp_baseline_job__<timestamp>.json` and
   the aggregated `outputs/solutions/results.csv`.
@@ -92,7 +116,8 @@ registered method against an instance and writes the result to
 What you must NOT do, even while comparing:
 
 - Open or grep any `.py` file under `methods/manual/`,
-  `methods/autoresearch/`, or `methods/iterated_greedy_vnd_v01/`.
+  `methods/autoresearch/`, `methods/iterated_greedy_vnd_v01/`, or
+  `methods/iterated_greedy_vnd_v02/`.
   The CSV / JSON are the only legitimate source of cross-method
   information.
 - Decide a design choice for `theory_assisted` based on "how the MILP

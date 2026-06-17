@@ -30,11 +30,13 @@ The original `inspiration/` PDFs and `digest/` notes remain under
 attempts; they are NOT on this method's read path any more (see
 [`CLAUDE.md`](CLAUDE.md)).
 
-A parallel **v02** attempt with Claude as the LLM assistant is starting
-on the same `theory_assisted` scaffold so the two developer workflows
-(human + GPT vs. human + Claude) can be compared head-to-head on
-identical theory inputs.  v02 will land in its own method directory
-once mature.
+The parallel **v02** attempt (Claude-assisted, from the same 30e1af0
+baseline) has now matured and lives at
+[`methods/iterated_greedy_vnd_v02/`](../iterated_greedy_vnd_v02/).
+The two developer workflows (human + GPT vs. human + Claude) can be
+compared head-to-head via `outputs/solutions/results.csv` (labels
+`igvnd_*` for v01, `ta_igvnd_*` for v02).  v02's source remains off
+this method's read path per [`CLAUDE.md`](CLAUDE.md).
 
 ## Reading list
 

@@ -31,8 +31,10 @@ any previous method's code.
   input; copy a paper into `inspiration/` to bring it in scope)
 - `methods/manual/**`
 - `methods/autoresearch/**`
-- `methods/iterated_greedy_vnd_v01/**` (the previous theory_assisted
-  attempt — graduated to its own method, off this read path)
+- `methods/iterated_greedy_vnd_v01/**` (a previous theory_assisted
+  attempt — ChatGPT-assisted, graduated to its own method)
+- `methods/iterated_greedy_vnd_v02/**` (a previous theory_assisted
+  attempt — Claude-assisted, graduated to its own method)
 - `papers/**` (publishable manuscripts of OUR work)
 
 See `CLAUDE.md` for the full rationale and the protocol if you need an

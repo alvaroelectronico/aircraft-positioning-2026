@@ -4,7 +4,8 @@ This is **Candidate A** from the theory-assisted design process: an Iterated
 Greedy outer loop (destruction–reconstruction over position assignments) wrapped
 around a sequential Variable Neighbourhood Descent local search.  The design is
 drawn entirely from the curated literature digest in `inspiration/` / `digest/`
-(see the notes in `methods/theory_assisted/jobs/notes/`); no external solver is
+(now archived alongside this file as `synthesis.md` + `design.md`, originally
+written under the `methods/theory_assisted/` scaffold); no external solver is
 used.  The v02 upgrade added a manoeuvre-aware decoder (Mode-C interruptions
 with a κ fixpoint) so the heuristic can spend movements to compress makespan and
 delay; **v03** adds Mode-B manoeuvres (opening inter-job gaps, via a second
@@ -387,7 +388,7 @@ methods.
 ## Smoke test
 
 ```
-py -3 methods/theory_assisted/jobs/iterated_greedy_vnd.py \
+py -3 methods/iterated_greedy_vnd_v02/jobs/iterated_greedy_vnd.py \
     data/instances_202605_02/scn_triangle_tight_P5_R5/scn_triangle_tight_P5_R5_seed1.json 10
 ```
 
@@ -414,8 +415,8 @@ Track the method's evolution.  One row per behaviour-affecting commit
 ---
 
 *Keep this file in sync with `iterated_greedy_vnd.py`: when the code
-changes behaviour, invoke `/sync-method-doc methods/theory_assisted`
+changes behaviour, invoke `/sync-method-doc methods/iterated_greedy_vnd_v02`
 with a brief hint describing what changed and (if relevant)
 `log: <battery-log-path>` for refreshing Part II.  Design rationale
-and the reading behind the method live in [`notes/design.md`](notes/design.md)
-and [`notes/synthesis.md`](notes/synthesis.md) where applicable.*
+and the reading behind the method live in [`design.md`](design.md)
+and [`synthesis.md`](synthesis.md) where applicable.*
