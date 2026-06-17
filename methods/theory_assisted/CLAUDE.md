@@ -19,18 +19,36 @@ attempts have graduated to their own isolated method directories
   contract wired and `solve()` raising `NotImplementedError`.  Replace
   its body (or rename it / split it into multiple modules) with your
   approach.
-- `jobs/notes/` is empty save its README template — fill it with your
-  design notes, synthesis, and experiments log as you iterate.
+- `jobs/notes/synthesis.md` is the **literature synthesis from prior
+  attempts** (same digests, same 4 candidates A/B/C/D).  Read it.
+  It is the menu of algorithmic approaches that the curated theory
+  in `digest/` supports.
+- `jobs/notes/` is otherwise empty — fill it with your own design
+  notes (`design.md`) and experiments log as you iterate.
 - `digest/` and `inspiration/` carry the **same reusable theory base**
   prior attempts had (10 PDFs + 10 digests).  Add more if you want
   to widen the input.
 
-You have full freedom to pick the algorithmic angle.  IG+VND was the
-chosen candidate in v01 and v02; you might pick a different one
-(e.g. matheuristic, hyper-heuristic, ILS, GA with random keys, …).
-Use `/synthesize-theory` to (re)run the synthesis if helpful — it
-will produce a fresh `synthesis.md` with candidates given the current
-`digest/` content.
+**Candidate A (IG+VND) is exhausted.**  Both v01 (ChatGPT) and v02
+(Claude) implemented Candidate A from `synthesis.md`.  Their
+implementations are off-limits to you (see "You MUST NOT read"
+below), but the *fact* that A has been tried twice is part of your
+brief: **pick a different candidate**.
+
+Your starting choice is among:
+
+- **Candidate B — GRASP + VND with reactive α + elite-pool path relinking.**
+- **Candidate C — BRKGA with mixed-chromosome decoder + warm-start.**
+- **Candidate D — Matheuristic: GRASP construction + Local Branching
+  refinement** (uses the manual MILP as a subroutine; would need an
+  allowlist entry in `experiments/tests/test_method_isolation.py`,
+  see the Exception protocol below).
+
+Read `jobs/notes/synthesis.md` for each candidate's skeleton,
+supporting digests, effort estimate and risks.  If none feels right,
+you may also re-run `/synthesize-theory` with a focus hint to bias
+the candidate list (e.g. `/synthesize-theory  hyper-heuristic`), or
+edit the digests first to expand the theory base.
 
 What that means for you:
 
