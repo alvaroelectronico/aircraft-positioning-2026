@@ -10,17 +10,25 @@ consumed by ``problems/jobs/checker.py``).  Design (see jobs/notes/design.md):
 
 * Positions are scheduled in **topological order of the blocking DAG**
   (front positions first).  When a rear aircraft is placed, all its fronts are
-  already fixed, so its Mode-A/B/C classification is final.
+  already laid out, so its Mode-A/B/C classification is well-defined.
 * Each rear aircraft's start time is chosen by a **local-cost scan** over a
   small set of candidate instants; the candidate minimising
-  ``W^M*finish + W^D*delay + W^S*movements`` is committed.
-* Construction uses **Mode A and Mode B only** (never deliberately Mode C):
-  Mode C is dominated by Mode B under the benchmark weights and would extend
-  the (already-frozen) front job, so it is excluded in v1.  A guaranteed
-  Mode-A "safe-late" candidate (after every incident front finishes) keeps the
-  candidate set non-empty, so a feasible placement always exists.
+  ``W^M*finish + W^D*delay + W^S*movements (+ Mode-C extension estimate)`` wins.
 * Access classification reuses the checker's own ``_classify_access`` so the
   decoder agrees with the checker by construction.
+
+Mode C (v2)
+-----------
+A Mode-C access interrupts an interruptible *front* job, costing +2 movements
+and extending that front job by ``delta`` (``kappa`` increments).  Because the
+extension shifts the front's tail *after* the front was placed, allowing Mode C
+during a single forward pass would create backward cascades.  We avoid this with
+a **fixpoint**: each pass lays out every aircraft with the front extensions
+``kappa`` held fixed from the previous pass, then recomputes ``kappa`` from the
+Mode-C events observed.  When ``kappa`` stops changing the schedule is
+self-consistent (front durations match their Mode-C counts, so RQ09 holds).  If
+it does not converge within ``max_fixpoint_iters`` passes we fall back to a
+Mode-A/B-only pass (``kappa`` empty), which is always consistent.
 """
 from __future__ import annotations
 
@@ -38,14 +46,19 @@ if str(_ROOT) not in sys.path:
 from problems.jobs.checker import _classify_access  # noqa: E402
 
 DEFAULT_MU, DEFAULT_DELTA, DEFAULT_ETA = 1.0, 2.0, 1.0
-_MAX_CANDIDATES = 60
+_MAX_CANDIDATES = 80
+_MAX_FIXPOINT_ITERS = 8
 
 
 class DecoderContext:
     """Pre-processed, instance-level data shared across every decode call."""
 
-    def __init__(self, instance: dict, weights: tuple[float, float, float]):
+    def __init__(self, instance: dict, weights: tuple[float, float, float],
+                 allow_mode_c: bool = True,
+                 max_fixpoint_iters: int = _MAX_FIXPOINT_ITERS):
         self.w_mk, self.w_dly, self.w_mov = weights
+        self.allow_mode_c = allow_mode_c
+        self.max_fixpoint_iters = max_fixpoint_iters
 
         self.positions: list[str] = list(instance["hangar"]["positions"])
         self.n_pos = len(self.positions)
@@ -108,7 +121,6 @@ class DecoderContext:
         chains: dict[str, list[str]] = {}
         for r, jids in jobs_of.items():
             heads = [j for j in jids if j not in has_pred]
-            # is_first flag is the authoritative head; fall back to no-predecessor
             head = next((j for j in jids if self.job_by_id[j].get("is_first")), None)
             head = head or (heads[0] if heads else jids[0])
             ordered, cur, seen = [], head, set()
@@ -116,17 +128,17 @@ class DecoderContext:
                 ordered.append(cur)
                 seen.add(cur)
                 cur = nxt.get(cur)
-            # append any stragglers not reached via the chain
             ordered += [j for j in jids if j not in seen]
             chains[r] = ordered
         return chains
 
 
 def decode(keys: list[float], ctx: DecoderContext) -> dict:
-    """Decode a random-key chromosome into a feasible solution dict."""
-    n = ctx.n_air
+    """Decode a random-key chromosome into a feasible solution dict.
 
-    # --- 1. position assignment + 2. within-position sequencing ---------
+    Runs the Mode-C fixpoint when enabled; otherwise a single Mode-A/B-only
+    pass.  Always returns a checker-consistent schedule."""
+    n = ctx.n_air
     assign_keys, seq_keys = keys[:n], keys[n:]
     at_position: dict[str, list[str]] = {p: [] for p in ctx.positions}
     for i, r in enumerate(ctx.aircraft_ids):
@@ -136,74 +148,122 @@ def decode(keys: list[float], ctx: DecoderContext) -> dict:
     for p in ctx.positions:
         at_position[p].sort(key=lambda r: seq_of[r])
 
-    # placed[r] = dict(start, finish, intervals=[(jid,s,f)], position)
-    placed: dict[str, dict] = {}
-    last_finish: dict[str, float] = {}            # position -> last aircraft finish
-    gap_uses: dict[tuple[str, int], int] = {}     # (front_id, gap_idx) -> #Mode-B
+    if not ctx.allow_mode_c:
+        placed, _ = _decode_pass(ctx, at_position, kappa={}, allow_mode_c=False)
+        return _assemble(placed, ctx)
 
-    # --- topological placement ------------------------------------------
+    # Mode-C fixpoint: iterate until the per-job interruption counts stabilise.
+    # A separate A/B-only floor pass per decode is deliberately NOT taken: it
+    # roughly doubles decode cost and, in a fixed time budget, the lost
+    # generations hurt the GA more than the per-chromosome floor helps (measured
+    # on the 8 s probe).  The GA's population already explores low-Mode-C
+    # chromosomes, so the floor is recovered at the search level, not per decode.
+    kappa: dict[tuple[str, str], int] = {}
+    for _ in range(ctx.max_fixpoint_iters):
+        placed, new_kappa = _decode_pass(ctx, at_position, kappa, allow_mode_c=True)
+        if new_kappa == kappa:
+            return _assemble(placed, ctx)          # self-consistent fixpoint
+        kappa = new_kappa
+    # Not converged → Mode-A/B-only pass is always consistent (kappa == {}).
+    placed, _ = _decode_pass(ctx, at_position, kappa={}, allow_mode_c=False)
+    return _assemble(placed, ctx)
+
+
+def _decode_pass(ctx, at_position, kappa, allow_mode_c):
+    """One forward placement pass with front extensions *kappa* held fixed.
+
+    Returns (placed, modeC_counts) where modeC_counts[(aircraft_id, job_id)] is
+    the number of Mode-C events that interrupted that front job during the pass.
+    """
+    placed: dict[str, dict] = {}
+    last_finish: dict[str, float] = {}
+    gap_uses: dict[tuple[str, int], int] = {}
+    modeC_counts: dict[tuple[str, str], int] = {}
+
     for pos in ctx.position_order:
         front_positions = ctx.fronts_of[pos]
         for r in at_position[pos]:
             earliest = ctx.E[r]
             if pos in last_finish:
                 earliest = max(earliest, last_finish[pos] + ctx.eps)
-
             front_air = [
                 placed[fr]
                 for fp in front_positions
                 for fr in at_position[fp]
                 if fr in placed
             ]
-            chosen = _place_aircraft(r, earliest, front_air, ctx, gap_uses)
-
+            chosen = _place_aircraft(r, earliest, front_air, ctx, gap_uses,
+                                     kappa, allow_mode_c)
             chosen["record"]["position"] = pos
             placed[r] = chosen["record"]
             last_finish[pos] = chosen["record"]["finish"]
             for key in chosen["modeB"]:
                 gap_uses[key] = gap_uses.get(key, 0) + 1
+            for ev in chosen["modeC"]:
+                modeC_counts[ev] = modeC_counts.get(ev, 0) + 1
 
-    return _assemble(placed, ctx)
+    return placed, modeC_counts
 
 
-def _place_aircraft(r, earliest, front_air, ctx, gap_uses):
+def _proc_eff(r, ctx, kappa):
+    """Effective processing time of *r*, including its own Mode-C extensions
+    (relevant when *r* is itself a front interrupted by a deeper rear)."""
+    ext = sum(kappa.get((r, jid), 0) for jid in ctx.chain[r])
+    return ctx.proc_time[r] + ctx.delta * ext
+
+
+def _place_aircraft(r, earliest, front_air, ctx, gap_uses, kappa, allow_mode_c):
     """Pick the min-local-cost feasible start for aircraft *r*."""
-    proc = ctx.proc_time[r]
-    cands = _candidate_starts(earliest, proc, front_air, ctx)
+    proc = _proc_eff(r, ctx, kappa)
+    cands = _candidate_starts(earliest, proc, front_air, ctx, allow_mode_c)
 
     best = None
     for s0 in cands:
-        ev = _evaluate(r, s0, front_air, ctx, gap_uses)
+        ev = _evaluate(s0, proc, front_air, ctx, gap_uses, allow_mode_c)
         if ev is None:
             continue
         finish = s0 + proc
         delay = max(0.0, finish - ctx.L[r])
-        cost = ctx.w_mk * finish + ctx.w_dly * delay + ctx.w_mov * ev["moves"]
+        # Local cost: own makespan/delay/movements, plus a rough estimate of the
+        # downstream cost of each Mode-C extension (the interrupted front finish
+        # shifts by delta, potentially adding to makespan and that front's delay).
+        modec_pen = len(ev["modeC"]) * (ctx.w_mk + ctx.w_dly) * ctx.delta
+        cost = (ctx.w_mk * finish + ctx.w_dly * delay
+                + ctx.w_mov * ev["moves"] + modec_pen)
         if best is None or cost < best["cost"]:
-            best = {"cost": cost, "s0": s0, "moves": ev["moves"], "modeB": ev["modeB"]}
+            best = {"cost": cost, "s0": s0, "modeB": ev["modeB"], "modeC": ev["modeC"]}
 
-    if best is None:  # should never happen: safe-late is always Mode A
-        s0 = _safe_late(earliest, front_air, ctx)
-        best = {"s0": s0, "modeB": []}
+    if best is None:  # safe-late is always Mode A, so this is a guard only
+        best = {"s0": _safe_late(earliest, front_air, ctx), "modeB": [], "modeC": []}
 
-    return {"record": _layout(r, best["s0"], ctx), "modeB": best["modeB"]}
+    return {"record": _layout(r, best["s0"], ctx, kappa),
+            "modeB": best["modeB"], "modeC": best["modeC"]}
 
 
-def _candidate_starts(earliest, proc, front_air, ctx):
-    """Build a bounded set of candidate start times targeting A/B windows."""
+def _candidate_starts(earliest, proc, front_air, ctx, allow_mode_c):
+    """Bounded set of candidate start times targeting A/B (and, if enabled, C)
+    windows, for both the entry (s0) and the exit (s0+proc) access instant."""
     cands = {earliest}
     for f in front_air:
         cands.add(f["finish"] + ctx.eta)                  # entry Mode-A after f
         cands.add(f["start"] - ctx.eta - proc)            # exit Mode-A before f
         ints = f["intervals"]
-        for k in range(len(ints) - 1):
+        for k in range(len(ints) - 1):                    # Mode-B inter-job gaps
             gap_mid = (ints[k][2] + ints[k + 1][1]) / 2.0
             cands.add(gap_mid)                            # entry in gap k
             cands.add(gap_mid - proc)                     # exit in gap k
+        if allow_mode_c:                                  # Mode-C job interiors
+            for (jid, js, jf) in ints:
+                if jf - js <= 2 * ctx.eta:
+                    continue                              # too short to host an interior
+                if not ctx.job_by_id.get(jid, {}).get("interruptible", False):
+                    continue
+                mid = (js + jf) / 2.0
+                cands.add(mid)                            # entry inside job jid
+                cands.add(mid - proc)                     # exit inside job jid
     cands.add(_safe_late(earliest, front_air, ctx))       # guaranteed Mode A
     clamped = sorted({max(earliest, c) for c in cands})
     if len(clamped) > _MAX_CANDIDATES:
-        # keep earliest + an evenly spaced subset (no silent loss of the late end)
         step = len(clamped) / _MAX_CANDIDATES
         clamped = [clamped[int(i * step)] for i in range(_MAX_CANDIDATES)]
     return clamped
@@ -216,15 +276,16 @@ def _safe_late(earliest, front_air, ctx):
     return max(earliest, max(f["finish"] for f in front_air) + ctx.eta)
 
 
-def _evaluate(r, s0, front_air, ctx, gap_uses):
-    """Classify entry+exit against every front; return moves or None if rejected.
+def _evaluate(s0, proc, front_air, ctx, gap_uses, allow_mode_c):
+    """Classify entry+exit against every front; return event lists or None.
 
-    None means the placement is infeasible or would require Mode C / a too-narrow
-    Mode-B gap, and must be rejected.
+    None ⇒ infeasible (access inside a non-interruptible job, a too-narrow
+    Mode-B gap, or — when Mode C is disabled — any Mode-C access).
     """
-    entry, exit_ = s0, s0 + ctx.proc_time[r]
+    entry, exit_ = s0, s0 + proc
     moves = 0
     new_modeB: list[tuple[str, int]] = []
+    new_modeC: list[tuple[str, str]] = []
     local_gap_uses: dict[tuple[str, int], int] = {}
 
     for f in front_air:
@@ -235,9 +296,15 @@ def _evaluate(r, s0, front_air, ctx, gap_uses):
             kind = res["kind"]
             if kind == "A":
                 continue
-            if kind == "C" or kind == "infeasible":
+            if kind == "infeasible":
                 return None
-            # Mode B: enforce cumulative-mu rule on this front gap
+            if kind == "C":
+                if not allow_mode_c:
+                    return None
+                moves += 2
+                new_modeC.append((f["id"], res["job_id"]))
+                continue
+            # Mode B: enforce the cumulative-mu rule on this front gap
             key = (f["id"], res["gap_index"])
             ints = f["intervals"]
             gap_size = ints[res["gap_index"] + 1][1] - ints[res["gap_index"]][2]
@@ -248,15 +315,16 @@ def _evaluate(r, s0, front_air, ctx, gap_uses):
             moves += 2
             new_modeB.append(key)
 
-    return {"moves": moves, "modeB": new_modeB}
+    return {"moves": moves, "modeB": new_modeB, "modeC": new_modeC}
 
 
-def _layout(r, s0, ctx):
-    """Lay the job chain out compactly from *s0* (no Mode-C => no extension)."""
+def _layout(r, s0, ctx, kappa):
+    """Lay the job chain out compactly from *s0*, applying each job's Mode-C
+    extension ``delta * kappa[(r, jid)]`` (0 for jobs never interrupted)."""
     t = s0
     intervals = []
     for jid in ctx.chain[r]:
-        d = ctx.job_by_id[jid]["duration"]
+        d = ctx.job_by_id[jid]["duration"] + ctx.delta * kappa.get((r, jid), 0)
         intervals.append((jid, t, t + d))
         t += d
     return {"id": r, "start": s0, "finish": t, "intervals": intervals, "position": None}
@@ -265,17 +333,15 @@ def _layout(r, s0, ctx):
 def _assemble(placed, ctx):
     """Build the checker-shaped solution dict and compute exact metrics.
 
-    The objective is recomputed here from the assembled schedule rather than
-    accumulated during placement, so it is exact (movements are re-derived by
-    the checker too, and must match).
+    Movements are re-derived globally with the checker's own classifier, so the
+    reported count is guaranteed consistent with RQ07_v2 (and, at a fixpoint,
+    with the kappa baked into the job durations → RQ09).
     """
     aircraft_out = []
     makespan = 0.0
     total_delay = 0.0
     movements = 0
 
-    # Re-derive movements globally with the same classification the checker uses,
-    # so the reported count is guaranteed consistent with RQ07_v2.
     at_position: dict[str, list[str]] = {p: [] for p in ctx.positions}
     for r, rec in placed.items():
         at_position[rec["position"]].append(r)

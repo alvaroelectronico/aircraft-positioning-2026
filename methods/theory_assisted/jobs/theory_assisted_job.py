@@ -81,7 +81,10 @@ class TheoryAssistedJobSolver:
             float(cfg.get("weight_delay", 1.0)),
             float(cfg.get("weight_movements", 10.0)),
         )
-        ctx = DecoderContext(instance_data, weights)
+        ctx = DecoderContext(
+            instance_data, weights,
+            allow_mode_c=bool(cfg.get("allow_mode_c", True)),
+        )
         self._log = []
 
         def decode_fn(keys):

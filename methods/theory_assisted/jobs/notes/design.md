@@ -166,6 +166,43 @@ Reading these JSONs is allowed (results, not other methods' source).
    `experiments/paired_report.py` (see BATTERY.md). Then
    `/sync-method-doc`.
 
+## 8b. v2 — Mode-C construction via fixpoint (2026-06-18)
+
+The first battery (commit 2d37eeb, log `202605_02_main_methods_20260618_064914`)
+showed the Mode-A/B-only decoder loses to the cached MILP on R5–R10 across all
+three profiles: it drives movements to 0 (Δmov ≤ 0) but inflates makespan/delay
+(large +Δ).  Root cause: under **wMK/wDLY** a movement is cheap (weight 1) while
+waiting for a Mode-A/B window costs +30 makespan or +150 delay — so refusing
+Mode C is the wrong trade there.  §3b's exclusion was right only for the
+default/wMOV profile.
+
+**v2 lifts the restriction with a fixpoint that resolves the Mode-C cascade.**
+A Mode-C event extends the (already-placed) front job by δ, which would ripple
+backward.  Instead of mutating fronts mid-pass, each pass lays out every
+aircraft with the front extensions `kappa` **held fixed from the previous
+pass**, choosing the best A/B/**C** placement against those frozen fronts, then
+recomputes `kappa` from the Mode-C events observed.  When `kappa` stops changing
+the schedule is self-consistent (front job durations match their Mode-C counts →
+RQ09 holds).  Non-convergence within `max_fixpoint_iters` (=8) → fall back to the
+A/B-only pass (`kappa={}`, always consistent).  `allow_mode_c` config flag keeps
+v1 reachable for ablation.
+
+The local-cost scan adds a rough downstream estimate `(W^M+W^D)·δ` per Mode-C
+event so the greedy is biased against extensions that won't pay off; under wMOV
+the +2·W^S movement cost already suppresses Mode C (fixpoint converges in one
+pass, ~no overhead).
+
+**8 s probe (v1=A/B vs v2=+C vs cached MILP), seed1:** v2 improves wMK/wDLY
+substantially — chain_R10 wDLY 21739→11534 (beats MILP 12491); triangle_R10 wMK
+7869→6454, wDLY 14533→11771; full_R10 wMK 11949→9325.  wMOV unchanged (correct).
+One case (full_R10 wDLY) where the greedy over-uses Mode C; left for the full
+60 s battery + GA to resolve.  A per-decode A/B floor was tried and reverted: it
+doubles decode cost and the lost GA generations hurt more than the floor helps.
+
+**Open v2 follow-ups:** (i) sharpen the Mode-C downstream cost estimate to cut
+the occasional misfire; (ii) warm-start (`warmstart.py`) still unimplemented;
+(iii) re-run the standard battery to measure v2 vs MILP across all 360 runs.
+
 ## 9. Open questions / risks carried forward
 - **Q1 (resolved by §3b for v1):** Mode-C construction deferred to v2.
 - **Q2 — small instances (|R|=5):** population may be larger than the
