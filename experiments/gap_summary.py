@@ -27,12 +27,22 @@ import io
 import re
 from collections import defaultdict
 
-# (weight-profile key, MILP label, heuristic label, human description)
+# (weight-profile key, MILP label, human description).  The heuristic label
+# per profile is no longer hardcoded: it is taken from ``heur_labels`` when the
+# caller supplies one, otherwise auto-detected from the records (any non-MILP
+# label ending in the profile suffix).  This lets any method's battery log pair
+# against the cached MILP rows without editing this file.
 PROFILES = [
-    ("wMK",  "milp_job_wMK",  "igvnd_wMK",  "100/1/1  makespan-priority"),
-    ("wDLY", "milp_job_wDLY", "igvnd_wDLY", "1/100/1  delay-priority"),
-    ("wMOV", "milp_job_wMOV", "igvnd_wMOV", "1/1/100  movement-priority"),
+    ("wMK",  "milp_job_wMK",  "100/1/1  makespan-priority"),
+    ("wDLY", "milp_job_wDLY", "1/100/1  delay-priority"),
+    ("wMOV", "milp_job_wMOV", "1/1/100  movement-priority"),
 ]
+
+# Fallback heuristic labels when none can be auto-detected from the records.
+_DEFAULT_HEUR = {"wMK": "igvnd_wMK", "wDLY": "igvnd_wDLY", "wMOV": "igvnd_wMOV"}
+
+# Labels treated as MILP reference rows (never auto-detected as the heuristic).
+_MILP_PREFIXES = ("milp_",)
 
 
 def _config_type(stem: str) -> str:
@@ -47,13 +57,35 @@ def _num(v):
         return None
 
 
-def _collect(records: list[dict]) -> dict:
+def _detect_heur_labels(records: list[dict]) -> dict:
+    """Auto-detect the heuristic label per profile from the records.
+
+    For each profile suffix (wMK/wDLY/wMOV), pick the most frequent non-MILP
+    label ending in that suffix.  Falls back to the igvnd defaults when a
+    profile has no candidate in the records."""
+    counts: dict[str, dict[str, int]] = {pkey: defaultdict(int) for pkey, _, _ in PROFILES}
+    for r in records:
+        lbl = r.get("experiment", "")
+        if lbl.startswith(_MILP_PREFIXES):
+            continue
+        for pkey, _, _ in PROFILES:
+            if lbl.endswith("_" + pkey):
+                counts[pkey][lbl] += 1
+    out = dict(_DEFAULT_HEUR)
+    for pkey, c in counts.items():
+        if c:
+            out[pkey] = max(c, key=c.get)
+    return out
+
+
+def _collect(records: list[dict], heur_labels: dict | None = None) -> dict:
     """Return {(type, profile_key): [(g, Δms, Δdelay, Δmov), ...]} plus the
     per-(type) aggregate under profile_key == 'ALL'.
 
     ``g`` is the relative objective gap ``(MILP-heur)/MILP``; the Δ's are the
     per-component differences ``heuristic − MILP`` (negative ⇒ heuristic
     better on that component)."""
+    heur_labels = heur_labels or _detect_heur_labels(records)
     vals: dict[tuple[str, str], dict] = {}
     for r in records:
         if r.get("error") is None and r.get("objective") is not None:
@@ -71,9 +103,9 @@ def _collect(records: list[dict]) -> dict:
     data: dict[tuple[str, str], list[tuple]] = defaultdict(list)
     for inst in instances:
         ctype = _config_type(inst)
-        for pkey, milp_label, heur_label, _ in PROFILES:
+        for pkey, milp_label, _ in PROFILES:
             m = vals.get((inst, milp_label))
-            h = vals.get((inst, heur_label))
+            h = vals.get((inst, heur_labels[pkey]))
             if m is None or h is None or m["obj"] == 0:
                 continue
             row = ((m["obj"] - h["obj"]) / m["obj"],
@@ -148,18 +180,54 @@ def _write_block(out: io.StringIO, title: str, rows: list[tuple]) -> None:
         )
 
 
-def format_gap_table(records: list[dict]) -> str:
-    """Render the heuristic-vs-MILP relative-gap summary as text."""
-    data = _collect(records)
+def merge_cached_milp(records: list[dict], csv_path) -> list[dict]:
+    """Return *records* plus cached MILP reference rows pulled from results.csv.
+
+    Only ``milp_job_*`` rows for instances already present in *records* are
+    added (so a subset battery does not drag in all 120 instances), and only
+    when that (instance, label) pair is not already in *records*.  This lets a
+    live battery log show the heuristic-vs-MILP gap table without re-running
+    the (expensive, fixed) MILP — its numbers come from the cache."""
+    try:
+        cached = _records_from_csv(csv_path)
+    except Exception:  # noqa: BLE001 — never let logging crash a run
+        return records
+    have = {(r["instance"], r.get("experiment")) for r in records}
+    insts = {r["instance"] for r in records}
+    milp_labels = {ml for _, ml, _ in PROFILES}
+    extra = [
+        c for c in cached
+        if c["experiment"] in milp_labels
+        and c["instance"] in insts
+        and (c["instance"], c["experiment"]) not in have
+    ]
+    return records + extra
+
+
+def format_gap_table(records: list[dict], heur_labels: dict | None = None,
+                     csv_path=None) -> str:
+    """Render the heuristic-vs-MILP relative-gap summary as text.
+
+    If *csv_path* is given, cached ``milp_job_*`` reference rows are merged in
+    (see :func:`merge_cached_milp`) so the table is populated from the cache
+    rather than from freshly re-run MILP rows.  *heur_labels* (a {profile:
+    label} dict) pins the heuristic label per profile; when omitted it is
+    auto-detected from the records."""
+    if csv_path is not None:
+        records = merge_cached_milp(records, csv_path)
+    heur_labels = heur_labels or _detect_heur_labels(records)
+    data = _collect(records, heur_labels)
     out = io.StringIO()
     sep = "=" * 66
     out.write(f"{sep}\n")
     out.write("  HEURISTIC vs MILP  —  relative gap per instance type\n")
     out.write("  gap = (MILP_obj - heuristic_obj) / MILP_obj\n")
     out.write("  gap > 0  =>  heuristic BETTER (lower objective);  < 0  => worse\n")
+    out.write(f"  heuristic: {heur_labels['wMK']} / {heur_labels['wDLY']} / {heur_labels['wMOV']}"
+              f"   (MILP rows from cache)\n")
     out.write(f"{sep}\n")
     out.write("  -- Relative objective gap, by weight profile --\n")
-    for pkey, _, _, desc in PROFILES:
+    for pkey, _, desc in PROFILES:
         _write_block(out, f"{pkey}  ({desc})", _stat_rows(data, pkey))
         out.write("\n")
     out.write("  -- Relative objective gap, aggregated over all profiles --\n")
@@ -167,7 +235,7 @@ def format_gap_table(records: list[dict]) -> str:
     out.write("\n")
     out.write("  -- Per-component mean Δ (heuristic − MILP); negative = heuristic better --\n")
     out.write("  -- (relative gap is distorted when the optimum delay ≈ 0; read these too)\n")
-    for pkey, _, _, desc in PROFILES:
+    for pkey, _, desc in PROFILES:
         _write_comp_block(out, f"{pkey}  ({desc})", _comp_rows(data, pkey))
         out.write("\n")
     out.write(f"{sep}\n")
@@ -183,7 +251,13 @@ def _records_from_csv(csv_path) -> list[dict]:
     header) and keep, per (instance, label), the latest objective.  Only rows
     whose label is one of our six experiment labels are retained."""
     import csv as _csv
-    wanted = {lbl for _, ml, hl, _ in PROFILES for lbl in (ml, hl)}
+    milp_labels = {ml for _, ml, _ in PROFILES}
+    suffixes = tuple("_" + pkey for pkey, _, _ in PROFILES)
+
+    def _is_wanted(label: str) -> bool:
+        # keep the MILP reference rows plus any heuristic row for a profile
+        return label in milp_labels or label.endswith(suffixes)
+
     # column order written by Application.save_solution
     INSTANCE, LABEL, TIMESTAMP, OBJECTIVE, MAKESPAN, MOVEMENTS, DELAY = 0, 2, 3, 6, 7, 8, 9
     latest: dict[tuple[str, str], dict] = {}
@@ -192,7 +266,7 @@ def _records_from_csv(csv_path) -> list[dict]:
             if len(cells) <= DELAY:
                 continue
             label = cells[LABEL]
-            if label not in wanted:
+            if not _is_wanted(label):
                 continue
             try:
                 obj = float(cells[OBJECTIVE])

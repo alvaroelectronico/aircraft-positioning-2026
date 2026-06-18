@@ -28,12 +28,14 @@ import sys
 from pathlib import Path
 
 # Import the checker's access classifier — this is problem infrastructure
-# (problems/jobs/**), not another solving method, so it is allowed.
+# (problems/jobs/**), not another solving method, so it is allowed.  Use the
+# fully-qualified package path rather than a bare ``import checker``: paper #1
+# (problems/aircraft) ships a *different* checker.py, and in the batch runner
+# both dirs sit on sys.path, so a bare import would be ambiguous.
 _ROOT = Path(__file__).resolve().parents[3]
-_JOBS_PROBLEM = _ROOT / "problems" / "jobs"
-if str(_JOBS_PROBLEM) not in sys.path:
-    sys.path.insert(0, str(_JOBS_PROBLEM))
-from checker import _classify_access  # noqa: E402
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+from problems.jobs.checker import _classify_access  # noqa: E402
 
 DEFAULT_MU, DEFAULT_DELTA, DEFAULT_ETA = 1.0, 2.0, 1.0
 _MAX_CANDIDATES = 60

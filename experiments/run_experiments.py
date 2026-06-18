@@ -85,6 +85,17 @@ _ta_mod = _il_util.module_from_spec(_ta_spec)
 _ta_spec.loader.exec_module(_ta_mod)
 TheoryAssistedIGVND = _ta_mod.IteratedGreedyVNDJobSolver
 
+# theory_assisted (current attempt, v06) — Candidate C: BRKGA with a
+# mixed-chromosome decoder.  Developed in isolation under
+# methods/theory_assisted/; registering its solver here (the runner is outside
+# methods/<X>/ and exempt from the cross-method isolation scan) is the
+# sanctioned batch-registration step.  Labels use the "ta_brkga_" prefix.
+_TA_BRKGA_PATH = _ROOT / "methods" / "theory_assisted" / "jobs" / "theory_assisted_job.py"
+_ta_brkga_spec = _il_util.spec_from_file_location("_ta_brkga_job", str(_TA_BRKGA_PATH))
+_ta_brkga_mod = _il_util.module_from_spec(_ta_brkga_spec)
+_ta_brkga_spec.loader.exec_module(_ta_brkga_mod)
+TheoryAssistedBRKGA = _ta_brkga_mod.TheoryAssistedJobSolver
+
 from tgr_solver import TGRSolver                            # noqa: E402
 from fixed_assignment_scheduler_aircraft import FixedAssignmentSchedulerAircraft  # noqa: E402
 from fixed_assignment_scheduler_job      import FixedAssignmentSchedulerJob       # noqa: E402
@@ -472,6 +483,13 @@ EXPERIMENTS: list[dict] = [
     {"label": "ta_igvnd_wDLY", "solver_class": TheoryAssistedIGVND, "config": {**_W_DLY, "seed": 1}},
     {"label": "ta_igvnd_wMOV", "solver_class": TheoryAssistedIGVND, "config": {**_W_MOV, "seed": 1}},
 
+    # theory_assisted v06 — BRKGA (Candidate C).  Same three battery weight
+    # profiles; compares against the cached job-level MILP rows
+    # milp_job_wMK / milp_job_wDLY / milp_job_wMOV.
+    {"label": "ta_brkga_wMK",  "solver_class": TheoryAssistedBRKGA, "config": {**_W_MK,  "seed": 1}},
+    {"label": "ta_brkga_wDLY", "solver_class": TheoryAssistedBRKGA, "config": {**_W_DLY, "seed": 1}},
+    {"label": "ta_brkga_wMOV", "solver_class": TheoryAssistedBRKGA, "config": {**_W_MOV, "seed": 1}},
+
     # =========================================================================
     # ARCHIVED — uncomment to reproduce earlier experiments
     # =========================================================================
@@ -554,6 +572,20 @@ def run_experiments(
     done    = 0
     summary = []
 
+    # Cached-MILP comparison wiring for the gap table in the log: the MILP
+    # rows are pulled from results.csv (never re-run), and the heuristic label
+    # per weight profile is derived from the experiments actually being run.
+    csv_path = solutions_dir / "results.csv"
+    heur_labels = {}
+    for _exp in experiments:
+        _lbl = _exp["label"]
+        if _lbl.startswith("milp_"):
+            continue
+        for _pk in ("wMK", "wDLY", "wMOV"):
+            if _lbl.endswith("_" + _pk):
+                heur_labels[_pk] = _lbl
+    heur_labels = heur_labels or None
+
     # Build the static config header once
     config_header = _build_config_header(experiments)
 
@@ -621,7 +653,7 @@ def run_experiments(
                     summary.append(record)
                     print_summary(summary)
                     if log_path is not None:
-                        _write_log(log_path, config_header, summary)
+                        _write_log(log_path, config_header, summary, heur_labels, csv_path)
                     continue
 
                 # ---- fas_from: run a FixedAssignmentScheduler on a cached assignment ----
@@ -677,7 +709,7 @@ def run_experiments(
                     summary.append(record)
                     print_summary(summary)
                     if log_path is not None:
-                        _write_log(log_path, config_header, summary)
+                        _write_log(log_path, config_header, summary, heur_labels, csv_path)
                     continue   # skip the Application path below
 
                 # ---- fas_2cand: FAS with multi-candidate positions from generate_assignments ----
@@ -778,7 +810,7 @@ def run_experiments(
                     summary.append(record)
                     print_summary(summary)
                     if log_path is not None:
-                        _write_log(log_path, config_header, summary)
+                        _write_log(log_path, config_header, summary, heur_labels, csv_path)
                     continue
 
                 # ---- standard path via Application ----
@@ -841,7 +873,7 @@ def run_experiments(
             # Print and log the running summary after every completed run
             print_summary(summary)
             if log_path is not None:
-                _write_log(log_path, config_header, summary)
+                _write_log(log_path, config_header, summary, heur_labels, csv_path)
 
     return summary
 
@@ -922,9 +954,14 @@ def _fmt(v) -> str:
     return str(v)
 
 
-def _write_log(log_path: Path, config_header: str, summary: list[dict]) -> None:
+def _write_log(log_path: Path, config_header: str, summary: list[dict],
+               heur_labels: dict | None = None, csv_path: Path | None = None) -> None:
     """Overwrite *log_path* with the config header, the heuristic-vs-MILP
-    relative-gap summary, and then the per-instance detail table."""
+    relative-gap summary, and then the per-instance detail table.
+
+    *csv_path* (results.csv) lets the gap table pull cached MILP reference rows
+    so the comparison is populated live without re-running the MILP.
+    *heur_labels* pins the heuristic label per weight profile."""
     log_path.parent.mkdir(parents=True, exist_ok=True)
     buf = io.StringIO()
     buf.write(config_header)
@@ -932,7 +969,7 @@ def _write_log(log_path: Path, config_header: str, summary: list[dict]) -> None:
     # Heuristic-vs-MILP relative gap per instance type (before the detail).
     try:
         from gap_summary import format_gap_table   # experiments/ on sys.path
-        buf.write(format_gap_table(summary))
+        buf.write(format_gap_table(summary, heur_labels=heur_labels, csv_path=csv_path))
         buf.write("\n")
     except Exception as exc:  # noqa: BLE001 — never let logging crash a run
         buf.write(f"  (gap summary unavailable: {exc})\n\n")
