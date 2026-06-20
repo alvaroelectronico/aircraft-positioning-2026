@@ -354,13 +354,31 @@ config overrides it).  Result: wMOV regression eliminated — `scn_full_tight_P5
 −120.3%→−39.5%, `scn_triangle_tight_P5_R30` +1.6%→+22.9%, back to ≈ v1; wMK/wDLY
 unchanged.  See Part II.
 
-## Priority 2 — Tame the fixpoint decode cost on large R
+## Priority 2 — Decode-cost on large R (investigated; partial)
 
-status: PLANNED.  On R20/R30 the κ fixpoint (up to 8 passes × pop-size decodes)
-blows the 60 s budget, so the GA barely evolves.  Options: cap
-`max_fixpoint_iters` to 2–3; check the wall-clock budget *inside* the decode
-and bail to the Mode-A/B-only pass when time is short; or shrink `pop_size`
-for large `n`.  Goal: enough generations on R20/R30 to actually search.
+status: **INVESTIGATED** (commit 748c0a8).  The premise — "the fixpoint wastes
+passes; cheapen it to win back GA generations" — turned out **false**:
+
+- **Cap reduction rejected.**  Lowering `max_fixpoint_iters` 8→3 roughly doubles
+  generations on R20/R30 but *regresses* wMK/wDLY there (head-to-head:
+  full_R20 wMK 26323→34419, R30 wMK 29798→32221).  The fixpoint passes are
+  productive — the good Mode-C schedules (the reason v2 beats Mode-A/B on
+  wMK/wDLY) need >3 passes to converge on large dense instances, so a low cap
+  forces premature fallback to the weak Mode-A/B path.  Cap kept at 8.
+- **Budget guard added (kept).**  `run_brkga` now checks the wall-clock budget
+  *inside* the population decode loop (`score_pop`), so a slow generation can no
+  longer overrun the limit.  Prior large-R runs overran to 72–81 s (a
+  BATTERY.md 60 s violation); the guard stops them at 60 s with ~zero quality
+  cost (3 of 4 large-R head-to-head cases identical; full_R20 wMK ~4% worse,
+  still beating the MILP).
+
+**Caveat:** the wMK/wDLY large-R numbers in Part II were produced *before* the
+guard (i.e. with the 72–81 s overrun), so they are mildly optimistic on
+R20/R30.  Refreshing them needs a wMK/wDLY re-battery on the R20/R30 configs.
+
+The genuine large-R lever is therefore **not** cost-capping but more effective
+search per unit time — i.e. **P3 (warm-start)**, or a structurally faster
+(incremental) fixpoint that re-places only aircraft downstream of a changed κ.
 
 ## Priority 3 — Warm-start injection
 
@@ -382,8 +400,10 @@ the decode cost should lift the profiles where Mode C *is* enabled.
 
 1. Standard battery (v1 + v2) — **DONE**
 2. Profile-gated Mode-C — **DONE** (P1, commit bab9773)
-3. Fixpoint cost control on large R — PLANNED (P2)
-4. Warm-start injection + ablation — PLANNED (P3)
+3. Decode-cost on large R — **INVESTIGATED** (P2, commit 748c0a8): cap
+   reduction rejected (regresses), 60 s budget guard added.  Large-R numbers
+   not improvable by cost-capping; needs P3 or a faster decode.
+4. Warm-start injection + ablation — PLANNED (P3, now the top open lever)
 
 ---
 
@@ -439,6 +459,7 @@ Source: [`theory_assisted_job.py`](theory_assisted_job.py) — class
 | BRKGA engine | `brkga.run_brkga` |
 | Elite / mutant / crossover partition | `brkga.run_brkga`: `n_elite`, `n_mutant`, biased crossover with probability `rho=0.70` |
 | Shake on stagnation | `brkga.run_brkga`: `shake_after=50` stagnant generations |
+| Wall-clock budget guard (P2) | `brkga.run_brkga`: `score_pop` checks the budget inside the population decode loop, so a slow generation cannot overrun `time_limit_s` by a full generation |
 | Warm-start injection | `brkga.run_brkga`: `warmstarts` parameter (not yet wired in solver) |
 
 ## Key implementation notes
@@ -502,6 +523,7 @@ Track the method's evolution.  One row per behaviour-affecting commit
 | 2d37eeb | v06: initial BRKGA implementation — decoder (`decoder.py`), BRKGA engine (`brkga.py`), solver wrapper (`theory_assisted_job.py`); registered as `ta_brkga_wMK/wDLY/wMOV` in `run_experiments.py` | 360/360 feasible; loses to MILP on R5–R10 across all profiles (mean gap −19% to −59% wMK; extreme wDLY artefacts on near-zero-delay instances); wins only on unconverged-MILP R30 (+15.8/+21.0/+21.4% wMK/wDLY/wMOV); Δmov = 0 everywhere under wMOV as designed. |
 | 22c65fb | v06 decoder v2 — Mode-C construction via κ fixpoint: `DecoderContext` gains `allow_mode_c` and `max_fixpoint_iters`; `decode()` runs fixpoint of `_decode_pass` until `kappa` stabilises (fallback to Mode-A/B-only if not converged in 8 iters); new helpers `_proc_eff`, `_decode_pass`; Mode-C branches in `_evaluate`, `_candidate_starts`, `_layout`; `_MAX_CANDIDATES` raised to 80 | wMK/wDLY improve substantially: chain_R10 wMK −45.8%→−18.5%, triangle_R5 wDLY −1322%→−3.2%, triangle_R20 wMK+wDLY both turn positive (+8.0%, +7.2%). wMOV regresses on large R due to decode-cost starvation (full_R20 −42%→−120%, triangle_R30 +21%→+1.6%); Δmov ≈ 0 confirms regression is GA-generations loss, not movement quality; full_R20 runs overshoot 60 s budget (72–81 s observed). |
 | bab9773 | v06 P1 — profile-gated Mode-C: `solve()` sets `allow_mode_c = weight_movements <= max(weight_makespan, weight_delay)` (explicit config overrides); gate decision logged. Enables Mode C under wMK/wDLY, disables it under wMOV and the default profile | wMOV regression eliminated (wMOV re-battery, log `…_20260620_074942.log`): full_R20 −120.3%→−39.5%, triangle_R30 +1.6%→+22.9%, back to ≈ v1 (marginally better from `_MAX_CANDIDATES` 60→80). wMK/wDLY unchanged from v2 (gate keeps Mode C on; deterministic same seed). |
+| 748c0a8 | v06 P2 — `run_brkga` enforces the wall-clock budget inside the decode loop (`score_pop`); fixpoint cap investigated and kept at 8 (lowering it to 3 regressed wMK/wDLY on large R, so rejected) | No quality change in the common case (the GA finds its best early): 3 of 4 large-R head-to-head cases identical to the pre-guard overrun, full_R20 wMK ~4% worse and still beating the MILP. Fixes the prior 72–81 s budget overrun on R20/R30 (BATTERY.md 60 s violation). Part II wMK/wDLY large-R rows predate the guard (mildly optimistic until re-batteried). |
 
 ---
 
