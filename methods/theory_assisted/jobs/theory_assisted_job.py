@@ -76,16 +76,28 @@ class TheoryAssistedJobSolver:
     def solve(self, instance_data: dict) -> dict:
         """Return a feasible solution dict via the BRKGA decoder pipeline."""
         cfg = self._config
-        weights = (
-            float(cfg.get("weight_makespan", 0.1)),
-            float(cfg.get("weight_delay", 1.0)),
-            float(cfg.get("weight_movements", 10.0)),
-        )
-        ctx = DecoderContext(
-            instance_data, weights,
-            allow_mode_c=bool(cfg.get("allow_mode_c", True)),
-        )
+        w_mk = float(cfg.get("weight_makespan", 0.1))
+        w_dly = float(cfg.get("weight_delay", 1.0))
+        w_mov = float(cfg.get("weight_movements", 10.0))
+        weights = (w_mk, w_dly, w_mov)
+
+        # Profile-gated Mode-C (P1).  Mode C trades +2 movements (and a +delta
+        # job extension) for a cheaper access window; it only pays off when a
+        # movement is cheap relative to the makespan/delay it saves.  Enable it
+        # iff the movement weight does NOT dominate — W^S <= max(W^M, W^D).
+        # This enables Mode C under wMK/wDLY (1 <= 100) and disables it under
+        # wMOV (100 <= 1 is false) and the default profile (10 <= 1 is false),
+        # where the v2 battery showed it is pure overhead (the fixpoint decode
+        # is ~8x slower and starves the GA without buying objective gains).
+        # An explicit allow_mode_c in the config overrides the gate (ablations).
+        if "allow_mode_c" in cfg:
+            allow_mode_c = bool(cfg["allow_mode_c"])
+        else:
+            allow_mode_c = w_mov <= max(w_mk, w_dly)
+
+        ctx = DecoderContext(instance_data, weights, allow_mode_c=allow_mode_c)
         self._log = []
+        self._log.append(f"allow_mode_c={allow_mode_c} (wMK={w_mk} wDLY={w_dly} wMOV={w_mov})")
 
         def decode_fn(keys):
             return decode(keys, ctx)
