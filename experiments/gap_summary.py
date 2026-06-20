@@ -223,8 +223,8 @@ def format_gap_table(records: list[dict], heur_labels: dict | None = None,
     out.write("  HEURISTIC vs MILP  —  relative gap per instance type\n")
     out.write("  gap = (MILP_obj - heuristic_obj) / MILP_obj\n")
     out.write("  gap > 0  =>  heuristic BETTER (lower objective);  < 0  => worse\n")
-    out.write(f"  heuristic: {heur_labels['wMK']} / {heur_labels['wDLY']} / {heur_labels['wMOV']}"
-              f"   (MILP rows from cache)\n")
+    _hl = " / ".join(heur_labels.get(pkey, "—") for pkey, _, _ in PROFILES)
+    out.write(f"  heuristic: {_hl}   (MILP rows from cache)\n")
     out.write(f"{sep}\n")
     out.write("  -- Relative objective gap, by weight profile --\n")
     for pkey, _, desc in PROFILES:

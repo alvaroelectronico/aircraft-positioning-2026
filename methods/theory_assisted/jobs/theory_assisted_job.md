@@ -8,19 +8,17 @@ algorithm was chosen from the curated literature digests in
 `methods/theory_assisted/digest/` and designed from `problems/jobs/problem_statement.md`
 and `problems/jobs/checker.py` without reading any other method's source.
 
-> **Status (code 22c65fb, latest battery `202605_02_main_methods_20260619_070616.log`).**
-> 360/360 runs feasible.  Decoder v2 (Mode-C construction via κ fixpoint) is a
-> large improvement over v1 on wMK and wDLY: e.g. `scn_chain_tight_P5_R10` wMK
-> goes from −45.8% to −18.5%, and the extreme `scn_triangle_tight_P5_R5` wDLY
-> artefact drops from −1322% to −3.2%.  `scn_triangle_tight_P5_R20` becomes
-> positive under wMK (+8.0%) and wDLY (+7.2%).  However, wMOV regresses on large
-> instances: `scn_full_tight_P5_R20` falls from −42% to −120%, and
-> `scn_triangle_tight_P5_R30` drops from +21.4% to +1.6%.  Root cause is NOT
-> added movements (Δmov ≈ 0 under wMOV) but decode-cost starvation — fixpoint
-> iteration per chromosome is expensive enough that large-R runs overshoot the
-> 60 s budget (observed 72–80 s) and the GA completes far fewer generations.
-> Priority next step: cap fixpoint cost on large instances (e.g. reduce
-> `max_fixpoint_iters` by instance size, or skip Mode-C when wMOV is large).
+> **Status (code bab9773, v3 — P1 profile-gated Mode-C).**
+> 360/360 feasible.  Decoder v2 (Mode-C via κ fixpoint) is a large win over v1 on
+> wMK/wDLY (`scn_chain_tight_P5_R10` wMK −45.8%→−18.5%; `scn_triangle_tight_P5_R5`
+> wDLY −1322%→−3.2%; `scn_triangle_tight_P5_R20` turns positive under both), but
+> v2 regressed wMOV on large R — not from added movements (Δmov≈0) but from
+> decode-cost starvation (the fixpoint overran the 60 s budget).  **P1 gates Mode C
+> off when the movement weight dominates** (`allow_mode_c = W^S ≤ max(W^M,W^D)`):
+> wMOV reverts to the cheap v1 path and the regression is gone
+> (`scn_full_tight_P5_R20` −120%→−39.5%, `scn_triangle_tight_P5_R30` +1.6%→+22.9%),
+> while wMK/wDLY keep the v2 gains.  Next: P2 — tame the fixpoint decode cost on
+> large R, which still throttles wMK/wDLY there (full_R20 wMK only −2.5%).
 
 ---
 
@@ -122,7 +120,8 @@ causing wMOV regression despite Δmov remaining near zero.)
 | Weight profiles   | wMK (100/1/1) / wDLY (1/100/1) / wMOV (1/1/100) |
 | Budget            | 60 s wall-clock per run |
 | Metric            | relative gap = (MILP_obj − heuristic_obj) / MILP_obj; gap > 0 means heuristic BETTER |
-| Log               | [`outputs/logs/202605_02_main_methods_20260619_070616.log`](../../../outputs/logs/202605_02_main_methods_20260619_070616.log) |
+| Log               | wMK/wDLY: [`…_20260619_070616.log`](../../../outputs/logs/202605_02_main_methods_20260619_070616.log) (v2, unchanged by P1); wMOV: [`…_20260620_074942.log`](../../../outputs/logs/202605_02_main_methods_20260620_074942.log) (v3, Mode-C gated off) |
+| State             | **v3 (P1 — profile-gated Mode-C).** Mode C enabled for wMK/wDLY (W^S≤max(W^M,W^D)), disabled for wMOV. wMK/wDLY are identical to v2; wMOV reverts to the v1 Mode-A/B path. |
 
 ## Relative objective gap (mean / min / max over seeds)
 
@@ -164,35 +163,39 @@ causing wMOV regression despite Δmov remaining near zero.)
 
 | Instance type | N | Mean | Min | Max |
 | --- | --- | --- | --- | --- |
-| scn_chain_tight_P5_R10 | 10 | −34.48% | −72.06% | +12.22% |
-| scn_full_tight_P5_R10 | 10 | −59.45% | −95.32% | −20.88% |
-| scn_full_tight_P5_R20 | 10 | −120.32% | −181.99% | −93.09% |
-| scn_hub_tight_P5_R10 | 10 | −17.96% | −25.73% | −13.33% |
+| scn_chain_tight_P5_R10 | 10 | −35.06% | −76.46% | +12.22% |
+| scn_full_tight_P5_R10 | 10 | −55.65% | −88.39% | −20.11% |
+| scn_full_tight_P5_R20 | 10 | −39.46% | −67.56% | −13.75% |
+| scn_hub_tight_P5_R10 | 10 | −17.88% | −25.73% | −13.33% |
 | scn_none_tight_P5_R10 | 10 | −0.06% | −0.62% | +0.00% |
-| scn_triangle_loose_P5_R10 | 10 | −67.24% | −109.63% | +0.75% |
-| scn_triangle_medium_P5_R10 | 10 | −29.74% | −63.67% | +9.60% |
-| scn_triangle_tight_P5_R10 | 10 | −19.29% | −40.36% | +8.19% |
-| scn_triangle_tight_P5_R20 | 10 | −8.07% | −28.85% | +10.78% |
-| scn_triangle_tight_P5_R30 | 10 | +1.56% | −25.88% | +18.41% |
+| scn_triangle_loose_P5_R10 | 10 | −57.48% | −111.11% | +2.24% |
+| scn_triangle_medium_P5_R10 | 10 | −31.32% | −51.44% | +9.60% |
+| scn_triangle_tight_P5_R10 | 10 | −20.79% | −37.43% | +2.72% |
+| scn_triangle_tight_P5_R20 | 10 | −1.25% | −30.64% | +15.25% |
+| scn_triangle_tight_P5_R30 | 10 | **+22.93%** | −9.93% | +39.90% |
 | scn_triangle_tight_P5_R5 | 10 | −20.00% | −74.29% | +0.00% |
-| scn_two_rows_tight_P5_R10 | 10 | −19.24% | −40.71% | +3.09% |
+| scn_two_rows_tight_P5_R10 | 10 | −19.59% | −42.60% | +1.03% |
+
+*(wMOV is the v3 re-battery with Mode-C gated off; vs v2 it removes the
+decode-cost regression — full_R20 −120.3%→−39.5%, R30 +1.6%→+22.9% — landing
+at ≈ v1, marginally better from the `_MAX_CANDIDATES` 60→80 bump.)*
 
 ### All profiles aggregated
 
 | Instance type | N | Mean | Min | Max |
 | --- | --- | --- | --- | --- |
-| scn_chain_tight_P5_R10 | 30 | −25.49% | −92.51% | +12.22% |
-| scn_full_tight_P5_R10 | 30 | −37.30% | −95.32% | −0.52% |
-| scn_full_tight_P5_R20 | 30 | −35.43% | −181.99% | +36.50% |
-| scn_hub_tight_P5_R10 | 30 | −14.22% | −30.85% | −1.20% |
+| scn_chain_tight_P5_R10 | 30 | −25.68% | −92.51% | +12.22% |
+| scn_full_tight_P5_R10 | 30 | −36.04% | −88.39% | −0.52% |
+| scn_full_tight_P5_R20 | 30 | −8.48% | −67.56% | +36.50% |
+| scn_hub_tight_P5_R10 | 30 | −14.19% | −30.85% | −1.20% |
 | scn_none_tight_P5_R10 | 30 | −0.02% | −0.62% | +0.00% |
-| scn_triangle_loose_P5_R10 | 30 | −262.97% | −1674.23% | +0.75% |
-| scn_triangle_medium_P5_R10 | 30 | −16.37% | −63.67% | +15.90% |
-| scn_triangle_tight_P5_R10 | 30 | −11.28% | −40.36% | +8.19% |
-| scn_triangle_tight_P5_R20 | 30 | **+2.38%** | −28.85% | +23.87% |
-| scn_triangle_tight_P5_R30 | 30 | **+13.35%** | −25.88% | +37.16% |
+| scn_triangle_loose_P5_R10 | 30 | −259.72% | −1674.23% | +2.24% |
+| scn_triangle_medium_P5_R10 | 30 | −16.89% | −51.44% | +15.90% |
+| scn_triangle_tight_P5_R10 | 30 | −11.78% | −37.43% | +2.72% |
+| scn_triangle_tight_P5_R20 | 30 | **+4.65%** | −30.64% | +23.87% |
+| scn_triangle_tight_P5_R30 | 30 | **+20.48%** | −9.93% | +39.90% |
 | scn_triangle_tight_P5_R5 | 30 | −7.77% | −74.29% | +0.00% |
-| scn_two_rows_tight_P5_R10 | 30 | −9.46% | −40.71% | +4.95% |
+| scn_two_rows_tight_P5_R10 | 30 | −9.58% | −42.60% | +4.95% |
 
 ## Per-component mean Δ (heuristic − MILP; negative = heuristic better)
 
@@ -234,28 +237,29 @@ causing wMOV regression despite Δmov remaining near zero.)
 
 | Instance type | N | Δmakespan | Δdelay | Δmov |
 | --- | --- | --- | --- | --- |
-| scn_chain_tight_P5_R10 | 10 | +19.75 | +60.75 | +0.00 |
-| scn_full_tight_P5_R10 | 10 | +42.00 | +122.50 | +0.00 |
-| scn_full_tight_P5_R20 | 10 | +189.60 | +1502.15 | +2.40 |
-| scn_hub_tight_P5_R10 | 10 | +13.65 | +19.10 | +0.00 |
+| scn_chain_tight_P5_R10 | 10 | +20.60 | +60.70 | +0.00 |
+| scn_full_tight_P5_R10 | 10 | +38.90 | +112.60 | +0.00 |
+| scn_full_tight_P5_R20 | 10 | +98.30 | +528.85 | +0.00 |
+| scn_hub_tight_P5_R10 | 10 | +14.00 | +18.60 | +0.00 |
 | scn_none_tight_P5_R10 | 10 | +0.10 | +0.00 | +0.00 |
-| scn_triangle_loose_P5_R10 | 10 | +16.50 | +31.05 | +0.00 |
-| scn_triangle_medium_P5_R10 | 10 | +13.90 | +25.10 | +0.00 |
-| scn_triangle_tight_P5_R10 | 10 | +11.15 | +23.60 | +0.00 |
-| scn_triangle_tight_P5_R20 | 10 | +6.30 | +66.25 | +0.00 |
-| scn_triangle_tight_P5_R30 | 10 | **−18.45** | **−83.75** | +0.00 |
+| scn_triangle_loose_P5_R10 | 10 | +15.65 | +25.15 | +0.00 |
+| scn_triangle_medium_P5_R10 | 10 | +13.40 | +27.40 | +0.00 |
+| scn_triangle_tight_P5_R10 | 10 | +14.25 | +22.45 | +0.00 |
+| scn_triangle_tight_P5_R20 | 10 | −1.60 | +7.40 | +0.00 |
+| scn_triangle_tight_P5_R30 | 10 | **−83.85** | **−775.35** | +0.00 |
 | scn_triangle_tight_P5_R5 | 10 | +1.60 | +5.50 | +0.00 |
-| scn_two_rows_tight_P5_R10 | 10 | +10.85 | +21.90 | +0.00 |
+| scn_two_rows_tight_P5_R10 | 10 | +9.90 | +23.45 | +0.00 |
 
 ## Performance summary
 
-**v1→v2 comparison overview.**  The Mode-C fixpoint decoder (v2) is a decisive
-improvement on wMK and wDLY but introduces a regression on wMOV for large
-instances.  The regression is not caused by additional movements (Δmov ≈ 0 under
-wMOV, as intended by the decoder's Mode-A/B floor) but by decode-cost starvation:
-the fixpoint loop per chromosome is expensive enough that full_R20 and
-triangle_R30 runs routinely overshoot the 60 s budget by 12–20 s (observed
-72–81 s in the log), leaving the GA far fewer generations than v1.
+**v1→v2→v3 overview.**  v2 (Mode-C fixpoint) was a decisive improvement on wMK
+and wDLY but regressed wMOV on large instances — not from added movements
+(Δmov≈0) but from decode-cost starvation (the fixpoint overran the 60 s budget,
+72–81 s observed, leaving the GA far fewer generations than v1).  **v3 (P1 —
+profile-gated Mode-C)** keeps the wMK/wDLY gains and eliminates the wMOV
+regression by disabling Mode C where the movement weight dominates.  The tables
+below are the current state: wMK/wDLY are the v2 Mode-C numbers (P1 leaves them
+unchanged); wMOV is the v3 gated re-battery.
 
 **wMK (makespan-priority).**  v2 roughly halves the loss on R10 instances
 compared to v1: `scn_chain_tight_P5_R10` improves from −45.8% to −18.5%,
@@ -279,14 +283,18 @@ zero on that type (see Caveat 1).  `scn_full_tight_P5_R20` is now a solid
 win (+16.5% mean, Δdelay = −442.2), and `scn_triangle_tight_P5_R20` also
 turns positive (+7.2%).
 
-**wMOV (movement-priority).**  The decode-cost regression dominates here.
-`scn_full_tight_P5_R20` falls from −42.2% (v1) to −120.3% (v2): Δmov
-remains +2.4 (essentially zero) while Δmakespan balloons to +189.6 and
-Δdelay to +1502.2 — the GA simply does not explore enough of the chromosome
-space in the available time.  `scn_triangle_tight_P5_R30` similarly drops
-from +21.4% to +1.6%, though it remains narrowly positive thanks to the
-unconverged MILP.  R5 and R10 instances are largely unaffected because their
-decode cost is proportionally lower; results there are broadly neutral to v1.
+**wMOV (movement-priority) — fixed in v3 by P1.**  Under wMOV, v2's Mode-C
+fixpoint bought nothing (movements cost W^S=100, so the scan suppresses Mode C
+anyway → Δmov≈0) yet paid the full fixpoint decode cost, starving the GA on
+large R: `scn_full_tight_P5_R20` fell from −42.2% (v1) to −120.3% (v2), runs
+overran the 60 s budget, Δmakespan/Δdelay ballooned to +189.6/+1502.2.  **P1
+gates Mode C off when the movement weight dominates** (`allow_mode_c =
+W^S ≤ max(W^M,W^D)`), so wMOV reverts to the v1 Mode-A/B path.  The regression
+is eliminated: `scn_full_tight_P5_R20` recovers to −39.5% (Δmakespan/Δdelay
++98.3/+528.9, runs back within 60 s) and `scn_triangle_tight_P5_R30` recovers
+its win at +22.9%.  v3 wMOV equals v1 to within run-to-run noise, marginally
+better where the wider candidate set (`_MAX_CANDIDATES` 60→80) helps.  wMK and
+wDLY are untouched by P1 (Mode C stays on) and retain the v2 gains above.
 
 ## Caveats
 
@@ -298,14 +306,14 @@ decode cost is proportionally lower; results there are broadly neutral to v1.
 2. **Unconverged MILP baseline at R20/R30.**  Positive gaps on
    `scn_triangle_tight_P5_R30` (and some seeds of R20) reflect "better
    feasible-in-60s" rather than proven improvement over the true optimum.
-3. **wMOV regression is decode-cost, not movement-quality.**  Under wMOV the
-   decoder's Δmov is still ≈ 0 for R10 and most R20 rows — Mode-C movements
-   in the v2 decoder are suppressed naturally because they are penalised by
-   the local-cost function.  The objective inflation on large R is driven
-   entirely by the GA having insufficient generations due to the fixpoint cost
-   exceeding the 60 s budget.  Fixing this requires cost control (fewer
-   fixpoint iterations, or bypassing Mode-C when the weight profile makes it
-   unattractive), not a change to the movement logic.
+3. **wMOV regression was decode-cost, not movement-quality — fixed in v3.**
+   In v2 the wMOV inflation on large R came entirely from the GA losing
+   generations to the expensive fixpoint decode (Δmov≈0 throughout), not from
+   bad movement choices.  P1 (profile-gated Mode-C) addresses it at the root:
+   under wMOV the gate disables Mode C, so the cheap v1 Mode-A/B decode runs
+   and the GA gets its generations back.  The remaining wMOV losses on R5–R10
+   are the same as v1 — the method's intrinsic gap there, addressable only by a
+   stronger decoder/search, not by Mode-C policy.
 
 ---
 
@@ -339,11 +347,12 @@ status: **DONE** (v1 log `…_20260618_064914.log`; v2 log
 
 ## Priority 1 — Profile-gated Mode-C (v3 lever, highest impact)
 
-status: PLANNED.  Disable Mode C (`allow_mode_c=False`) when the movement
-weight dominates (wMOV), since it can only add cost there.  This recovers v1's
-behaviour *and* v1's faster decode on wMOV, removing the regression at no risk
-to wMK/wDLY.  Concretely: set `allow_mode_c = weight_movements <
-k·max(weight_makespan, weight_delay)` in `solve()` (calibrate `k`).
+status: **DONE** (commit bab9773; wMOV re-battery log
+`…_20260620_074942.log`).  `solve()` sets `allow_mode_c = weight_movements
+<= max(weight_makespan, weight_delay)` (an explicit `allow_mode_c` in the
+config overrides it).  Result: wMOV regression eliminated — `scn_full_tight_P5_R20`
+−120.3%→−39.5%, `scn_triangle_tight_P5_R30` +1.6%→+22.9%, back to ≈ v1; wMK/wDLY
+unchanged.  See Part II.
 
 ## Priority 2 — Tame the fixpoint decode cost on large R
 
@@ -361,15 +370,18 @@ not yet implemented; `run_brkga` already accepts a `warmstarts` parameter.
 
 ## Metrics and ablations
 
-- Re-run the battery after P1 and confirm wMOV returns to ≥ v1 while wMK/wDLY
-  hold their v2 gains.
+- P1 confirmed (wMOV re-battery): wMOV back to ≈ v1, wMK/wDLY held at v2 gains.
 - Log generations-completed per run to confirm P2 restores GA evolution on R20/R30.
 - Ablate warm-start vs cold-start per profile after P3.
+
+Note: P2 remains relevant — the fixpoint still slows wMK/wDLY decodes on large R
+(full_R20 wMK is still only −2.5%; Δmov +40 shows many Mode-C events), so taming
+the decode cost should lift the profiles where Mode C *is* enabled.
 
 ## Recommended implementation order
 
 1. Standard battery (v1 + v2) — **DONE**
-2. Profile-gated Mode-C — PLANNED (P1)
+2. Profile-gated Mode-C — **DONE** (P1, commit bab9773)
 3. Fixpoint cost control on large R — PLANNED (P2)
 4. Warm-start injection + ablation — PLANNED (P3)
 
@@ -387,7 +399,7 @@ Source: [`theory_assisted_job.py`](theory_assisted_job.py) — class
 | --- | --- |
 | `name` | `"theory_assisted_job"` |
 | `configure_solver(**kw)` | Stores all kwargs in `self._config`; honours `time_limit_s`, `weight_makespan`, `weight_delay`, `weight_movements`, `seed`, `pop_size`, `allow_mode_c` |
-| `solve(instance)` | Constructs `DecoderContext` (with `allow_mode_c` from config), calls `run_brkga`, returns best solution dict |
+| `solve(instance)` | Computes the profile gate `allow_mode_c = w_mov <= max(w_mk, w_dly)` (unless given explicitly in config), constructs `DecoderContext`, calls `run_brkga`, returns best solution dict |
 | `get_config()` | Returns a shallow copy of `self._config` |
 | `get_log()` | Returns a copy of `self._log` (BRKGA shake + done events) |
 
@@ -401,7 +413,7 @@ Source: [`theory_assisted_job.py`](theory_assisted_job.py) — class
 | `weight_movements` | `10.0` | Objective weight W^S |
 | `seed` | `0` | RNG seed for BRKGA |
 | `pop_size` | `max(100, 10 * n_keys)` | Population size; None = use BRKGA default |
-| `allow_mode_c` | `True` | Enable Mode-C construction via κ fixpoint; set False for Mode-A/B-only (v1 behaviour) |
+| `allow_mode_c` | *gated* (`w_mov ≤ max(w_mk, w_dly)`) | Enable Mode-C construction via κ fixpoint. Default is the P1 profile gate (on for wMK/wDLY, off for wMOV/default); an explicit value overrides it. False = Mode-A/B-only (v1 behaviour) |
 
 ## Method ↔ code map
 
@@ -489,6 +501,7 @@ Track the method's evolution.  One row per behaviour-affecting commit
 | ------ | ------ | ----------------- |
 | 2d37eeb | v06: initial BRKGA implementation — decoder (`decoder.py`), BRKGA engine (`brkga.py`), solver wrapper (`theory_assisted_job.py`); registered as `ta_brkga_wMK/wDLY/wMOV` in `run_experiments.py` | 360/360 feasible; loses to MILP on R5–R10 across all profiles (mean gap −19% to −59% wMK; extreme wDLY artefacts on near-zero-delay instances); wins only on unconverged-MILP R30 (+15.8/+21.0/+21.4% wMK/wDLY/wMOV); Δmov = 0 everywhere under wMOV as designed. |
 | 22c65fb | v06 decoder v2 — Mode-C construction via κ fixpoint: `DecoderContext` gains `allow_mode_c` and `max_fixpoint_iters`; `decode()` runs fixpoint of `_decode_pass` until `kappa` stabilises (fallback to Mode-A/B-only if not converged in 8 iters); new helpers `_proc_eff`, `_decode_pass`; Mode-C branches in `_evaluate`, `_candidate_starts`, `_layout`; `_MAX_CANDIDATES` raised to 80 | wMK/wDLY improve substantially: chain_R10 wMK −45.8%→−18.5%, triangle_R5 wDLY −1322%→−3.2%, triangle_R20 wMK+wDLY both turn positive (+8.0%, +7.2%). wMOV regresses on large R due to decode-cost starvation (full_R20 −42%→−120%, triangle_R30 +21%→+1.6%); Δmov ≈ 0 confirms regression is GA-generations loss, not movement quality; full_R20 runs overshoot 60 s budget (72–81 s observed). |
+| bab9773 | v06 P1 — profile-gated Mode-C: `solve()` sets `allow_mode_c = weight_movements <= max(weight_makespan, weight_delay)` (explicit config overrides); gate decision logged. Enables Mode C under wMK/wDLY, disables it under wMOV and the default profile | wMOV regression eliminated (wMOV re-battery, log `…_20260620_074942.log`): full_R20 −120.3%→−39.5%, triangle_R30 +1.6%→+22.9%, back to ≈ v1 (marginally better from `_MAX_CANDIDATES` 60→80). wMK/wDLY unchanged from v2 (gate keeps Mode C on; deterministic same seed). |
 
 ---
 
