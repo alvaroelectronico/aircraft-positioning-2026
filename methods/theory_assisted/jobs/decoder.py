@@ -47,6 +47,13 @@ from problems.jobs.checker import _classify_access  # noqa: E402
 
 DEFAULT_MU, DEFAULT_DELTA, DEFAULT_ETA = 1.0, 2.0, 1.0
 _MAX_CANDIDATES = 80
+# Cap on Mode-C fixpoint passes per decode.  P2 tried lowering this from 8 to 3
+# to win back GA generations on large R, but a head-to-head showed it REGRESSES
+# wMK/wDLY there: the fixpoint passes are productive — the good Mode-C schedules
+# (which is why v2 beats Mode-A/B on wMK/wDLY) need >3 passes to converge on
+# large dense instances, so a low cap forces premature fallback to the weak
+# Mode-A/B path.  Kept at 8.  The real large-R lever is more search time / a
+# warm start (P3), not fewer fixpoint passes.
 _MAX_FIXPOINT_ITERS = 8
 
 

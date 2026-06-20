@@ -53,16 +53,27 @@ def run_brkga(
     while len(population) < pop_size:
         population.append(random_keys())
 
-    scored = sorted(
-        ((decode_fn(k)["objective"], k) for k in population),
-        key=lambda t: t[0],
-    )
+    t0 = time.perf_counter()
+
+    def score_pop(keys_list):
+        """Decode a population with a wall-clock guard.  Stops once the budget
+        is spent (after at least one decode), so a single slow generation on a
+        large instance cannot overrun the time limit by a full generation.
+        Keys are ordered elites-first by the caller, so an early stop still
+        retains the carried-over elites."""
+        out = []
+        for k in keys_list:
+            if out and time.perf_counter() - t0 >= time_limit_s:
+                break
+            out.append((decode_fn(k)["objective"], k))
+        out.sort(key=lambda t: t[0])
+        return out
+
+    scored = score_pop(population)
     best_obj, best_keys = scored[0]
-    best_sol = decode_fn(best_keys)
 
     gen = 0
     stagnant = 0
-    t0 = time.perf_counter()
     while time.perf_counter() - t0 < time_limit_s:
         gen += 1
         elites = scored[:n_elite]
@@ -77,10 +88,7 @@ def run_brkga(
             child = [ep[i] if rng.random() < rho else np_[i] for i in range(n_keys)]
             next_pop.append(child)
 
-        scored = sorted(
-            ((decode_fn(k)["objective"], k) for k in next_pop),
-            key=lambda t: t[0],
-        )
+        scored = score_pop(next_pop)
         if scored[0][0] + 1e-9 < best_obj:
             best_obj, best_keys = scored[0]
             stagnant = 0
