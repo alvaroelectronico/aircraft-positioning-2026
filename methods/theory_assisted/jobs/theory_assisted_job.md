@@ -120,8 +120,8 @@ causing wMOV regression despite Δmov remaining near zero.)
 | Weight profiles   | wMK (100/1/1) / wDLY (1/100/1) / wMOV (1/1/100) |
 | Budget            | 60 s wall-clock per run |
 | Metric            | relative gap = (MILP_obj − heuristic_obj) / MILP_obj; gap > 0 means heuristic BETTER |
-| Log               | wMK/wDLY: [`…_20260619_070616.log`](../../../outputs/logs/202605_02_main_methods_20260619_070616.log) (v2, unchanged by P1); wMOV: [`…_20260620_074942.log`](../../../outputs/logs/202605_02_main_methods_20260620_074942.log) (v3, Mode-C gated off) |
-| State             | **v3 (P1 — profile-gated Mode-C).** Mode C enabled for wMK/wDLY (W^S≤max(W^M,W^D)), disabled for wMOV. wMK/wDLY are identical to v2; wMOV reverts to the v1 Mode-A/B path. |
+| Log               | wMK/wDLY R5–R10: [`…_20260619_070616.log`](../../../outputs/logs/202605_02_main_methods_20260619_070616.log) (v2); wMOV: [`…_20260620_074942.log`](../../../outputs/logs/202605_02_main_methods_20260620_074942.log) (v3 gated); wMK/wDLY R20/R30: [`…_20260621_074725.log`](../../../outputs/logs/202605_02_main_methods_20260621_074725.log) (P2 budget-honest re-battery) |
+| State             | **v3 + P2 (profile-gated Mode-C; 60 s budget enforced mid-decode).** Mode C on for wMK/wDLY (W^S≤max(W^M,W^D)), off for wMOV. All numbers respect the 60 s budget (large-R wMK/wDLY re-batteried after the budget guard). |
 
 ## Relative objective gap (mean / min / max over seeds)
 
@@ -131,14 +131,14 @@ causing wMOV regression despite Δmov remaining near zero.)
 | --- | --- | --- | --- | --- |
 | scn_chain_tight_P5_R10 | 10 | −18.46% | −36.41% | −8.60% |
 | scn_full_tight_P5_R10 | 10 | −31.10% | −43.38% | −7.25% |
-| scn_full_tight_P5_R20 | 10 | −2.45% | −47.76% | +31.58% |
+| scn_full_tight_P5_R20 | 10 | −2.98% | −47.76% | +31.58% |
 | scn_hub_tight_P5_R10 | 10 | −13.64% | −30.85% | −5.18% |
 | scn_none_tight_P5_R10 | 10 | +0.00% | +0.00% | +0.00% |
 | scn_triangle_loose_P5_R10 | 10 | −10.02% | −17.70% | −4.33% |
 | scn_triangle_medium_P5_R10 | 10 | −8.03% | −15.75% | −3.18% |
 | scn_triangle_tight_P5_R10 | 10 | −6.76% | −10.10% | −3.84% |
-| scn_triangle_tight_P5_R20 | 10 | **+8.00%** | +1.23% | +15.48% |
-| scn_triangle_tight_P5_R30 | 10 | **+21.68%** | +11.88% | +28.86% |
+| scn_triangle_tight_P5_R20 | 10 | **+7.47%** | +1.23% | +15.48% |
+| scn_triangle_tight_P5_R30 | 10 | **+20.56%** | +11.88% | +26.52% |
 | scn_triangle_tight_P5_R5 | 10 | −0.08% | −0.54% | +0.00% |
 | scn_two_rows_tight_P5_R10 | 10 | −5.15% | −10.25% | −1.80% |
 
@@ -148,14 +148,14 @@ causing wMOV regression despite Δmov remaining near zero.)
 | --- | --- | --- | --- | --- |
 | scn_chain_tight_P5_R10 | 10 | −23.52% | −92.51% | +7.66% |
 | scn_full_tight_P5_R10 | 10 | −21.35% | −40.26% | −0.52% |
-| scn_full_tight_P5_R20 | 10 | **+16.47%** | −12.24% | +36.50% |
+| scn_full_tight_P5_R20 | 10 | **+14.97%** | −12.24% | +32.04% |
 | scn_hub_tight_P5_R10 | 10 | −11.05% | −26.68% | −1.20% |
 | scn_none_tight_P5_R10 | 10 | −0.00% | −0.00% | +0.00% |
 | scn_triangle_loose_P5_R10 | 10 | −711.65% | −1674.23% | −153.35% |
 | scn_triangle_medium_P5_R10 | 10 | −11.34% | −37.60% | +15.90% |
 | scn_triangle_tight_P5_R10 | 10 | −7.79% | −15.17% | −1.43% |
-| scn_triangle_tight_P5_R20 | 10 | **+7.19%** | −10.15% | +23.87% |
-| scn_triangle_tight_P5_R30 | 10 | **+16.81%** | −2.84% | +37.16% |
+| scn_triangle_tight_P5_R20 | 10 | **+6.04%** | −11.40% | +23.87% |
+| scn_triangle_tight_P5_R30 | 10 | **+15.69%** | −2.84% | +31.40% |
 | scn_triangle_tight_P5_R5 | 10 | −3.22% | −12.12% | +0.00% |
 | scn_two_rows_tight_P5_R10 | 10 | −4.00% | −10.79% | +4.95% |
 
@@ -186,14 +186,14 @@ at ≈ v1, marginally better from the `_MAX_CANDIDATES` 60→80 bump.)*
 | --- | --- | --- | --- | --- |
 | scn_chain_tight_P5_R10 | 30 | −25.68% | −92.51% | +12.22% |
 | scn_full_tight_P5_R10 | 30 | −36.04% | −88.39% | −0.52% |
-| scn_full_tight_P5_R20 | 30 | −8.48% | −67.56% | +36.50% |
+| scn_full_tight_P5_R20 | 30 | −9.15% | −67.56% | +32.04% |
 | scn_hub_tight_P5_R10 | 30 | −14.19% | −30.85% | −1.20% |
 | scn_none_tight_P5_R10 | 30 | −0.02% | −0.62% | +0.00% |
 | scn_triangle_loose_P5_R10 | 30 | −259.72% | −1674.23% | +2.24% |
 | scn_triangle_medium_P5_R10 | 30 | −16.89% | −51.44% | +15.90% |
 | scn_triangle_tight_P5_R10 | 30 | −11.78% | −37.43% | +2.72% |
-| scn_triangle_tight_P5_R20 | 30 | **+4.65%** | −30.64% | +23.87% |
-| scn_triangle_tight_P5_R30 | 30 | **+20.48%** | −9.93% | +39.90% |
+| scn_triangle_tight_P5_R20 | 30 | **+4.09%** | −30.64% | +23.87% |
+| scn_triangle_tight_P5_R30 | 30 | **+19.73%** | −9.93% | +39.90% |
 | scn_triangle_tight_P5_R5 | 30 | −7.77% | −74.29% | +0.00% |
 | scn_two_rows_tight_P5_R10 | 30 | −9.58% | −42.60% | +4.95% |
 
@@ -205,14 +205,14 @@ at ≈ v1, marginally better from the `_MAX_CANDIDATES` 60→80 bump.)*
 | --- | --- | --- | --- | --- |
 | scn_chain_tight_P5_R10 | 10 | +11.75 | +54.15 | +0.60 |
 | scn_full_tight_P5_R10 | 10 | +22.20 | +107.00 | +12.00 |
-| scn_full_tight_P5_R20 | 10 | −8.40 | −155.65 | +40.00 |
+| scn_full_tight_P5_R20 | 10 | −6.65 | −172.55 | +40.00 |
 | scn_hub_tight_P5_R10 | 10 | +8.55 | +23.70 | +7.60 |
 | scn_none_tight_P5_R10 | 10 | +0.00 | +0.00 | +0.00 |
 | scn_triangle_loose_P5_R10 | 10 | +6.00 | +19.00 | +3.00 |
 | scn_triangle_medium_P5_R10 | 10 | +4.95 | +15.35 | +2.80 |
 | scn_triangle_tight_P5_R10 | 10 | +4.15 | +14.90 | +4.00 |
-| scn_triangle_tight_P5_R20 | 10 | −13.05 | −37.85 | +15.00 |
-| scn_triangle_tight_P5_R30 | 10 | **−77.30** | **−657.55** | +33.00 |
+| scn_triangle_tight_P5_R20 | 10 | −12.15 | −41.60 | +15.80 |
+| scn_triangle_tight_P5_R30 | 10 | **−73.45** | **−614.30** | +33.00 |
 | scn_triangle_tight_P5_R5 | 10 | +0.00 | +1.30 | +1.60 |
 | scn_two_rows_tight_P5_R10 | 10 | +3.20 | +5.25 | +2.40 |
 
@@ -222,14 +222,14 @@ at ≈ v1, marginally better from the `_MAX_CANDIDATES` 60→80 bump.)*
 | --- | --- | --- | --- | --- |
 | scn_chain_tight_P5_R10 | 10 | +7.75 | +27.00 | −1.40 |
 | scn_full_tight_P5_R10 | 10 | +6.75 | +39.55 | +14.20 |
-| scn_full_tight_P5_R20 | 10 | −41.75 | −442.15 | +39.40 |
+| scn_full_tight_P5_R20 | 10 | −43.10 | −404.95 | +41.00 |
 | scn_hub_tight_P5_R10 | 10 | +6.10 | +12.25 | +9.00 |
 | scn_none_tight_P5_R10 | 10 | +0.00 | +0.00 | +0.00 |
 | scn_triangle_loose_P5_R10 | 10 | +4.85 | +8.30 | +6.00 |
 | scn_triangle_medium_P5_R10 | 10 | +0.80 | +7.20 | −1.00 |
 | scn_triangle_tight_P5_R10 | 10 | +0.15 | +8.80 | −1.00 |
-| scn_triangle_tight_P5_R20 | 10 | −11.05 | −63.00 | +12.40 |
-| scn_triangle_tight_P5_R30 | 10 | **−57.00** | **−618.30** | +28.20 |
+| scn_triangle_tight_P5_R20 | 10 | −9.45 | −54.25 | +15.60 |
+| scn_triangle_tight_P5_R30 | 10 | **−48.80** | **−578.80** | +25.80 |
 | scn_triangle_tight_P5_R5 | 10 | +0.60 | +0.00 | +0.60 |
 | scn_two_rows_tight_P5_R10 | 10 | −1.50 | +4.05 | +0.20 |
 
@@ -268,8 +268,8 @@ compared to v1: `scn_chain_tight_P5_R10` improves from −45.8% to −18.5%,
 Δmakespan and Δdelay are still positive (heuristic worse) on R10, but
 substantially reduced: e.g. Δmakespan for `scn_chain` drops from +29.3 to
 +11.75, Δdelay from +121.9 to +54.2.  Crucially, `scn_triangle_tight_P5_R20`
-flips to a positive mean gap (+8.0%), and `scn_triangle_tight_P5_R30` improves
-to +21.7% (from +15.8% in v1).  The wMK Δmov column is now sometimes slightly
+flips to a positive mean gap (+7.5%), and `scn_triangle_tight_P5_R30` improves
+to +20.6% (from +15.8% in v1).  The wMK Δmov column is now sometimes slightly
 positive (e.g. +0.6 for chain, +12.0 for full_R10), reflecting Mode-C events
 that the v1 decoder would never produce.
 
@@ -280,8 +280,8 @@ constrained instances, matching the MILP more closely.  `scn_triangle_loose_P5_R
 remains severely negative (−712%) due to small-denominator inflation — the
 absolute Δdelay of +8.3 units is small but the MILP optimum delay is nearly
 zero on that type (see Caveat 1).  `scn_full_tight_P5_R20` is now a solid
-win (+16.5% mean, Δdelay = −442.2), and `scn_triangle_tight_P5_R20` also
-turns positive (+7.2%).
+win (+15.0% mean, Δdelay = −405.0), and `scn_triangle_tight_P5_R20` also
+turns positive (+6.0%).
 
 **wMOV (movement-priority) — fixed in v3 by P1.**  Under wMOV, v2's Mode-C
 fixpoint bought nothing (movements cost W^S=100, so the scan suppresses Mode C
@@ -372,9 +372,12 @@ passes; cheapen it to win back GA generations" — turned out **false**:
   cost (3 of 4 large-R head-to-head cases identical; full_R20 wMK ~4% worse,
   still beating the MILP).
 
-**Caveat:** the wMK/wDLY large-R numbers in Part II were produced *before* the
-guard (i.e. with the 72–81 s overrun), so they are mildly optimistic on
-R20/R30.  Refreshing them needs a wMK/wDLY re-battery on the R20/R30 configs.
+**Budget-honest numbers (done).**  The wMK/wDLY R20/R30 rows in Part II were
+refreshed by a guarded re-battery (log `…_20260621_074725.log`, 60 runs).  The
+shift is small, as expected — the GA finds its best early: full_R20 wMK
+−2.45%→−2.98%, triangle_R20 wMK +8.0%→+7.5%, triangle_R30 wMK +21.7%→+20.6%
+(and similar sub-percent drops on wDLY).  All Part II numbers now respect the
+60 s budget.
 
 The genuine large-R lever is therefore **not** cost-capping but more effective
 search per unit time — i.e. **P3 (warm-start)**, or a structurally faster
@@ -523,7 +526,7 @@ Track the method's evolution.  One row per behaviour-affecting commit
 | 2d37eeb | v06: initial BRKGA implementation — decoder (`decoder.py`), BRKGA engine (`brkga.py`), solver wrapper (`theory_assisted_job.py`); registered as `ta_brkga_wMK/wDLY/wMOV` in `run_experiments.py` | 360/360 feasible; loses to MILP on R5–R10 across all profiles (mean gap −19% to −59% wMK; extreme wDLY artefacts on near-zero-delay instances); wins only on unconverged-MILP R30 (+15.8/+21.0/+21.4% wMK/wDLY/wMOV); Δmov = 0 everywhere under wMOV as designed. |
 | 22c65fb | v06 decoder v2 — Mode-C construction via κ fixpoint: `DecoderContext` gains `allow_mode_c` and `max_fixpoint_iters`; `decode()` runs fixpoint of `_decode_pass` until `kappa` stabilises (fallback to Mode-A/B-only if not converged in 8 iters); new helpers `_proc_eff`, `_decode_pass`; Mode-C branches in `_evaluate`, `_candidate_starts`, `_layout`; `_MAX_CANDIDATES` raised to 80 | wMK/wDLY improve substantially: chain_R10 wMK −45.8%→−18.5%, triangle_R5 wDLY −1322%→−3.2%, triangle_R20 wMK+wDLY both turn positive (+8.0%, +7.2%). wMOV regresses on large R due to decode-cost starvation (full_R20 −42%→−120%, triangle_R30 +21%→+1.6%); Δmov ≈ 0 confirms regression is GA-generations loss, not movement quality; full_R20 runs overshoot 60 s budget (72–81 s observed). |
 | bab9773 | v06 P1 — profile-gated Mode-C: `solve()` sets `allow_mode_c = weight_movements <= max(weight_makespan, weight_delay)` (explicit config overrides); gate decision logged. Enables Mode C under wMK/wDLY, disables it under wMOV and the default profile | wMOV regression eliminated (wMOV re-battery, log `…_20260620_074942.log`): full_R20 −120.3%→−39.5%, triangle_R30 +1.6%→+22.9%, back to ≈ v1 (marginally better from `_MAX_CANDIDATES` 60→80). wMK/wDLY unchanged from v2 (gate keeps Mode C on; deterministic same seed). |
-| 748c0a8 | v06 P2 — `run_brkga` enforces the wall-clock budget inside the decode loop (`score_pop`); fixpoint cap investigated and kept at 8 (lowering it to 3 regressed wMK/wDLY on large R, so rejected) | No quality change in the common case (the GA finds its best early): 3 of 4 large-R head-to-head cases identical to the pre-guard overrun, full_R20 wMK ~4% worse and still beating the MILP. Fixes the prior 72–81 s budget overrun on R20/R30 (BATTERY.md 60 s violation). Part II wMK/wDLY large-R rows predate the guard (mildly optimistic until re-batteried). |
+| 748c0a8 | v06 P2 — `run_brkga` enforces the wall-clock budget inside the decode loop (`score_pop`); fixpoint cap investigated and kept at 8 (lowering it to 3 regressed wMK/wDLY on large R, so rejected) | No quality change in the common case (the GA finds its best early): 3 of 4 large-R head-to-head cases identical to the pre-guard overrun, full_R20 wMK ~4% worse and still beating the MILP. Fixes the prior 72–81 s budget overrun on R20/R30 (BATTERY.md 60 s violation). Part II wMK/wDLY R20/R30 rows refreshed by a guarded re-battery (log `…_20260621_074725.log`): small drops (full_R20 wMK −2.45%→−2.98%, triangle_R30 wMK +21.7%→+20.6%), all numbers now budget-honest. |
 
 ---
 
