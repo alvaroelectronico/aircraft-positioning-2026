@@ -12,14 +12,18 @@ how much do two attempts diverge). Solver `jobs/theory_assisted_job.py`
 (`TheoryAssistedJobSolver`), logic under `jobs/brkga/`, registered as
 `TheoryAssistedBRKGA2` / labels `ta2_brkga_wMK|wDLY|wMOV`.
 
-Current state: decoder **v1 (Mode-A + Mode-C in the fitness)**, own deterministic
-BRKGA loop, greedy/NEH warm-start. Mode C is woven into the decoder sweep
-(per-rear profile-aware greedy), validated by the REAL checker per Mode-C decode
-with Mode-A fallback, and **profile-gated off under wMOV**. 100% checker-
-compliant; Mode C roughly halves the gap to the MILP on blocking-heavy types vs
-the earlier Mode-A-only v0. Mode-B explicit gap insertion was NOT implemented
-(Mode C dominates). Roadmap: full multi-seed battery; checker-free Mode-C
-feasibility to lift R20/R30 generations; MILP warm-start seeds.
+Current state: decoder **v2 = Mode-A + in-fitness Mode-C (profile-gated, real-
+checker-validated with Mode-A fallback) + timing genes (chromosome 3|R|, block 3
+= per-aircraft delay preference, cap 0.5·mean_T)**.  Own deterministic BRKGA
+loop, greedy/NEH warm-start (timing genes 0), population pinned 20|R|. 100%
+checker-compliant. Mode C halves the MILP gap on blocking-heavy types; timing
+genes halve it again on the dominant `full_tight` outlier and flip several
+R20/R30 cells to BEAT the MILP (full_tight_R20 wDLY +24.5%). diagnose.py showed
+timing genes dissolved the deeply-stuck-aircraft case → **multi-front Mode-C
+rescue dropped**. Mode-B explicit gaps NOT implemented (Mode C dominates).
+Tools: `diagnose.py` (structural analysis), `ablation_timing.py` (cap ablation;
+cap=0 ≡ v1). Roadmap: full 10-seed battery (Hito 6); checker-free Mode-C
+feasibility to lift R20/R30 generations (Hito 4b); MILP warm-start seeds.
 
 **Why this matters / how to apply:** the older memories
 [[theory-assisted-v06-candidate-c-brkga]] and

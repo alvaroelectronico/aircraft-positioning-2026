@@ -106,8 +106,30 @@ separate move — incidental Mode-B windows are already handled by the classifie
 and Mode C is the dominant lever; explicit gap insertion remains possible future
 work.
 
+## Hito 7 — Timing genes (done)
+
+**Why.**  `diagnose.py` on v1 `full_tight` showed the gap was serialization +
+one deeply-stuck rear aircraft (R18 waiting 255 of 314), not a missing manoeuvre.
+The decoder had no timing degree of freedom (earliest-feasible sweep fixed every
+start), so the GA could not reshape the serialization.
+
+**Design.**  Chromosome `2|R|→3|R|`; block 3 is a per-aircraft delay preference
+(`_apply_timing`): start = `first_feasible(windows, earliest + gene·cap)`,
+`cap = timing_cap_factor·mean_T`.  Deterministic (gene=0 ⇒ earliest), warm-start
+genes = 0, population pinned to `20|R|`, applied to both Mode-A and Mode-C
+reference starts.  This is the v2-vs-v1 experimental divergence point.
+
+**Ablation (`ablation_timing.py`, cap=0 ≡ v1 baseline).**  cap=0.5 is the
+consistent winner.  Effect on the dominant outlier (N=3): full_tight_R20
+wMK −95→−20 %, wDLY −35→**+24.5 %** (beats MILP), wMOV −196→−12 %; triangle_tight_R20
+wMK now +8.8 %.  Small cost on easy topologies.
+
+**Consequence.**  `diagnose.py` on v2 `full_tight`: the stuck aircraft is gone
+(wait spread, max ≈ 80, more aircraft in front positions).  → **multi-front
+Mode-C rescue dropped** (no concentrated case remains).
+
 ## Open / next
-- Full multi-seed battery (360 runs) to replace seed-1 N=1 numbers.
-- Optional: warm-start from cached MILP/topology; deliberate Mode-B gaps;
-  incremental (non-checker) Mode-C feasibility to lift the generation count on
-  R20/R30.
+- Hito 6: full 10-seed battery to replace the seeds-1–3 numbers.
+- Hito 4b: checker-free Mode-C feasibility evaluator (validated vs checker) to
+  lift the generation count at R20/R30 (now the main residual lever).
+- Optional: warm-start from cached MILP/topology; deliberate Mode-B gaps.
