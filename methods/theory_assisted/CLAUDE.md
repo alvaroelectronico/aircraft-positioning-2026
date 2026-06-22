@@ -30,6 +30,13 @@ attempts have graduated to their own isolated method directories:
 
 ## Your task: a SECOND independent attempt at Candidate C (BRKGA)
 
+> **Read [`starting_guidelines.md`](starting_guidelines.md) right after
+> this file.**  It contains the user's per-attempt schema (file
+> layout, chromosome shape, decoder steps, BRKGA hyperparameters,
+> profile-gating, what to leave out of the MVP) plus the fixed
+> workflow and a recap of the non-negotiable rules.  Confirm the
+> schema with the user before writing any code.
+
 You are building **Candidate C — BRKGA with mixed-chromosome decoder
 + warm-start** again, from scratch, with full isolation from the first
 Claude-assisted attempt at the same candidate (`methods/brkga_v02/`).
