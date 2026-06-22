@@ -1,0 +1,185 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (3 experiments)
+  Code state (git): e282385+dirty
+  Instance order  : by seed, then config (seed1 of all types first)
+==================================================================
+  Shared parameters:
+    time_limit_s=60               NoRelHeurTime=0
+    MIPGap=0.0                    seed=1
+
+  Per-experiment parameters:
+  Label           Solver                   weight_makespan  weight_delay  weight_movements
+  ----------------------------------------------------------------------------------------
+  ta2_brkga_wMK   TheoryAssistedJobSolver  100              1             1               
+  ta2_brkga_wDLY  TheoryAssistedJobSolver  1                100           1               
+  ta2_brkga_wMOV  TheoryAssistedJobSolver  1                1             100             
+==================================================================
+
+
+==================================================================
+  HEURISTIC vs MILP  —  relative gap per instance type
+  gap = (MILP_obj - heuristic_obj) / MILP_obj
+  gap > 0  =>  heuristic BETTER (lower objective);  < 0  => worse
+  heuristic: ta2_brkga_wMK / ta2_brkga_wDLY / ta2_brkga_wMOV   (MILP rows from cache)
+==================================================================
+  -- Relative objective gap, by weight profile --
+  [wMK  (100/1/1  makespan-priority)]
+    Type                          N      Mean       Min       Max
+    -----------------------------------------------------------
+    scn_chain_tight_P5_R10        1   -25.40%   -25.40%   -25.40%
+    scn_full_tight_P5_R10         1  -116.61%  -116.61%  -116.61%
+    scn_full_tight_P5_R20         1   -64.78%   -64.78%   -64.78%
+    scn_hub_tight_P5_R10          1   -20.47%   -20.47%   -20.47%
+    scn_none_tight_P5_R10         1    +0.00%    +0.00%    +0.00%
+    scn_triangle_loose_P5_R10     1   -25.67%   -25.67%   -25.67%
+    scn_triangle_medium_P5_R10    1   -23.05%   -23.05%   -23.05%
+    scn_triangle_tight_P5_R10     1   -18.01%   -18.01%   -18.01%
+    scn_triangle_tight_P5_R20     1    -6.70%    -6.70%    -6.70%
+    scn_triangle_tight_P5_R30     1    +9.04%    +9.04%    +9.04%
+    scn_triangle_tight_P5_R5      1    +0.00%    +0.00%    +0.00%
+    scn_two_rows_tight_P5_R10     1    -5.06%    -5.06%    -5.06%
+
+  [wDLY  (1/100/1  delay-priority)]
+    Type                          N      Mean       Min       Max
+    -----------------------------------------------------------
+    scn_chain_tight_P5_R10        1   -38.84%   -38.84%   -38.84%
+    scn_full_tight_P5_R10         1  -125.51%  -125.51%  -125.51%
+    scn_full_tight_P5_R20         1   -21.42%   -21.42%   -21.42%
+    scn_hub_tight_P5_R10          1   -17.96%   -17.96%   -17.96%
+    scn_none_tight_P5_R10         1    +0.00%    +0.00%    +0.00%
+    scn_triangle_loose_P5_R10     1  -330.97%  -330.97%  -330.97%
+    scn_triangle_medium_P5_R10    1    -6.37%    -6.37%    -6.37%
+    scn_triangle_tight_P5_R10     1   -15.71%   -15.71%   -15.71%
+    scn_triangle_tight_P5_R20     1   -15.14%   -15.14%   -15.14%
+    scn_triangle_tight_P5_R30     1   +21.29%   +21.29%   +21.29%
+    scn_triangle_tight_P5_R5      1    +0.00%    +0.00%    +0.00%
+    scn_two_rows_tight_P5_R10     1    -4.06%    -4.06%    -4.06%
+
+  [wMOV  (1/1/100  movement-priority)]
+    Type                          N      Mean       Min       Max
+    -----------------------------------------------------------
+    scn_chain_tight_P5_R10        1   -41.16%   -41.16%   -41.16%
+    scn_full_tight_P5_R10         1  -228.16%  -228.16%  -228.16%
+    scn_full_tight_P5_R20         1  -190.16%  -190.16%  -190.16%
+    scn_hub_tight_P5_R10          1   -16.67%   -16.67%   -16.67%
+    scn_none_tight_P5_R10         1    +0.00%    +0.00%    +0.00%
+    scn_triangle_loose_P5_R10     1   -75.71%   -75.71%   -75.71%
+    scn_triangle_medium_P5_R10    1   -42.00%   -42.00%   -42.00%
+    scn_triangle_tight_P5_R10     1   -28.01%   -28.01%   -28.01%
+    scn_triangle_tight_P5_R20     1   -39.22%   -39.22%   -39.22%
+    scn_triangle_tight_P5_R30     1    +2.35%    +2.35%    +2.35%
+    scn_triangle_tight_P5_R5      1    +0.00%    +0.00%    +0.00%
+    scn_two_rows_tight_P5_R10     1   -30.56%   -30.56%   -30.56%
+
+  -- Relative objective gap, aggregated over all profiles --
+  [ALL profiles]
+    Type                          N      Mean       Min       Max
+    -----------------------------------------------------------
+    scn_chain_tight_P5_R10        3   -35.14%   -41.16%   -25.40%
+    scn_full_tight_P5_R10         3  -156.76%  -228.16%  -116.61%
+    scn_full_tight_P5_R20         3   -92.12%  -190.16%   -21.42%
+    scn_hub_tight_P5_R10          3   -18.37%   -20.47%   -16.67%
+    scn_none_tight_P5_R10         3    +0.00%    +0.00%    +0.00%
+    scn_triangle_loose_P5_R10     3  -144.12%  -330.97%   -25.67%
+    scn_triangle_medium_P5_R10    3   -23.81%   -42.00%    -6.37%
+    scn_triangle_tight_P5_R10     3   -20.58%   -28.01%   -15.71%
+    scn_triangle_tight_P5_R20     3   -20.35%   -39.22%    -6.70%
+    scn_triangle_tight_P5_R30     3   +10.89%    +2.35%   +21.29%
+    scn_triangle_tight_P5_R5      3    +0.00%    +0.00%    +0.00%
+    scn_two_rows_tight_P5_R10     3   -13.23%   -30.56%    -4.06%
+
+  -- Per-component mean Δ (heuristic − MILP); negative = heuristic better --
+  -- (relative gap is distorted when the optimum delay ≈ 0; read these too)
+  [wMK  (100/1/1  makespan-priority)]
+    Type                          N   Δmakespan      Δdelay      Δmov
+    ---------------------------------------------------------------
+    scn_chain_tight_P5_R10        1      +15.00      +80.50     +0.00
+    scn_full_tight_P5_R10         1      +77.50     +244.00    -22.00
+    scn_full_tight_P5_R20         1     +172.00     +818.50    +18.00
+    scn_hub_tight_P5_R10          1      +12.50      +15.50    -20.00
+    scn_none_tight_P5_R10         1       +0.00       +0.00     +0.00
+    scn_triangle_loose_P5_R10     1      +15.00      +27.00     +4.00
+    scn_triangle_medium_P5_R10    1      +13.50      +33.50     +4.00
+    scn_triangle_tight_P5_R10     1      +10.50      +37.50     +4.00
+    scn_triangle_tight_P5_R20     1      +10.50      -21.50    +10.00
+    scn_triangle_tight_P5_R30     1      -27.00     -696.50     +8.00
+    scn_triangle_tight_P5_R5      1       +0.00       +0.00     +0.00
+    scn_two_rows_tight_P5_R10     1       +3.00       +1.50     +0.00
+
+  [wDLY  (1/100/1  delay-priority)]
+    Type                          N   Δmakespan      Δdelay      Δmov
+    ---------------------------------------------------------------
+    scn_chain_tight_P5_R10        1       +8.00      +48.50     -6.00
+    scn_full_tight_P5_R10         1      +77.50     +213.50     +8.00
+    scn_full_tight_P5_R20         1     +114.50     +530.00    +16.00
+    scn_hub_tight_P5_R10          1      +13.50      +19.50     -2.00
+    scn_none_tight_P5_R10         1       +0.00       +0.00     +0.00
+    scn_triangle_loose_P5_R10     1       +8.50      +15.50     +2.00
+    scn_triangle_medium_P5_R10    1       +0.50       +4.00     +2.00
+    scn_triangle_tight_P5_R10     1      +11.50      +16.00     -6.00
+    scn_triangle_tight_P5_R20     1      +38.50     +116.50    -10.00
+    scn_triangle_tight_P5_R30     1      -69.50     -800.00     +8.00
+    scn_triangle_tight_P5_R5      1       +0.00       +0.00     +0.00
+    scn_two_rows_tight_P5_R10     1       -1.00       +4.00     +4.00
+
+  [wMOV  (1/1/100  movement-priority)]
+    Type                          N   Δmakespan      Δdelay      Δmov
+    ---------------------------------------------------------------
+    scn_chain_tight_P5_R10        1      +24.00      +71.50     +0.00
+    scn_full_tight_P5_R10         1     +139.00     +456.50     +0.00
+    scn_full_tight_P5_R20         1     +342.50    +2828.50     +0.00
+    scn_hub_tight_P5_R10          1      +11.50      +17.50     +0.00
+    scn_none_tight_P5_R10         1       +0.00       +0.00     +0.00
+    scn_triangle_loose_P5_R10     1      +15.50      +37.50     +0.00
+    scn_triangle_medium_P5_R10    1      +16.50      +36.00     +0.00
+    scn_triangle_tight_P5_R10     1      +14.50      +32.00     +0.00
+    scn_triangle_tight_P5_R20     1      +38.00     +318.50     +0.00
+    scn_triangle_tight_P5_R30     1      -54.50      -28.00     +0.00
+    scn_triangle_tight_P5_R5      1       +0.00       +0.00     +0.00
+    scn_two_rows_tight_P5_R10     1      +14.50      +35.00     +0.00
+
+==================================================================
+
+
+==================================================================
+  SUMMARY  —  36 ok  /  0 failed  /  36 total
+==================================================================
+  Instance                          Experiment      Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  ------------------------------------------------------------------------------------------------------------------------
+  scn_chain_tight_P5_R10_seed1      ta2_brkga_wMK   brkga (738     7803.50      76.00     189.50    14         -      60.2
+  scn_chain_tight_P5_R10_seed1      ta2_brkga_wDLY  brkga (766    17343.00      85.00     172.50     8         -      60.1
+  scn_chain_tight_P5_R10_seed1      ta2_brkga_wMOV  brkga (508      327.50      93.50     234.00     0         -      60.0
+  scn_full_tight_P5_R10_seed1       ta2_brkga_wMK   brkga (538    14808.50     144.00     390.50    18         -      60.2
+  scn_full_tight_P5_R10_seed1       ta2_brkga_wDLY  brkga (551    38514.50     148.50     383.50    16         -      60.1
+  scn_full_tight_P5_R10_seed1       ta2_brkga_wMOV  brkga (284      856.50     210.50     646.00     0         -      60.0
+  scn_full_tight_P5_R20_seed1       ta2_brkga_wMK   brkga (87     45880.50     430.00    2862.50    18         -      61.2
+  scn_full_tight_P5_R20_seed1       ta2_brkga_wDLY  brkga (88    301171.00     453.00    3007.00    18         -      61.3
+  scn_full_tight_P5_R20_seed1       ta2_brkga_wMOV  brkga (378     4838.50     544.00    4294.50     0         -      60.3
+  scn_hub_tight_P5_R10_seed1        ta2_brkga_wMK   brkga (777     7331.00      72.00     131.00     0         -      60.1
+  scn_hub_tight_P5_R10_seed1        ta2_brkga_wDLY  brkga (914    12881.00      77.00     128.00     4         -      60.1
+  scn_hub_tight_P5_R10_seed1        ta2_brkga_wMOV  brkga (377      203.00      72.00     131.00     0         -      60.0
+  scn_none_tight_P5_R10_seed1       ta2_brkga_wMK   brkga (615     5844.50      57.50      94.50     0         -      60.0
+  scn_none_tight_P5_R10_seed1       ta2_brkga_wDLY  brkga (611     9408.50      58.50      93.50     0         -      60.0
+  scn_none_tight_P5_R10_seed1       ta2_brkga_wMOV  brkga (601      152.00      58.50      93.50     0         -      60.0
+  scn_triangle_loose_P5_R10_seed1   ta2_brkga_wMK   brkga (888     7495.00      74.50      33.00    12         -      60.1
+  scn_triangle_loose_P5_R10_seed1   ta2_brkga_wDLY  brkga (964     2032.00      70.00      19.50    12         -      60.1
+  scn_triangle_loose_P5_R10_seed1   ta2_brkga_wMOV  brkga (445      123.00      77.00      46.00     0         -      60.0
+  scn_triangle_medium_P5_R10_seed1  ta2_brkga_wMK   brkga (919     7406.00      73.00      94.00    12         -      60.1
+  scn_triangle_medium_P5_R10_seed1  ta2_brkga_wDLY  brkga (872     6722.50      60.50      66.50    12         -      60.1
+  scn_triangle_medium_P5_R10_seed1  ta2_brkga_wMOV  brkga (439      177.50      79.00      98.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed1   ta2_brkga_wMK   brkga (944     7151.00      70.00     139.00    12         -      60.1
+  scn_triangle_tight_P5_R10_seed1   ta2_brkga_wDLY  brkga (943    11826.00      72.00     117.50     4         -      60.1
+  scn_triangle_tight_P5_R10_seed1   ta2_brkga_wMOV  brkga (429      212.50      77.00     135.50     0         -      60.0
+  scn_triangle_tight_P5_R20_seed1   ta2_brkga_wMK   brkga (243    16546.00     157.00     834.00    12         -      60.3
+  scn_triangle_tight_P5_R20_seed1   ta2_brkga_wDLY  brkga (241    88836.50     174.50     886.50    12         -      60.4
+  scn_triangle_tight_P5_R20_seed1   ta2_brkga_wMOV  brkga (115     1265.50     184.00    1081.50     0         -      60.1
+  scn_triangle_tight_P5_R30_seed1   ta2_brkga_wMK   brkga (99     34089.00     311.00    2981.00     8         -      61.1
+  scn_triangle_tight_P5_R30_seed1   ta2_brkga_wDLY  brkga (93    296032.50     324.50    2957.00     8         -      61.3
+  scn_triangle_tight_P5_R30_seed1   ta2_brkga_wMOV  brkga (436     3429.00     320.50    3108.50     0         -      60.3
+  scn_triangle_tight_P5_R5_seed1    ta2_brkga_wMK   brkga (888     3000.00      30.00       0.00     0         -      60.0
+  scn_triangle_tight_P5_R5_seed1    ta2_brkga_wDLY  brkga (891       30.00      30.00       0.00     0         -      60.0
+  scn_triangle_tight_P5_R5_seed1    ta2_brkga_wMOV  brkga (159       30.00      30.00       0.00     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed1   ta2_brkga_wMK   brkga (939     6260.50      61.50     102.50     8         -      60.1
+  scn_two_rows_tight_P5_R10_seed1   ta2_brkga_wDLY  brkga (922    10319.50      61.50     102.50     8         -      60.1
+  scn_two_rows_tight_P5_R10_seed1   ta2_brkga_wMOV  brkga (448      211.50      76.00     135.50     0         -      60.0
+==================================================================

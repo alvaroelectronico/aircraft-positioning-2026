@@ -25,11 +25,15 @@ def run_brkga(model: Model,
               time_limit_s: float,
               seed: int = 1,
               allow_mode_c: bool = False,
+              instance: dict | None = None,
               pop_size: int | None = None,
               elite_frac: float = 0.15,
               mutant_frac: float = 0.10,
               rho: float = 0.7) -> tuple[float, ScheduleState, int]:
-    """Run BRKGA; return (best objective, best schedule state, generations)."""
+    """Run BRKGA; return (best objective, best schedule state, generations).
+
+    When allow_mode_c and an instance are given, fitness uses the Mode-C build
+    validated by the real checker (see ``decoder.decode``)."""
     rng = random.Random(seed)
     L = model.chromosome_length
     if pop_size is None:
@@ -38,7 +42,7 @@ def run_brkga(model: Model,
     n_mutant = max(1, int(mutant_frac * pop_size))
 
     def fitness(ch: list[float]) -> float:
-        return decode(ch, model, weights, allow_mode_c)[0]
+        return decode(ch, model, weights, allow_mode_c, instance)[0]
 
     # Initial population: one greedy seed + random.
     population: list[list[float]] = [greedy_seed(model, weights)]
@@ -69,5 +73,5 @@ def run_brkga(model: Model,
             best_fit, best_ch = scored[0]
         generations += 1
 
-    obj, state = decode(best_ch, model, weights, allow_mode_c)
+    obj, state = decode(best_ch, model, weights, allow_mode_c, instance)
     return obj, state, generations

@@ -57,9 +57,57 @@ Decoder cost ≈ 0.04 ms (R5) to ≈ 0.42 ms (R20/R30 with 10 arcs) per decode �
 population `10·2|R|` (e.g. 600 at R30) gives ~200+ generations in a 60 s budget,
 so the default population size is viable without trimming.
 
+## Hito 2 (done)
+Greedy/NEH seed (`warm_start.py`) + own deterministic BRKGA loop (`engine.py`),
+`solve()` wired.  BRKGA improves materially over the seed.
+
+## Hito 4 — Mode C (done; Mode B subsumed/deferred)
+
+**Design choices (the experimental divergence point).**
+
+1. *Where Mode C lives.*  First tried a **post-pass** local search (improve the
+   Mode-A incumbent).  Measured finding: it is **inert** on a BRKGA-optimised
+   Mode-A incumbent — the GA already routes delay-critical aircraft to front
+   positions (which never wait), so the residual delay is intrinsic and the
+   blocked rears that remain have slack (no delay to save).  Conclusion: Mode C
+   must be **in the fitness**, so the GA can explore assignments that are
+   Mode-A-suboptimal but Mode-C-good.  The post-pass was removed; Mode C is now
+   woven into the decoder sweep (`decoder.build_schedule`, `allow_mode_c=True`).
+
+2. *Correctness without re-deriving the checker.*  Front interruptions
+   propagate (κ extends a job, shifts the front's later jobs, can affect
+   separation and downstream rears).  Rather than reason about propagation
+   analytically (the error-prone path the guidelines warn about), each Mode-C
+   decode is **validated by the real checker** (`check_solution`, ~1.7× a decode
+   — cheap).  If the build is non-compliant the decode **falls back to the
+   always-feasible Mode-A build**.  Feasibility never depends on hand-rederived
+   logic.
+
+3. *Profile-aware greedy.*  Per rear, Mode C is accepted only when the weighted
+   delay/makespan it saves the rear exceeds the weighted movement cost plus the
+   extra delay the front extension causes; a separation guard forbids
+   interruptions that would collide a front with its successor.
+
+4. *Profile gate (independently derived).*  Mode C trades movements for time.
+   When `weight_movements > max(weight_makespan, weight_delay)` (the wMOV
+   profile) the trade never pays and the Mode-C build's per-rear overhead only
+   steals BRKGA generations — so `solve()` disables Mode C under wMOV and runs
+   pure Mode-A.  (Convergent with prior attempts arriving at "profile-gated
+   Mode-C" — that convergence is itself replication data; the derivation here is
+   from this attempt's own measurements.)
+
+5. *Checker-skip fast path.*  When a Mode-C build applies no interruption
+   (movements = 0) it is Mode-A-equivalent and already feasible, so the checker
+   call is skipped — keeps non-Mode-C decodes fast.
+
+**Measured (10 s budget, seed 1, A vs A+C):** wDLY +5–26 %, wMK +1–16 %, wMOV
+≈ 0 % (gated to Mode-A).  Deliberate Mode-B gap insertion was not needed as a
+separate move — incidental Mode-B windows are already handled by the classifier,
+and Mode C is the dominant lever; explicit gap insertion remains possible future
+work.
+
 ## Open / next
-- Hito 2: greedy/NEH seed (`warm_start.py`) + own BRKGA loop (`engine.py`),
-  wire `solve()`.
-- Hito 3: deliberate Mode-B gaps when they reduce delay/makespan.
-- Hito 4: Mode-C policy C1 (interruptible, slack `≥ δ`, not last job,
-  preserves Mode-B μ, local re-validation).
+- Full multi-seed battery (360 runs) to replace seed-1 N=1 numbers.
+- Optional: warm-start from cached MILP/topology; deliberate Mode-B gaps;
+  incremental (non-checker) Mode-C feasibility to lift the generation count on
+  R20/R30.
