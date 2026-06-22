@@ -130,6 +130,28 @@ For each weight profile, look at three things in this order:
   noise, not a real change.  When in doubt, run 3 seeds and look at
   the spread.
 
+## After running a battery: refresh the method's living `.md`
+
+Every battery produces a `.log` file under `outputs/logs/`.  The
+method's living spec `.md` (which lives alongside the solver `.py`
+and shares its basename — e.g. `methods/<X>/jobs/<name>.py` ↔
+`methods/<X>/jobs/<name>.md`) must cite that log filename in two
+places: its Status callout and Part II's Experimental setup table.
+
+Don't update by hand — invoke the project skill:
+
+```
+/sync-method-doc methods/<your_method>  <brief desc>  log: outputs/logs/<file>.log
+```
+
+The `method-doc` subagent refreshes Part IV from the current code,
+parses the log and rewrites Part II's gap and Δ tables, updates both
+the Status callout and Part II's Log row to cite the new log, and
+appends a Change log row with the commit hash and your description.
+
+This is part of the workflow — every battery is followed by a
+`/sync-method-doc` call.  Skipping it leaves the `.md` stale.
+
 ## Where to update this file
 
 Any change to the battery composition, the cached-MILP rule, or the

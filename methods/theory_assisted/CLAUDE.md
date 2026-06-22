@@ -216,26 +216,50 @@ After a milestone battery, record the result via:
 so Part II of the living `.md` snapshots the new numbers and the
 Change log gets a row.
 
-## Documenting your work
+## Documenting your work — non-optional
 
-When you commit a behaviour-affecting change to the solver, or
-produce a new battery, invoke the project skill:
+The living spec `.md` for this method **must always be in sync** with
+the code and reference the most recent battery log.  Two hard rules:
 
-```
-/sync-method-doc methods/theory_assisted  <brief description> [log: <path>]
-```
+1. **The `.md` filename equals the solver `.py` filename.**  If your
+   solver ends up at `methods/theory_assisted/jobs/<name>.py`, its
+   doc is at `methods/theory_assisted/jobs/<name>.md`.  Same basename,
+   same directory.  If you rename the `.py`, rename the `.md` in the
+   same commit.
+2. **The latest battery log filename appears in the `.md`** in two
+   places: the **Status** callout near the top of the file, and the
+   **Log** row of Part II's Experimental setup table.  When you
+   refresh Part II, you update BOTH; when you read the doc, the log
+   reference tells you which battery the current numbers came from.
 
-It forks the `method-doc` subagent, which keeps the living `.md`
-spec at `methods/theory_assisted/jobs/<solver_basename>.md` in
-sync with the code using a fixed four-part structure (Method /
-Results / Roadmap / Implementation) plus a Change log.  The
-agent refreshes Part IV (code map) always; Part II only when a
-battery log path is given via the hint; Parts I and III it leaves
-alone (those carry your design intent — edit them in normal
-sessions).
+The skill that maintains this is `/sync-method-doc`.  **Invoke it:**
 
-Do NOT invoke `/sync-method-doc` after cosmetic changes — the
-Change log becomes noise.  Invoke it at real milestones.
+- **After every commit that changes the solver's behaviour**
+  (algorithmic change, new neighbourhood, new config knob, …):
+  ```
+  /sync-method-doc methods/theory_assisted  <brief description>
+  ```
+  Refreshes Part IV from the new code, appends a Change log row,
+  leaves Part II untouched (the numbers it cites are still the most
+  recent measured).
+
+- **After every battery run**, with the log path in the hint:
+  ```
+  /sync-method-doc methods/theory_assisted  <brief description>  log: outputs/logs/<file>.log
+  ```
+  Refreshes Part II's gap tables + Δ tables, updates the Status
+  callout AND Part II's Log row to cite the new log, appends a
+  Change log row.
+
+If you only want a refresh without a change log entry (e.g. you just
+re-ran the same code on a longer battery), invoke with `log: <path>`
+only (no free-form description); the agent will refresh Part II
+without appending a Change log row.
+
+Do not skip the skill after cosmetic changes (typos, comments) —
+those don't need a Change log row, but you also don't need to invoke
+the skill at all for them.  The trigger is "did behaviour change OR
+did I run a battery".
 
 ## Exception protocol
 
