@@ -7,16 +7,14 @@ warm-start seed.  Built in full isolation from `methods/brkga_v02/` to measure
 how much two Claude-assisted attempts at the same algorithm family diverge in
 implementation choices and final quality.
 
-> **Status (working tree on top of `7c0c957`, not yet committed; latest battery
-> [`seed1$_202605_02_main_methods_20260622_075606.log`](../../../outputs/logs/seed1$_202605_02_main_methods_20260622_075606.log)).**
-> The decoder is at **v0: Mode-A only** (contiguous jobs, κ=0).  All 36 seed-1
-> runs are feasible with 0 movements under all three profiles.  Against the
-> cached job-level MILP the solver matches on the no-arc control (`scn_none`,
-> +0%) and the tiny R5 case (+0%), edges ahead on R30 (where the MILP is far
-> from converged at 60 s: +2–10%), and is worse on every other blocking-heavy
-> type — **the expected v0 outcome**: Mode-A-only waits for full front vacancy,
-> so makespan/delay inflate.  Mode-B gaps (Hito 3) and a restricted Mode-C
-> (Hito 4) are the planned levers to close that gap; neither is implemented yet.
+> **Status (code `5b868ff`, latest battery
+> [`seed1$_202605_02_main_methods_20260622_124508.log`](../../../outputs/logs/seed1$_202605_02_main_methods_20260622_124508.log)).**
+> The decoder is now at **v1: Mode-A + Mode-C (in-sweep, profile-gated)**.
+> Mode-C is live for wMK and wDLY profiles (where the time saving outweighs
+> the 2-movement cost); wMOV keeps the Mode-A-only path unchanged.  Part II
+> now reflects the first Mode-C battery (seed-1, 36 runs).  Mode-C reduces
+> the gap on most R10 blocking types but does not close it; the full multi-seed
+> battery (Hito 6) is the next measurement step.
 
 ---
 
@@ -73,17 +71,16 @@ Both decisions are jointly evolved; crossover respects the block boundary.
    start: `lower = max(E_r, last_finish + ε)`; then the window algebra finds the
    smallest `start ≥ lower` such that both the aircraft's entry (`start`) and
    exit (`start + T_r`) are Mode-A against every front aircraft of that position.
-3. Jobs are scheduled **contiguously** (no pauses, κ=0).  Because there are no
-   inter-job gaps, the only feasible access mode is Mode A — this is the v0
-   decoder.  `build_schedule` accepts an `allow_mode_c` flag for forward
-   compatibility, but it currently has **no effect**: Mode C is not implemented
-   yet (deferred to Hito 4).
+3. Jobs are scheduled **contiguously** (no voluntary pauses).  With
+   `allow_mode_c=False` (the Mode-A path) every rear waits for full front
+   vacancy and κ=0 throughout.  With `allow_mode_c=True` the sweep additionally
+   lets a rear start earlier into an interruptible front job's interior
+   (Mode C); see §3.6.
 4. `compute_objective` evaluates the weighted sum; any infeasible access adds a
-   penalty $10^9$ per violation (the search should never fix on one — and in v0
-   it never does, by construction).
+   penalty $10^9$ per violation (the search should never fix on one).
 5. `count_movements` mirrors `checker._classify_access` line-for-line (same
    $\eta$ margins, same `TOL = 1e-4`) so the reported movement count equals what
-   the checker infers at validation time.  In v0 it is always 0.
+   the checker infers at validation time (0 on the Mode-A path).
 
 ### 3.3 Access-mode windows (`brkga/access.py`, `brkga/windows.py`)
 
@@ -93,7 +90,9 @@ $[0, s_{\text{front}}-\eta] \cup [f_{\text{front}}+\eta, \infty)$.  The decoder
 intersects this with its $-T_r$ shift (the exit-instant constraint) and takes
 `first_point_at_or_after(lower)`.  All window operations live in `windows.py`
 (pure interval algebra, no problem semantics); the semantics — including
-`classify_access`, the faithful checker mirror — live in `access.py`.
+`classify_access`, the faithful checker mirror — live in `access.py`.  The
+Mode-C path adds `decoder._feasible_bc_windows`, which builds the *Mode-A
+regions plus interruptible-job interiors* a rear may use (see §3.6).
 
 ### 3.4 Warm-start seed (`brkga/warm_start.py`)
 
@@ -123,41 +122,69 @@ chromosome seen (including the greedy seed at generation 0) is always available
 as a fallback, so `solve` returns a feasible solution even for a tiny budget.
 The loop is deterministic given `seed`.
 
+### 3.6 Mode C in the fitness (`decoder.build_schedule`, `decode`)
+
+A post-pass Mode-C local search on a Mode-A-optimised incumbent was measured to
+be **inert** (the GA already routes delay to non-waiting front positions), so
+Mode C is woven into the **decoder sweep** instead, making it part of the
+fitness the GA optimises.  Per rear (profile-aware greedy): compute the earliest
+start in `_feasible_bc_windows` (Mode-A regions ∪ interruptible-job interiors);
+take it over the Mode-A start only when the weighted delay/makespan it saves the
+rear exceeds the weighted movement cost (2 per access) **plus** the extra delay
+the front extension causes; a separation guard blocks interruptions that would
+collide a front with its successor.  Accepted interruptions extend the front job
+by δ (κ+1) and shift its later jobs.
+
+Because front extensions propagate, each Mode-C build is **validated by the real
+checker** in `decode`; if it is non-compliant the decode **falls back to the
+always-feasible Mode-A build**.  A fast path skips the checker when no
+interruption was applied (movements = 0 ⇒ Mode-A-equivalent).  `solve` **gates**
+Mode C off when `weight_movements > max(weight_makespan, weight_delay)` (wMOV),
+where the trade never pays and the build overhead would only steal generations.
+
 ## 4. The complete algorithm
 
 ```
 TheoryAssistedJobSolver.solve(instance_data):
   model   ← build_model(instance_data)         # parse + topo-sort positions
   weights ← {makespan: wMK, delay: wDLY, movements: wMOV}   # CONFIGURED weights
+  gate    ← wMOV <= max(wMK, wDLY)             # Mode-C profile gate
+  allow_mode_c ← config.get("allow_mode_c", gate)
   obj, state, generations ← run_brkga(model, weights, time_limit, seed,
-                                       allow_mode_c=False)   # v0: Mode-A only
+                                       allow_mode_c, instance if allow_mode_c else None)
   return to_solution_dict(state, model, weights,
-                          status=f"brkga ({generations} generations)")
+                          status=f"brkga ({generations} generations, mode {A|A+C})")
 
-run_brkga(model, weights, time_limit, seed, allow_mode_c=False):
+run_brkga(model, weights, time_limit, seed, allow_mode_c, instance):
   rng        ← Random(seed)
   population ← [greedy_seed(model, weights)] + random chromosomes
-  scored     ← sort by fitness(ch) = decode(ch, model, weights)[0]
+  scored     ← sort by fitness(ch) = decode(ch, model, weights, allow_mode_c, instance)[0]
   while elapsed < time_limit:
     elite, non_elite ← top 15%, bottom 85%
     next_pop ← elite + mutants + biased-crossover offspring
     scored   ← re-evaluate and sort
     update best if improved
     generations += 1
-  return best_obj, decode(best_ch)[1], generations
+  return best_obj, decode(best_ch, …)[1], generations
+
+decode(ch, model, weights, allow_mode_c, instance):
+  build Mode-A (fast) if not allow_mode_c → return (obj, state)
+  build Mode-A+C (in-sweep); if no interruption → return (obj, state)   # fast path
+  validate with real checker; if compliant → movements from checker, return
+  else → rebuild Mode-A (guaranteed feasible), return
 ```
 
 ## Behaviour observed
 
-v0 (Mode-A only) decodes produce **0 movements** but elevated makespan/delay:
-the solver always waits for full front-aircraft vacancy (with $\eta$ margin) at
-both the entry and exit instant.  This is feasible everywhere and matches the
-MILP on the no-arc and trivially-tight cases, but on blocking-heavy instances
-the MILP wins by exploiting Mode-B/C (manoeuvres that let aircraft access slots
-without waiting for vacancy) — capability this solver does not have yet.  Decode
-cost measured in the smoke test is ≈ 0.04 ms (R5) to ≈ 0.42 ms (R20/R30 with 10
-arcs), so the default population (`10·2|R|`, e.g. 600 at R30) still runs 100–800
-generations within the 60 s budget.
+The Mode-A path produces **0 movements** but elevated makespan/delay (it waits
+for full front vacancy at both access instants).  Enabling Mode C in the fitness
+(wMK/wDLY) lets rears start inside interruptible front jobs, trading +2 movements
+per access for earlier starts; the seed-1 battery shows this roughly halves the
+gap to the MILP on blocking-heavy types (and widens the R30 lead) while staying
+100 % checker-compliant.  Under wMOV the gate keeps the pure Mode-A path.  Decode
+cost is ≈ 0.04 ms (R5) to ≈ 0.42 ms (R20/R30) for Mode-A; a Mode-C decode that
+fires adds one checker call (~1.7×), so the generation count drops on large R
+when Mode C is heavily used (e.g. ~13–30 gens at R20/R30 vs hundreds at R10).
 
 ---
 
@@ -172,46 +199,46 @@ generations within the 60 s budget.
 | Weight profiles   | wMK (100/1/1) · wDLY (1/100/1) · wMOV (1/1/100) |
 | Budget            | 60 s wall-clock per run |
 | Metric            | relative gap = (MILP_obj − heuristic_obj) / MILP_obj; positive = heuristic better |
-| Log               | [`seed1$_202605_02_main_methods_20260622_075606.log`](../../../outputs/logs/seed1$_202605_02_main_methods_20260622_075606.log) |
+| Log               | [`seed1$_202605_02_main_methods_20260622_124508.log`](../../../outputs/logs/seed1$_202605_02_main_methods_20260622_124508.log) |
 
 ## Relative objective gap (seed 1 only — N=1 per cell)
 
 Gap = (MILP_obj − heuristic_obj) / MILP_obj.  Positive = heuristic better (lower obj).
-All runs produced 0 movements (Mode-A-only v0 decoder).
+wMK and wDLY use the Mode-A + Mode-C (v1) decoder; wMOV uses Mode-A-only.
 
 ### wMK (100/1/1 — makespan-priority)
 
-| Instance type              | N | Mean    | Min     | Max     |
-|----------------------------|---|---------|---------|---------|
-| scn_chain_tight_P5_R10     | 1 | −51.20% | −51.20% | −51.20% |
-| scn_full_tight_P5_R10      | 1 | −217.36%| −217.36%| −217.36%|
-| scn_full_tight_P5_R20      | 1 | −93.53% | −93.53% | −93.53% |
-| scn_hub_tight_P5_R10       | 1 | −20.47% | −20.47% | −20.47% |
-| scn_none_tight_P5_R10      | 1 | +0.00%  | +0.00%  | +0.00%  |
-| scn_triangle_loose_P5_R10  | 1 | −29.88% | −29.88% | −29.88% |
-| scn_triangle_medium_P5_R10 | 1 | −29.51% | −29.51% | −29.51% |
-| scn_triangle_tight_P5_R10  | 1 | −35.23% | −35.23% | −35.23% |
-| scn_triangle_tight_P5_R20  | 1 | −14.74% | −14.74% | −14.74% |
-| scn_triangle_tight_P5_R30  | 1 | +2.27%  | +2.27%  | +2.27%  |
-| scn_triangle_tight_P5_R5   | 1 | +0.00%  | +0.00%  | +0.00%  |
-| scn_two_rows_tight_P5_R10  | 1 | −31.76% | −31.76% | −31.76% |
+| Instance type              | N | Mean     | Min      | Max      |
+|----------------------------|---|----------|----------|----------|
+| scn_chain_tight_P5_R10     | 1 | −25.40%  | −25.40%  | −25.40%  |
+| scn_full_tight_P5_R10      | 1 | −116.61% | −116.61% | −116.61% |
+| scn_full_tight_P5_R20      | 1 | −64.78%  | −64.78%  | −64.78%  |
+| scn_hub_tight_P5_R10       | 1 | −20.47%  | −20.47%  | −20.47%  |
+| scn_none_tight_P5_R10      | 1 | +0.00%   | +0.00%   | +0.00%   |
+| scn_triangle_loose_P5_R10  | 1 | −25.67%  | −25.67%  | −25.67%  |
+| scn_triangle_medium_P5_R10 | 1 | −23.05%  | −23.05%  | −23.05%  |
+| scn_triangle_tight_P5_R10  | 1 | −18.01%  | −18.01%  | −18.01%  |
+| scn_triangle_tight_P5_R20  | 1 | −6.70%   | −6.70%   | −6.70%   |
+| scn_triangle_tight_P5_R30  | 1 | +9.04%   | +9.04%   | +9.04%   |
+| scn_triangle_tight_P5_R5   | 1 | +0.00%   | +0.00%   | +0.00%   |
+| scn_two_rows_tight_P5_R10  | 1 | −5.06%   | −5.06%   | −5.06%   |
 
 ### wDLY (1/100/1 — delay-priority)
 
 | Instance type              | N | Mean     | Min      | Max      |
 |----------------------------|---|----------|----------|----------|
-| scn_chain_tight_P5_R10     | 1 | −72.12%  | −72.12%  | −72.12%  |
-| scn_full_tight_P5_R10      | 1 | −279.47% | −279.47% | −279.47% |
-| scn_full_tight_P5_R20      | 1 | −56.39%  | −56.39%  | −56.39%  |
-| scn_hub_tight_P5_R10       | 1 | −20.63%  | −20.63%  | −20.63%  |
+| scn_chain_tight_P5_R10     | 1 | −38.84%  | −38.84%  | −38.84%  |
+| scn_full_tight_P5_R10      | 1 | −125.51% | −125.51% | −125.51% |
+| scn_full_tight_P5_R20      | 1 | −21.42%  | −21.42%  | −21.42%  |
+| scn_hub_tight_P5_R10       | 1 | −17.96%  | −17.96%  | −17.96%  |
 | scn_none_tight_P5_R10      | 1 | +0.00%   | +0.00%   | +0.00%   |
-| scn_triangle_loose_P5_R10  | 1 | −818.77% | −818.77% | −818.77% |
-| scn_triangle_medium_P5_R10 | 1 | −50.74%  | −50.74%  | −50.74%  |
-| scn_triangle_tight_P5_R10  | 1 | −33.33%  | −33.33%  | −33.33%  |
-| scn_triangle_tight_P5_R20  | 1 | −27.89%  | −27.89%  | −27.89%  |
-| scn_triangle_tight_P5_R30  | 1 | +9.84%   | +9.84%   | +9.84%   |
+| scn_triangle_loose_P5_R10  | 1 | −330.97% | −330.97% | −330.97% |
+| scn_triangle_medium_P5_R10 | 1 | −6.37%   | −6.37%   | −6.37%   |
+| scn_triangle_tight_P5_R10  | 1 | −15.71%  | −15.71%  | −15.71%  |
+| scn_triangle_tight_P5_R20  | 1 | −15.14%  | −15.14%  | −15.14%  |
+| scn_triangle_tight_P5_R30  | 1 | +21.29%  | +21.29%  | +21.29%  |
 | scn_triangle_tight_P5_R5   | 1 | +0.00%   | +0.00%   | +0.00%   |
-| scn_two_rows_tight_P5_R10  | 1 | −34.41%  | −34.41%  | −34.41%  |
+| scn_two_rows_tight_P5_R10  | 1 | −4.06%   | −4.06%   | −4.06%   |
 
 ### wMOV (1/1/100 — movement-priority)
 
@@ -234,76 +261,86 @@ All runs produced 0 movements (Mode-A-only v0 decoder).
 
 ### wMK
 
-| Instance type              | N | Δmakespan | Δdelay  | Δmov  |
-|----------------------------|---|-----------|---------|-------|
-| scn_chain_tight_P5_R10     | 1 | +30.50    | +150.00 | −14.00|
-| scn_full_tight_P5_R10      | 1 | +144.00   | +499.50 | −40.00|
-| scn_full_tight_P5_R20      | 1 | +242.00   | +1843.00| +0.00 |
-| scn_hub_tight_P5_R10       | 1 | +12.50    | +15.50  | −20.00|
-| scn_none_tight_P5_R10      | 1 | +0.00     | +0.00   | +0.00 |
-| scn_triangle_loose_P5_R10  | 1 | +17.50    | +40.00  | −8.00 |
-| scn_triangle_medium_P5_R10 | 1 | +17.50    | +34.00  | −8.00 |
-| scn_triangle_tight_P5_R10  | 1 | +20.50    | +93.00  | −8.00 |
-| scn_triangle_tight_P5_R20  | 1 | +21.50    | +138.50 | −2.00 |
-| scn_triangle_tight_P5_R30  | 1 | −6.50     | −202.50 | +0.00 |
-| scn_triangle_tight_P5_R5   | 1 | +0.00     | +0.00   | +0.00 |
-| scn_two_rows_tight_P5_R10  | 1 | +18.50    | +50.50  | −8.00 |
+| Instance type              | N | Δmakespan | Δdelay   | Δmov   |
+|----------------------------|---|-----------|----------|--------|
+| scn_chain_tight_P5_R10     | 1 | +15.00    | +80.50   | +0.00  |
+| scn_full_tight_P5_R10      | 1 | +77.50    | +244.00  | −22.00 |
+| scn_full_tight_P5_R20      | 1 | +172.00   | +818.50  | +18.00 |
+| scn_hub_tight_P5_R10       | 1 | +12.50    | +15.50   | −20.00 |
+| scn_none_tight_P5_R10      | 1 | +0.00     | +0.00    | +0.00  |
+| scn_triangle_loose_P5_R10  | 1 | +15.00    | +27.00   | +4.00  |
+| scn_triangle_medium_P5_R10 | 1 | +13.50    | +33.50   | +4.00  |
+| scn_triangle_tight_P5_R10  | 1 | +10.50    | +37.50   | +4.00  |
+| scn_triangle_tight_P5_R20  | 1 | +10.50    | −21.50   | +10.00 |
+| scn_triangle_tight_P5_R30  | 1 | −27.00    | −696.50  | +8.00  |
+| scn_triangle_tight_P5_R5   | 1 | +0.00     | +0.00    | +0.00  |
+| scn_two_rows_tight_P5_R10  | 1 | +3.00     | +1.50    | +0.00  |
 
 ### wDLY
 
-| Instance type              | N | Δmakespan | Δdelay  | Δmov  |
-|----------------------------|---|-----------|---------|-------|
-| scn_chain_tight_P5_R10     | 1 | +23.00    | +90.00  | −14.00|
-| scn_full_tight_P5_R10      | 1 | +139.50   | +476.00 | −8.00 |
-| scn_full_tight_P5_R20      | 1 | +172.00   | +1397.00| −2.00 |
-| scn_hub_tight_P5_R10       | 1 | +8.50     | +22.50  | −6.00 |
-| scn_none_tight_P5_R10      | 1 | +0.00     | +0.00   | +0.00 |
-| scn_triangle_loose_P5_R10  | 1 | +20.50    | +38.50  | −10.00|
-| scn_triangle_medium_P5_R10 | 1 | +17.00    | +32.00  | −10.00|
-| scn_triangle_tight_P5_R10  | 1 | +16.50    | +34.00  | −10.00|
-| scn_triangle_tight_P5_R20  | 1 | +41.00    | +215.00 | −22.00|
-| scn_triangle_tight_P5_R30  | 1 | −54.00    | −369.50 | +0.00 |
-| scn_triangle_tight_P5_R5   | 1 | +0.00     | +0.00   | +0.00 |
-| scn_two_rows_tight_P5_R10  | 1 | +16.50    | +34.00  | −4.00 |
+| Instance type              | N | Δmakespan | Δdelay   | Δmov   |
+|----------------------------|---|-----------|----------|--------|
+| scn_chain_tight_P5_R10     | 1 | +8.00     | +48.50   | −6.00  |
+| scn_full_tight_P5_R10      | 1 | +77.50    | +213.50  | +8.00  |
+| scn_full_tight_P5_R20      | 1 | +114.50   | +530.00  | +16.00 |
+| scn_hub_tight_P5_R10       | 1 | +13.50    | +19.50   | −2.00  |
+| scn_none_tight_P5_R10      | 1 | +0.00     | +0.00    | +0.00  |
+| scn_triangle_loose_P5_R10  | 1 | +8.50     | +15.50   | +2.00  |
+| scn_triangle_medium_P5_R10 | 1 | +0.50     | +4.00    | +2.00  |
+| scn_triangle_tight_P5_R10  | 1 | +11.50    | +16.00   | −6.00  |
+| scn_triangle_tight_P5_R20  | 1 | +38.50    | +116.50  | −10.00 |
+| scn_triangle_tight_P5_R30  | 1 | −69.50    | −800.00  | +8.00  |
+| scn_triangle_tight_P5_R5   | 1 | +0.00     | +0.00    | +0.00  |
+| scn_two_rows_tight_P5_R10  | 1 | −1.00     | +4.00    | +4.00  |
 
 ### wMOV
 
-| Instance type              | N | Δmakespan | Δdelay  | Δmov  |
-|----------------------------|---|-----------|---------|-------|
-| scn_chain_tight_P5_R10     | 1 | +24.00    | +71.50  | +0.00 |
-| scn_full_tight_P5_R10      | 1 | +139.00   | +456.50 | +0.00 |
-| scn_full_tight_P5_R20      | 1 | +342.50   | +2828.50| +0.00 |
-| scn_hub_tight_P5_R10       | 1 | +11.50    | +17.50  | +0.00 |
-| scn_none_tight_P5_R10      | 1 | +0.00     | +0.00   | +0.00 |
-| scn_triangle_loose_P5_R10  | 1 | +15.50    | +37.50  | +0.00 |
-| scn_triangle_medium_P5_R10 | 1 | +16.50    | +36.00  | +0.00 |
-| scn_triangle_tight_P5_R10  | 1 | +14.50    | +32.00  | +0.00 |
-| scn_triangle_tight_P5_R20  | 1 | +38.00    | +318.50 | +0.00 |
-| scn_triangle_tight_P5_R30  | 1 | −54.50    | −28.00  | +0.00 |
-| scn_triangle_tight_P5_R5   | 1 | +0.00     | +0.00   | +0.00 |
-| scn_two_rows_tight_P5_R10  | 1 | +14.50    | +35.00  | +0.00 |
+| Instance type              | N | Δmakespan | Δdelay   | Δmov   |
+|----------------------------|---|-----------|----------|--------|
+| scn_chain_tight_P5_R10     | 1 | +24.00    | +71.50   | +0.00  |
+| scn_full_tight_P5_R10      | 1 | +139.00   | +456.50  | +0.00  |
+| scn_full_tight_P5_R20      | 1 | +342.50   | +2828.50 | +0.00  |
+| scn_hub_tight_P5_R10       | 1 | +11.50    | +17.50   | +0.00  |
+| scn_none_tight_P5_R10      | 1 | +0.00     | +0.00    | +0.00  |
+| scn_triangle_loose_P5_R10  | 1 | +15.50    | +37.50   | +0.00  |
+| scn_triangle_medium_P5_R10 | 1 | +16.50    | +36.00   | +0.00  |
+| scn_triangle_tight_P5_R10  | 1 | +14.50    | +32.00   | +0.00  |
+| scn_triangle_tight_P5_R20  | 1 | +38.00    | +318.50  | +0.00  |
+| scn_triangle_tight_P5_R30  | 1 | −54.50    | −28.00   | +0.00  |
+| scn_triangle_tight_P5_R5   | 1 | +0.00     | +0.00    | +0.00  |
+| scn_two_rows_tight_P5_R10  | 1 | +14.50    | +35.00   | +0.00  |
 
 ## Performance summary
 
-The v0 decoder is feasible on all 36 runs and matches the MILP exactly on
-`scn_none` (no blocking arcs — nothing to manoeuvre around) and on the tiny
-`scn_triangle_tight_P5_R5` (+0%).  It even edges ahead of the MILP on the
-largest instances `scn_triangle_tight_P5_R30` under every profile (+2.3% / +9.8%
-/ +2.4%) and is competitive on R20 — there the 60 s MILP is far from converged,
-so a fast feasible heuristic wins.
+The v1 decoder (Mode-A + Mode-C, profile-gated) is feasible on all 36 runs.
+It matches the MILP exactly on `scn_none` (no blocking arcs) and on
+`scn_triangle_tight_P5_R5`, and edges ahead on the largest instances
+`scn_triangle_tight_P5_R30` (+9.0% / +21.3% / +2.4%).
 
-On every other (blocking-heavy, R10) type the MILP is better, by −15% to −280%.
-The Δ tables show why: the heuristic's **makespan and delay are uniformly higher
-than the MILP** (positive Δ), because Mode-A-only forces a rear aircraft to wait
-for its front positions to be fully vacant.  The MILP instead uses Mode-B/C
-manoeuvres to access slots earlier — note its movement count is higher (our Δmov
-is mostly negative or zero), but the time it saves outweighs the movement cost
-under wMK/wDLY.  `scn_triangle_loose_P5_R10` wDLY (−819%) is small-denominator
-inflation (MILP delay ≈ 0).  Under wMOV our movements are uniformly 0, but the
-makespan/delay deficit still dominates the objective.
+**wMK:** Mode-C activates and cuts the makespan/delay deficits roughly in half
+versus v0 on most R10 types.  Gaps range from −5% to −117%; `scn_full_tight`
+types remain wide because their dense blocking leaves little room for profitable
+interruptions.  The Δmov column now shows positive values on some triangle
+types (+4 movements per run) — Mode-C did trigger and reduced makespan, but the
+MILP still wins on the time components.  On `scn_full_tight_P5_R20` wMK,
+Δmov = +18 (heuristic has more movements than MILP), an unusual case where the
+in-sweep Mode-C triggered many times but did not fully recover the time deficit.
 
-This is the expected v0 result: the lever to close the gap is access modes
-beyond A, which the roadmap addresses.
+**wDLY:** Mode-C is most effective here: the gap on `scn_triangle_medium_P5_R10`
+closes to −6.4% (was −51%) and `scn_two_rows` narrows to −4.1% (was −34%).
+`scn_triangle_loose_P5_R10` retains a large negative figure (−331%) due to
+small-denominator inflation (MILP delay ≈ 0); read the Δ table (Δdelay = +15.5)
+for the true magnitude.
+
+**wMOV:** Mode-C is gated off for wMOV (weight_movements=100 dominates);
+the numbers are identical to v0 — movements remain 0, makespan/delay deficits
+persist unchanged.
+
+The gap reduction from Mode-C is real but partial: on `scn_full_tight` the deep
+blocking graph means many rear aircraft are constrained by multiple front
+positions simultaneously, limiting how many Mode-C interruptions are beneficial
+and leaving large makespan/delay residuals.  Hito 6 (full multi-seed battery)
+is needed to confirm these N=1 figures have low variance.
 
 ## Caveats
 
@@ -314,8 +351,12 @@ beyond A, which the roadmap addresses.
    are likely unconverged (MIPGap > 0), so "MILP better" gaps are conservative
    and "heuristic better" gaps at R20/R30 reflect the MILP's 60 s limit, not
    proven superiority.
-3. The `scn_triangle_loose_P5_R10` wDLY gap (−819%) is small-denominator
-   inflation; read the per-component Δ tables alongside the relative gaps.
+3. The `scn_triangle_loose_P5_R10` wDLY gap (−331%) is small-denominator
+   inflation (MILP delay ≈ 0); read the per-component Δ tables alongside the
+   relative gaps for this type.
+4. This battery was run from `e282385+dirty` (Mode-C enabled on HEAD `5b868ff`);
+   the `+dirty` flag means the working tree had uncommitted edits at run time.
+   The Mode-C logic in `decoder.py` was already finalised at `5b868ff`.
 
 ---
 
@@ -325,29 +366,34 @@ beyond A, which the roadmap addresses.
 
 The decoder is correct and fast (100% checker-compliant on 120 instances ×
 random chromosomes, 0 movement mismatches), and the BRKGA loop improves
-materially over the greedy seed.  The quality deficit on blocking-heavy
-instances is entirely attributable to the **v0 Mode-A-only restriction**: the
-solver cannot manoeuvre, so it pays in makespan/delay what the MILP pays in
-(cheap) movements.  The roadmap follows the decoder-first plan: add access modes
-in order of risk, validating against the checker at each step.
+materially over the greedy seed.  Mode C in the fitness (§3.6) roughly halves
+the gap to the MILP on blocking-heavy types.  The residual deficit has two
+sources: (a) the MILP's joint timing/assignment optimisation that the greedy
+contiguous decoder does not match, and (b) fewer BRKGA generations at R20/R30
+when Mode C fires often (the per-decode checker call).  The roadmap addresses
+both.
 
-## Hito 3 — Deliberate Mode-B gaps (PLANNED, highest priority)
+## Hito 4 — Mode C in the fitness (DONE, commit `5b868ff`)
 
-Insert inter-job gaps of size $\ge \mu \cdot(\text{cumulative uses})$ in front
-aircraft so a rear access can use a Mode-B window instead of waiting for full
-vacancy.  Mode-B adds 2 movements per access but **does not change job
-durations or propagate delay**, so it is cheaper and safer than Mode-C.
-Expected benefit: reduces makespan/delay on R10 blocking types where the current
-deficit is largest.
+Mode C is woven into the decoder sweep (§3.6): per-rear profile-aware greedy,
+real-checker validation with Mode-A fallback, a separation guard, and a profile
+gate (off under wMOV).  Measured (seed-1): wMK gaps e.g. full_R10 −217→−117 %,
+chain_R10 −51→−25 %; wDLY full_R20 −56→−21 %, R30 +9.8→+21.3 %; wMOV unchanged.
 
-## Hito 4 — Restricted Mode-C, Policy C1 (PLANNED)
+## Hito 3 — Deliberate Mode-B gaps (NOT DONE; lower priority)
 
-Allow interrupting an interruptible job $j$ only when (1) $I_j=1$; (2) the
-extension fits before the next job without moving it ($f_j + \delta \le
-s_{j+1}$); (3) $j$ is not the aircraft's last job (avoids re-validating
-downstream finish/separation); (4) any Mode-B access already served by the gap
-after $j$ still satisfies $\mu$; (5) affected accesses are locally re-validated
-after incrementing $\kappa_j$.  Policy C2 (suffix propagation) is out of scope.
+Inserting inter-job gaps to open Mode-B windows was **not implemented** as a
+separate move: Mode C proved the dominant lever and incidental Mode-B windows
+are already handled by the classifier.  Mode-B gap insertion (gap $\ge \mu\cdot$
+cumulative uses; no job-duration change, no delay propagation) remains a
+possible future move where Mode C is gated off (wMOV).
+
+## Hito 4b — Incremental (checker-free) Mode-C feasibility (PLANNED)
+
+The per-decode `check_solution` call caps generations at R20/R30.  A complete
+*analytic* feasibility evaluator (validated to agree with the checker over a
+large sample) would remove that call from the hot loop and lift the generation
+count where Mode C fires often.
 
 ## Hito 5 — Warm-start from cached MILP/topology (OPTIONAL, later)
 
@@ -369,10 +415,10 @@ N=1 cells with 10-seed means/variance before any quality claims.
 
 ## Recommended implementation order
 
-1. Hito 3 — deliberate Mode-B gaps.
-2. Hito 4 — restricted Mode-C (Policy C1).
-3. Hito 6 — full multi-seed battery to re-baseline.
-4. Hito 5 — MILP/topology warm-start seeds (if a gap remains).
+1. Hito 6 — full multi-seed battery to re-baseline the seed-1 numbers.
+2. Hito 4b — checker-free Mode-C feasibility to lift R20/R30 generations.
+3. Hito 5 — MILP/topology warm-start seeds (if a gap remains).
+4. Hito 3 — deliberate Mode-B gaps (lowest priority; Mode C dominates).
 
 ---
 
@@ -388,8 +434,8 @@ Source: [`theory_assisted_job.py`](theory_assisted_job.py) — class
 | member | role |
 | --- | --- |
 | `name` | `"theory_assisted_job"` |
-| `configure_solver(**kw)` | stores all kwargs in `self._config`; honours `time_limit_s`, `weight_makespan`, `weight_delay`, `weight_movements`, `seed` |
-| `solve(instance_data)` | builds the model, runs BRKGA with `allow_mode_c=False` (hardcoded), returns the solution dict |
+| `configure_solver(**kw)` | stores all kwargs in `self._config`; honours `time_limit_s`, `weight_makespan`, `weight_delay`, `weight_movements`, `seed`, `allow_mode_c` |
+| `solve(instance_data)` | builds the model, determines `allow_mode_c` via the profile gate, runs BRKGA, returns the solution dict |
 | `get_config()` | returns a shallow copy of `self._config` |
 
 ### Config knobs
@@ -401,11 +447,16 @@ Source: [`theory_assisted_job.py`](theory_assisted_job.py) — class
 | `weight_delay` | `1.0` | objective weight for total delay (battery passes 100 or 1) |
 | `weight_movements` | `10.0` | objective weight for movement count (battery passes 100 or 1) |
 | `seed` | `1` | RNG seed for population initialisation and crossover |
+| `allow_mode_c` | *(profile gate)* | override the profile gate: `True` forces Mode-C on, `False` forces it off; absent = automatic (see gate below) |
 
 The fitness inside the GA uses these **configured** weights, not the
-`application.py` defaults.  There is no Mode-C knob: `solve()` passes
-`allow_mode_c=False` and the decoder's `allow_mode_c` parameter currently has no
-effect (Mode C is not yet implemented).
+`application.py` defaults.
+
+**Profile gate:** `allow_mode_c` defaults to `True` when
+`weight_movements ≤ max(weight_makespan, weight_delay)` and `False` otherwise.
+Concretely: wMK (100/1/1) → gate=True (Mode-C on); wDLY (1/100/1) →
+gate=True (Mode-C on); wMOV (1/1/100) → gate=False (Mode-A only, full
+generation budget).  An explicit `allow_mode_c` config value overrides the gate.
 
 ## Method ↔ code map
 
@@ -415,8 +466,13 @@ effect (Mode C is not yet implemented).
 | Topological position ordering | `brkga/instance.py` · `_topo_positions` (Kahn's algorithm) |
 | Per-aircraft job chain | `brkga/instance.py` · `_build_chain` |
 | Chromosome decode (assignment + sequencing) | `brkga/decoder.py` · `decode_chromosome` |
-| Earliest Mode-A start sweep | `brkga/decoder.py` · `_earliest_start`, `build_schedule` |
+| Earliest Mode-A start sweep | `brkga/decoder.py` · `_earliest_mode_a`, `build_schedule` |
 | Mode-A access window computation | `brkga/access.py` · `mode_a_windows_for_position` |
+| Mode-C feasible windows (Mode-A ∪ interruptible-job interiors) | `brkga/decoder.py` · `_feasible_bc_windows` |
+| Mode-C greedy decision (benefit vs cost, separation guard) | `brkga/decoder.py` · `_try_mode_c` |
+| Front-job interruption application (κ+1, δ extension, shift) | `brkga/decoder.py` · `_apply_interrupt` |
+| Mode-C schedule construction (two-path, with fallback) | `brkga/decoder.py` · `build_schedule` (when `allow_mode_c=True`) |
+| Checker-validated decode entry point | `brkga/decoder.py` · `decode` |
 | Access-mode classification (mirror of checker) | `brkga/access.py` · `classify_access` |
 | Movement count (mirror of checker RQ07) | `brkga/access.py` · `count_movements` |
 | Interval algebra | `brkga/windows.py` · `intersect_windows`, `shift_windows`, `clip_nonnegative`, `first_point_at_or_after` |
@@ -424,6 +480,7 @@ effect (Mode C is not yet implemented).
 | Greedy/NEH warm-start seed | `brkga/warm_start.py` · `greedy_seed` → `greedy_assignment` + `reverse_encode` |
 | BRKGA loop | `brkga/engine.py` · `run_brkga` |
 | Objective and solution dict | `brkga/decoder.py` · `compute_objective`, `to_solution_dict` |
+| Profile gate (`allow_mode_c` auto-selection) | `theory_assisted_job.py` · `solve()` (lines 81–83) |
 
 ## Key implementation notes
 
@@ -436,11 +493,29 @@ effect (Mode C is not yet implemented).
   evaluating the new population), so the solver may overshoot the budget by at
   most one generation's decode batch.
 - `count_movements` mirrors `checker._classify_access` at the tolerance level
-  (`TOL = 1e-4`, the checker's value); the smoke test asserts 0 movement
-  mismatches across all chromosomes tested, so the reported movement count is
-  exactly what the checker infers.
+  (`TOL = 1e-4`, the checker's value).  In the Mode-C path the count is
+  overwritten by `rq07["movements_count"]` from the real checker report, so it
+  is always checker-authoritative.
 - The decoder is **deterministic** (no random jitter inside the decode), a hard
   requirement for the GA to compare individuals consistently.
+- **Mode-C decoder (`build_schedule` with `allow_mode_c=True`):** for each rear
+  aircraft at a position that has front constraints, `_try_mode_c` is called
+  after computing the Mode-A start `s_a`.  It computes a potentially earlier
+  start `s_c` against the union of Mode-A windows and interruptible-job interiors
+  (`_feasible_bc_windows`), checks a profile-aware benefit/cost condition
+  (`benefit = wDLY*(delay_A−delay_C) + wMK*(s_A−s_C)` vs
+  `cost = wMOV*2*n_events + wDLY*extra_front_delay`), enforces a separation
+  guard (no front pushed into its successor), and applies `_apply_interrupt`
+  (κ+1, δ extension, shift of later jobs) in place.  The result is validated by
+  the real checker (`checker.check_solution`); if any RQ07 violation or other
+  infeasibility is found the decoder falls back to the always-feasible Mode-A
+  build for that chromosome.  Chromosomes whose Mode-C build yields 0 movements
+  skip the checker call entirely (Mode-A-equivalent path; saves time on wMOV).
+- **Mode-C `decode` entry point:** `brkga/decoder.py::decode` is the single
+  function called by the engine.  It dispatches to `build_schedule` with the
+  appropriate `allow_mode_c` flag and `instance` dict (needed for the checker
+  call); the engine passes `instance=None` when Mode-C is disabled so no checker
+  import occurs in that path.
 - Isolation: the `brkga/` sub-package is added to `sys.path` relative to
   `_HERE = Path(__file__).resolve().parent` (the `jobs/` directory) at the front
   of `sys.path`, so its package name does not collide with any internal modules
@@ -474,6 +549,7 @@ shipped milestone), newest at the bottom.
 | commit | change | effect on results |
 | ------ | ------ | ----------------- |
 | (working tree, uncommitted; on top of `7c0c957`) | Candidate C BRKGA, second isolated attempt: mixed-chromosome decoder v0 (Mode-A only, contiguous jobs, faithful checker mirror), greedy/NEH warm-start, own deterministic BRKGA loop; registered as `ta2_brkga_*` | First subset battery (seed-1 × 3 profiles): 36/36 feasible, 0 movements; matches MILP on `scn_none`/R5, edges ahead at R30, worse on blocking-heavy R10 (expected for Mode-A-only) — see Part II |
+| `5b868ff` | Mode: decoder upgraded from v0 (Mode-A only) to v1 (Mode-A + Mode-C in-sweep).  `_feasible_bc_windows`, `_try_mode_c`, `_apply_interrupt` added to `brkga/decoder.py`; `decode` entry point now runs the real checker and falls back to Mode-A on violation; profile gate in `solve()` enables Mode-C for wMK/wDLY and keeps Mode-A-only for wMOV | Seed-1 battery: gap to MILP roughly halved on blocking types (wMK full_R10 −217→−117 %, chain_R10 −51→−25 %; wDLY full_R20 −56→−21 %, R30 +9.8→+21.3 %); wMOV unchanged; 100 % compliant |
 
 ---
 
