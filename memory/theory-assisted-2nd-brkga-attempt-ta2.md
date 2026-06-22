@@ -12,10 +12,14 @@ how much do two attempts diverge). Solver `jobs/theory_assisted_job.py`
 (`TheoryAssistedJobSolver`), logic under `jobs/brkga/`, registered as
 `TheoryAssistedBRKGA2` / labels `ta2_brkga_wMK|wDLY|wMOV`.
 
-Current state: decoder **v0 (Mode-A only)**, contiguous jobs, own deterministic
-BRKGA loop, greedy/NEH warm-start. 100% checker-compliant; worse than the MILP
-on blocking-heavy instances (expected — no Mode B/C yet). Roadmap: Mode-B gaps
-→ restricted Mode-C → multi-seed battery.
+Current state: decoder **v1 (Mode-A + Mode-C in the fitness)**, own deterministic
+BRKGA loop, greedy/NEH warm-start. Mode C is woven into the decoder sweep
+(per-rear profile-aware greedy), validated by the REAL checker per Mode-C decode
+with Mode-A fallback, and **profile-gated off under wMOV**. 100% checker-
+compliant; Mode C roughly halves the gap to the MILP on blocking-heavy types vs
+the earlier Mode-A-only v0. Mode-B explicit gap insertion was NOT implemented
+(Mode C dominates). Roadmap: full multi-seed battery; checker-free Mode-C
+feasibility to lift R20/R30 generations; MILP warm-start seeds.
 
 **Why this matters / how to apply:** the older memories
 [[theory-assisted-v06-candidate-c-brkga]] and
