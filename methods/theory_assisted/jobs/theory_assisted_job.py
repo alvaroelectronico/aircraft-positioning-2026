@@ -17,7 +17,7 @@ the checker requires for RQ07/RQ08).
 
 Implementation lives under ``methods/theory_assisted/jobs/brkga/``:
 ``instance`` (model) · ``state`` · ``windows`` (interval algebra) · ``access``
-(Mode-A/B/C semantics, faithful to the checker) · ``decoder`` · ``warm_start``
+(Mode-A/B/C semantics, faithful to the checker) · ``decoder`` · ``warmstart``
 (greedy/NEH seed) · ``engine`` (own BRKGA loop) · ``smoke`` (validation).
 """
 from __future__ import annotations
@@ -82,13 +82,22 @@ class TheoryAssistedJobSolver:
         gate = wmov <= max(weights["makespan"], weights["delay"])
         allow_mode_c = bool(self._config.get("allow_mode_c", gate))
 
-        # BRKGA searches assignment + sequencing.  With Mode-C enabled the
-        # fitness uses the in-sweep Mode-C decoder validated by the real checker
-        # (see brkga/decoder.decode); otherwise the fast Mode-A-only decoder.
+        # Timing-gene cap: the chromosome's 3rd block can delay a start by up to
+        # cap = timing_cap_factor · mean_T past its earliest feasible instant.
+        cap = float(self._config.get("timing_cap_factor", 1.0)) * model.mean_T
+
+        # Population pinned to 20·|R| (= the 2|R|-era default) so the 3|R|
+        # chromosome does not auto-inflate it — keeps the comparison clean.
+        pop_size = max(100, 20 * model.num_aircraft)
+
+        # BRKGA searches assignment + sequencing + timing.  With Mode-C enabled
+        # the fitness uses the in-sweep Mode-C decoder validated by the real
+        # checker (see brkga/decoder.decode); otherwise the fast Mode-A decoder.
         obj, state, generations = run_brkga(
             model, weights, float(time_limit), seed=seed,
             allow_mode_c=allow_mode_c,
             instance=instance_data if allow_mode_c else None,
+            cap=cap, pop_size=pop_size,
         )
         mode = "A+C" if allow_mode_c else "A"
         status = f"brkga ({generations} generations, mode {mode})"

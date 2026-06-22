@@ -70,7 +70,9 @@ def reverse_encode(pi: dict[str, str], seq_order: dict[str, list[str]],
     nR = model.num_aircraft
     nP = model.num_positions
     idx_of = {r: i for i, r in enumerate(model.aircraft_ids)}
-    chromo = [0.0] * (2 * nR)
+    # Length 3|R|: assignment, sequencing, timing.  Timing genes stay 0.0 so the
+    # seed reproduces the earliest-feasible schedule exactly.
+    chromo = [0.0] * (3 * nR)
 
     for r in model.aircraft_ids:
         k = model.pos_index[pi[r]]

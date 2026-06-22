@@ -58,7 +58,12 @@ class Model:
 
     @property
     def chromosome_length(self) -> int:
-        return 2 * self.num_aircraft
+        # 3|R|: assignment keys, sequencing keys, timing-preference keys.
+        return 3 * self.num_aircraft
+
+    @property
+    def mean_T(self) -> float:
+        return sum(self.T.values()) / len(self.T) if self.T else 0.0
 
 
 def _build_chain(aircraft_id: str, jobs: list[dict], precedences: list[dict]) -> list[str]:

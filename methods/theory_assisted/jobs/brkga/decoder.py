@@ -42,19 +42,22 @@ _EPS = 1e-9
 # --------------------------------------------------------------------------- #
 
 def decode_chromosome(chromosome: list[float], model: Model
-                      ) -> tuple[dict[str, str], dict[str, list[str]]]:
-    """Return (position assignment pi, per-position aircraft order)."""
+                      ) -> tuple[dict[str, str], dict[str, list[str]], dict[str, float]]:
+    """Return (position assignment pi, per-position order, timing keys per r)."""
     nR = model.num_aircraft
     nP = model.num_positions
     assign = chromosome[:nR]
     seq = chromosome[nR:2 * nR]
+    tim = chromosome[2 * nR:3 * nR]
 
     pi: dict[str, str] = {}
+    timing: dict[str, float] = {}
     for idx, r in enumerate(model.aircraft_ids):
         k = int(assign[idx] * nP)
         if k >= nP:
             k = nP - 1
         pi[r] = model.positions[k]
+        timing[r] = tim[idx] if idx < len(tim) else 0.0
 
     buckets: dict[str, list[tuple[float, int, str]]] = {p: [] for p in model.positions}
     for idx, r in enumerate(model.aircraft_ids):
@@ -63,7 +66,7 @@ def decode_chromosome(chromosome: list[float], model: Model
     seq_order: dict[str, list[str]] = {}
     for p in model.positions:
         seq_order[p] = [r for (_, _, r) in sorted(buckets[p])]
-    return pi, seq_order
+    return pi, seq_order, timing
 
 
 # --------------------------------------------------------------------------- #
@@ -81,10 +84,27 @@ def _place_jobs(model: Model, r: str, start: float) -> tuple[list[JobState], flo
     return jobs, t
 
 
+def _apply_timing(windows: list[tuple[float, float]], earliest: float,
+                  gene: float, cap: float) -> float:
+    """Timing-gene placement (chromosome block 3): push the start later than the
+    earliest feasible instant by ``gene·cap``, snapping to the next feasible
+    window.  ``gene=0`` (the warm-start value) reproduces the earliest start."""
+    if cap <= 0.0 or gene <= 0.0:
+        return earliest
+    target = earliest + gene * cap
+    pt = first_point_at_or_after(windows, target)
+    return earliest if pt is None else pt
+
+
+def _mode_a_feasible(p: str, T: float, state: ScheduleState, model: Model
+                     ) -> list[tuple[float, float]]:
+    access = mode_a_windows_for_position(p, state, model)
+    return intersect_windows(access, shift_windows(access, -T))
+
+
 def _earliest_mode_a(p: str, T: float, lower: float,
                      state: ScheduleState, model: Model) -> float:
-    access = mode_a_windows_for_position(p, state, model)
-    feasible = intersect_windows(access, shift_windows(access, -T))
+    feasible = _mode_a_feasible(p, T, state, model)
     pt = first_point_at_or_after(feasible, lower)
     return lower if pt is None else pt
 
@@ -151,7 +171,8 @@ def _successor_start(p: str, fr: str, state: ScheduleState) -> float:
 # --------------------------------------------------------------------------- #
 
 def _try_mode_c(state: ScheduleState, r: str, p: str, lower: float, s_a: float,
-                model: Model, weights: dict) -> float | None:
+                model: Model, weights: dict, gene: float = 0.0, cap: float = 0.0
+                ) -> float | None:
     """Decide whether rear r should use a Mode-C-assisted earlier start.
 
     Returns the chosen start (< s_a) and applies the required front
@@ -159,12 +180,16 @@ def _try_mode_c(state: ScheduleState, r: str, p: str, lower: float, s_a: float,
     accepts only when the weighted delay/makespan saved for r outranks the
     weighted movement cost plus the extra delay the front extensions cause.  A
     separation guard rejects interruptions that would collide a front with its
-    successor."""
+    successor.  The timing gene shifts the Mode-C reference start the same way it
+    shifts the Mode-A start, so the A-vs-C comparison stays consistent."""
     T = model.T[r]
     feas = _feasible_bc_windows(p, state, model)
     start_windows = intersect_windows(feas, shift_windows(feas, -T))
-    s_c = first_point_at_or_after(start_windows, lower)
-    if s_c is None or s_c >= s_a - _EPS:
+    s_c0 = first_point_at_or_after(start_windows, lower)
+    if s_c0 is None:
+        return None
+    s_c = _apply_timing(start_windows, s_c0, gene, cap)
+    if s_c >= s_a - _EPS:
         return None
 
     eta = model.eta
@@ -220,8 +245,12 @@ def _try_mode_c(state: ScheduleState, r: str, p: str, lower: float, s_a: float,
 
 def build_schedule(pi: dict[str, str], seq_order: dict[str, list[str]],
                    model: Model, weights: dict | None = None,
-                   allow_mode_c: bool = False) -> ScheduleState:
-    """Construct a schedule.  Mode-A only unless allow_mode_c and weights given."""
+                   allow_mode_c: bool = False,
+                   timing: dict[str, float] | None = None,
+                   cap: float = 0.0) -> ScheduleState:
+    """Construct a schedule.  Mode-A only unless allow_mode_c and weights given.
+    ``timing`` (per-aircraft keys in [0,1)) + ``cap`` push starts later than the
+    earliest feasible instant (timing-gene block); ``timing=None`` ⇒ earliest."""
     state = ScheduleState(by_position={p: [] for p in model.positions})
 
     for p in model.topo_positions:
@@ -232,10 +261,14 @@ def build_schedule(pi: dict[str, str], seq_order: dict[str, list[str]],
             if last_finish is not None:
                 lower = max(lower, last_finish + model.epsilon)
 
-            s_a = _earliest_mode_a(p, model.T[r], lower, state, model)
+            gene = timing.get(r, 0.0) if timing else 0.0
+            feas_a = _mode_a_feasible(p, model.T[r], state, model)
+            s_a0 = first_point_at_or_after(feas_a, lower)
+            s_a0 = lower if s_a0 is None else s_a0
+            s_a = _apply_timing(feas_a, s_a0, gene, cap)
             start = s_a
             if allow_mode_c and weights is not None and has_fronts:
-                s_c = _try_mode_c(state, r, p, lower, s_a, model, weights)
+                s_c = _try_mode_c(state, r, p, lower, s_a, model, weights, gene, cap)
                 if s_c is not None:
                     start = s_c
 
@@ -299,21 +332,23 @@ def to_solution_dict(state: ScheduleState, model: Model,
 # --------------------------------------------------------------------------- #
 
 def decode(chromosome: list[float], model: Model, weights: dict,
-           allow_mode_c: bool = False, instance: dict | None = None
-           ) -> tuple[float, ScheduleState]:
+           allow_mode_c: bool = False, instance: dict | None = None,
+           cap: float = 0.0) -> tuple[float, ScheduleState]:
     """chromosome -> (objective, schedule state).
 
     Mode-A path is purely analytic (movements = 0, validated mirror).  When
     allow_mode_c and an instance is given, the Mode-C build is validated by the
     real checker: if compliant, its checker-inferred movement count is used;
-    otherwise the decode falls back to the guaranteed-feasible Mode-A build."""
-    pi, seq_order = decode_chromosome(chromosome, model)
+    otherwise the decode falls back to the guaranteed-feasible Mode-A build.
+    ``cap`` (with the chromosome's timing block) enables timing-gene placement."""
+    pi, seq_order, timing = decode_chromosome(chromosome, model)
 
     if not (allow_mode_c and instance is not None):
-        state = build_schedule(pi, seq_order, model)
+        state = build_schedule(pi, seq_order, model, timing=timing, cap=cap)
         return compute_objective(state, model, weights), state
 
-    state = build_schedule(pi, seq_order, model, weights=weights, allow_mode_c=True)
+    state = build_schedule(pi, seq_order, model, weights=weights,
+                           allow_mode_c=True, timing=timing, cap=cap)
     # If the greedy applied no interruption, the schedule is Mode-A-equivalent
     # (movements = 0) and already feasible by construction — skip the checker so
     # profiles that never use Mode C (e.g. wMOV) keep the full generation count.
@@ -335,6 +370,7 @@ def decode(chromosome: list[float], model: Model, weights: dict,
         state.infeasible_accesses = 0
         return compute_objective(state, model, weights), state
 
-    # Propagation broke something: fall back to the always-feasible Mode-A build.
-    state = build_schedule(pi, seq_order, model)
+    # Propagation broke something: fall back to the always-feasible Mode-A build
+    # (timing-gene placement preserved; Mode-A is feasible for any start choice).
+    state = build_schedule(pi, seq_order, model, timing=timing, cap=cap)
     return compute_objective(state, model, weights), state
