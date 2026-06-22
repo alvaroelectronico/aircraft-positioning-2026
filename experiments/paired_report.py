@@ -26,7 +26,8 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT / "experiments"))
 
-from gap_summary import PROFILES, _records_from_csv, format_gap_table
+from gap_summary import (PROFILES, _detect_heur_labels, _records_from_csv,
+                         format_gap_table)
 
 
 def _seed(stem: str) -> int:
@@ -44,9 +45,13 @@ def _fmt(v, nd=2, width=10):
     return f"{v:>{width}.{nd}f}"
 
 
-def detail_block(records: list[dict]) -> str:
+def detail_block(records: list[dict], heur_labels: dict | None = None) -> str:
     """Per-instance MILP-row-then-heuristic-row detail (seed-first), without
-    the summary table — so callers can splice it into an existing log."""
+    the summary table — so callers can splice it into an existing log.
+
+    ``heur_labels`` pins the heuristic label per profile; when omitted it is
+    auto-detected from the records (mirroring ``gap_summary``)."""
+    heur_labels = heur_labels or _detect_heur_labels(records)
     # index by (instance, label)
     by_key = {(r["instance"], r["experiment"]): r for r in records
               if r.get("error") is None and r.get("objective") is not None}
@@ -63,7 +68,8 @@ def detail_block(records: list[dict]) -> str:
 
     for inst in instances:
         out.write(f"\n{inst}\n{'-' * len(inst)}\n")
-        for pkey, milp_label, heur_label, desc in PROFILES:
+        for pkey, milp_label, desc in PROFILES:
+            heur_label = heur_labels[pkey]
             m = by_key.get((inst, milp_label))
             h = by_key.get((inst, heur_label))
             out.write(f"  [{pkey}  {desc}]\n")
@@ -84,9 +90,11 @@ def detail_block(records: list[dict]) -> str:
     return out.getvalue()
 
 
-def build(records: list[dict]) -> str:
+def build(records: list[dict], heur_labels: dict | None = None) -> str:
     """Full report: summary gap table followed by the per-instance detail."""
-    return format_gap_table(records) + "\n\n" + detail_block(records)
+    heur_labels = heur_labels or _detect_heur_labels(records)
+    return (format_gap_table(records, heur_labels=heur_labels)
+            + "\n\n" + detail_block(records, heur_labels=heur_labels))
 
 
 if __name__ == "__main__":
@@ -94,8 +102,18 @@ if __name__ == "__main__":
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except (AttributeError, OSError):
         pass
-    csv_path = Path(sys.argv[1]) if len(sys.argv) > 1 else _ROOT / "outputs" / "solutions" / "results.csv"
+    # Optional positional args: [results.csv] [heur_prefix]
+    # When the CSV holds several heuristics per profile (igvnd / ta_brkga /
+    # ta2_brkga …) pass a prefix like "ta2_brkga" to pin the comparison.
+    args = sys.argv[1:]
+    csv_arg = next((a for a in args if a.endswith(".csv") or "/" in a or "\\" in a), None)
+    prefix = next((a for a in args if a is not csv_arg), None)
+    csv_path = Path(csv_arg) if csv_arg else _ROOT / "outputs" / "solutions" / "results.csv"
     if not csv_path.exists():
         print(f"results.csv not found at {csv_path}", file=sys.stderr)
         sys.exit(1)
-    print(build(_records_from_csv(csv_path)))
+    records = _records_from_csv(csv_path)
+    heur_labels = None
+    if prefix:
+        heur_labels = {pkey: f"{prefix}_{pkey}" for pkey, _, _ in PROFILES}
+    print(build(records, heur_labels=heur_labels))

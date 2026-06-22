@@ -100,6 +100,20 @@ _brkga_v02_mod = _il_util.module_from_spec(_brkga_v02_spec)
 _brkga_v02_spec.loader.exec_module(_brkga_v02_mod)
 TheoryAssistedBRKGA = _brkga_v02_mod.BRKGAJobSolver
 
+# theory_assisted method — SECOND independent Claude-assisted attempt at
+# Candidate C (BRKGA with mixed-chromosome decoder), built from scratch in
+# isolation from brkga_v02 for the replication study.  Loaded via importlib
+# under a distinct module name from methods/theory_assisted/jobs/; its own
+# ``brkga`` sub-package is added to sys.path at the FRONT inside the module, so
+# it does not collide with brkga_v02's internal modules.  Fresh "ta2_brkga_"
+# labels pair its rows against brkga_v02's "ta_brkga_" rows in results.csv.
+# The runner is outside methods/<X>/ and exempt from the isolation scan.
+_TA2_PATH = _ROOT / "methods" / "theory_assisted" / "jobs" / "theory_assisted_job.py"
+_ta2_spec = _il_util.spec_from_file_location("_ta2_theory_assisted_job", str(_TA2_PATH))
+_ta2_mod = _il_util.module_from_spec(_ta2_spec)
+_ta2_spec.loader.exec_module(_ta2_mod)
+TheoryAssistedBRKGA2 = _ta2_mod.TheoryAssistedJobSolver
+
 from tgr_solver import TGRSolver                            # noqa: E402
 from fixed_assignment_scheduler_aircraft import FixedAssignmentSchedulerAircraft  # noqa: E402
 from fixed_assignment_scheduler_job      import FixedAssignmentSchedulerJob       # noqa: E402
@@ -493,6 +507,14 @@ EXPERIMENTS: list[dict] = [
     {"label": "ta_brkga_wMK",  "solver_class": TheoryAssistedBRKGA, "config": {**_W_MK,  "seed": 1}},
     {"label": "ta_brkga_wDLY", "solver_class": TheoryAssistedBRKGA, "config": {**_W_DLY, "seed": 1}},
     {"label": "ta_brkga_wMOV", "solver_class": TheoryAssistedBRKGA, "config": {**_W_MOV, "seed": 1}},
+
+    # theory_assisted — SECOND independent BRKGA attempt (Candidate C), built
+    # in isolation from brkga_v02.  Fresh "ta2_brkga_" labels so its rows pair
+    # against ta_brkga_* (brkga_v02) for the replication comparison; compares
+    # against the same cached job-level MILP rows.
+    {"label": "ta2_brkga_wMK",  "solver_class": TheoryAssistedBRKGA2, "config": {**_W_MK,  "seed": 1}},
+    {"label": "ta2_brkga_wDLY", "solver_class": TheoryAssistedBRKGA2, "config": {**_W_DLY, "seed": 1}},
+    {"label": "ta2_brkga_wMOV", "solver_class": TheoryAssistedBRKGA2, "config": {**_W_MOV, "seed": 1}},
 
     # =========================================================================
     # ARCHIVED — uncomment to reproduce earlier experiments

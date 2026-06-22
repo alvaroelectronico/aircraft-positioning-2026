@@ -1,6 +1,8 @@
 """Theory-assisted solver for paper #2 (job-level extension).
 
-STUB — replace ``solve`` with your implementation.
+Candidate C — BRKGA with a mixed-chromosome decoder and a greedy/NEH warm-start
+(second independent, isolated attempt; see ``methods/theory_assisted/CLAUDE.md``
+and ``jobs/notes/design.md``).
 
 The class implements the contract from ``shared/application.py``:
 
@@ -9,43 +11,34 @@ The class implements the contract from ``shared/application.py``:
     solve(instance_data)       -> dict   # solution
     get_config()               -> dict
 
-The solution dict must be in the shape consumed by
-``problems/jobs/checker.py``:
+The solution dict shape consumed by ``problems/jobs/checker.py`` is built by
+``brkga.decoder.to_solution_dict`` (aircraft-level start/finish included, which
+the checker requires for RQ07/RQ08).
 
-    {
-        "status":    str,                   # solver's own status string
-        "objective": float | None,          # weighted objective (see weights below)
-        "metrics":   {
-            "makespan":     float,
-            "total_delay":  float,
-            "movements":    int,
-        },
-        "aircraft": [
-            {
-                "id":       str,
-                "position": str,
-                "jobs": [
-                    {"id": str, "start": float, "finish": float, ...}
-                ],
-            },
-            ...
-        ],
-    }
-
-Read ``problems/jobs/problem_statement.md`` and ``problems/jobs/checker.py``
-for the full feasibility rules.  Read the curated material under
-``methods/theory_assisted/inspiration/`` (and its digests in
-``methods/theory_assisted/digest/``) for the methodological background
-that informs this method.  Read ``jobs/notes/synthesis.md`` for the
-4 candidate algorithmic approaches the digests support (A and C are
-exhausted by prior attempts — pick B or D, see CLAUDE.md).  Do NOT
-read any other ``methods/<X>/``.
+Implementation lives under ``methods/theory_assisted/jobs/brkga/``:
+``instance`` (model) · ``state`` · ``windows`` (interval algebra) · ``access``
+(Mode-A/B/C semantics, faithful to the checker) · ``decoder`` · ``warm_start``
+(greedy/NEH seed) · ``engine`` (own BRKGA loop) · ``smoke`` (validation).
 """
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# Make the sibling ``brkga`` package importable when this module is loaded by
+# experiments/run_experiments.py (by file path) or run directly.  Only this
+# method's own ``jobs`` directory is added — never another method's path.
+_HERE = Path(__file__).resolve().parent              # methods/theory_assisted/jobs/
+if str(_HERE) not in sys.path:
+    sys.path.insert(0, str(_HERE))
+
+from brkga.instance import build_model               # noqa: E402
+from brkga.decoder import to_solution_dict           # noqa: E402
+from brkga.engine import run_brkga                   # noqa: E402
+
 
 class TheoryAssistedJobSolver:
-    """Stub solver.  Replace ``solve`` with your implementation."""
+    """BRKGA solver (Candidate C)."""
 
     name = "theory_assisted_job"
 
@@ -53,53 +46,50 @@ class TheoryAssistedJobSolver:
         self._config: dict = {}
 
     def configure_solver(self, **kwargs) -> None:
-        """Store any tunable parameters.  ``time_limit_s`` is the only
-        key Application guarantees to set; everything else is yours."""
+        """Store tunable parameters.  ``time_limit_s`` is guaranteed by
+        Application; ``weight_makespan`` / ``weight_delay`` /
+        ``weight_movements`` and ``seed`` are also honoured."""
         self._config.update(kwargs)
 
     def get_config(self) -> dict:
         return dict(self._config)
 
     def solve(self, instance_data: dict) -> dict:
-        """Return a solution dict (see module docstring for the shape).
+        model = build_model(instance_data)
 
-        Implementation guidance:
-        - Read the instance: ``instance_data`` is the JSON loaded by
-          ``shared/instance_io.load_json`` from a path under
-          ``data/instances_202605_02/``.
-        - Honour ``self._config.get("time_limit_s")``.
-        - Honour the weight keys
-          ``weight_makespan`` / ``weight_delay`` / ``weight_movements``
-          when computing ``objective``; see the contract in
-          ``shared/application.py``.
-        - Return a feasible solution per ``problems/jobs/checker.py``.
-        """
-        raise NotImplementedError(
-            "TheoryAssistedJobSolver.solve is not yet implemented. "
-            "See methods/theory_assisted/README.md for the start sequence."
+        # Fitness uses the CONFIGURED weights, not the application defaults.
+        weights = {
+            "makespan": float(self._config.get("weight_makespan", 0.1)),
+            "delay": float(self._config.get("weight_delay", 1.0)),
+            "movements": float(self._config.get("weight_movements", 10.0)),
+        }
+        time_limit = self._config.get("time_limit_s") or 60.0
+        seed = int(self._config.get("seed", 1))
+
+        obj, state, generations = run_brkga(
+            model, weights, float(time_limit), seed=seed, allow_mode_c=False,
         )
+        status = f"brkga ({generations} generations)"
+        return to_solution_dict(state, model, weights, status)
 
 
 if __name__ == "__main__":
-    # Minimal smoke-test entry point.  Once solve() is implemented,
-    # this should print the objective and pass the checker.
-    import sys
-    from pathlib import Path
-
-    _HERE = Path(__file__).resolve().parent              # methods/theory_assisted/jobs/
+    # Minimal smoke-test entry point.
     _ROOT = _HERE.parent.parent.parent                   # repo root
     sys.path.insert(0, str(_ROOT / "shared"))            # instance_io
     sys.path.insert(0, str(_ROOT / "problems" / "jobs")) # checker
 
     from instance_io import load_json                    # noqa: E402
-    from checker     import check_solution, print_check  # noqa: E402
+    from checker import check_solution, print_check       # noqa: E402
 
     default = _ROOT / "data" / "instances_202605_02" / \
-              "scn_triangle_tight_P5_R5" / "scn_triangle_tight_P5_R5_seed1.json"
+        "scn_triangle_tight_P5_R5" / "scn_triangle_tight_P5_R5_seed1.json"
     path = sys.argv[1] if len(sys.argv) > 1 else str(default)
     inst = load_json(path)
 
     solver = TheoryAssistedJobSolver()
-    solver.configure_solver(time_limit_s=20)
+    solver.configure_solver(time_limit_s=10, weight_makespan=1, weight_delay=100,
+                            weight_movements=1, seed=1)
     sol = solver.solve(inst)
+    print(f"objective = {sol['objective']:.2f}  metrics = {sol['metrics']}")
     print_check(check_solution(sol, inst))
