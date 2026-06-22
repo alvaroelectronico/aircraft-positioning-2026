@@ -13,6 +13,12 @@ reusable theory from prior attempts; everything else is reset to the
 starting state so a new attempt can begin from scratch without seeing
 any previous method's code.
 
+> **Current attempt:** see [`CLAUDE.md`](CLAUDE.md) "Starting state"
+> for the specific candidate / experimental setup the active attempt
+> is targeting.  At present: a **second independent attempt at
+> Candidate C (BRKGA)**, isolated from the first attempt
+> (`methods/brkga_v02/`).
+
 ## Reading list (the ONLY background to consume)
 
 | Path                                              | Purpose                                            |

@@ -25,44 +25,58 @@ attempts have graduated to their own isolated method directories:
 - `methods/iterated_greedy_vnd_v01/` — ChatGPT-assisted, Candidate A.
 - `methods/iterated_greedy_vnd_v02/` — Claude-assisted, Candidate A
   (same baseline as v01).
-- `methods/brkga_v02/` — Claude-assisted, **Candidate C** (BRKGA with
+- `methods/brkga_v02/` — Claude-assisted, Candidate C (BRKGA with
   mixed-chromosome decoder).
+
+## Your task: a SECOND independent attempt at Candidate C (BRKGA)
+
+You are building **Candidate C — BRKGA with mixed-chromosome decoder
++ warm-start** again, from scratch, with full isolation from the first
+Claude-assisted attempt at the same candidate (`methods/brkga_v02/`).
+
+The experimental purpose is **replication**: how much do two Claude-
+assisted attempts at the same algorithm, from the same digests, on
+the same scaffold, *diverge* in implementation choices and final
+quality?  For the comparison to be meaningful you must NOT read any
+file under `methods/brkga_v02/`.  Its `brkga.py`, `brkga_engine.py`,
+`decoder.py`, `brkga.md`, `design.md`, `PROVENANCE.md`, and Change
+log all reveal implementation choices that would contaminate this
+attempt.  The forbidden list below already covers it; the experimental
+stake is the reason it matters.
+
+You are NOT building A, B, or D.  If you find the BRKGA shape doesn't
+appeal, tell the user — do not silently switch to a different
+candidate.  Switching the algorithm voids the replication experiment.
 
 This time you start fresh:
 
 - `jobs/theory_assisted_job.py` is a **stub** with the `Application`
   contract wired and `solve()` raising `NotImplementedError`.  Replace
-  its body (or rename it / split it into multiple modules) with your
-  approach.
+  its body with your BRKGA implementation, or split into multiple
+  modules.  When the method matures and graduates, the directory
+  will likely be named `methods/brkga_v03/` (parallel to v02 ChatGPT
+  vs v02 Claude on IG+VND) — but the naming is the user's call at
+  graduation time.
 - `jobs/notes/synthesis.md` is the **literature synthesis from prior
   attempts** (same digests, same 4 candidates A/B/C/D).  Read it.
-  It is the menu of algorithmic approaches that the curated theory
-  in `digest/` supports.
+  In particular read its **Candidate C section** — that is your
+  guidance.  The synthesis describes Candidate C as "BRKGA with a
+  mixed-chromosome decoder (indicator keys for position assignment
+  + permutation keys for in-position job sequencing)" — that is the
+  algorithm family you are building.
 - `jobs/notes/` is otherwise empty — fill it with your own design
-  notes (`design.md`) and experiments log as you iterate.
+  notes (`design.md`) and experiments log as you iterate.  Your
+  design.md will diverge from brkga_v02's design.md in the choices
+  you make — that divergence is the experimental data point.
 - `digest/` and `inspiration/` carry the **same reusable theory base**
-  prior attempts had (10 PDFs + 10 digests).  Add more if you want
-  to widen the input.
+  the first BRKGA attempt had (10 PDFs + 10 digests).  Read them
+  freely; they are the legitimate shared input.
 
-**Candidates A and C are exhausted.**  v01 + iterated_greedy_vnd_v02
-implemented Candidate A (IG+VND); brkga_v02 implemented Candidate C
-(BRKGA).  All three are off-limits to you (see "You MUST NOT read"
-below), but the *fact* that A and C have been built is part of your
-brief: **pick a different candidate**.
-
-Your starting choice is among:
-
-- **Candidate B — GRASP + VND with reactive α + elite-pool path relinking.**
-- **Candidate D — Matheuristic: GRASP construction + Local Branching
-  refinement** (uses the manual MILP as a subroutine; would need an
-  allowlist entry in `experiments/tests/test_method_isolation.py`,
-  see the Exception protocol below).
-
-Read `jobs/notes/synthesis.md` for each candidate's skeleton,
-supporting digests, effort estimate and risks.  If none feels right,
-you may also re-run `/synthesize-theory` with a focus hint to bias
-the candidate list (e.g. `/synthesize-theory  hyper-heuristic`), or
-edit the digests first to expand the theory base.
+Once you have a working solver, register it in
+`experiments/run_experiments.py` with **fresh labels** distinct from
+brkga_v02's `ta_brkga_*`.  Use something like `ta2_brkga_*` or
+`brkga2_*` so the two attempts' results are paired in
+`outputs/solutions/results.csv` and the comparison stays explicit.
 
 What that means for you:
 
