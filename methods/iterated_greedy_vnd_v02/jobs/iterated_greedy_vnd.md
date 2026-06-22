@@ -1,4 +1,4 @@
-# Iterated Greedy + VND for aircraft positioning with job-level scheduling (paper #2)
+# Iterated Greedy + VND for aircraft positioning with job-level scheduling (Claude)
 
 This is **Candidate A** from the theory-assisted design process: an Iterated
 Greedy outer loop (destruction–reconstruction over position assignments) wrapped

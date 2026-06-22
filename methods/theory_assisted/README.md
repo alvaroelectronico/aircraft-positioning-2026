@@ -34,7 +34,9 @@ any previous method's code.
 - `methods/iterated_greedy_vnd_v01/**` (a previous theory_assisted
   attempt — ChatGPT-assisted, graduated to its own method)
 - `methods/iterated_greedy_vnd_v02/**` (a previous theory_assisted
-  attempt — Claude-assisted, graduated to its own method)
+  attempt — Claude-assisted Candidate A, graduated to its own method)
+- `methods/brkga_v02/**` (a previous theory_assisted attempt —
+  Claude-assisted Candidate C, graduated to its own method)
 - `papers/**` (publishable manuscripts of OUR work)
 
 See `CLAUDE.md` for the full rationale and the protocol if you need an

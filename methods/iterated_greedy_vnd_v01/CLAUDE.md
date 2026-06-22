@@ -33,6 +33,10 @@ repository, even though it originated from a `theory_assisted` process
                                      trajectory from the same 30e1af0
                                      baseline; reading it contaminates
                                      the v01-vs-v02 comparison)
+- `methods/brkga_v02/**`            (sister attempt — Claude-assisted
+                                     Candidate C from the same scaffold;
+                                     reveals an alternative-algorithm
+                                     trajectory)
 - `methods/theory_assisted/**`      (the literature-informed process
                                      that birthed this method has
                                      already been distilled into

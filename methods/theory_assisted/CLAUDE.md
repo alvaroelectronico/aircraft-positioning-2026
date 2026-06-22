@@ -13,16 +13,22 @@ problem** — that means **no file** under any other `methods/<X>/`
 This method is **developed in isolation** from every other method in
 the repository (`methods/manual/`, `methods/autoresearch/`,
 `methods/iterated_greedy_vnd_v01/`, `methods/iterated_greedy_vnd_v02/`,
-and any further methods that exist).  The point is that each attempt
-must produce its own answer without seeing prior implementations.
+`methods/brkga_v02/`, and any further methods that exist).  The point
+is that each attempt must produce its own answer without seeing prior
+implementations.
 
 ## Starting state for this attempt
 
 This is a **clean scaffold** for a new attempt at paper #2.  Previous
-attempts have graduated to their own isolated method directories
-(`methods/iterated_greedy_vnd_v01/` = ChatGPT-assisted,
-`methods/iterated_greedy_vnd_v02/` = Claude-assisted from the same
-30e1af0 baseline).  This time you start fresh:
+attempts have graduated to their own isolated method directories:
+
+- `methods/iterated_greedy_vnd_v01/` — ChatGPT-assisted, Candidate A.
+- `methods/iterated_greedy_vnd_v02/` — Claude-assisted, Candidate A
+  (same baseline as v01).
+- `methods/brkga_v02/` — Claude-assisted, **Candidate C** (BRKGA with
+  mixed-chromosome decoder).
+
+This time you start fresh:
 
 - `jobs/theory_assisted_job.py` is a **stub** with the `Application`
   contract wired and `solve()` raising `NotImplementedError`.  Replace
@@ -38,16 +44,15 @@ attempts have graduated to their own isolated method directories
   prior attempts had (10 PDFs + 10 digests).  Add more if you want
   to widen the input.
 
-**Candidate A (IG+VND) is exhausted.**  Both v01 (ChatGPT) and v02
-(Claude) implemented Candidate A from `synthesis.md`.  Their
-implementations are off-limits to you (see "You MUST NOT read"
-below), but the *fact* that A has been tried twice is part of your
+**Candidates A and C are exhausted.**  v01 + iterated_greedy_vnd_v02
+implemented Candidate A (IG+VND); brkga_v02 implemented Candidate C
+(BRKGA).  All three are off-limits to you (see "You MUST NOT read"
+below), but the *fact* that A and C have been built is part of your
 brief: **pick a different candidate**.
 
 Your starting choice is among:
 
 - **Candidate B — GRASP + VND with reactive α + elite-pool path relinking.**
-- **Candidate C — BRKGA with mixed-chromosome decoder + warm-start.**
 - **Candidate D — Matheuristic: GRASP construction + Local Branching
   refinement** (uses the manual MILP as a subroutine; would need an
   allowlist entry in `experiments/tests/test_method_isolation.py`,
@@ -115,6 +120,10 @@ What that means for you:
                                      descendent of a previous
                                      theory_assisted attempt; same
                                      reasoning)
+- `methods/brkga_v02/**`            (other method — Claude-assisted
+                                     BRKGA descendent of a previous
+                                     theory_assisted attempt;
+                                     Candidate C of the synthesis)
 - Any further `methods/<other>/**`  that may exist in the future.
 - `papers/cejor_aircraft/**`        (manuscript discussing other methods)
 - `papers/jobs_extension/**`        (manuscript discussing other methods)
@@ -157,6 +166,8 @@ registered method against an instance and writes the result to
     NOT to peek at the solver's source.
   - `ta_igvnd_wMK` / `ta_igvnd_wDLY` / `ta_igvnd_wMOV` — v02 IGVND
     (Claude-assisted), three weight profiles.  Same rule.
+  - `ta_brkga_wMK` / `ta_brkga_wDLY` / `ta_brkga_wMOV` — brkga_v02
+    (Claude-assisted, Candidate C), three weight profiles.  Same rule.
 - Read the resulting JSON solutions and metrics from
   `outputs/solutions/scn_…__milp_baseline_job__<timestamp>.json` and
   the aggregated `outputs/solutions/results.csv`.
@@ -166,10 +177,9 @@ What you must NOT do, even while comparing:
 
 - Open or grep **any file** (`.py`, `.md`, `.json`, anything) under
   `methods/manual/`, `methods/autoresearch/`,
-  `methods/iterated_greedy_vnd_v01/`, or
-  `methods/iterated_greedy_vnd_v02/`.  The CSV / JSON under
-  `outputs/` are the only legitimate source of cross-method
-  information.
+  `methods/iterated_greedy_vnd_v01/`, `methods/iterated_greedy_vnd_v02/`,
+  or `methods/brkga_v02/`.  The CSV / JSON under `outputs/` are the
+  only legitimate source of cross-method information.
 - Decide a design choice for `theory_assisted` based on "how the MILP
   formulates this" — that information is reachable only by reading
   the source, which is exactly what the contract forbids.  Decide

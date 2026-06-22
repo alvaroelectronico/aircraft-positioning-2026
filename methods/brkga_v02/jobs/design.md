@@ -146,13 +146,14 @@ heuristic JSONs into chromosomes injected into the initial population:
 - sequencing keys ← rank of `s_r` within each position.
 Reading these JSONs is allowed (results, not other methods' source).
 
-## 7. Module layout (under `methods/theory_assisted/jobs/`)
-- `theory_assisted_job.py` — `TheoryAssistedJobSolver` (Application
-  contract); `solve()` wires decoder + BRKGA, honours `time_limit_s`,
-  `weight_*`, `seed`.
+## 7. Module layout (under `methods/brkga_v02/jobs/`)
+- `brkga.py` — `BRKGAJobSolver` (Application contract); `solve()` wires
+  decoder + BRKGA engine, honours `time_limit_s`, `weight_*`, `seed`.
+  (Was originally `theory_assisted_job.py` before the graduation rename.)
 - `decoder.py` — chromosome → solution dict; imports `_classify_access`
   from `problems/jobs/checker.py`. Independently testable.
-- `brkga.py` — generic BRKGA over random keys, decoder injected.
+- `brkga_engine.py` — generic BRKGA over random keys, decoder injected.
+  (Was originally `brkga.py`; renamed to free the name for the entry point.)
 - `warmstart.py` — reverse-encode cached JSONs → chromosomes.
 
 ## 8. Validation plan

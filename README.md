@@ -55,6 +55,10 @@ methods/                 # ONE subtree per solving approach. ISOLATED.
                             # from a theory_assisted process from the same
                             # 30e1af0 baseline as v01.  Frozen for comparison.
     jobs/                       # paper #2
+  brkga_v02/                # BRKGA with mixed-chromosome decoder, Claude-
+                            # assisted v02 — graduated from theory_assisted,
+                            # Candidate C of the synthesis.  Frozen.
+    jobs/                       # paper #2
 
 experiments/             # Cross-method orchestration; imports any method.
   run_experiments.py         # batch runner (the bridge across methods)

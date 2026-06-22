@@ -32,6 +32,10 @@ here.
                                         trajectory from the same
                                         baseline; reading it
                                         contaminates the comparison)
+- `methods/brkga_v02/**`            (sister attempt — Claude-assisted
+                                     Candidate C from the same scaffold;
+                                     reveals an alternative-algorithm
+                                     trajectory)
 - `methods/theory_assisted/**`      (the scaffold reset for the next
                                      attempt; out of scope now that
                                      this method has graduated)

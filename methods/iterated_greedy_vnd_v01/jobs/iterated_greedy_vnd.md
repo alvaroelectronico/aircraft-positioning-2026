@@ -1,4 +1,4 @@
-# Iterated Greedy + VND heuristic for job-level aircraft positioning
+# Iterated Greedy + VND heuristic for job-level aircraft positioning (ChatGPT)
 
 This document has four parts. **Part I** explains the heuristic as a method,
 the way a paper would, with no reference to the source code; **Part II**

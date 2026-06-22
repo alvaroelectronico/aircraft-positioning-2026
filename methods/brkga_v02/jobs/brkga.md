@@ -412,15 +412,15 @@ the decode cost should lift the profiles where Mode C *is* enabled.
 
 # Part IV — How it is implemented
 
-Source: [`theory_assisted_job.py`](theory_assisted_job.py) — class
-`TheoryAssistedJobSolver`, registered under the labels `ta_brkga_wMK`,
+Source: [`brkga.py`](brkga.py) — class
+`BRKGAJobSolver`, registered under the labels `ta_brkga_wMK`,
 `ta_brkga_wDLY`, `ta_brkga_wMOV`.
 
 ## Solver contract (`shared/application.py`)
 
 | member | role |
 | --- | --- |
-| `name` | `"theory_assisted_job"` |
+| `name` | `"brkga_job"` |
 | `configure_solver(**kw)` | Stores all kwargs in `self._config`; honours `time_limit_s`, `weight_makespan`, `weight_delay`, `weight_movements`, `seed`, `pop_size`, `allow_mode_c` |
 | `solve(instance)` | Computes the profile gate `allow_mode_c = w_mov <= max(w_mk, w_dly)` (unless given explicitly in config), constructs `DecoderContext`, calls `run_brkga`, returns best solution dict |
 | `get_config()` | Returns a shallow copy of `self._config` |
@@ -506,7 +506,7 @@ The solver imports nothing from other methods.  The lazy import path for
 ## Smoke test
 
 ```
-py -3 methods/theory_assisted/jobs/theory_assisted_job.py \
+py -3 methods/brkga_v02/jobs/brkga.py \
     data/instances_202605_02/scn_triangle_tight_P5_R5/scn_triangle_tight_P5_R5_seed1.json
 ```
 
@@ -523,16 +523,16 @@ Track the method's evolution.  One row per behaviour-affecting commit
 
 | commit | change | effect on results |
 | ------ | ------ | ----------------- |
-| 2d37eeb | v06: initial BRKGA implementation — decoder (`decoder.py`), BRKGA engine (`brkga.py`), solver wrapper (`theory_assisted_job.py`); registered as `ta_brkga_wMK/wDLY/wMOV` in `run_experiments.py` | 360/360 feasible; loses to MILP on R5–R10 across all profiles (mean gap −19% to −59% wMK; extreme wDLY artefacts on near-zero-delay instances); wins only on unconverged-MILP R30 (+15.8/+21.0/+21.4% wMK/wDLY/wMOV); Δmov = 0 everywhere under wMOV as designed. |
+| 2d37eeb | v06: initial BRKGA implementation — decoder (`decoder.py`), BRKGA engine (`brkga_engine.py`, originally named `brkga.py` before the graduation rename), solver wrapper (`brkga.py`, originally `theory_assisted_job.py`); registered as `ta_brkga_wMK/wDLY/wMOV` in `run_experiments.py` | 360/360 feasible; loses to MILP on R5–R10 across all profiles (mean gap −19% to −59% wMK; extreme wDLY artefacts on near-zero-delay instances); wins only on unconverged-MILP R30 (+15.8/+21.0/+21.4% wMK/wDLY/wMOV); Δmov = 0 everywhere under wMOV as designed. |
 | 22c65fb | v06 decoder v2 — Mode-C construction via κ fixpoint: `DecoderContext` gains `allow_mode_c` and `max_fixpoint_iters`; `decode()` runs fixpoint of `_decode_pass` until `kappa` stabilises (fallback to Mode-A/B-only if not converged in 8 iters); new helpers `_proc_eff`, `_decode_pass`; Mode-C branches in `_evaluate`, `_candidate_starts`, `_layout`; `_MAX_CANDIDATES` raised to 80 | wMK/wDLY improve substantially: chain_R10 wMK −45.8%→−18.5%, triangle_R5 wDLY −1322%→−3.2%, triangle_R20 wMK+wDLY both turn positive (+8.0%, +7.2%). wMOV regresses on large R due to decode-cost starvation (full_R20 −42%→−120%, triangle_R30 +21%→+1.6%); Δmov ≈ 0 confirms regression is GA-generations loss, not movement quality; full_R20 runs overshoot 60 s budget (72–81 s observed). |
 | bab9773 | v06 P1 — profile-gated Mode-C: `solve()` sets `allow_mode_c = weight_movements <= max(weight_makespan, weight_delay)` (explicit config overrides); gate decision logged. Enables Mode C under wMK/wDLY, disables it under wMOV and the default profile | wMOV regression eliminated (wMOV re-battery, log `…_20260620_074942.log`): full_R20 −120.3%→−39.5%, triangle_R30 +1.6%→+22.9%, back to ≈ v1 (marginally better from `_MAX_CANDIDATES` 60→80). wMK/wDLY unchanged from v2 (gate keeps Mode C on; deterministic same seed). |
 | 748c0a8 | v06 P2 — `run_brkga` enforces the wall-clock budget inside the decode loop (`score_pop`); fixpoint cap investigated and kept at 8 (lowering it to 3 regressed wMK/wDLY on large R, so rejected) | No quality change in the common case (the GA finds its best early): 3 of 4 large-R head-to-head cases identical to the pre-guard overrun, full_R20 wMK ~4% worse and still beating the MILP. Fixes the prior 72–81 s budget overrun on R20/R30 (BATTERY.md 60 s violation). Part II wMK/wDLY R20/R30 rows refreshed by a guarded re-battery (log `…_20260621_074725.log`): small drops (full_R20 wMK −2.45%→−2.98%, triangle_R30 wMK +21.7%→+20.6%), all numbers now budget-honest. |
 
 ---
 
-*Keep this file in sync with `theory_assisted_job.py`: when the code
-changes behaviour, invoke `/sync-method-doc methods/theory_assisted`
+*Keep this file in sync with `brkga.py`: when the code
+changes behaviour, invoke `/sync-method-doc methods/brkga_v02`
 with a brief hint describing what changed and (if relevant)
 `log: <battery-log-path>` for refreshing Part II.  Design rationale
-and the reading behind the method live in [`notes/design.md`](notes/design.md)
-and [`notes/synthesis.md`](notes/synthesis.md).*
+and the reading behind the method live in
+[`design.md`](design.md) and [`synthesis.md`](synthesis.md).*

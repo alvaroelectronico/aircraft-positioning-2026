@@ -85,16 +85,20 @@ _ta_mod = _il_util.module_from_spec(_ta_spec)
 _ta_spec.loader.exec_module(_ta_mod)
 TheoryAssistedIGVND = _ta_mod.IteratedGreedyVNDJobSolver
 
-# theory_assisted (current attempt, v06) — Candidate C: BRKGA with a
-# mixed-chromosome decoder.  Developed in isolation under
-# methods/theory_assisted/; registering its solver here (the runner is outside
-# methods/<X>/ and exempt from the cross-method isolation scan) is the
-# sanctioned batch-registration step.  Labels use the "ta_brkga_" prefix.
-_TA_BRKGA_PATH = _ROOT / "methods" / "theory_assisted" / "jobs" / "theory_assisted_job.py"
-_ta_brkga_spec = _il_util.spec_from_file_location("_ta_brkga_job", str(_TA_BRKGA_PATH))
-_ta_brkga_mod = _il_util.module_from_spec(_ta_brkga_spec)
-_ta_brkga_spec.loader.exec_module(_ta_brkga_mod)
-TheoryAssistedBRKGA = _ta_brkga_mod.TheoryAssistedJobSolver
+# brkga_v02 method — Claude-assisted v02, Candidate C of the literature
+# synthesis (BRKGA with mixed-chromosome decoder).  Sibling of
+# iterated_greedy_vnd_v02 (same scaffold + LLM, different candidate).
+# Loaded via importlib (the entry-point module is just called brkga.py and
+# would collide with the internal brkga_engine module if it were on
+# sys.path).  The runner is outside methods/<X>/ and exempt from the
+# cross-method isolation scan.  Labels keep the "ta_brkga_" prefix for
+# results.csv continuity (they originated when the method lived under
+# methods/theory_assisted/).
+_BRKGA_V02_PATH = _ROOT / "methods" / "brkga_v02" / "jobs" / "brkga.py"
+_brkga_v02_spec = _il_util.spec_from_file_location("_brkga_v02_solver", str(_BRKGA_V02_PATH))
+_brkga_v02_mod = _il_util.module_from_spec(_brkga_v02_spec)
+_brkga_v02_spec.loader.exec_module(_brkga_v02_mod)
+TheoryAssistedBRKGA = _brkga_v02_mod.BRKGAJobSolver
 
 from tgr_solver import TGRSolver                            # noqa: E402
 from fixed_assignment_scheduler_aircraft import FixedAssignmentSchedulerAircraft  # noqa: E402

@@ -36,31 +36,21 @@ Read ``problems/jobs/problem_statement.md`` and ``problems/jobs/checker.py``
 for the full feasibility rules.  Read the curated material under
 ``methods/theory_assisted/inspiration/`` (and its digests in
 ``methods/theory_assisted/digest/``) for the methodological background
-that informs this method.  Do NOT read any other ``methods/<X>/`` —
-see CLAUDE.md.
+that informs this method.  Read ``jobs/notes/synthesis.md`` for the
+4 candidate algorithmic approaches the digests support (A and C are
+exhausted by prior attempts — pick B or D, see CLAUDE.md).  Do NOT
+read any other ``methods/<X>/``.
 """
 from __future__ import annotations
 
-import os
-import sys
-
-# Make sibling modules importable whether loaded as a package or flat file.
-_HERE = os.path.dirname(os.path.abspath(__file__))
-if _HERE not in sys.path:
-    sys.path.insert(0, _HERE)
-
-from decoder import DecoderContext, decode    # noqa: E402
-from brkga import run_brkga                    # noqa: E402
-
 
 class TheoryAssistedJobSolver:
-    """BRKGA with a mixed-chromosome decoder (Candidate C — see jobs/notes/)."""
+    """Stub solver.  Replace ``solve`` with your implementation."""
 
     name = "theory_assisted_job"
 
     def __init__(self) -> None:
         self._config: dict = {}
-        self._log: list[str] = []
 
     def configure_solver(self, **kwargs) -> None:
         """Store any tunable parameters.  ``time_limit_s`` is the only
@@ -70,50 +60,24 @@ class TheoryAssistedJobSolver:
     def get_config(self) -> dict:
         return dict(self._config)
 
-    def get_log(self) -> list[str]:
-        return list(self._log)
-
     def solve(self, instance_data: dict) -> dict:
-        """Return a feasible solution dict via the BRKGA decoder pipeline."""
-        cfg = self._config
-        w_mk = float(cfg.get("weight_makespan", 0.1))
-        w_dly = float(cfg.get("weight_delay", 1.0))
-        w_mov = float(cfg.get("weight_movements", 10.0))
-        weights = (w_mk, w_dly, w_mov)
+        """Return a solution dict (see module docstring for the shape).
 
-        # Profile-gated Mode-C (P1).  Mode C trades +2 movements (and a +delta
-        # job extension) for a cheaper access window; it only pays off when a
-        # movement is cheap relative to the makespan/delay it saves.  Enable it
-        # iff the movement weight does NOT dominate — W^S <= max(W^M, W^D).
-        # This enables Mode C under wMK/wDLY (1 <= 100) and disables it under
-        # wMOV (100 <= 1 is false) and the default profile (10 <= 1 is false),
-        # where the v2 battery showed it is pure overhead (the fixpoint decode
-        # is ~8x slower and starves the GA without buying objective gains).
-        # An explicit allow_mode_c in the config overrides the gate (ablations).
-        if "allow_mode_c" in cfg:
-            allow_mode_c = bool(cfg["allow_mode_c"])
-        else:
-            allow_mode_c = w_mov <= max(w_mk, w_dly)
-
-        ctx = DecoderContext(instance_data, weights, allow_mode_c=allow_mode_c)
-        self._log = []
-        self._log.append(f"allow_mode_c={allow_mode_c} (wMK={w_mk} wDLY={w_dly} wMOV={w_mov})")
-
-        def decode_fn(keys):
-            return decode(keys, ctx)
-
-        time_limit = cfg.get("time_limit_s")
-        time_limit = 30.0 if time_limit is None else float(time_limit)
-
-        best_sol, _ = run_brkga(
-            n_keys=2 * ctx.n_air,
-            decode_fn=decode_fn,
-            time_limit_s=time_limit,
-            seed=int(cfg.get("seed", 0)),
-            pop_size=cfg.get("pop_size"),
-            log=self._log,
+        Implementation guidance:
+        - Read the instance: ``instance_data`` is the JSON loaded by
+          ``shared/instance_io.load_json`` from a path under
+          ``data/instances_202605_02/``.
+        - Honour ``self._config.get("time_limit_s")``.
+        - Honour the weight keys
+          ``weight_makespan`` / ``weight_delay`` / ``weight_movements``
+          when computing ``objective``; see the contract in
+          ``shared/application.py``.
+        - Return a feasible solution per ``problems/jobs/checker.py``.
+        """
+        raise NotImplementedError(
+            "TheoryAssistedJobSolver.solve is not yet implemented. "
+            "See methods/theory_assisted/README.md for the start sequence."
         )
-        return best_sol
 
 
 if __name__ == "__main__":
