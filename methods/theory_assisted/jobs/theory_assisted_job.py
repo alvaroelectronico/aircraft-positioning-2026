@@ -84,7 +84,11 @@ class TheoryAssistedJobSolver:
 
         # Timing-gene cap: the chromosome's 3rd block can delay a start by up to
         # cap = timing_cap_factor · mean_T past its earliest feasible instant.
-        cap = float(self._config.get("timing_cap_factor", 1.0)) * model.mean_T
+        # Default 0.5 chosen by ablation (ablation_timing.py): it roughly halves
+        # the gap again on the dominant `full_tight` outlier (e.g. R20 wMK
+        # −96→−28 %, wMOV −184→−9 %, wDLY −27→+3 %) at a small cost on easy
+        # topologies; larger caps over-delay, smaller ones under-use the knob.
+        cap = float(self._config.get("timing_cap_factor", 0.5)) * model.mean_T
 
         # Population pinned to 20·|R| (= the 2|R|-era default) so the 3|R|
         # chromosome does not auto-inflate it — keeps the comparison clean.
