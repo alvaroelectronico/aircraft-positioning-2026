@@ -150,21 +150,35 @@ class IteratedGreedyVNDJobSolver:
         # only by the IG perturbation RNG).  The due-date rules (EDD / slack /
         # critical-ratio) and regret-2 steer tight-target aircraft into early
         # slots, which is what `wDLY` needs.
+        # Build the construction portfolio: a list of (name, constructor); each
+        # constructor, when called, returns a seed state (assignment, order).
         portfolio = self._build_portfolio()
 
+        # Global incumbent (best solution dict and its objective) over all restarts.
         best_sol, best_obj = None, float("inf")
         start_objs: list[float] = []          # per-start incumbents (search risk)
-        i = 0
+        i = 0                                  # restart counter
         while time.perf_counter() < global_dl - 0.05 and i < n_starts:
+            # --- one independent multi-start restart ---
+            # Each restart gets its own RNG (seed = base+i): restarts are
+            # reproducible and independent, so they explore different basins.
             self.rng = random.Random(base_seed + i)
             start_dl = min(global_dl, time.perf_counter() + per_start)
             self._deadline = start_dl
+            # Activate the zero-movement decoder for this restart's first phase.
             self._decode_fn = self._decode
+            # Tag the active decoder so the decode cache keys stay disjoint.
             self._decoder_tag = "v2"
+            # Pick this restart's construction rule, cycling through the portfolio.
             ctor_name, ctor = portfolio[i % len(portfolio)]
+            # Run the chosen constructor -> seed (assignment a0, priority order o0).
             a0, o0 = ctor()
+            # _one_start runs the full restart on this seed: a zero-movement
+            # search, then the checker-validated manoeuvre-aware polish; it
+            # returns the restart's best solution dict and its objective value.
             sol, obj = self._one_start(instance_data, a0, o0, start_dl)
-            start_objs.append(obj)
+            start_objs.append(obj)            # record for the search-risk diagnostic
+            # Keep this restart's result iff it strictly improves the incumbent.
             if obj < best_obj - 1e-9:
                 best_sol, best_obj = sol, obj
             self._log.append(
@@ -172,19 +186,25 @@ class IteratedGreedyVNDJobSolver:
                 f"ms={sol['metrics']['makespan']:.1f} dly={sol['metrics']['total_delay']:.1f} "
                 f"mov={sol['metrics']['movements']}  best={best_obj:.4f}"
             )
-            i += 1
+            i += 1                             # advance to the next restart
 
         # Option B — dense concentric-nesting schedule (targets dense `wMOV`).
         # Built ONCE with explicit start times (not via the earliest-feasible
         # decode, which cannot nest), validated by the checker, and adopted
         # only if it beats the multi-start best.  Gated to the movement-priority
         # regime with a blocking topology, where it is relevant.
+        # Gate: only worth trying when there is blocking AND the movement weight
+        # dominates (the regime where concentric nesting pays off).
         if self._arcs and self.wS >= self.wM and self.wS >= self.wD:
+            # Build the explicit concentric-nesting schedule; returns a full
+            # solution dict (movements = 0 by construction) or None.
             nest = self._dense_nest_solution()
+            # Adopt it only if it exists, strictly improves the incumbent, and
+            # _is_compliant (which runs the real paper-#2 checker -> bool) passes.
             if (nest is not None and nest["objective"] < best_obj - 1e-9
                     and self._is_compliant(nest, instance_data)):
                 nest["phase"] = "dense_nest"
-                best_sol, best_obj = nest, nest["objective"]
+                best_sol, best_obj = nest, nest["objective"]   # replace the incumbent
                 self._log.append(f"dense-nest ACCEPTED obj={best_obj:.4f} "
                                  f"ms={nest['metrics']['makespan']:.1f}")
 
@@ -206,6 +226,9 @@ class IteratedGreedyVNDJobSolver:
         # Self-diagnosed internal symptoms that later commits fire repairs on,
         # instead of an external "outlier-vs-MILP" label that a fresh instance
         # cannot provide.  Attached to the solution and summarised in the log.
+        # _diagnostics inspects the final solution and the per-start objectives
+        # and returns a dict of risk metrics (delay / nesting / search risk).
+        # Observability only — it does not change the returned schedule.
         diag = self._diagnostics(best_sol, start_objs)
         best_sol["diagnostics"] = diag
         dr, nr, sr = diag["delay_risk"], diag["nesting_risk"], diag["search_risk"]
@@ -228,7 +251,7 @@ class IteratedGreedyVNDJobSolver:
             f"phase={best_sol.get('phase')}  timed_out={best_sol['timed_out']}  "
             f"decodes={n_eval} cache_hit={hit_rate:.0%}  ({elapsed:.2f}s)"
         )
-        return best_sol
+        return best_sol     # the best checker-valid schedule found across all restarts
 
     # ------------------------------------------------------------------
     # Risk diagnostics (Commit 5 — observability, no behaviour change)
@@ -336,26 +359,44 @@ class IteratedGreedyVNDJobSolver:
     # ------------------------------------------------------------------
 
     def _search(self, assignment, order, deadline):
-        """VND + Iterated-Greedy loop using the current ``self._decode_fn``."""
+        """VND + Iterated-Greedy loop using the current ``self._decode_fn``.
+
+        Drives one restart's local search.  First the seed is taken to a local
+        optimum by the VND; then the Iterated-Greedy loop repeatedly perturbs
+        the *current* state (destroy + reconstruct), re-optimises it with the
+        VND, and decides whether to accept it.  Two incumbents are tracked: the
+        walk's current state ``cur`` and the global best ``best`` ever seen.
+        The loop stops at the deadline or after ``max_no_improve`` fruitless
+        iterations.  Returns the best ``(assignment, order)`` found.
+        """
         self._deadline = deadline
+        # Take the seed to a local optimum before the perturbation loop starts.
         assignment, order = self._vnd(assignment, order)
         best_assign, best_order = dict(assignment), list(order)
         best_obj = self._objective(self._eval(best_assign, best_order))
         cur_assign, cur_order = dict(best_assign), list(best_order)
         no_improve = 0
         while time.perf_counter() < deadline and no_improve < self.max_no_improve:
+            # Iterated-Greedy kick: destroy k aircraft and greedily rebuild,
+            # then re-descend to a local optimum with the VND.
             a2, o2 = self._perturb(cur_assign, cur_order, self.k_destroy)
             a2, o2 = self._vnd(a2, o2)
             obj2 = self._objective(self._eval(a2, o2))
             cur_obj = self._objective(self._eval(cur_assign, cur_order))
+            # Acceptance: walk to the new state if it does not worsen the
+            # current one (a "better-or-equal" random-walk acceptance).
             if obj2 <= cur_obj + 1e-9:
                 cur_assign, cur_order = a2, o2
+            # Track the global best separately, and reset the stale counter
+            # only on a strict global improvement.
             if obj2 < best_obj - 1e-9:
                 best_assign, best_order = dict(a2), list(o2)
                 best_obj = obj2
                 no_improve = 0
             else:
                 no_improve += 1
+            # Periodic intensification: after a streak of non-improving kicks,
+            # restart the walk from the global best so it does not drift away.
             if no_improve > 0 and no_improve % 50 == 0:
                 cur_assign, cur_order = dict(best_assign), list(best_order)
         return best_assign, best_order
@@ -457,43 +498,79 @@ class IteratedGreedyVNDJobSolver:
         """Open intervals where our start ``t`` is infeasible against an
         already-placed aircraft on position ``p2`` occupying ``[s2, f2]``.
 
+        This is the geometric heart of the zero-movement decoder.  We are
+        about to place an aircraft of stay length ``dur`` on position ``p``;
+        a neighbour already sits at ``p2`` over the time window ``[s2, f2]``.
+        Depending on whether ``p`` and ``p2`` share a position or form a
+        blocking arc, only certain start times ``t`` keep the schedule
+        manoeuvre-free.  We return the *complement* — the open interval(s) of
+        start times that are NOT allowed — so the caller can scan for the
+        earliest ``t`` that lies in none of them.
+
         Returns 1 or 2 intervals.  Two intervals leave a feasible *hole*
         between them — the nesting (containment) option — which the
-        earliest-fit scan can land in.
+        earliest-fit scan can land in.  This hole is exactly what lets a long
+        aircraft wrap a shorter blocking-related one instead of serialising
+        the two.
         """
         eta, eps = self.eta, self.eps
         if p2 == p:
-            # Same position: must be fully before/after with epsilon gap.
+            # Same position: the two stays may not overlap, and must be
+            # separated by the tow time eps.  Our stay [t, t+dur] clashes with
+            # [s2, f2] unless t+dur <= s2-eps (we finish first) or t >= f2+eps
+            # (we start last); the single forbidden band is everything between.
             return [(s2 - dur - eps, f2 + eps)]
         if (p2, p) in self._arcs:
-            # We are the REAR (p2 is the front).  Allowed: before, after,
-            # or our stay encloses the front stay.
-            if dur >= (f2 - s2) + 2 * eta - 1e-9:        # enclose feasible
+            # We are the REAR aircraft (p2 holds the front).  To keep BOTH our
+            # access instants (entry t, exit t+dur) in Mode A, our stay must be
+            # entirely before the front (t+dur <= s2-eta), entirely after it
+            # (t >= f2+eta), or *enclose* it (t <= s2-eta and t+dur >= f2+eta).
+            if dur >= (f2 - s2) + 2 * eta - 1e-9:
+                # Long enough to enclose: two forbidden bands, with the gap
+                # between them = the "enclosing" start window (the nesting hole).
                 return [(s2 - eta - dur, f2 + eta - dur), (s2 - eta, f2 + eta)]
+            # Too short to enclose: only before/after survive, so one band.
             return [(s2 - eta - dur, f2 + eta)]
         if (p, p2) in self._arcs:
-            # We are the FRONT (p2 is the rear).  Allowed: rear before,
-            # rear after, or the rear stay encloses ours.
-            if dur <= (f2 - s2) - 2 * eta + 1e-9:        # enclose feasible
+            # We are the FRONT aircraft (p2 holds the rear).  Symmetric to the
+            # rear case, but now it is the rear's fixed access instants (s2, f2)
+            # that must stay in Mode A relative to OUR stay: the rear is before
+            # us, after us, or its stay encloses ours.
+            if dur <= (f2 - s2) - 2 * eta + 1e-9:
+                # The rear is long enough to enclose us: two forbidden bands
+                # with the enclosing window between them.
                 return [(s2 - dur - eta, s2 + eta), (f2 - dur - eta, f2 + eta)]
             return [(s2 - dur - eta, f2 + eta)]
-        return []  # non-conflicting positions: free overlap
+        return []  # p and p2 do not block each other: free to overlap freely
 
     # ==================================================================
     # Decoder  (assignment + order  ->  full solution dict)
     # ==================================================================
 
     def _decode(self, assignment: dict, order: list[str]) -> dict:
+        # Zero-movement decoder.  Aircraft are placed one at a time in the
+        # priority order; each is given the earliest start that is feasible
+        # (manoeuvre-free) against everything already placed.  Because every
+        # placement keeps all access instants in Mode A, the result has
+        # movements = 0 and is feasible by construction — the guaranteed floor.
         eta, eps = self.eta, self.eps
-        placed: dict[str, tuple[float, float]] = {}
+        placed: dict[str, tuple[float, float]] = {}  # r -> (start, finish)
 
         for r in order:
             p = assignment[r]
             dur = self.T[r]
+            # Collect the forbidden start-time bands induced by every neighbour
+            # already placed (same-position separation and blocking geometry).
             forbidden: list[tuple[float, float]] = []
             for r2, (s2, f2) in placed.items():
                 forbidden.extend(self._forbidden(p, dur, assignment[r2], s2, f2))
             forbidden.sort()
+            # Earliest-fit scan: start at the earliest start E[r] and, whenever
+            # t falls inside a forbidden band, jump to that band's end.  Repeat
+            # until a full pass moves nothing — t is then the earliest instant
+            # outside every band.  Jumping to `hi` naturally lands t in the
+            # nesting hole left between a pair of bands when enclosing is the
+            # only feasible option.
             t = self.E[r]
             moved = True
             while moved:
@@ -692,34 +769,80 @@ class IteratedGreedyVNDJobSolver:
         the due-date rules (EDD / slack / critical-ratio) and regret-2 steer
         tight-target aircraft into early slots — the lever `wDLY` needs."""
         ids = self.aircraft_ids
+        # Each rule below is a *priority order* in which the greedy constructor
+        # will insert the aircraft.  Inserting an aircraft early gives it the
+        # pick of positions/timing, so the rule decides who gets that priority.
+        #
+        # NEH (makespan): longest total processing time T_r first.  The classic
+        # NEH idea — placing the bulkiest jobs while the schedule is still empty
+        # leaves the small ones to fill the gaps — which packs makespan tightly.
         by_neh   = sorted(ids, key=lambda r: -self.T[r])                      # makespan
+        # EDD (earliest due date): smallest target finish L_r first.  Jackson's
+        # rule for minimising maximum lateness; gives the tightest-deadline
+        # aircraft the earliest slots, so it targets the delay objective.
         by_edd   = sorted(ids, key=lambda r: self.L[r])                       # earliest due date
+        # SLACK: least slack L_r - E_r - T_r first.  Slack is the headroom
+        # between the time window and the work; aircraft with little (or
+        # negative) slack are the most at risk of being late, so they go first.
         by_slack = sorted(ids, key=lambda r: self.L[r] - self.E[r] - self.T[r])
+        # CR (critical ratio): smallest L_r / T_r first.  Relates the deadline
+        # to the workload — a small ratio means a tight deadline for a lot of
+        # work (urgent); guards against EDD favouring a near but light job over
+        # a slightly later but much heavier one.  Infinite ratio (T_r = 0) last.
         by_cr    = sorted(ids, key=lambda r: (self.L[r] / self.T[r]) if self.T[r] > 0 else float("inf"))
+        # BLEND: rank each aircraft by its *position* in the NEH / EDD / SLACK
+        # orders and sort by a weighted average of those ranks (0.4 makespan,
+        # 0.3 + 0.3 due-date).  A hedge ordering that compromises between the
+        # makespan and delay rules instead of committing to either.
         rT = {r: i for i, r in enumerate(by_neh)}
         rL = {r: i for i, r in enumerate(by_edd)}
         rS = {r: i for i, r in enumerate(by_slack)}
         by_blend = sorted(ids, key=lambda r: 0.4 * rT[r] + 0.3 * rL[r] + 0.3 * rS[r])
 
+        # Helper that turns a fixed priority order `o` into a portfolio entry:
+        # it returns a *constructor* (a zero-argument callable) which, when the
+        # multi-start calls it, runs the greedy insertion in that order and
+        # returns the seed (assignment, copy of the order).  The `o=o` default
+        # binds the current order into each lambda, so every entry keeps its own
+        # order rather than all sharing the loop variable's final value.
         def fixed(o):
             return lambda o=o: (self._greedy_construct(o), list(o))
 
-        # Order chosen so the first n_starts cover makespan + two due-date
-        # rules + regret-2 (the most useful mix for a small n_starts).
+        # The portfolio: five fixed-order greedy seeds plus one dynamic
+        # regret-2 seed.  The list order matters because the multi-start uses
+        # only the first n_starts entries on large instances — it is arranged so
+        # that mix covers the makespan rule (NEH), two due-date rules (EDD,
+        # SLACK) and the regret-2 rule first, the most useful spread when
+        # n_starts is small; CR and BLEND are extra diversity for small
+        # instances that can afford more restarts.
         return [
-            ("NEH",     fixed(by_neh)),
-            ("EDD",     fixed(by_edd)),
-            ("SLACK",   fixed(by_slack)),
-            ("regret2", self._regret2_construct),
-            ("CR",      fixed(by_cr)),
-            ("BLEND",   fixed(by_blend)),
+            ("NEH",     fixed(by_neh)),      # makespan-oriented seed
+            ("EDD",     fixed(by_edd)),      # due-date seed (max-lateness rule)
+            ("SLACK",   fixed(by_slack)),    # due-date seed (least headroom first)
+            ("regret2", self._regret2_construct),  # dynamic: largest-regret insertion
+            ("CR",      fixed(by_cr)),       # due-date seed (deadline vs workload)
+            ("BLEND",   fixed(by_blend)),    # compromise of makespan + due-date ranks
         ]
 
     def _regret2_construct(self):
         """Regret-2 insertion: at each step insert the aircraft whose 2nd-best
         position is much worse than its best (largest regret), at its best
         position (appended to the order).  Targets low-slack / high-`Wᴰ`
-        aircraft that have few good slots."""
+        aircraft that have few good slots.
+
+        KPI used for the regret.  The score of placing aircraft ``r`` at
+        position ``p`` is the **partial decoded objective** of the schedule
+        built so far plus ``r`` at ``p`` — i.e. ``self._objective(self._eval(
+        assignment, order + [r]))``, which decodes that partial state and
+        returns ``W^M·makespan + W^D·total_delay + W^S·movements`` (with the
+        active v2 decoder, ``movements = 0``, so it reduces to the weighted
+        makespan-plus-delay of the committed aircraft).  For each aircraft this
+        score is evaluated at every position; the regret is the gap between its
+        two cheapest positions, ``second_best_objective − best_objective``.  A
+        large regret means the aircraft has essentially one good slot and would
+        be expensive to place later, so it is committed now — exactly the
+        low-slack / tight-deadline aircraft that drive the delay objective.
+        """
         assignment: dict = {}
         order: list[str] = []
         unplaced = list(self.aircraft_ids)
@@ -729,12 +852,15 @@ class IteratedGreedyVNDJobSolver:
                 costs = []
                 for p in self.positions:
                     assignment[r] = p
+                    # KPI = partial decoded objective (weighted makespan+delay,
+                    # movements=0 under v2) of the committed prefix plus r@p.
                     costs.append((self._objective(self._eval(assignment, order + [r])), p))
                 del assignment[r]
-                costs.sort(key=lambda c: c[0])
-                best_o, best_p = costs[0]
-                second_o = costs[1][0] if len(costs) > 1 else best_o
-                regret = second_o - best_o
+                costs.sort(key=lambda c: c[0])          # cheapest position first
+                best_o, best_p = costs[0]               # best objective and its position
+                second_o = costs[1][0] if len(costs) > 1 else best_o  # 2nd-best objective
+                regret = second_o - best_o              # how much worse the fallback slot is
+                # Track the aircraft with the largest regret (most to lose by waiting).
                 if choice is None or regret > choice[0]:
                     choice = (regret, r, best_p)
             _, r, p = choice
@@ -751,6 +877,9 @@ class IteratedGreedyVNDJobSolver:
     # ==================================================================
 
     def _vnd(self, assignment: dict, order: list[str]) -> tuple[dict, list[str]]:
+        """Sequential B-VND: descend through the three neighbourhoods, and on
+        any improvement reset to the first one; stop when no neighbourhood can
+        improve (a local optimum w.r.t. all three) or the budget runs out."""
         assignment = dict(assignment)
         order = list(order)
         cur = self._objective(self._eval(assignment, order))
@@ -759,11 +888,13 @@ class IteratedGreedyVNDJobSolver:
         while k < len(neighbourhoods):
             if self._time_up():
                 break
+            # Each call applies the first improving move it finds in N_k (first
+            # improvement) and reports whether it improved the objective.
             improved, assignment, order, cur = neighbourhoods[k](assignment, order, cur)
             if improved:
-                k = 0  # B-VND reset
+                k = 0  # B-VND reset: go back to the first neighbourhood
             else:
-                k += 1
+                k += 1  # no improvement in N_k: try the next neighbourhood
         return assignment, order
 
     def _n_reassign(self, assignment, order, cur):
@@ -871,16 +1002,26 @@ class IteratedGreedyVNDJobSolver:
         zero-movement options are always among the candidates, so this
         only ever adds the manoeuvre option, never removes a feasible one.
         """
+        # Aircraft grouped by their assigned position, each list kept in
+        # priority order so same-position aircraft are sequenced consistently.
         pos_members = {p: [r for r in order if assignment[r] == p] for p in self.positions}
-        placed: dict[str, tuple] = {}
+        placed: dict[str, tuple] = {}  # r -> (start, finish, sched, mov_events)
 
+        # Schedule positions DEEPEST-REAR FIRST.  This ordering is what makes
+        # the manoeuvre accounting tractable: by the time we lay out a front
+        # aircraft, every rear it can block has already been placed, so the
+        # rear access instants it must react to are known constants.
         for p in self._pos_by_depth_desc:
-            prev_f = None
+            prev_f = None  # finish of the previous aircraft sharing position p
             for r in pos_members[p]:
+                # Earliest this aircraft may start: its own E[r], pushed past
+                # the previous same-position aircraft by the tow time eps.
                 lower = self.E[r]
                 if prev_f is not None:
                     lower = max(lower, prev_f + self.eps)
-                # access instants of already-placed rears blocked by p
+                # Gather the access instants (entry s_a and exit f_a) of every
+                # already-placed rear aircraft that this position blocks — these
+                # are the events the front must classify as Mode A / B / C.
                 rear_acc: list[float] = []
                 for pr in self._rears_of[p]:
                     for a in pos_members.get(pr, []):
@@ -888,6 +1029,7 @@ class IteratedGreedyVNDJobSolver:
                             s_a, f_a = placed[a][0], placed[a][1]
                             rear_acc.append(s_a)
                             rear_acc.append(f_a)
+                # Place the front at its minimum-cost feasible start.
                 s_r, f_r, sched, mov_events = self._place_front(r, lower, rear_acc)
                 placed[r] = (s_r, f_r, sched, mov_events)
                 prev_f = f_r
@@ -926,35 +1068,51 @@ class IteratedGreedyVNDJobSolver:
         """
         eta, T = self.eta, self.T[r]
         chain = self.chain[r]
-        # prefix start / end offset of each job relative to the aircraft start,
-        # ignoring delta extensions (approximate seed; the sim corrects it).
+        # prefix[j] = work-time offset of job j's start relative to the aircraft
+        # start, ignoring any delta extensions (an approximate seed; the forward
+        # simulation in _sim_front recomputes exact times including extensions).
         prefix, acc = [], 0.0
         for (_, D) in chain:
             prefix.append(acc)
             acc += D
 
+        # Build a small set of candidate start times.  The strategy is to
+        # propose only starts that are "interesting" with respect to some rear
+        # access tau: starts that keep tau in Mode A, or that deliberately align
+        # a job interior / job end on tau to invite a cheap Mode-C / Mode-B.
+        # `lower` is always included, and the zero-movement options are always
+        # present, so the chosen start can never be worse than a Mode-A schedule.
         cands = {lower}
         for tau in rear_acc:
-            # zero-movement options: front entirely before / after / nested
+            # Zero-movement options: place the whole stay before tau (finish at
+            # tau-eta), after tau (start at tau+eta), or nested so tau is the
+            # entry margin (start at tau-eta-T).  All keep tau in Mode A.
             for c in (tau - eta - T, tau - eta, tau + eta):
                 if c >= lower - 1e-9:
                     cands.add(round(c, 4))
             for (jid, D), pj in zip(chain, prefix):
-                # Mode-C alignment: an interruptible job's interior over tau.
+                # Mode-C alignment: shift the start so that job j's *interior*
+                # straddles tau (just after its start, just before its end, or
+                # at its midpoint) — only worthwhile if j is interruptible.
                 if self.interruptible[jid]:
                     for c in (tau - pj - eta, tau - pj - D + eta, tau - pj - D / 2.0):
                         if c >= lower - 1e-9:
                             cands.add(round(c, 4))
-                # Mode-B alignment: a job *end* just before tau, so tau falls
-                # into the gap opened after it (no delta extension).
+                # Mode-B alignment: shift the start so job j *ends* just before
+                # tau, so tau falls into the inter-job gap opened after j and is
+                # routed through it with no delta extension.
                 for c in (tau - pj - D, tau - pj - D - eta):
                     if c >= lower - 1e-9:
                         cands.add(round(c, 4))
-        # guaranteed-feasible fallback: start after every rear access (all
-        # Mode A) AND at/after `lower` (same-position separation, E_r).
+        # Guaranteed-feasible fallback: start after every rear access, so the
+        # whole stay is past them (all Mode A), respecting `lower` too.  This
+        # ensures the candidate set always contains at least one feasible start.
         if rear_acc:
             cands.add(max(lower, max(rear_acc) + eta))
 
+        # Price every candidate by simulating it, and keep the cheapest feasible
+        # one.  The cost mirrors the objective's local contribution of r:
+        # weighted finish + delay + manoeuvre penalty (2 movements per event).
         best = None  # (cost, s, f, sched, mov_events)
         for s in sorted(cands):
             f_r, sched, mov_events, ok = self._sim_front(r, s, rear_acc)
@@ -991,17 +1149,24 @@ class IteratedGreedyVNDJobSolver:
         """
         eta, delta, mu = self.eta, self.delta, self.mu
         chain = self.chain[r]
-        acc = sorted(rear_acc)
-        used = [False] * len(acc)
-        sched = []
-        mov_events = 0
-        t = s_start
+        acc = sorted(rear_acc)        # the rear access instants to classify
+        used = [False] * len(acc)     # which accesses have been accounted for
+        sched = []                    # (job_id, start, finish, kappa) per job
+        mov_events = 0                # Mode-B + Mode-C access events so far
+        t = s_start                   # running cursor = start of the next job
         n = len(chain)
 
+        # Lay the jobs of r one after another from s_start, classifying every
+        # rear access against each job as we go.
         for j in range(n):
             jid, D = chain[j]
             interruptible = self.interruptible[jid]
 
+            # --- Mode-C count via a fixpoint --------------------------------
+            # Each access strictly inside job j's interior is a Mode-C
+            # interruption that lengthens the job by delta.  But lengthening the
+            # job widens its interior, which can pull in further accesses — so
+            # we iterate kappa = (#interior accesses) until it stops growing.
             kappa = 0
             while True:                                   # Mode-C kappa fixpoint
                 f_j = t + D + delta * kappa
@@ -1010,11 +1175,15 @@ class IteratedGreedyVNDJobSolver:
                 if cnt == kappa:
                     break
                 kappa = cnt
-                if kappa > len(acc) + 5:                  # safety
+                if kappa > len(acc) + 5:                  # runaway guard
                     return None, None, None, False
             f_j = t + D + delta * kappa
+            # A Mode-C interruption is only legal on an interruptible job.
             if kappa > 0 and not interruptible:
-                return None, None, None, False            # Mode C on non-interruptible
+                return None, None, None, False
+            # Reject accesses that land in the eta-margin at either edge of the
+            # job: they are neither cleanly outside nor cleanly inside, so the
+            # checker would consider them ambiguous/infeasible.
             for i, tau in enumerate(acc):                 # eta-margin bad zones
                 if used[i]:
                     continue
@@ -1022,6 +1191,7 @@ class IteratedGreedyVNDJobSolver:
                     return None, None, None, False
                 if f_j - eta + 1e-9 < tau < f_j - 1e-9:
                     return None, None, None, False
+            # Mark the interior accesses as consumed (handled as Mode C).
             for i, tau in enumerate(acc):                 # consume Mode-C accesses
                 if not used[i] and t + eta - 1e-9 <= tau <= f_j - eta + 1e-9:
                     used[i] = True
@@ -1029,16 +1199,24 @@ class IteratedGreedyVNDJobSolver:
             sched.append((jid, t, f_j, kappa))
             t = f_j
 
-            # Mode-B gap before the next job
+            # --- Mode-B gap before the next job -----------------------------
+            # Accesses that fall just after this job's end can instead be routed
+            # through an inter-job gap (no delta extension).  We open a gap when
+            # it is the cheaper option (access within `delta` of the end) or
+            # mandatory (the next job is non-interruptible, so the access cannot
+            # be absorbed as Mode C and MUST pass through a gap).
             if j < n - 1:
                 next_interruptible = self.interruptible[chain[j + 1][0]]
                 window = chain[j + 1][1] if not next_interruptible else delta
                 batch = [i for i in range(len(acc))
                          if not used[i] and f_j + 1e-9 < acc[i] <= f_j + window + 1e-9]
                 if batch:
+                    # The gap must end past the last routed access AND be wide
+                    # enough to absorb mu per access routed through it.
                     s_next = max(max(acc[i] for i in batch), f_j + mu * len(batch))
-                    # reconcile: every unused access in (f_j, s_next] is in the
-                    # gap (Mode B) and must be counted, which may widen the gap.
+                    # Reconcile: widening the gap may now enclose further unused
+                    # accesses, which are then also "in the gap" (Mode B) and
+                    # counted — which can widen it again.  Iterate to a fixpoint.
                     while True:
                         extra = [i for i in range(len(acc))
                                  if not used[i] and i not in batch
@@ -1050,11 +1228,12 @@ class IteratedGreedyVNDJobSolver:
                     for i in batch:
                         used[i] = True
                     mov_events += len(batch)
-                    t = s_next
+                    t = s_next                            # next job starts after the gap
 
         f_r = t
-        # Any unused access strictly inside the stay is an unclassifiable /
-        # zero-gap boundary case — reject (the checker would too).
+        # Final check: any access still unclassified that lies strictly inside
+        # the aircraft's stay is an unrepresentable boundary/zero-gap case —
+        # reject it (the real checker would reject it too).
         for i, tau in enumerate(acc):
             if not used[i] and s_start + eta - 1e-9 <= tau <= f_r - eta + 1e-9:
                 return None, None, None, False
