@@ -1,0 +1,23 @@
+\begin{table}[htbp]
+  \centering
+  \caption{Relative objective gap of IGVND against the MILP baseline, $g = (z_{\mathrm{MILP}} - z_{\mathrm{IGVND}})/z_{\mathrm{MILP}}$ (mean over 10 seeds, in \%). $g>0$ means IGVND attains the \emph{lower} objective. All runs share a 60\,s budget. Table~\ref{tab:milp_conv} reports, per configuration, on how many seeds the MILP reference is a proven optimum rather than a timed-out incumbent.}
+  \label{tab:gap_profile}
+  \begin{tabular}{lrrrr}
+    \toprule
+    Configuration & $w^{\mathrm{MK}}$ & $w^{\mathrm{DLY}}$ & $w^{\mathrm{MOV}}$ & All \\
+    \midrule
+    None ($R{=}10$) & +0.0 & -0.0 & +0.0 & -0.0 \\
+    Chain ($R{=}10$) & -1.2 & +7.0 & -10.4 & -1.5 \\
+    Hub ($R{=}10$) & -2.5 & +3.6 & -4.0 & -1.0 \\
+    Triangle ($R{=}10$) & -0.4 & +6.0 & +0.6 & +2.0 \\
+    Two rows ($R{=}10$) & -0.1 & +1.4 & +0.4 & +0.5 \\
+    Full ($R{=}10$) & +1.4 & +24.1 & -5.0 & +6.8 \\
+    Triangle, loose & +0.1 & -19.0 & -0.0 & -6.3 \\
+    Triangle, medium & +0.4 & +5.5 & +1.9 & +2.6 \\
+    Triangle ($R{=}5$) & -0.0 & -0.2 & -3.9 & -1.4 \\
+    Triangle ($R{=}20$) & +17.2 & +14.3 & +12.0 & +14.5 \\
+    Triangle ($R{=}30$) & +35.7 & +37.0 & +35.3 & +36.0 \\
+    Full ($R{=}20$) & +41.2 & +56.2 & +26.3 & +41.2 \\
+    \bottomrule
+  \end{tabular}
+\end{table}

@@ -1,0 +1,54 @@
+% ==============================================================================
+\section{Introduction}
+\label{sec:intro}
+% ==============================================================================
+
+Maintenance hangars are a scarce and tightly constrained resource.  An
+aircraft parked at a \emph{front} position physically blocks the access
+path of any aircraft parked at the \emph{rear} positions behind it, so
+servicing the rear aircraft may require temporarily towing the front one
+out of the way and returning it once the manoeuvre is complete.  Each such
+manoeuvre occupies the ground crew, interrupts ongoing service, and carries
+a non-negligible risk of damage, so an operator wants to schedule the fleet
+to finish on time while keeping makespan and the number of manoeuvres low.
+
+A companion paper modelled this problem at the \emph{aircraft level},
+treating each aircraft as a single uninterrupted block of occupancy.  That
+abstraction is adequate when a blocking interaction can only be resolved by
+serialising the two aircraft, but it discards the operational reality that
+the work performed on an aircraft is a \emph{chain of jobs} with individual
+durations, and that some of those jobs can be paused briefly to clear the
+way for a neighbouring movement while others cannot.  Whether a rear
+aircraft can be accessed while a front aircraft is being serviced depends
+precisely on \emph{which job} the front aircraft is running at that
+instant: an access that falls in an inter-job gap is cheap, one that falls
+inside an interruptible job costs a bounded extension, and one that falls
+inside a non-interruptible job is simply impossible.  Capturing these
+distinctions requires modelling blocking at the \emph{job level}, which is
+the subject of this paper.
+
+We make two contributions.  First, we give an exact mixed-integer linear
+programming (MILP) formulation of the job-level problem
+(\S\ref{sec:milp}).  Its central device is a partition constraint that
+classifies every access of a blocked aircraft into exactly one of four
+mutually exclusive states --- before the front stay, after it, in an
+inter-job gap (Mode~B), or strictly inside an interruptible job (Mode~C)
+--- so that an access which cannot be classified, because its blocker is
+mid-way through a non-interruptible job, is correctly rendered infeasible.
+Second, we develop a metaheuristic, \textsc{IGVND} (\S\ref{sec:heuristic}),
+that couples an Iterated-Greedy outer loop with a Variable-Neighbourhood-%
+Descent local search around a problem-specific decoder, separating the
+combinatorial assignment-and-ordering decision from the timing decision and
+pricing the former with a fast deterministic schedule builder.
+
+We then compare the two methods on a controlled 120-instance benchmark that
+spans six blocking topologies, four fleet sizes and three slack levels,
+under three weight profiles that each isolate one objective term
+(\S\ref{sec:experiments}).  The exact solver plays a dual role: it is the
+\emph{yardstick} that certifies the heuristic's quality on the instances it
+can solve to optimality, and the \emph{baseline} it competes against on the
+instances it cannot.  The comparison shows that IGVND is exact or
+near-exact wherever the MILP proves optimality, and that it delivers
+substantially better feasible solutions in the same time budget on every
+configuration the MILP cannot close --- which is the regime an operator
+faces at realistic scale.

@@ -1,0 +1,23 @@
+\begin{table}[htbp]
+  \centering
+  \caption{MILP convergence within the 60\,s budget: number of seeds (out of 10) solved to proven optimality, per weight profile. On the remaining seeds Gurobi returns a feasible incumbent with a non-zero optimality gap; the IGVND comparison on those configurations is therefore a comparison of feasible solutions found within the same budget, not against a proven optimum.}
+  \label{tab:milp_conv}
+  \begin{tabular}{lccc}
+    \toprule
+    Configuration & $w^{\mathrm{MK}}$ & $w^{\mathrm{DLY}}$ & $w^{\mathrm{MOV}}$ \\
+    \midrule
+    None ($R{=}10$) & 10/10 & 10/10 & 10/10 \\
+    Chain ($R{=}10$) & 1/10 & 0/10 & 0/10 \\
+    Hub ($R{=}10$) & 7/10 & 0/10 & 2/10 \\
+    Triangle ($R{=}10$) & 10/10 & 0/10 & 0/10 \\
+    Two rows ($R{=}10$) & 10/10 & 0/10 & 0/10 \\
+    Full ($R{=}10$) & 0/10 & 0/10 & 0/10 \\
+    Triangle, loose & 10/10 & 10/10 & 10/10 \\
+    Triangle, medium & 10/10 & 0/10 & 0/10 \\
+    Triangle ($R{=}5$) & 10/10 & 10/10 & 10/10 \\
+    Triangle ($R{=}20$) & 0/10 & 0/10 & 0/10 \\
+    Triangle ($R{=}30$) & 0/10 & 0/10 & 0/10 \\
+    Full ($R{=}20$) & 0/10 & 0/10 & 0/10 \\
+    \bottomrule
+  \end{tabular}
+\end{table}

@@ -1,0 +1,391 @@
+% ==============================================================================
+\section{An Iterated-Greedy / VND Heuristic}
+\label{sec:heuristic}
+% ==============================================================================
+
+The MILP of \S\ref{sec:milp} is exact but its size grows quickly: the
+partition variables $z^-,\,z^+,\,b^B,\,b^C$ contribute
+$O\!\left(|\calR|^2 \cdot |\calA| \cdot (N_{\max}+1)\right)$ binaries, so
+proving optimality becomes intractable well before the fleet sizes of
+operational interest (\S\ref{sec:experiments}).  We therefore develop a
+metaheuristic, \textsc{IGVND}, that couples an Iterated-Greedy outer loop
+with a Variable-Neighbourhood-Descent (VND) local search around a
+problem-specific decoder.  The design draws on the NEH constructive
+heuristic, Iterated Greedy, and Variable Neighbourhood
+Search~\citep{Nawaz1983,Ruiz2007,Hansen2001,Mladenovic1997}.
+
+% ------------------------------------------------------------------------------
+\subsection{Overview}
+\label{sec:igvnd_principle}
+% ------------------------------------------------------------------------------
+
+The central idea, recurrent in the scheduling literature the method draws
+on, is to \emph{separate the expensive combinatorial decision from the
+cheap timing decision}.  A solution is represented by a compact
+\emph{combinatorial state} $(\pi, \sigma)$, where $\pi : \calR \to \calP$
+is the position assignment and $\sigma$ is a global priority order over
+the aircraft.  All search is conducted on this small state.  An inner,
+deterministic \emph{decoder} maps a state $(\pi, \sigma)$ to concrete job
+start and finish times, classifies every blocking access into its mode
+(\S\ref{sec:problem}), and returns the objective value~\eqref{eq:milpobj};
+we write $z(\pi,\sigma)$ for that value.  The decoder is the oracle that
+prices a combinatorial state, and the search never manipulates timing
+variables directly.
+
+The method is built from five blocks, each detailed in a subsection below:
+\begin{enumerate}[leftmargin=2.2em, itemsep=1pt]
+  \item a \textbf{decoder} (\S\ref{sec:igvnd_decoder}) in two regimes ---
+        a zero-movement regime that is feasible by construction, and a
+        manoeuvre-aware regime that may spend Mode-(B)/Mode-(C) movements
+        when they reduce the objective;
+  \item a \textbf{construction portfolio} (\S\ref{sec:igvnd_construction})
+        that seeds each restart from a different priority rule;
+  \item a \textbf{Variable Neighbourhood Descent}
+        (\S\ref{sec:igvnd_vnd}) that refines a state to a local optimum;
+  \item an \textbf{Iterated-Greedy} loop (\S\ref{sec:igvnd_ig}) that
+        perturbs and re-optimises around the incumbent; and
+  \item a \textbf{multi-start} driver with a feasibility safety net
+        (\S\ref{sec:igvnd_safety}).
+\end{enumerate}
+
+Algorithm~\ref{alg:igvnd} states the method at a high level.  Each restart
+draws a seed from the portfolio, optimises it first in the zero-movement
+regime to obtain a guaranteed-feasible \emph{floor}, and then polishes it
+in the manoeuvre-aware regime, retaining the polished schedule only if an
+independent feasibility check certifies it and it improves the floor.  A
+single dense-nesting candidate is added when the weights reward it.  The
+best certified schedule over all restarts is returned.
+
+\begin{algorithm}[htbp]
+\DontPrintSemicolon
+\SetKwInput{KwData}{Input}
+\SetKwInput{KwResult}{Output}
+\KwData{instance $I$; weights $(W^M, W^D, W^S)$; time budget $T$.}
+\KwResult{a feasible schedule.}
+preprocess $I$; build the construction portfolio
+   $\mathcal{C} = (\rho_1, \ldots, \rho_6)$ (\S\ref{sec:igvnd_construction})\;
+set the number of restarts $n_s = 8$ if $R \le 10$, $\;4$ if $R \le 20$,
+   $\;3$ otherwise\;
+$z^\star \leftarrow +\infty$\;
+\For{$i = 1$ \KwTo $n_s$ \textbf{\emph{while}} time remains}{
+  allot the time share $T/n_s$ to restart $i$\;
+  $(\pi, \sigma) \leftarrow \textsc{Construct}(\rho_{1 + (i-1 \bmod 6)})$
+     \tcp*{Alg.~\ref{alg:construct}}
+  $(\pi, \sigma) \leftarrow \textsc{Search}(\pi, \sigma, \textsc{Decode}_0)$;
+     \quad $z_{\mathrm{floor}} \leftarrow z_0(\pi, \sigma)$
+     \tcp*{zero-movement floor}
+  $(\pi', \sigma') \leftarrow \textsc{Search}(\pi, \sigma, \textsc{Decode}_1)$
+     \tcp*{manoeuvre-aware polish}
+  \eIf{$z_1(\pi', \sigma') < z_{\mathrm{floor}}$ \textbf{\emph{and}}
+        $\textsc{Decode}_1(\pi', \sigma')$ passes the feasibility check}{
+    $(\sigma^\circ, z^\circ) \leftarrow$ the polished schedule and its value\;
+  }{
+    $(\sigma^\circ, z^\circ) \leftarrow$ the floor schedule and $z_{\mathrm{floor}}$\;
+  }
+  \lIf{$z^\circ < z^\star$}{$z^\star \leftarrow z^\circ$; record the schedule}
+}
+\If{$W^S$ dominates the weights \textbf{\emph{and}} $\calA \ne \emptyset$}{
+  build the dense-nesting candidate (\S\ref{sec:igvnd_safety})\;
+  adopt it if it is feasible and improves $z^\star$\;
+}
+\Return the recorded schedule attaining $z^\star$\;
+\caption{\textsc{IGVND} --- master procedure.}
+\label{alg:igvnd}
+\end{algorithm}
+
+% ------------------------------------------------------------------------------
+\subsection{The decoder}
+\label{sec:igvnd_decoder}
+% ------------------------------------------------------------------------------
+
+\paragraph{Zero-movement regime.}
+This regime produces schedules that are feasible by construction with
+\emph{no manoeuvres} ($n = 0$).  For every blocking arc it keeps each rear
+aircraft's two access instants in Mode~A.  Relative to a front aircraft,
+this leaves exactly three admissible placements of a rear aircraft's stay:
+entirely \emph{before} the front, entirely \emph{after} it, or
+\emph{enclosing} it (the rear enters at least $\eta$ before the front
+starts and leaves at least $\eta$ after it finishes).  The third placement
+--- \emph{nesting} --- is what makes the regime competitive: a long
+aircraft can wrap a shorter one so that two blocking-related aircraft
+overlap in time instead of being serialised.  Aircraft sharing a position
+are separated by $\varepsilon$; aircraft on non-conflicting positions run
+in parallel.  Processing the aircraft in the priority order $\sigma$, the
+decoder places each one at the earliest start that respects every
+constraint against the already-placed aircraft --- a forbidden-interval
+scan that naturally lands in the hole left by the nesting option
+(Algorithm~\ref{alg:decode0}).  Jobs are then packed tight, so
+$\kappa_j = 0$ for every job and no Mode-(B)/Mode-(C) feedback on timing
+can arise.  This regime is fast, always feasible, and already optimal on
+instances with little or no blocking.
+
+\begin{algorithm}[htbp]
+\DontPrintSemicolon
+\SetKwInput{KwData}{Input}
+\SetKwInput{KwResult}{Output}
+\KwData{state $(\pi, \sigma)$.}
+\KwResult{a feasible schedule with $n = 0$, and its value $z_0$.}
+$\mathcal{Q} \leftarrow \emptyset$ \tcp*{aircraft already placed}
+\ForEach{$r \in \calR$ \emph{in the order} $\sigma$}{
+  $\mathcal{F} \leftarrow \emptyset$ \tcp*{forbidden start instants for $r$}
+  \ForEach{$r' \in \mathcal{Q}$}{
+    \lIf{$\pi(r') = \pi(r)$}{add to $\mathcal{F}$ the band that violates the
+         $\varepsilon$ separation from $r'$}
+    \ForEach{$(p, p') \in \calA$ \emph{with} $\{\pi(r), \pi(r')\} = \{p, p'\}$}{
+      add to $\mathcal{F}$ the bands that would place an access of the rear
+         aircraft within $\eta$ of the front stay\;
+      \tcp*[l]{the admissible residue is: before, after, or enclosing}
+    }
+  }
+  $s_r \leftarrow \min\{\, t \ge E_r : t \notin \mathcal{F} \,\}$\;
+  lay the jobs of $r$ back-to-back from $s_r$ with $\kappa_j = 0$\;
+  $\mathcal{Q} \leftarrow \mathcal{Q} \cup \{r\}$\;
+}
+\Return the schedule and $z_0 = W^M m + W^D \sum_r v^D_r$ \tcp*{$n = 0$}
+\caption{$\textsc{Decode}_0$ --- zero-movement decoder.}
+\label{alg:decode0}
+\end{algorithm}
+
+\paragraph{Manoeuvre-aware regime.}
+When the weights make manoeuvres worth their cost, the schedule can be
+compressed further by \emph{spending} them.  The positions are processed
+deepest-rear first, so that when a front aircraft is laid out the access
+instants of all the rear aircraft it blocks are already fixed.  A front
+aircraft's start is then chosen to minimise its \emph{local} contribution
+to the objective over a candidate set that always contains the three
+zero-movement placements as well as starts that align a job interior over
+an access (inviting a cheap Mode~C) or a job end just before an access
+(inviting a cheap Mode~B); the local cost of a start is evaluated by a
+forward sweep that classifies every exposed access and prices the
+resulting manoeuvres (Algorithm~\ref{alg:decode1}).  Because the
+zero-movement placements remain candidates, this regime can only ever
+\emph{add} the manoeuvre option --- it never discards a feasible
+no-movement schedule.
+
+\begin{algorithm}[htbp]
+\DontPrintSemicolon
+\SetKwInput{KwData}{Input}
+\SetKwInput{KwResult}{Output}
+\SetKwProg{Fn}{Procedure}{}{}
+\SetKwFunction{FPlace}{PlaceFront}
+\KwData{state $(\pi, \sigma)$.}
+\KwResult{a feasible schedule, possibly with manoeuvres, and its value $z_1$.}
+\ForEach{position $p \in \calP$ \emph{in order of decreasing blocking depth}}{
+  $\phi \leftarrow -\infty$ \tcp*{finish of the previous aircraft at $p$}
+  \ForEach{$r$ \emph{assigned to} $p$, \emph{in the order} $\sigma$}{
+    $\ell \leftarrow \max\{E_r,\ \phi + \varepsilon\}$\;
+    $A \leftarrow$ the access instants of every already-placed rear of $r$\;
+    $(s_r, f_r) \leftarrow \FPlace{$r, \ell, A$}$;\quad $\phi \leftarrow f_r$\;
+  }
+}
+\Return the schedule and its value $z_1$\;
+\BlankLine
+\Fn{\FPlace{$r$, $\ell$, $A$}}{
+  $\mathcal{S} \leftarrow \{\ell\}
+     \cup \{\, \tau - \eta - T_r,\ \tau - \eta,\ \tau + \eta : \tau \in A \,\}$
+     \tcp*{before / after / nest}
+  $\mathcal{S} \leftarrow \mathcal{S}
+     \cup \{\text{starts aligning a job interior over some } \tau \in A\}$
+     \tcp*{invite Mode C}
+  $\mathcal{S} \leftarrow \mathcal{S}
+     \cup \{\text{starts aligning a job end just before some } \tau \in A\}$
+     \tcp*{invite Mode B}
+  $c^\star \leftarrow +\infty$\;
+  \ForEach{$s \in \mathcal{S}$ \emph{with} $s \ge \ell$}{
+    sweep the jobs of $r$ from $s$, classifying each $\tau \in A$ as
+       Mode~A, Mode~B (open a gap of width $\ge \mu$) or Mode~C
+       (extend the job by $\delta$); reject $s$ if any $\tau$ cannot be
+       classified or falls within $\eta$ of a job edge\;
+    \If{$s$ \emph{is feasible}}{
+      $c \leftarrow W^M f_r + W^D \max\{0, f_r - L_r\} + W^S \cdot 2\nu_s$
+         \tcp*{$\nu_s$ = manoeuvres at $s$}
+      \lIf{$c < c^\star$}{$c^\star \leftarrow c$; keep $s$ as the best start}
+    }
+  }
+  \Return the best start and its finish\;
+}
+\caption{$\textsc{Decode}_1$ --- manoeuvre-aware decoder.}
+\label{alg:decode1}
+\end{algorithm}
+
+% ------------------------------------------------------------------------------
+\subsection{Construction portfolio}
+\label{sec:igvnd_construction}
+% ------------------------------------------------------------------------------
+
+Each restart builds its seed from a different construction rule, so the
+restarts differ by construction and not only by the perturbation source.
+Five rules use greedy insertion under a fixed priority order $\rho$ ---
+$-T_r$ (the NEH makespan rule), $L_r$ (earliest due date), the slack
+$L_r - E_r - T_r$, the critical ratio $L_r / T_r$, and a rank blend of
+these --- and a sixth uses regret-2 insertion, a dynamic order that
+repeatedly commits the aircraft whose second-best position is much worse
+than its best (Algorithm~\ref{alg:construct}).  The due-date and regret-2
+rules steer tight-target aircraft into early slots, which is the lever the
+delay-priority profile needs; the NEH rule remains the strong makespan
+seed.  In both variants the cost of a tentative insertion is the value
+returned by the zero-movement decoder restricted to the aircraft committed
+so far.
+
+\begin{algorithm}[htbp]
+\DontPrintSemicolon
+\SetKwInput{KwData}{Input}
+\SetKwInput{KwResult}{Output}
+\KwData{a priority order $\rho$ (greedy variant), or none (regret-2 variant).}
+\KwResult{a seed state $(\pi, \sigma)$.}
+\textbf{Greedy insertion under $\rho$:}\;
+\Indp
+  $\pi \leftarrow \emptyset$\;
+  \ForEach{$r \in \calR$ \emph{in the order} $\rho$}{
+    $\pi(r) \leftarrow \argmin_{p \in \calP}
+       z_0\big(\pi \cup \{r \mapsto p\}\big)$
+       \tcp*{cheapest position given the committed prefix}
+  }
+  \Return $(\pi,\ \rho)$\;
+\Indm
+\BlankLine
+\textbf{Regret-2 insertion:}\;
+\Indp
+  $\pi \leftarrow \emptyset$;\quad $\sigma \leftarrow ()$\;
+  \While{some aircraft is unplaced}{
+    \ForEach{unplaced $r$}{
+      let $z^{(1)}_r \le z^{(2)}_r$ be the two lowest values of
+         $z_0\big(\pi \cup \{r \mapsto p\}\big)$ over $p \in \calP$\;
+    }
+    $r^\star \leftarrow \argmax_r \big(z^{(2)}_r - z^{(1)}_r\big)$
+       \tcp*{largest regret}
+    place $r^\star$ at its best position; append $r^\star$ to $\sigma$\;
+  }
+  \Return $(\pi,\ \sigma)$\;
+\Indm
+\caption{\textsc{Construct} --- portfolio seed generators.}
+\label{alg:construct}
+\end{algorithm}
+
+% ------------------------------------------------------------------------------
+\subsection{Variable Neighbourhood Descent}
+\label{sec:igvnd_vnd}
+% ------------------------------------------------------------------------------
+
+A seed is refined to a local optimum by a sequential VND with the basic
+reset rule: the neighbourhoods are explored in a fixed sequence and, on any
+improving move, the search returns to the first neighbourhood
+(Algorithm~\ref{alg:vnd}).  Three neighbourhoods act on the combinatorial
+state and delegate all timing to the decoder: $N_1$ \emph{reassign} (move
+one aircraft to a different position), $N_2$ \emph{swap} (exchange the
+positions of two aircraft), and $N_3$ \emph{reorder} (swap two aircraft in
+the priority order $\sigma$).  Each neighbourhood is explored
+first-improvement, so the first strictly improving move is taken
+immediately.
+
+\begin{algorithm}[htbp]
+\DontPrintSemicolon
+\SetKwInput{KwData}{Input}
+\SetKwInput{KwResult}{Output}
+\KwData{state $(\pi, \sigma)$; decoder $\textsc{Decode}_d$.}
+\KwResult{a state that is locally optimal for $N_1, N_2, N_3$.}
+$k \leftarrow 1$\;
+\While{$k \le 3$}{
+  scan the moves of $N_k$ and apply the first one that strictly lowers
+     $z_d(\pi, \sigma)$\;
+  \eIf{an improving move was applied}{
+    $k \leftarrow 1$ \tcp*{reset to the first neighbourhood}
+  }{
+    $k \leftarrow k + 1$ \tcp*{advance to the next neighbourhood}
+  }
+}
+\Return $(\pi, \sigma)$\;
+\caption{\textsc{Vnd} --- sequential variable neighbourhood descent.}
+\label{alg:vnd}
+\end{algorithm}
+
+% ------------------------------------------------------------------------------
+\subsection{Iterated-Greedy outer loop}
+\label{sec:igvnd_ig}
+% ------------------------------------------------------------------------------
+
+Around the VND runs an Iterated-Greedy loop (Algorithm~\ref{alg:search}).
+Each iteration \emph{perturbs} the current state by removing the $k$
+aircraft of largest contribution to the objective --- a delay-weighted
+score with light randomisation, so the loop explores rather than repeating
+the same removals --- and \emph{reconstructs} the state by reinserting each
+removed aircraft at the position and order-slot that minimises the decoded
+objective.  The perturbed state is re-optimised by the VND and accepted as
+the new current state when it does not worsen the walk; the best state is
+tracked separately, and the walk is restarted from it after a streak of
+non-improving iterations.  The procedure is decoder-agnostic: the master
+procedure calls it once with $\textsc{Decode}_0$ for the floor and once
+with $\textsc{Decode}_1$ for the polish.
+
+\begin{algorithm}[htbp]
+\DontPrintSemicolon
+\SetKwInput{KwData}{Input}
+\SetKwInput{KwResult}{Output}
+\SetKwProg{Fn}{Procedure}{}{}
+\SetKwFunction{FPert}{Perturb}
+\KwData{seed $(\pi, \sigma)$; decoder $\textsc{Decode}_d$; deadline.}
+\KwResult{the best state found.}
+$(\pi, \sigma) \leftarrow \textsc{Vnd}(\pi, \sigma, \textsc{Decode}_d)$\;
+\emph{best} $\leftarrow$ \emph{cur} $\leftarrow (\pi, \sigma)$;\quad
+   $t \leftarrow 0$ \tcp*{$t$ = non-improving streak}
+\Repeat{the deadline is reached \emph{or} $t \ge t_{\max}$}{
+  \emph{cand} $\leftarrow \textsc{Vnd}\big(\FPert{\emph{cur}},
+     \textsc{Decode}_d\big)$\;
+  \lIf{$z_d(\emph{cand}) \le z_d(\emph{cur})$}{\emph{cur} $\leftarrow$ \emph{cand}}
+  \eIf{$z_d(\emph{cand}) < z_d(\emph{best})$}{
+    \emph{best} $\leftarrow$ \emph{cand};\quad $t \leftarrow 0$\;
+  }{
+    $t \leftarrow t + 1$;\quad
+    \textbf{if} $t$ is a multiple of the restart period \textbf{then}
+       \emph{cur} $\leftarrow$ \emph{best}\;
+  }
+}
+\Return \emph{best}\;
+\BlankLine
+\Fn{\FPert{$(\pi, \sigma)$}}{
+  remove the $k$ aircraft of largest score
+     $W^D v^D_r + \omega\, T_r$ (lightly randomised)\;
+  \ForEach{removed aircraft $r$}{
+    reinsert $r$ at the $(\text{position}, \text{slot in } \sigma)$
+       minimising the decoded objective\;
+  }
+  \Return the rebuilt state\;
+}
+\caption{\textsc{Search} --- Iterated-Greedy loop around the VND.}
+\label{alg:search}
+\end{algorithm}
+
+% ------------------------------------------------------------------------------
+\subsection{Multi-start and the feasibility safety net}
+\label{sec:igvnd_safety}
+% ------------------------------------------------------------------------------
+
+The construct-and-improve procedure is run from several seeds, and the best
+result is kept.  The number of restarts is adaptive to instance size (8 for
+$R \le 10$, 4 for $R \le 20$, 3 otherwise): more restarts on the cheap
+small instances, fewer on the large ones that need their per-start time.
+Because the search is time-limited and hence non-deterministic, a single
+run occasionally settles in a poor high-delay basin, and independent
+restarts make finding the good basin reliable.
+
+Two safeguards make the method robust.  First, within each restart the
+manoeuvre-aware polish is adopted only if an \emph{independent compliance
+check} certifies it and it strictly improves the zero-movement floor
+(Algorithm~\ref{alg:igvnd}); the method can therefore never return an
+infeasible schedule and can never do worse than its zero-movement result,
+whatever approximation the manoeuvre-aware decoder makes.  Second, when the
+movement-priority profile meets a dense blocking topology, one further
+candidate is built once and folded in by the same best-of / check rule: a
+\emph{dense concentric-nesting} schedule written with explicit start times
+rather than via the earliest-feasible decode.  In a dense component the
+zero-movement optimum packs aircraft into a few concentric-nesting waves
+--- a long aircraft wraps shorter ones, all overlapping within a wave's
+span --- but the earliest-feasible decode cannot produce that, because it
+always prefers placing \emph{before} over \emph{nested}.  The dedicated
+builder sorts aircraft by stay length, groups them into waves of at most
+$|\calP|$, makes the longest of each wave the outer container on the
+deepest position, and \emph{stretches} shorter aircraft with idle time so
+the stay lengths step down by at least $2\eta$ (the nesting condition) even
+when their work durations tie; a small beam over two wave partitions is
+tried and the best kept.  On other topologies this candidate is dominated
+and ignored by the best-of.

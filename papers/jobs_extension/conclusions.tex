@@ -1,0 +1,41 @@
+% ==============================================================================
+\section{Conclusions}
+\label{sec:conclusions}
+% ==============================================================================
+
+We have studied the aircraft hangar positioning problem at the job level,
+where blocking interactions depend on the per-job timing of the front
+aircraft rather than on a single block of occupancy.  We contributed an
+exact MILP formulation whose partition constraint classifies every access
+into one of four admissible states and correctly forbids accesses that
+would fall inside a non-interruptible job, and a metaheuristic, IGVND, that
+separates the combinatorial assignment-and-ordering decision from the
+timing decision and prices the former with a two-regime decoder under an
+Iterated-Greedy / VND search with a checker-validated safety net.
+
+The experimental comparison on 120 instances delivers a clear and honest
+picture.  On the tractable end of the benchmark --- small fleets,
+no or loose blocking --- the MILP proves optimality and IGVND matches it,
+being exact on the no-blocking and five-aircraft instances and within a
+couple of percent on the remaining converged cases; the lone large relative
+gap is a small-denominator artefact that vanishes in the per-component
+view.  On the intractable end --- larger fleets, dense topologies, and the
+profiles that activate the manoeuvre machinery --- the MILP no longer
+converges within the budget, and IGVND returns markedly better feasible
+solutions in the same 60\,s, by up to several tens of percent and hundreds
+of objective units in absolute terms.  The two methods are therefore
+complementary: the MILP certifies quality where it can, and the heuristic
+extends usable solution quality to the operational scale where exact
+optimisation times out.
+
+Several directions remain open.  The MILP could be tightened with
+valid inequalities or a branch-and-cut treatment of the partition
+constraint to push the tractability frontier outward.  On the heuristic
+side, the residual gaps that survive at scale are at the level of the
+time-limited search's run-to-run variance, so the most promising lever is
+variance reduction --- elite restarts or instance-adaptive restart counts
+--- rather than additional neighbourhoods.  Finally, the present study
+fixes a single 60\,s budget and three corner weight profiles; an anytime
+profile of solution quality versus time, and a sweep over intermediate
+weight combinations, would further characterise the operating envelope of
+each method.

@@ -31,6 +31,10 @@
 \usepackage{pdflscape}
 \usepackage{placeins}
 \usepackage[ruled,linesnumbered]{algorithm2e}
+% OR-journal pseudocode style: comments as italic "> ..." (not C-style,
+% monospaced "// ...").
+\SetKwComment{tcp}{$\triangleright$~}{}
+\SetCommentSty{textit}
 \usepackage{natbib}
 
 %%%%%% Custom math macros (mirrors paper #1)  %%%%%%
@@ -44,6 +48,11 @@
 \newcommand{\NR}{\mathbb{R}_{\geq 0}}
 \newcommand{\NZ}{\mathbb{Z}_{\geq 0}}
 \DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+%%%%%% Upright (non-italic) run-in heading for the MILP variable / constraint
+%%%%%% groups, without a trailing period.
+\newcommand{\fmlgroup}[1]{\paragraph{\normalfont\bfseries #1}}
 
 \theoremstyle{thmstyleone}
 \newtheorem{theorem}{Theorem}
@@ -63,13 +72,34 @@
 \title[Aircraft Hangar Positioning: Job-Level Extension]{Aircraft Hangar
 Positioning with Job-Level Blocking: A Mixed-Integer Programming Extension}
 
-% \author*[1]{\fnm{\'Alvaro} \sur{Garc\'ia}}
-% \email{alvaro.garcia@upm.es}
+\author*[1]{\fnm{\'Alvaro} \sur{Garc\'ia}}
+\email{alvaro.garcia@baobabsoluciones.es}
 
 \affil*[1]{\orgname{Baobab Soluciones},
            \orgaddress{\city{Madrid}, \country{Spain}}}
 
-\abstract{TODO: rewrite once the methodology sections are complete.}
+\abstract{Maintenance hangars are blocking resources: an aircraft at a
+front position obstructs the access path of the aircraft behind it, and
+clearing that path may require towing the front aircraft out and back, an
+expensive manoeuvre.  We study this problem at the \emph{job level}, where
+whether a rear aircraft can be accessed depends on which job the front
+aircraft is running --- an inter-job gap admits a cheap manoeuvre, an
+interruptible job admits one at the cost of a bounded extension, and a
+non-interruptible job admits none.  We contribute (i) an exact
+mixed-integer linear programming formulation whose partition constraint
+classifies every access into one of four admissible states and renders
+the impossible ones infeasible, and (ii) IGVND, an Iterated-Greedy /
+Variable-Neighbourhood-Descent metaheuristic that separates the
+combinatorial assignment-and-ordering decision from the timing decision and
+prices it with a fast two-regime decoder under a checker-validated safety
+net.  On a controlled 120-instance benchmark spanning six blocking
+topologies, four fleet sizes and three weight profiles, the heuristic
+matches the MILP wherever the latter proves optimality (exact on the
+no-blocking and five-aircraft instances, within a couple of percent
+elsewhere) and returns substantially better feasible solutions in the same
+60\,s budget on every configuration the MILP cannot close --- larger
+fleets, dense topologies, and the profiles that activate the manoeuvre
+machinery.}
 
 \keywords{Aircraft hangar scheduling,
           Job-level mixed-integer linear programming,
@@ -90,13 +120,12 @@ Positioning with Job-Level Blocking: A Mixed-Integer Programming Extension}
 %%   \input{computational_results_v2}
 %%   \input{conclusions}
 
-\section{Introduction}\label{sec:intro}
-
-TODO: write the introduction.
-
+\input{intro}
 \input{problem_statement}
 \input{milp}
-\input{solving_approaches}
+\input{heuristic}
+\input{computational_results}
+\input{conclusions}
 
 % ============================================================================
 %% Bibliography style is set automatically by sn-jnl via the documentclass
