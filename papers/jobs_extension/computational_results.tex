@@ -170,17 +170,27 @@ while it is still struggling to tighten its bound --- or to fit in memory.
 \input{tables/res_components}
 
 \paragraph{Movement-priority.}
-The movement-priority profile is the hardest for a heuristic, because both
-methods typically reach a zero-manoeuvre schedule and the winner is then
-simply the one that packs the schedule tightest.  Here IGVND matches the MILP
-exactly on the small instances the exact solver can close ($R{=}5$ and the
-loose $R{=}10$ cases, $|g| \le 0.2\%$), wins outright on \emph{Chain}
-($-10.4\%$) and \emph{Hub} ($-4.0\%$) at $R{=}10$, and dominates at $R{=}20$
-and $R{=}30$.  The only entries where IGVND trails under movement-priority are
-sub-$1\%$ losses on the tightest small instances, at the level of the search's
-run-to-run noise and inflated by the tiny optimal objective; the
-concentric-nesting builder of \S\ref{sec:igvnd_safety} is what keeps the
-zero-movement schedule tightly packed on the blocking topologies.
+The movement-priority profile is the hardest for a heuristic.  Both methods
+almost always reach a zero-manoeuvre schedule ($\Delta n = 0$ throughout), so
+the heavily-weighted movement term contributes nothing and the objective
+collapses to makespan plus delay; the winner is then simply whichever packs
+the zero-movement schedule tightest.  Because that denominator is not small
+(it ranges from $\approx 36$ at $R{=}5$ to several thousand at $R{=}30$), the
+relative gaps here are genuine and not a small-denominator artefact --- unlike
+the delay-priority outlier of the previous paragraph.  IGVND matches the MILP
+on the instances the exact solver can close ($R{=}5$ and the loose/converged
+$R{=}10$ cases, $|g| \lesssim 1\%$) and dominates at $R{=}20$ and $R{=}30$
+($+7\%$ to $+35\%$, with large negative $\Delta m$ and $\Delta D$ ---
+hundreds of objective units in absolute terms).  It does, however,
+\emph{trail} on the tight \emph{Chain} ($-10.4\%$, $\Delta m \approx +13$) and
+\emph{Hub} ($-4.0\%$, $\Delta m \approx +4$) topologies at $R{=}10$, where the
+MILP incumbent packs the zero-movement schedule slightly tighter than the
+earliest-feasible decode achieves; since the MILP is itself unconverged there
+($82\%$ and $32\%$ optimality gaps), this is a comparison of two feasible
+solutions, not a defeat against a proven optimum, but it is a genuine residual
+weakness of the zero-movement packing on linear and star blocking.  The
+sub-$4\%$ losses at $R{=}5$ are small-denominator noise (a one-unit difference
+on an objective of $\approx 36$).
 
 % ------------------------------------------------------------------------------
 \subsection{Discussion}
