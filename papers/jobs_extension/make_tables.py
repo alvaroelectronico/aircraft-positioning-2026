@@ -23,6 +23,8 @@ The MILP baseline is fixed; the heuristic rows are the IGVND v01 battery
 from __future__ import annotations
 
 import csv
+import glob
+import json
 import re
 from collections import defaultdict
 from pathlib import Path
@@ -177,25 +179,58 @@ def comp_table(data):
     return "\n".join(lines) + "\n"
 
 
-def milp_conv_table(latest):
-    """#optimal / #seeds and mean runtime, per type per profile."""
-    agg = defaultdict(lambda: defaultdict(list))  # type -> profile -> [(rt,status)]
-    for (inst, label), r in latest.items():
+def load_milp_gaps():
+    """Latest Gurobi optimality gap (``mip_gap``) per (instance, milp_label).
+
+    ``results.csv`` does not store the gap, only the objective and status; the
+    gap lives in each MILP solution JSON.  We keep the latest run per
+    (instance, label) by the timestamp embedded in the filename, matching the
+    "latest row" rule used elsewhere in this script."""
+    wanted = {ml for _, ml, _, _ in PROFILES}
+    latest_ts: dict[tuple[str, str], str] = {}
+    latest_gap: dict[tuple[str, str], float] = {}
+    for f in glob.glob(str(ROOT / "outputs" / "solutions" / "*__milp_job_*__*.json")):
+        name = Path(f).name[:-5]            # strip ".json"
+        parts = name.split("__")
+        if len(parts) != 3:
+            continue
+        inst, label, ts = parts
+        if label not in wanted:
+            continue
+        key = (inst, label)
+        if key in latest_ts and ts <= latest_ts[key]:
+            continue
+        try:
+            gap = json.load(open(f, encoding="utf-8")).get("mip_gap")
+        except (OSError, ValueError):
+            continue
+        if gap is None:
+            continue
+        latest_ts[key] = ts
+        latest_gap[key] = float(gap)
+    return latest_gap
+
+
+def milp_gap_table(gaps):
+    """Mean Gurobi optimality gap (%), per type per profile."""
+    agg = defaultdict(lambda: defaultdict(list))  # type -> profile -> [gap]
+    for (inst, label), g in gaps.items():
         for pk, ml, _, _ in PROFILES:
             if label == ml:
-                agg[itype(inst)][pk].append((_num(r[4]), r[5]))
+                agg[itype(inst)][pk].append(g)
     lines = []
     lines.append(r"\begin{table}[htbp]")
     lines.append(r"  \centering")
-    lines.append(r"  \caption{MILP convergence within the 60\,s budget: number of "
-                 r"seeds (out of 10) solved to proven optimality, per weight "
-                 r"profile. On the remaining seeds Gurobi returns a feasible "
-                 r"incumbent with a non-zero optimality gap; the IGVND comparison "
-                 r"on those configurations is therefore a comparison of "
-                 r"feasible solutions found within the same budget, not against a "
-                 r"proven optimum.}")
+    lines.append(r"  \caption{Mean optimality gap reported by Gurobi within the "
+                 r"60\,s budget, per configuration and weight profile (in \%, "
+                 r"averaged over 10 seeds). A value of $0.0$ means the MILP is a "
+                 r"proven optimum on every seed; a larger value means Gurobi "
+                 r"returns a feasible incumbent without closing the bound, so on "
+                 r"those configurations a positive $g$ in Table~\ref{tab:gap_profile} "
+                 r"means IGVND finds a better feasible solution than the exact "
+                 r"solver does in the same time, not that it beats a proven optimum.}")
     lines.append(r"  \label{tab:milp_conv}")
-    lines.append(r"  \begin{tabular}{lccc}")
+    lines.append(r"  \begin{tabular}{lrrr}")
     lines.append(r"    \toprule")
     lines.append(r"    Configuration & $w^{\mathrm{MK}}$ & $w^{\mathrm{DLY}}$"
                  r" & $w^{\mathrm{MOV}}$ \\")
@@ -203,12 +238,8 @@ def milp_conv_table(latest):
     for t, label in ROW_ORDER:
         cells = [label]
         for pk, *_ in PROFILES:
-            recs = agg[t][pk]
-            if not recs:
-                cells.append("--")
-                continue
-            nopt = sum(1 for _, s in recs if s == "optimal")
-            cells.append(f"{nopt}/{len(recs)}")
+            vals = agg[t][pk]
+            cells.append(f"{100 * sum(vals) / len(vals):.1f}" if vals else "--")
         lines.append("    " + " & ".join(cells) + r" \\")
     lines.append(r"    \bottomrule")
     lines.append(r"  \end{tabular}")
@@ -222,7 +253,7 @@ def main():
     data = collect(latest)
     (OUT / "res_gap_profile.tex").write_text(gap_table(data), encoding="utf-8")
     (OUT / "res_components.tex").write_text(comp_table(data), encoding="utf-8")
-    (OUT / "res_milp_conv.tex").write_text(milp_conv_table(latest), encoding="utf-8")
+    (OUT / "res_milp_conv.tex").write_text(milp_gap_table(load_milp_gaps()), encoding="utf-8")
     print("wrote:", *(p.name for p in OUT.glob("res_*.tex")))
 
 

@@ -1,23 +1,23 @@
 \begin{table}[htbp]
   \centering
-  \caption{MILP convergence within the 60\,s budget: number of seeds (out of 10) solved to proven optimality, per weight profile. On the remaining seeds Gurobi returns a feasible incumbent with a non-zero optimality gap; the IGVND comparison on those configurations is therefore a comparison of feasible solutions found within the same budget, not against a proven optimum.}
+  \caption{Mean optimality gap reported by Gurobi within the 60\,s budget, per configuration and weight profile (in \%, averaged over 10 seeds). A value of $0.0$ means the MILP is a proven optimum on every seed; a larger value means Gurobi returns a feasible incumbent without closing the bound, so on those configurations a positive $g$ in Table~\ref{tab:gap_profile} means IGVND finds a better feasible solution than the exact solver does in the same time, not that it beats a proven optimum.}
   \label{tab:milp_conv}
-  \begin{tabular}{lccc}
+  \begin{tabular}{lrrr}
     \toprule
     Configuration & $w^{\mathrm{MK}}$ & $w^{\mathrm{DLY}}$ & $w^{\mathrm{MOV}}$ \\
     \midrule
-    None ($R{=}10$) & 10/10 & 10/10 & 10/10 \\
-    Chain ($R{=}10$) & 1/10 & 0/10 & 0/10 \\
-    Hub ($R{=}10$) & 7/10 & 0/10 & 2/10 \\
-    Triangle ($R{=}10$) & 10/10 & 0/10 & 0/10 \\
-    Two rows ($R{=}10$) & 10/10 & 0/10 & 0/10 \\
-    Full ($R{=}10$) & 0/10 & 0/10 & 0/10 \\
-    Triangle, loose & 10/10 & 10/10 & 10/10 \\
-    Triangle, medium & 10/10 & 0/10 & 0/10 \\
-    Triangle ($R{=}5$) & 10/10 & 10/10 & 10/10 \\
-    Triangle ($R{=}20$) & 0/10 & 0/10 & 0/10 \\
-    Triangle ($R{=}30$) & 0/10 & 0/10 & 0/10 \\
-    Full ($R{=}20$) & 0/10 & 0/10 & 0/10 \\
+    None ($R{=}10$) & 0.0 & 0.0 & 0.0 \\
+    Chain ($R{=}10$) & 28.6 & 99.6 & 82.0 \\
+    Hub ($R{=}10$) & 2.7 & 84.2 & 31.9 \\
+    Triangle ($R{=}10$) & 0.0 & 99.6 & 58.2 \\
+    Two rows ($R{=}10$) & 0.0 & 99.6 & 51.3 \\
+    Full ($R{=}10$) & 43.8 & 99.8 & 83.9 \\
+    Triangle, loose & 0.0 & 0.0 & 0.0 \\
+    Triangle, medium & 0.0 & 99.3 & 42.5 \\
+    Triangle ($R{=}5$) & 0.0 & 0.0 & 0.0 \\
+    Triangle ($R{=}20$) & 67.0 & 99.9 & 94.3 \\
+    Triangle ($R{=}30$) & 80.7 & 100.0 & 97.9 \\
+    Full ($R{=}20$) & 81.3 & 100.0 & 96.7 \\
     \bottomrule
   \end{tabular}
 \end{table}

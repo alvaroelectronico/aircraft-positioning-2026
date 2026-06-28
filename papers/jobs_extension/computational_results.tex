@@ -90,20 +90,23 @@ $120 \times 3 = 360$ heuristic runs there were no feasibility failures.
 \label{sec:milp_conv}
 % ------------------------------------------------------------------------------
 
-Table~\ref{tab:milp_conv} records how often the MILP proves optimality
-within the budget.  The pattern frames the entire comparison.  The MILP is
-reliable as a \emph{proven optimum} only on the small and loosely
-constrained cases: the five-aircraft instances and the no-blocking baseline
-solve to optimality in well under a second on all profiles, and the
-loosely-constrained triangle instances solve on every seed.  As soon as the
-fleet grows ($R \ge 20$), the topology becomes dense (\emph{Full}), or the
-profile activates the manoeuvre machinery (\emph{delay-} and
-\emph{movement-priority} couple the timing and classification binaries far
-more tightly than makespan-priority), the MILP no longer converges in
-60\,s and returns a feasible incumbent with a non-zero optimality gap.
-On those configurations a positive $g$ does not mean IGVND beats a proven
-optimum; it means IGVND finds a better feasible solution than the exact
-solver does in the same time.
+Table~\ref{tab:milp_conv} reports the mean optimality gap Gurobi still
+reports at the end of the budget, per configuration and profile.  The pattern
+frames the entire comparison.  The MILP is reliable as a \emph{proven optimum}
+(mean gap $0.0\%$) only on the small and loosely constrained cases: the
+five-aircraft instances and the no-blocking baseline close on all profiles in
+well under a second, as do the loosely-constrained triangle instances.  As
+soon as the fleet grows ($R \ge 20$), the topology becomes dense (\emph{Full}),
+or the profile activates the manoeuvre machinery (\emph{delay-} and
+\emph{movement-priority} couple the timing and classification binaries far more
+tightly than makespan-priority), the gap blows up: it exceeds $80\%$ on the
+larger instances and reaches essentially $100\%$ under the delay-priority
+profile, where Gurobi returns a feasible incumbent without closing the bound at
+all.  Makespan-priority is consistently the easiest profile for the exact
+solver (smallest gaps), delay-priority the hardest.  On every configuration
+with a non-zero gap, a positive $g$ in Table~\ref{tab:gap_profile} does not mean
+IGVND beats a proven optimum; it means IGVND finds a better feasible solution
+than the exact solver does in the same time.
 
 \input{tables/res_milp_conv}
 
