@@ -26,7 +26,7 @@ from paired_report import detail_block            # noqa: E402
 
 JUN14_LOG = ROOT / "outputs" / "logs" / "instances_main_methods_20260614_114558_iterated_greedy_vnd_v01.log"
 CSV = ROOT / "outputs" / "solutions" / "results.csv"
-OUT = ROOT / "outputs" / "logs" / "combined_290_main_methods_20260628_081042.log"
+OUT = ROOT / "outputs" / "logs" / "combined_290_iterated_greedy_vnd_v01_20260628.log"
 STEP2_TS = "20260628_0810"   # new-igvnd rows are at/after this timestamp
 
 MILP_LABELS = {"milp_job_wMK", "milp_job_wDLY", "milp_job_wMOV"}
