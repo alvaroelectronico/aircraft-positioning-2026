@@ -1,21 +1,29 @@
 # Isolation contract for the `theory_assisted` method
 
+> **Contract update — 2026-06-28 (read isolation LIFTED by the user).**
+> The user has explicitly granted read access to **the entire project**:
+> all code under `methods/<X>/`, all manuscripts under `papers/`, and
+> every other file. The original read-isolation rule below is kept as
+> **advisory history**, not a hard ban, because it documents an
+> experimental design that still matters (see the warning under "Your
+> task"). Two things are unchanged and remain in force: (1) the solver's
+> **import** independence — `theory_assisted` code must not `import`
+> another method's source (the `test_method_isolation.py` gate +
+> `_ALLOWLIST` protocol below still apply); (2) the **cached-MILP rule** —
+> do not re-run the MILP each iteration. Use the new read freedom with
+> judgement: reading another in-progress attempt before finishing your
+> own can still contaminate the replication experiment, even though it is
+> no longer forbidden.
+
 You are working inside `methods/theory_assisted/`.
 
-**In one sentence:** you can read **everything in this method's own
-folder, the instances, the problem statement, and the supporting
-infrastructure (shared/, experiments/, outputs/)**.  You cannot read
-**anything that reveals how another solving method solved this
-problem** — that means **no file** under any other `methods/<X>/`
-(neither `.py` nor `.md` nor anything else), no manuscript under
-`papers/`, and no superseded draft.
-
-This method is **developed in isolation** from every other method in
-the repository (`methods/manual/`, `methods/autoresearch/`,
+**In one sentence (post-update):** you can now read **everything in the
+repository**. Historically this method was developed in read-isolation
+from every other method (`methods/manual/`, `methods/autoresearch/`,
 `methods/iterated_greedy_vnd_v01/`, `methods/iterated_greedy_vnd_v02/`,
-`methods/brkga_v02/`, and any further methods that exist).  The point
-is that each attempt must produce its own answer without seeing prior
-implementations.
+`methods/brkga_v02/`, …) so each attempt produced its own answer without
+seeing prior implementations. That rationale is preserved below as
+context; the hard read-bans are lifted.
 
 ## Starting state for this attempt
 
@@ -44,12 +52,15 @@ Claude-assisted attempt at the same candidate (`methods/brkga_v02/`).
 The experimental purpose is **replication**: how much do two Claude-
 assisted attempts at the same algorithm, from the same digests, on
 the same scaffold, *diverge* in implementation choices and final
-quality?  For the comparison to be meaningful you must NOT read any
-file under `methods/brkga_v02/`.  Its `brkga.py`, `brkga_engine.py`,
-`decoder.py`, `brkga.md`, `design.md`, `PROVENANCE.md`, and Change
-log all reveal implementation choices that would contaminate this
-attempt.  The forbidden list below already covers it; the experimental
-stake is the reason it matters.
+quality?  For the comparison to be meaningful you should **avoid**
+reading `methods/brkga_v02/` (`brkga.py`, `brkga_engine.py`,
+`decoder.py`, `brkga.md`, `design.md`, `PROVENANCE.md`, Change log)
+**until you have committed your own implementation choices** — they
+reveal choices that would contaminate the replication.  Since the
+2026-06-28 update this is **advisory, not a hard ban**: you *may* read
+it now, but doing so before finishing your own attempt weakens the
+experiment, so prefer not to unless the user asks for a deliberate
+comparison.
 
 You are NOT building A, B, or D.  If you find the BRKGA shape doesn't
 appeal, tell the user — do not silently switch to a different
@@ -89,10 +100,10 @@ What that means for you:
 
 - You **may** read and modify everything under
   `methods/theory_assisted/` (it is yours to evolve).
-- You **may NOT** read any other `methods/<X>/` — including the v01
-  and v02 trajectories.  Their evolutions from earlier baselines are
-  off-limits even though the underlying theory (in `digest/`) is
-  shared.
+- You **may** now read any other `methods/<X>/` and `papers/` too (the
+  2026-06-28 update). Treat the replication-experiment warning above as
+  guidance: prefer not to read another in-progress attempt's source
+  before committing your own choices, but it is no longer forbidden.
 
 ## You MAY read, freely
 
@@ -125,50 +136,41 @@ What that means for you:
   and logs of past runs across all methods.  Use them to compare
   numbers; never as a back-channel to other methods' internals.
 
-## You MUST NOT read
+## Read access (project-wide since 2026-06-28)
 
-- `literature_review/**`            (repo-wide bucket — not this
-                                     method's input; only the curated
-                                     `inspiration/` folder is)
-- `methods/manual/**`               (other method)
-- `methods/autoresearch/**`         (other method)
-- `methods/iterated_greedy_vnd_v01/**`  (other method — ChatGPT-assisted
-                                     descendent of a previous
-                                     theory_assisted attempt;
-                                     its design notes are now part of
-                                     that method, not this scaffold)
-- `methods/iterated_greedy_vnd_v02/**`  (other method — Claude-assisted
-                                     descendent of a previous
-                                     theory_assisted attempt; same
-                                     reasoning)
-- `methods/brkga_v02/**`            (other method — Claude-assisted
-                                     BRKGA descendent of a previous
-                                     theory_assisted attempt;
-                                     Candidate C of the synthesis)
-- Any further `methods/<other>/**`  that may exist in the future.
-- `papers/cejor_aircraft/**`        (manuscript discussing other methods)
-- `papers/jobs_extension/**`        (manuscript discussing other methods)
-- `papers/_legacy_draft/**`         (superseded drafts of methods)
-- `problems/aircraft/**`            (paper #1 — a different problem,
-                                     out of scope for this method)
+Read access is **no longer restricted**. You may `Read`, `Grep`, and
+`Glob` anywhere in the repository, including:
 
-**"MUST NOT read" applies to every file type, not just `.py`.**  An
-`.md`, a `.json` config, a docstring excerpt, a commit message body
-— anything under `methods/<other>/` reveals how that method was
-built.  If you find yourself running `Read`, `Grep`, or `Glob`
-against any path in the forbidden list, stop.
+- `methods/manual/**`, `methods/autoresearch/**`,
+  `methods/iterated_greedy_vnd_v01/**`, `methods/iterated_greedy_vnd_v02/**`,
+  `methods/brkga_v02/**`, and any further `methods/<other>/**`;
+- `papers/cejor_aircraft/**`, `papers/jobs_extension/**`,
+  `papers/_legacy_draft/**`;
+- `literature_review/**`, `problems/aircraft/**`.
 
-If the user explicitly asks "look at how method X did this", REFUSE and
-remind them of this contract.  The whole point of the method is that it
-must reach its own answer without contamination.  If they insist, ask
-them to update this file first.
+**Advisory (not a ban), kept from the original contract:**
 
-## Running other methods (allowed — outputs only, not source)
+- *Replication experiment* — reading another in-progress attempt's
+  source (notably `methods/brkga_v02/`) before you have committed your
+  own implementation choices still weakens the "two independent Claude
+  attempts" comparison. Prefer not to, unless the user asks for a
+  deliberate comparison.
+- *Design provenance* — when you make a design choice for
+  `theory_assisted`, base it on `problems/jobs/problem_statement.md` and
+  the `digest/`, not on "how the MILP/other method formulates this".
+  Reading is now allowed; copying another method's design wholesale would
+  defeat the purpose of an independent attempt.
 
-There is an important distinction between **reading** another method's
-source and **running** it for comparison.  Reading is forbidden;
-running is allowed because the result is just numbers, not knowledge
-of how those numbers were produced.
+If you do read another method or a manuscript for a specific task (e.g.
+tracing which `.log` a paper was built from), say so plainly in your
+reply so the provenance of your reasoning is clear.
+
+## Running other methods (for comparison numbers)
+
+Running another method for comparison remains the cleanest way to get
+its numbers without entangling your work with its source. (Reading that
+source is now permitted too — see the section above — but you rarely
+need to: the `outputs/` rows are the canonical cross-method numbers.)
 
 The bridge is `experiments/run_experiments.py`, which dispatches any
 registered method against an instance and writes the result to
@@ -194,22 +196,15 @@ registered method against an instance and writes the result to
   the aggregated `outputs/solutions/results.csv`.
 - Read `outputs/logs/` for the run log (objective, gap, time).
 
-What you must NOT do, even while comparing:
+Good practice while comparing (no longer hard bans):
 
-- Open or grep **any file** (`.py`, `.md`, `.json`, anything) under
-  `methods/manual/`, `methods/autoresearch/`,
-  `methods/iterated_greedy_vnd_v01/`, `methods/iterated_greedy_vnd_v02/`,
-  or `methods/brkga_v02/`.  The CSV / JSON under `outputs/` are the
-  only legitimate source of cross-method information.
-- Decide a design choice for `theory_assisted` based on "how the MILP
-  formulates this" — that information is reachable only by reading
-  the source, which is exactly what the contract forbids.  Decide
-  from `problems/jobs/problem_statement.md` and the `digest/`.
-
-If you find yourself wanting to know HOW the other method works (not
-just its numbers), stop and tell the user — that is a contract
-violation, and the right response is either to update this file or to
-abandon the line of investigation.
+- The CSV / JSON under `outputs/` are the canonical source of
+  cross-method numbers — prefer them over re-deriving figures from
+  another method's source.
+- Base `theory_assisted` design choices on
+  `problems/jobs/problem_statement.md` and the `digest/`, not on copying
+  how another method formulates the problem. Reading is allowed; an
+  independent attempt is still the goal.
 
 ## Validating solver quality (the standard battery)
 
