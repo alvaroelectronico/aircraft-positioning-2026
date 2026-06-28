@@ -1,23 +1,38 @@
 \begin{table}[htbp]
   \centering
-  \caption{Mean optimality gap reported by Gurobi within the 60\,s budget, per configuration and weight profile (in \%, averaged over 10 seeds). A value of $0.0$ means the MILP is a proven optimum on every seed; a larger value means Gurobi returns a feasible incumbent without closing the bound, so on those configurations a positive $g$ in Table~\ref{tab:gap_profile} means IGVND finds a better feasible solution than the exact solver does in the same time, not that it beats a proven optimum.}
+  \caption{Mean optimality gap reported by Gurobi within the 60\,s budget, per configuration and weight profile (in \%, over 10 seeds). $0.0$ means a proven optimum on every seed; a larger value means Gurobi returns a feasible incumbent without closing the bound. A superscript $(k)$ marks the $k$ seeds on which Gurobi \emph{ran out of memory and returned no solution at all} -- the MILP could not solve the instance; the reported value averages the remaining seeds. \textsc{oom} marks a configuration the MILP could not solve on any seed.}
   \label{tab:milp_conv}
-  \begin{tabular}{lrrr}
+  \begin{tabular}{lll rrr}
     \toprule
-    Configuration & $w^{\mathrm{MK}}$ & $w^{\mathrm{DLY}}$ & $w^{\mathrm{MOV}}$ \\
+    Type & $R$ & Slack & $w^{\mathrm{MK}}$ & $w^{\mathrm{DLY}}$ & $w^{\mathrm{MOV}}$ \\
     \midrule
-    None ($R{=}10$) & 0.0 & 0.0 & 0.0 \\
-    Chain ($R{=}10$) & 28.6 & 99.6 & 82.0 \\
-    Hub ($R{=}10$) & 2.7 & 84.2 & 31.9 \\
-    Triangle ($R{=}10$) & 0.0 & 99.6 & 58.2 \\
-    Two rows ($R{=}10$) & 0.0 & 99.6 & 51.3 \\
-    Full ($R{=}10$) & 43.8 & 99.8 & 83.9 \\
-    Triangle, loose & 0.0 & 0.0 & 0.0 \\
-    Triangle, medium & 0.0 & 99.3 & 42.5 \\
-    Triangle ($R{=}5$) & 0.0 & 0.0 & 0.0 \\
-    Triangle ($R{=}20$) & 67.0 & 99.9 & 94.3 \\
-    Triangle ($R{=}30$) & 80.7 & 100.0 & 97.9 \\
-    Full ($R{=}20$) & 81.3 & 100.0 & 96.7 \\
+    None & 10 & tight & 0.0 & 0.0 & 0.0 \\
+    Chain & 10 & tight & 28.6 & 99.6 & 82.0 \\
+    Hub & 10 & tight & 2.7 & 84.2 & 31.9 \\
+    Two rows & 5 & loose & 0.0 & 0.0 & 0.0 \\
+     &  & medium & 0.0 & 0.0 & 0.0 \\
+     &  & tight & 0.0 & 0.0 & 0.0 \\
+     & 10 & loose & 0.0 & 0.0 & 0.0 \\
+     &  & medium & 0.0 & 99.2 & 25.4 \\
+     &  & tight & 0.0 & 99.6 & 51.3 \\
+     & 20 & loose & 60.4 & 99.9 & 90.0 \\
+     &  & medium & 61.2 & 99.9 & 92.6 \\
+     &  & tight & 61.6 & 99.9 & 93.7 \\
+     & 30 & loose & 76.2 & 100.0 & 96.6 \\
+     &  & medium & 74.8 & 100.0 & 97.0 \\
+     &  & tight & 75.1$^{(1)}$ & 100.0 & 97.4 \\
+    Triangle & 5 & loose & 0.0 & 0.0 & 0.0 \\
+     &  & medium & 0.0 & 0.0 & 0.0 \\
+     &  & tight & 0.0 & 0.0 & 0.0 \\
+     & 10 & loose & 0.0 & 0.0 & 0.0 \\
+     &  & medium & 0.0 & 99.3 & 42.5 \\
+     &  & tight & 0.0 & 99.6 & 58.2 \\
+     & 20 & loose & 65.2 & 99.9 & 91.0 \\
+     &  & medium & 65.3 & 99.9 & 93.3 \\
+     &  & tight & 67.0 & 99.9 & 94.3 \\
+     & 30 & loose & 78.7$^{(1)}$ & 100.0 & 97.2 \\
+     &  & medium & 80.2 & 100.0 & 97.7 \\
+     &  & tight & 80.7 & 100.0 & 97.9 \\
     \bottomrule
   \end{tabular}
 \end{table}

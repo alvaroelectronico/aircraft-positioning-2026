@@ -1,23 +1,38 @@
 \begin{table}[htbp]
   \centering
-  \caption{Relative objective gap of IGVND against the MILP baseline, $g = (z_{\mathrm{MILP}} - z_{\mathrm{IGVND}})/z_{\mathrm{MILP}}$ (mean over 10 seeds, in \%). $g>0$ means IGVND attains the \emph{lower} objective. All runs share a 60\,s budget. Table~\ref{tab:milp_conv} reports, per configuration, on how many seeds the MILP reference is a proven optimum rather than a timed-out incumbent.}
+  \caption{Relative objective gap of IGVND against the MILP baseline, $g = (z_{\mathrm{MILP}} - z_{\mathrm{IGVND}})/z_{\mathrm{MILP}}$ (mean over 10 seeds, in \%). $g>0$ means IGVND attains the \emph{lower} objective. All runs share a 60\,s budget. Table~\ref{tab:milp_conv} reports the MILP's optimality gap per configuration; where it is large the MILP reference is a timed-out incumbent, not a proven optimum.}
   \label{tab:gap_profile}
-  \begin{tabular}{lrrrr}
+  \begin{tabular}{lll rrr r}
     \toprule
-    Configuration & $w^{\mathrm{MK}}$ & $w^{\mathrm{DLY}}$ & $w^{\mathrm{MOV}}$ & All \\
+    Type & $R$ & Slack & $w^{\mathrm{MK}}$ & $w^{\mathrm{DLY}}$ & $w^{\mathrm{MOV}}$ & All \\
     \midrule
-    None ($R{=}10$) & +0.0 & -0.0 & +0.0 & -0.0 \\
-    Chain ($R{=}10$) & -1.2 & +7.0 & -10.4 & -1.5 \\
-    Hub ($R{=}10$) & -2.5 & +3.6 & -4.0 & -1.0 \\
-    Triangle ($R{=}10$) & -0.4 & +6.0 & +0.6 & +2.0 \\
-    Two rows ($R{=}10$) & -0.1 & +1.4 & +0.4 & +0.5 \\
-    Full ($R{=}10$) & +1.4 & +24.1 & -5.0 & +6.8 \\
-    Triangle, loose & +0.1 & -19.0 & -0.0 & -6.3 \\
-    Triangle, medium & +0.4 & +5.5 & +1.9 & +2.6 \\
-    Triangle ($R{=}5$) & -0.0 & -0.2 & -3.9 & -1.4 \\
-    Triangle ($R{=}20$) & +17.2 & +14.3 & +12.0 & +14.5 \\
-    Triangle ($R{=}30$) & +35.7 & +37.0 & +35.3 & +36.0 \\
-    Full ($R{=}20$) & +41.2 & +56.2 & +26.3 & +41.2 \\
+    None & 10 & tight & +0.0 & -0.0 & +0.0 & -0.0 \\
+    Chain & 10 & tight & -1.2 & +7.0 & -10.4 & -1.5 \\
+    Hub & 10 & tight & -2.5 & +3.6 & -4.0 & -1.0 \\
+    Two rows & 5 & loose & +0.0 & +0.0 & -0.3 & -0.1 \\
+     &  & medium & -0.0 & +0.0 & -0.5 & -0.2 \\
+     &  & tight & -0.0 & -0.3 & -3.1 & -1.1 \\
+     & 10 & loose & -0.1 & +9.4 & -1.4 & +2.6 \\
+     &  & medium & -0.1 & +1.1 & -0.7 & +0.1 \\
+     &  & tight & -0.1 & +1.4 & +0.4 & +0.5 \\
+     & 20 & loose & +5.8 & +13.6 & +10.6 & +10.0 \\
+     &  & medium & +6.8 & +10.9 & +9.2 & +9.0 \\
+     &  & tight & +6.6 & +5.3 & +7.0 & +6.3 \\
+     & 30 & loose & +24.8 & +28.4 & +25.1 & +26.1 \\
+     &  & medium & +19.1 & +22.4 & +19.4 & +20.3 \\
+     &  & tight & +18.8 & +18.8 & +19.9 & +19.2 \\
+    Triangle & 5 & loose & +0.0 & +0.0 & -0.7 & -0.2 \\
+     &  & medium & +0.0 & +0.0 & +0.0 & +0.0 \\
+     &  & tight & -0.0 & -0.2 & -3.9 & -1.4 \\
+     & 10 & loose & +0.1 & -19.0 & -0.0 & -6.3 \\
+     &  & medium & +0.4 & +5.5 & +1.9 & +2.6 \\
+     &  & tight & -0.4 & +6.0 & +0.6 & +2.0 \\
+     & 20 & loose & +14.8 & +20.0 & +15.4 & +16.7 \\
+     &  & medium & +14.0 & +15.1 & +13.1 & +14.1 \\
+     &  & tight & +17.2 & +14.3 & +12.0 & +14.5 \\
+     & 30 & loose & +30.6 & +43.9 & +34.9 & +36.7 \\
+     &  & medium & +34.4 & +38.4 & +36.1 & +36.3 \\
+     &  & tight & +35.7 & +37.0 & +35.3 & +36.0 \\
     \bottomrule
   \end{tabular}
 \end{table}

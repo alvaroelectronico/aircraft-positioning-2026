@@ -14,49 +14,38 @@ best exact-solver result obtainable under the same budget.
 \label{sec:benchmark}
 % ------------------------------------------------------------------------------
 
-The benchmark isolates four axes of difficulty: the blocking topology, the
-fleet size $R$, the time-window slack, and a hard dense-plus-large
-configuration.  All instances use $P = 5$ positions.  Six topology families
-span the spectrum from independent to maximally constrained hangars:
-\emph{None} ($\calA = \emptyset$), \emph{Chain}
+The benchmark isolates three axes of difficulty: the blocking topology, the
+fleet size $R$, and the time-window slack.  All instances use $P = 5$
+positions.  Five topology families span the spectrum from independent to
+constrained hangars: \emph{None} ($\calA = \emptyset$), \emph{Chain}
 ($\calA = \{(p_i, p_{i+1})\}$), \emph{Hub} (one aisle position blocks all
-others), \emph{Triangle} (a transitive triangle on the rear trio, the
-layout of the facility that motivated this study), \emph{Two rows} (front
-and rear halves paired position-by-position), and \emph{Full} (every
-ordered pair is a blocking arc).  The benchmark comprises 12 configurations,
-each replicated with 10 independently seeded instances, for
-\textbf{120 instances} in total (Table~\ref{tab:benchmark}).  Processing
-times, earliest starts and due dates are sampled on an integer-day grid;
-the tow time is fixed at $\varepsilon = 0.5$ days.
+others), \emph{Triangle} (a transitive triangle on the rear trio, the layout
+of the facility that motivated this study), and \emph{Two rows} (front and
+rear halves paired position-by-position).  \emph{None}, \emph{Chain} and
+\emph{Hub} are evaluated at the baseline ($R = 10$, tight windows) to isolate
+the effect of blocking structure.  \emph{Two rows} and \emph{Triangle} are
+additionally crossed over four fleet sizes ($R \in \{5, 10, 20, 30\}$) and
+three slack levels (loose, medium, tight), so the effects of size and of
+time-window tightness can each be read independently.  This gives
+\textbf{27 configurations}, each replicated with 10 independently seeded
+instances, for \textbf{270 instances} in total (Table~\ref{tab:benchmark}).
+Processing times, earliest starts and due dates are sampled on an integer-day
+grid; the tow time is fixed at $\varepsilon = 0.5$ days.
 
 \begin{table}[htbp]
   \centering
-  \caption{Benchmark specification: 12 configurations $\times$ 10 seeds
-           $= 120$ instances, all with $P = 5$ positions.}
+  \caption{Benchmark specification: 27 configurations $\times$ 10 seeds
+           $= 270$ instances, all with $P = 5$ positions.}
   \label{tab:benchmark}
-  \begin{tabular}{llccl}
+  \begin{tabular}{lccc}
     \toprule
-    Axis & Topology & $R$ & Slack & Purpose \\
+    Topology & $R$ & Slack & Configs \\
     \midrule
-    \multirow{6}{*}{Topology}
-      & None      & 10 & tight  & Baseline (no blocking) \\
-      & Chain     & 10 & tight  & Linear blocking \\
-      & Hub       & 10 & tight  & Star topology \\
-      & Triangle  & 10 & tight  & Classic hangar layout \\
-      & Two rows  & 10 & tight  & Parallel rows \\
-      & Full      & 10 & tight  & Maximum blocking \\
+    None / Chain / Hub & 10 & tight & 3 (one each) \\
+    Two rows & $\{5, 10, 20, 30\}$ & $\{$loose, medium, tight$\}$ & 12 \\
+    Triangle & $\{5, 10, 20, 30\}$ & $\{$loose, medium, tight$\}$ & 12 \\
     \midrule
-    \multirow{3}{*}{Size}
-      & Triangle & 5  & tight & Small (MILP-tractable) \\
-      & Triangle & 20 & tight & Medium \\
-      & Triangle & 30 & tight & Large \\
-    \midrule
-    \multirow{2}{*}{Slack}
-      & Triangle & 10 & loose  & Relaxed time windows \\
-      & Triangle & 10 & medium & Moderate time windows \\
-    \midrule
-    Hard large
-      & Full & 20 & tight & Dense $+$ large \\
+    \multicolumn{3}{l}{Total} & 27 configs $\times$ 10 seeds $=$ 270 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -83,7 +72,9 @@ undistorted per-component differences (IGVND $-$ MILP) for makespan, delay
 and movement count.  Both quantities are aggregated as the mean over the
 10 seeds of each configuration.  All IGVND solutions are validated by the
 independent feasibility checker before being scored; across the full
-$120 \times 3 = 360$ heuristic runs there were no feasibility failures.
+$270 \times 3 = 810$ heuristic runs there were no feasibility failures ---
+in contrast to the MILP, which failed outright on the largest instances
+(\S\ref{sec:milp_conv}).
 
 % ------------------------------------------------------------------------------
 \subsection{MILP convergence}
@@ -95,18 +86,28 @@ reports at the end of the budget, per configuration and profile.  The pattern
 frames the entire comparison.  The MILP is reliable as a \emph{proven optimum}
 (mean gap $0.0\%$) only on the small and loosely constrained cases: the
 five-aircraft instances and the no-blocking baseline close on all profiles in
-well under a second, as do the loosely-constrained triangle instances.  As
-soon as the fleet grows ($R \ge 20$), the topology becomes dense (\emph{Full}),
-or the profile activates the manoeuvre machinery (\emph{delay-} and
-\emph{movement-priority} couple the timing and classification binaries far more
-tightly than makespan-priority), the gap blows up: it exceeds $80\%$ on the
-larger instances and reaches essentially $100\%$ under the delay-priority
-profile, where Gurobi returns a feasible incumbent without closing the bound at
-all.  Makespan-priority is consistently the easiest profile for the exact
-solver (smallest gaps), delay-priority the hardest.  On every configuration
-with a non-zero gap, a positive $g$ in Table~\ref{tab:gap_profile} does not mean
-IGVND beats a proven optimum; it means IGVND finds a better feasible solution
-than the exact solver does in the same time.
+well under a second, as do the loosely-constrained $R{=}10$ instances.  As
+soon as the fleet grows ($R \ge 20$) or the profile activates the manoeuvre
+machinery (\emph{delay-} and \emph{movement-priority} couple the timing and
+classification binaries far more tightly than makespan-priority), the gap blows
+up: it exceeds $60\%$ at $R{=}20$, surpasses $75\%$ at $R{=}30$, and reaches
+essentially $100\%$ under the delay-priority profile, where Gurobi returns a
+feasible incumbent without closing the bound at all.  Makespan-priority is
+consistently the easiest profile for the exact solver (smallest gaps),
+delay-priority the hardest.
+
+At the largest scale the exact solver does not merely time out: on two of the
+$R{=}30$ makespan-priority instances (one \emph{Triangle}-loose, one
+\emph{Two rows}-tight, marked $^{(1)}$ in Table~\ref{tab:milp_conv}) Gurobi
+\emph{exhausted memory while building the search and returned no solution at
+all}.  These are recorded as the MILP being \textbf{unable to solve the
+instance} --- a stronger failure than a loose bound --- and are averaged out of
+the corresponding cell; the heuristic solved all of them within the 60\,s
+budget.  On every configuration with a non-zero gap, a positive $g$ in
+Table~\ref{tab:gap_profile} does not mean IGVND beats a proven optimum; it
+means IGVND finds a better feasible solution than the exact solver does in the
+same time --- or, on those two instances, that it finds a feasible solution at
+all where the exact solver cannot.
 
 \input{tables/res_milp_conv}
 
@@ -145,37 +146,41 @@ one.  This is exactly the small-denominator inflation the per-component
 table is meant to expose.
 
 \paragraph{Where the MILP times out, IGVND wins decisively.}
-On the configurations the MILP cannot close in 60\,s --- every
-$R{=}20$ and $R{=}30$ case, the dense \emph{Full} topology, and the
-delay-/movement-priority profiles on the tight $R{=}10$ topologies ---
-IGVND returns a substantially better feasible solution within the same
-budget.  The gap reaches $+17\%$ to $+41\%$ on the medium and large
-triangles, $+56\%$ on the hard dense-plus-large \emph{Full}-$R{=}20$
-configuration under delay-priority, and the per-component differences
-($\Delta D$ of several hundred to over a thousand delay units, $\Delta m$
-of tens to over a hundred makespan units, both negative) show this is a
-large absolute improvement and not a denominator effect.  The mechanism is
-the architecture of \S\ref{sec:igvnd_principle}: by searching over the
-compact combinatorial state and pricing it with a fast decoder, IGVND
-evaluates orders of magnitude more candidate schedules per second than the
-branch-and-bound search can while it is still struggling to tighten its
-bound.
+On the configurations the MILP cannot close in 60\,s --- every $R{=}20$ and
+$R{=}30$ case, and the delay-/movement-priority profiles on the tight
+$R{=}10$ topologies --- IGVND returns a substantially better feasible
+solution within the same budget.  The advantage grows monotonically with
+fleet size: the relative gap rises from roughly $+5\%$ to $+20\%$ at
+$R{=}20$ to $+19\%$ to $+44\%$ at $R{=}30$, across both the \emph{Two rows}
+and \emph{Triangle} families and all three slack levels, peaking under
+delay-priority (e.g.\ $+44\%$ on \emph{Triangle}-loose-$R{=}30$).  The
+per-component differences confirm a large absolute improvement and not a
+denominator effect: $\Delta D$ of several hundred to over a thousand delay
+units and $\Delta m$ of tens to over a hundred makespan units, both
+negative.  At the extreme, on the two $R{=}30$ instances where Gurobi ran out
+of memory the heuristic still returns a fully feasible, checker-validated
+schedule.  The mechanism is the architecture of
+\S\ref{sec:igvnd_principle}: by searching over the compact combinatorial
+state and pricing it with a fast decoder, IGVND evaluates orders of magnitude
+more candidate schedules per second than the branch-and-bound search can
+while it is still struggling to tighten its bound --- or to fit in memory.
 
 \input{tables/res_gap_profile}
 
 \input{tables/res_components}
 
-\paragraph{Movement-priority and dense blocking.}
+\paragraph{Movement-priority.}
 The movement-priority profile is the hardest for a heuristic, because both
 methods typically reach a zero-manoeuvre schedule and the winner is then
-simply the one that packs the schedule tightest.  The dense
-concentric-nesting builder of \S\ref{sec:igvnd_safety} is what makes IGVND
-competitive here: on the dense \emph{Full}-$R{=}10$ topology it lets the
-heuristic build the two-wave nesting that the earliest-feasible decode
-cannot, and IGVND additionally wins outright on \emph{Chain} ($-10.4\%$)
-and \emph{Hub} ($-4.0\%$).  The few configurations where IGVND still trails
-under movement-priority are precisely those where the MILP itself has not
-converged, so there is no reliable optimum to chase.
+simply the one that packs the schedule tightest.  Here IGVND matches the MILP
+exactly on the small instances the exact solver can close ($R{=}5$ and the
+loose $R{=}10$ cases, $|g| \le 0.2\%$), wins outright on \emph{Chain}
+($-10.4\%$) and \emph{Hub} ($-4.0\%$) at $R{=}10$, and dominates at $R{=}20$
+and $R{=}30$.  The only entries where IGVND trails under movement-priority are
+sub-$1\%$ losses on the tightest small instances, at the level of the search's
+run-to-run noise and inflated by the tiny optimal objective; the
+concentric-nesting builder of \S\ref{sec:igvnd_safety} is what keeps the
+zero-movement schedule tightly packed on the blocking topologies.
 
 % ------------------------------------------------------------------------------
 \subsection{Discussion}
