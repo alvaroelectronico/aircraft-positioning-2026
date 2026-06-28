@@ -1,0 +1,1209 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (6 experiments)
+  Code state (git): a932289
+  Instance order  : by seed, then config (seed1 of all types first)
+==================================================================
+  Shared parameters:
+    time_limit_s=60               NoRelHeurTime=0
+    MIPGap=0.0                    
+
+  Per-experiment parameters:
+  Label          Solver                      weight_makespan  weight_delay  weight_movements  seed
+  ------------------------------------------------------------------------------------------------
+  milp_job_wMK   MILPJobsV2Solver            100              1             1                 —   
+  igvnd_wMK      IteratedGreedyVNDJobSolver  100              1             1                 1   
+  milp_job_wDLY  MILPJobsV2Solver            1                100           1                 —   
+  igvnd_wDLY     IteratedGreedyVNDJobSolver  1                100           1                 1   
+  milp_job_wMOV  MILPJobsV2Solver            1                1             100               —   
+  igvnd_wMOV     IteratedGreedyVNDJobSolver  1                1             100               1   
+==================================================================
+
+
+==================================================================
+  HEURISTIC vs MILP  —  relative gap per instance type
+  gap = (MILP_obj - heuristic_obj) / MILP_obj
+  gap > 0  =>  heuristic BETTER (lower objective);  < 0  => worse
+  heuristic: igvnd_wMK / igvnd_wDLY / igvnd_wMOV   (MILP rows from cache)
+==================================================================
+  -- Relative objective gap, by weight profile --
+  [wMK  (100/1/1  makespan-priority)]
+    Type                          N      Mean       Min       Max
+    -----------------------------------------------------------
+    scn_triangle_loose_P5_R20    10   +14.79%   +11.37%   +23.64%
+    scn_triangle_loose_P5_R30     9   +30.62%   +20.06%   +37.77%
+    scn_triangle_loose_P5_R5     10    +0.00%    +0.00%    +0.00%
+    scn_triangle_medium_P5_R20   10   +14.00%    +5.52%   +24.81%
+    scn_triangle_medium_P5_R30   10   +34.43%   +19.27%   +50.52%
+    scn_triangle_medium_P5_R5    10    +0.00%    +0.00%    +0.00%
+    scn_two_rows_loose_P5_R10    10    -0.11%    -1.10%    +0.60%
+    scn_two_rows_loose_P5_R20    10    +5.79%    +2.58%   +10.17%
+    scn_two_rows_loose_P5_R30    10   +24.77%   +11.13%   +36.90%
+    scn_two_rows_loose_P5_R5     10    +0.00%    +0.00%    +0.00%
+    scn_two_rows_medium_P5_R10   10    -0.06%    -1.08%    +0.73%
+    scn_two_rows_medium_P5_R20   10    +6.85%    +4.00%    +9.55%
+    scn_two_rows_medium_P5_R30   10   +19.13%    +6.46%   +31.74%
+    scn_two_rows_medium_P5_R5    10    -0.01%    -0.14%    +0.00%
+    scn_two_rows_tight_P5_R20    10    +6.59%    +3.08%   +11.97%
+    scn_two_rows_tight_P5_R30     9   +18.77%    +5.09%   +34.12%
+    scn_two_rows_tight_P5_R5     10    -0.01%    -0.05%    +0.00%
+
+  [wDLY  (1/100/1  delay-priority)]
+    Type                          N      Mean       Min       Max
+    -----------------------------------------------------------
+    scn_triangle_loose_P5_R20    10   +19.96%    +5.55%   +28.08%
+    scn_triangle_loose_P5_R30    10   +43.86%   +28.14%   +52.59%
+    scn_triangle_loose_P5_R5     10    +0.00%    +0.00%    +0.00%
+    scn_triangle_medium_P5_R20   10   +15.09%    +3.98%   +21.12%
+    scn_triangle_medium_P5_R30   10   +38.35%   +23.77%   +47.46%
+    scn_triangle_medium_P5_R5    10    +0.00%    +0.00%    +0.00%
+    scn_two_rows_loose_P5_R10    10    +9.45%    -5.76%   +46.95%
+    scn_two_rows_loose_P5_R20    10   +13.64%    +6.43%   +22.72%
+    scn_two_rows_loose_P5_R30    10   +28.41%   +10.50%   +44.26%
+    scn_two_rows_loose_P5_R5     10    +0.00%    +0.00%    +0.00%
+    scn_two_rows_medium_P5_R10   10    +1.08%    -1.92%    +5.19%
+    scn_two_rows_medium_P5_R20   10   +10.90%    +3.99%   +21.62%
+    scn_two_rows_medium_P5_R30   10   +22.44%   +10.15%   +38.81%
+    scn_two_rows_medium_P5_R5    10    +0.00%    +0.00%    +0.00%
+    scn_two_rows_tight_P5_R20    10    +5.29%    +1.60%    +7.75%
+    scn_two_rows_tight_P5_R30    10   +18.82%    +3.51%   +40.87%
+    scn_two_rows_tight_P5_R5     10    -0.30%    -3.03%    +0.00%
+
+  [wMOV  (1/1/100  movement-priority)]
+    Type                          N      Mean       Min       Max
+    -----------------------------------------------------------
+    scn_triangle_loose_P5_R20    10   +15.44%    +7.08%   +21.66%
+    scn_triangle_loose_P5_R30    10   +34.90%   +20.45%   +49.77%
+    scn_triangle_loose_P5_R5     10    -0.71%    -7.14%    +0.00%
+    scn_triangle_medium_P5_R20   10   +13.12%    +7.69%   +20.75%
+    scn_triangle_medium_P5_R30   10   +36.10%   +20.96%   +46.96%
+    scn_triangle_medium_P5_R5    10    +0.00%    +0.00%    +0.00%
+    scn_two_rows_loose_P5_R10    10    -1.44%    -8.00%    +3.05%
+    scn_two_rows_loose_P5_R20    10   +10.62%    +7.42%   +17.24%
+    scn_two_rows_loose_P5_R30    10   +25.11%    +6.57%   +40.10%
+    scn_two_rows_loose_P5_R5     10    -0.31%    -3.12%    +0.00%
+    scn_two_rows_medium_P5_R10   10    -0.75%   -10.83%    +2.46%
+    scn_two_rows_medium_P5_R20   10    +9.15%    +3.25%   +13.14%
+    scn_two_rows_medium_P5_R30   10   +19.44%   +11.22%   +28.85%
+    scn_two_rows_medium_P5_R5    10    -0.51%    -5.13%    +0.00%
+    scn_two_rows_tight_P5_R20    10    +6.99%    +3.18%   +10.94%
+    scn_two_rows_tight_P5_R30    10   +19.90%    +4.96%   +44.19%
+    scn_two_rows_tight_P5_R5     10    -3.09%   -20.51%    +0.00%
+
+  -- Relative objective gap, aggregated over all profiles --
+  [ALL profiles]
+    Type                          N      Mean       Min       Max
+    -----------------------------------------------------------
+    scn_triangle_loose_P5_R20    30   +16.73%    +5.55%   +28.08%
+    scn_triangle_loose_P5_R30    29   +36.66%   +20.06%   +52.59%
+    scn_triangle_loose_P5_R5     30    -0.24%    -7.14%    +0.00%
+    scn_triangle_medium_P5_R20   30   +14.07%    +3.98%   +24.81%
+    scn_triangle_medium_P5_R30   30   +36.29%   +19.27%   +50.52%
+    scn_triangle_medium_P5_R5    30    +0.00%    +0.00%    +0.00%
+    scn_two_rows_loose_P5_R10    30    +2.63%    -8.00%   +46.95%
+    scn_two_rows_loose_P5_R20    30   +10.02%    +2.58%   +22.72%
+    scn_two_rows_loose_P5_R30    30   +26.09%    +6.57%   +44.26%
+    scn_two_rows_loose_P5_R5     30    -0.10%    -3.12%    +0.00%
+    scn_two_rows_medium_P5_R10   30    +0.09%   -10.83%    +5.19%
+    scn_two_rows_medium_P5_R20   30    +8.97%    +3.25%   +21.62%
+    scn_two_rows_medium_P5_R30   30   +20.34%    +6.46%   +38.81%
+    scn_two_rows_medium_P5_R5    30    -0.18%    -5.13%    +0.00%
+    scn_two_rows_tight_P5_R20    30    +6.29%    +1.60%   +11.97%
+    scn_two_rows_tight_P5_R30    29   +19.18%    +3.51%   +44.19%
+    scn_two_rows_tight_P5_R5     30    -1.13%   -20.51%    +0.00%
+
+  -- Per-component mean Δ (heuristic − MILP); negative = heuristic better --
+  -- (relative gap is distorted when the optimum delay ≈ 0; read these too)
+  [wMK  (100/1/1  makespan-priority)]
+    Type                          N   Δmakespan      Δdelay      Δmov
+    ---------------------------------------------------------------
+    scn_triangle_loose_P5_R20    10      -21.65     -137.50     +1.80
+    scn_triangle_loose_P5_R30     9      -99.56     -904.89    +11.56
+    scn_triangle_loose_P5_R5     10       +0.00       +0.00     +0.00
+    scn_triangle_medium_P5_R20   10      -21.25     -122.15     +0.40
+    scn_triangle_medium_P5_R30   10     -119.90    -1317.10     +6.80
+    scn_triangle_medium_P5_R5    10       +0.00       +0.00     +0.00
+    scn_two_rows_loose_P5_R10    10       +0.15       -8.20     +0.60
+    scn_two_rows_loose_P5_R20    10       -7.60      -22.70     -4.40
+    scn_two_rows_loose_P5_R30    10      -74.35     -561.00     +3.80
+    scn_two_rows_loose_P5_R5     10       +0.00       +0.00     +0.00
+    scn_two_rows_medium_P5_R10   10       +0.10       -6.00     +0.00
+    scn_two_rows_medium_P5_R20   10       -8.75      -71.80     -2.40
+    scn_two_rows_medium_P5_R30   10      -54.50     -436.05     -0.20
+    scn_two_rows_medium_P5_R5    10       +0.00       +0.55     +0.00
+    scn_two_rows_tight_P5_R20    10       -8.85      -35.00     -4.20
+    scn_two_rows_tight_P5_R30     9      -54.00     -456.83     -4.44
+    scn_two_rows_tight_P5_R5     10       +0.00       +0.50     -0.20
+
+  [wDLY  (1/100/1  delay-priority)]
+    Type                          N   Δmakespan      Δdelay      Δmov
+    ---------------------------------------------------------------
+    scn_triangle_loose_P5_R20    10      -15.95      -91.25     -1.00
+    scn_triangle_loose_P5_R30    10     -115.90    -1171.35    +12.20
+    scn_triangle_loose_P5_R5     10       +0.00       +0.00     +0.00
+    scn_triangle_medium_P5_R20   10      -21.30     -101.40     +4.60
+    scn_triangle_medium_P5_R30   10     -113.10    -1152.10    +12.20
+    scn_triangle_medium_P5_R5    10       +0.00       +0.00     +0.00
+    scn_two_rows_loose_P5_R10    10       +0.00       -0.20     -0.20
+    scn_two_rows_loose_P5_R20    10      -15.25      -55.05     -6.00
+    scn_two_rows_loose_P5_R30    10      -70.55     -571.95     -0.20
+    scn_two_rows_loose_P5_R5     10       +0.00       +0.00     +0.00
+    scn_two_rows_medium_P5_R10   10       -1.50       -0.60     +0.00
+    scn_two_rows_medium_P5_R20   10      -14.35      -64.75     -4.40
+    scn_two_rows_medium_P5_R30   10      -63.55     -521.95     -9.20
+    scn_two_rows_medium_P5_R5    10       +0.00       +0.00     +0.00
+    scn_two_rows_tight_P5_R20    10       -8.20      -36.75     -5.00
+    scn_two_rows_tight_P5_R30    10      -47.50     -505.55    -10.80
+    scn_two_rows_tight_P5_R5     10       -0.10       +0.00     +0.20
+
+  [wMOV  (1/1/100  movement-priority)]
+    Type                          N   Δmakespan      Δdelay      Δmov
+    ---------------------------------------------------------------
+    scn_triangle_loose_P5_R20    10      -19.20      -74.75     +0.00
+    scn_triangle_loose_P5_R30    10      -83.10     -857.80     +0.00
+    scn_triangle_loose_P5_R5     10       +0.20       +0.00     +0.00
+    scn_triangle_medium_P5_R20   10      -19.25      -87.00     +0.00
+    scn_triangle_medium_P5_R30   10     -100.75    -1083.00     +0.00
+    scn_triangle_medium_P5_R5    10       +0.00       +0.00     +0.00
+    scn_two_rows_loose_P5_R10    10       +1.20       -0.30     +0.00
+    scn_two_rows_loose_P5_R20    10       -8.75      -47.90     +0.00
+    scn_two_rows_loose_P5_R30    10      -63.60     -517.25     +0.00
+    scn_two_rows_loose_P5_R5     10       +0.10       +0.00     +0.00
+    scn_two_rows_medium_P5_R10   10       +0.90       -0.10     +0.00
+    scn_two_rows_medium_P5_R20   10       -9.50      -58.35     +0.00
+    scn_two_rows_medium_P5_R30   10      -49.20     -425.15     +0.00
+    scn_two_rows_medium_P5_R5    10       +0.00       +0.20     +0.00
+    scn_two_rows_tight_P5_R20    10      -10.10      -49.30     +0.00
+    scn_two_rows_tight_P5_R30    10      -63.65     -534.50     +0.00
+    scn_two_rows_tight_P5_R5     10       -0.10       +1.30     +0.00
+
+==================================================================
+
+
+==================================================================
+  SUMMARY  —  1018 ok  /  2 failed  /  1020 total
+==================================================================
+  Instance                           Experiment     Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  ------------------------------------------------------------------------------------------------------------------------
+  scn_triangle_loose_P5_R20_seed1    milp_job_wMK   maxTimeLim    15153.00     146.00     529.00    24    67.00%      61.8
+  scn_triangle_loose_P5_R20_seed1    igvnd_wMK      heuristic_    13344.00     129.50     394.00     0         -      60.0
+  scn_triangle_loose_P5_R20_seed1    milp_job_wDLY  maxTimeLim    45451.00     147.00     453.00     4    99.89%      61.8
+  scn_triangle_loose_P5_R20_seed1    igvnd_wDLY     heuristic_    35233.50     133.50     351.00     0         -      60.0
+  scn_triangle_loose_P5_R20_seed1    milp_job_wMOV  maxTimeLim      611.00     149.00     462.00     0    91.82%      61.9
+  scn_triangle_loose_P5_R20_seed1    igvnd_wMOV     heuristic_      486.50     122.50     364.00     0         -      60.1
+  scn_triangle_loose_P5_R30_seed1    igvnd_wMK      heuristic_    23609.50     220.50    1559.50     0         -      60.0
+  scn_triangle_loose_P5_R30_seed1    milp_job_wDLY  maxTimeLim   277101.50     351.50    2767.50     0    99.97%      65.2
+  scn_triangle_loose_P5_R30_seed1    igvnd_wDLY     heuristic_   140033.50     233.50    1398.00     0         -      60.0
+  scn_triangle_loose_P5_R30_seed1    milp_job_wMOV  maxTimeLim     2392.50     282.50    2110.00     0    97.07%      65.2
+  scn_triangle_loose_P5_R30_seed1    igvnd_wMOV     heuristic_     1631.50     233.50    1398.00     0         -      60.1
+  scn_triangle_loose_P5_R5_seed1     milp_job_wMK   optimal        3000.00      30.00       0.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R5_seed1     igvnd_wMK      heuristic_     3000.00      30.00       0.00     0         -       0.9
+  scn_triangle_loose_P5_R5_seed1     milp_job_wDLY  optimal          30.00      30.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed1     igvnd_wDLY     heuristic_       30.00      30.00       0.00     0         -       0.9
+  scn_triangle_loose_P5_R5_seed1     milp_job_wMOV  optimal          30.00      30.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed1     igvnd_wMOV     heuristic_       30.00      30.00       0.00     0         -       0.9
+  scn_triangle_medium_P5_R20_seed1   milp_job_wMK   maxTimeLim    14446.50     137.50     664.50    32    65.39%      61.8
+  scn_triangle_medium_P5_R20_seed1   igvnd_wMK      heuristic_    12970.50     124.50     520.50     0         -      60.1
+  scn_triangle_medium_P5_R20_seed1   milp_job_wDLY  maxTimeLim    66212.50     152.50     660.50    10    99.92%      61.8
+  scn_triangle_medium_P5_R20_seed1   igvnd_wDLY     heuristic_    52615.00     129.00     524.50    36         -      60.0
+  scn_triangle_medium_P5_R20_seed1   milp_job_wMOV  maxTimeLim      695.50     144.00     551.50     0    92.81%      61.8
+  scn_triangle_medium_P5_R20_seed1   igvnd_wMOV     heuristic_      636.50     123.50     513.00     0         -      60.0
+  scn_triangle_medium_P5_R30_seed1   milp_job_wMK   maxTimeLim    37959.00     345.50    3409.00     0    81.56%      64.7
+  scn_triangle_medium_P5_R30_seed1   igvnd_wMK      heuristic_    23926.50     221.50    1760.50    16         -      60.2
+  scn_triangle_medium_P5_R30_seed1   milp_job_wDLY  maxTimeLim   308681.00     381.00    3083.00     0    99.98%      64.7
+  scn_triangle_medium_P5_R30_seed1   igvnd_wDLY     heuristic_   175712.00     242.00    1754.50    20         -      60.1
+  scn_triangle_medium_P5_R30_seed1   milp_job_wMOV  maxTimeLim     2897.50     335.50    2562.00     0    97.58%      64.7
+  scn_triangle_medium_P5_R30_seed1   igvnd_wMOV     heuristic_     1993.00     226.50    1766.50     0         -      60.1
+  scn_triangle_medium_P5_R5_seed1    milp_job_wMK   optimal        3000.00      30.00       0.00     0     0.00%       0.3
+  scn_triangle_medium_P5_R5_seed1    igvnd_wMK      heuristic_     3000.00      30.00       0.00     0         -       0.9
+  scn_triangle_medium_P5_R5_seed1    milp_job_wDLY  optimal          30.00      30.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed1    igvnd_wDLY     heuristic_       30.00      30.00       0.00     0         -       1.0
+  scn_triangle_medium_P5_R5_seed1    milp_job_wMOV  optimal          30.00      30.00       0.00     0     0.00%       0.1
+  scn_triangle_medium_P5_R5_seed1    igvnd_wMOV     heuristic_       30.00      30.00       0.00     0         -       0.8
+  scn_two_rows_loose_P5_R10_seed1    milp_job_wMK   optimal        5869.50      58.50      11.50     8     0.00%      24.1
+  scn_two_rows_loose_P5_R10_seed1    igvnd_wMK      heuristic_     5859.50      58.50       3.50     6         -      49.9
+  scn_two_rows_loose_P5_R10_seed1    milp_job_wDLY  optimal         417.50      61.50       3.50     6     0.00%      10.3
+  scn_two_rows_loose_P5_R10_seed1    igvnd_wDLY     heuristic_      365.50      59.50       3.00     6         -      44.6
+  scn_two_rows_loose_P5_R10_seed1    milp_job_wMOV  optimal          65.50      59.50       6.00     0     0.00%       6.0
+  scn_two_rows_loose_P5_R10_seed1    igvnd_wMOV     heuristic_       63.50      59.50       4.00     0         -      41.3
+  scn_two_rows_loose_P5_R20_seed1    milp_job_wMK   maxTimeLim    12979.00     125.50     429.00     0    61.48%      61.2
+  scn_two_rows_loose_P5_R20_seed1    igvnd_wMK      heuristic_    12553.50     121.50     391.50    12         -      60.0
+  scn_two_rows_loose_P5_R20_seed1    milp_job_wDLY  maxTimeLim    38112.00     152.00     379.50    10    99.87%      61.2
+  scn_two_rows_loose_P5_R20_seed1    igvnd_wDLY     heuristic_    33734.50     126.50     336.00     8         -      60.1
+  scn_two_rows_loose_P5_R20_seed1    milp_job_wMOV  maxTimeLim      529.00     132.50     396.50     0    90.55%      61.3
+  scn_two_rows_loose_P5_R20_seed1    igvnd_wMOV     heuristic_      484.50     124.50     360.00     0         -      60.3
+  scn_two_rows_loose_P5_R30_seed1    milp_job_wMK   maxTimeLim    31799.50     296.50    2139.50    10    77.99%      63.5
+  scn_two_rows_loose_P5_R30_seed1    igvnd_wMK      heuristic_    23002.50     216.50    1352.50     0         -      60.1
+  scn_two_rows_loose_P5_R30_seed1    milp_job_wDLY  maxTimeLim   193139.50     285.50    1928.50     4    99.96%      63.4
+  scn_two_rows_loose_P5_R30_seed1    igvnd_wDLY     heuristic_   140928.50     228.50    1407.00     0         -      60.1
+  scn_two_rows_loose_P5_R30_seed1    milp_job_wMOV  maxTimeLim     2436.50     316.00    2120.50     0    97.13%      63.5
+  scn_two_rows_loose_P5_R30_seed1    igvnd_wMOV     heuristic_     1635.00     223.50    1411.50     0         -      60.1
+  scn_two_rows_loose_P5_R5_seed1     milp_job_wMK   optimal        3000.00      30.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed1     igvnd_wMK      heuristic_     3000.00      30.00       0.00     0         -       0.9
+  scn_two_rows_loose_P5_R5_seed1     milp_job_wDLY  optimal          30.00      30.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed1     igvnd_wDLY     heuristic_       30.00      30.00       0.00     0         -       0.9
+  scn_two_rows_loose_P5_R5_seed1     milp_job_wMOV  optimal          30.00      30.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed1     igvnd_wMOV     heuristic_       30.00      30.00       0.00     0         -       0.8
+  scn_two_rows_medium_P5_R10_seed1   milp_job_wMK   optimal        5920.00      58.50      62.00     8     0.00%      13.4
+  scn_two_rows_medium_P5_R10_seed1   igvnd_wMK      heuristic_     5913.00      58.50      57.00     6         -      60.0
+  scn_two_rows_medium_P5_R10_seed1   milp_job_wDLY  maxTimeLim     5715.50      61.50      56.50     4    99.35%      60.4
+  scn_two_rows_medium_P5_R10_seed1   igvnd_wDLY     heuristic_     5663.50      59.50      56.00     4         -      54.9
+  scn_two_rows_medium_P5_R10_seed1   milp_job_wMOV  maxTimeLim      122.00      61.50      60.50     0    40.16%      60.4
+  scn_two_rows_medium_P5_R10_seed1   igvnd_wMOV     heuristic_      119.00      61.50      57.50     0         -      58.4
+  scn_two_rows_medium_P5_R20_seed1   milp_job_wMK   maxTimeLim    13200.50     126.00     582.50    18    62.12%      61.3
+  scn_two_rows_medium_P5_R20_seed1   igvnd_wMK      heuristic_    12582.50     120.50     532.50     0         -      60.0
+  scn_two_rows_medium_P5_R20_seed1   milp_job_wDLY  maxTimeLim    58094.50     134.50     579.50    10    99.91%      61.2
+  scn_two_rows_medium_P5_R20_seed1   igvnd_wDLY     heuristic_    52656.50     130.50     525.00    26         -      60.0
+  scn_two_rows_medium_P5_R20_seed1   milp_job_wMOV  maxTimeLim      742.50     133.50     609.00     0    93.27%      61.2
+  scn_two_rows_medium_P5_R20_seed1   igvnd_wMOV     heuristic_      660.00     131.50     528.50     0         -      60.0
+  scn_two_rows_medium_P5_R30_seed1   milp_job_wMK   maxTimeLim    31766.50     292.00    2566.50     0    77.96%      63.4
+  scn_two_rows_medium_P5_R30_seed1   igvnd_wMK      heuristic_    23634.50     218.50    1784.50     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed1   milp_job_wDLY  maxTimeLim   219502.50     348.50    2191.50     4    99.97%      67.6
+  scn_two_rows_medium_P5_R30_seed1   igvnd_wDLY     heuristic_   174332.50     232.50    1741.00     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed1   milp_job_wMOV  maxTimeLim     2292.50     253.00    2039.50     0    96.95%      68.4
+  scn_two_rows_medium_P5_R30_seed1   igvnd_wMOV     heuristic_     1922.50     220.50    1702.00     0         -      60.1
+  scn_two_rows_medium_P5_R5_seed1    milp_job_wMK   optimal        3000.00      30.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed1    igvnd_wMK      heuristic_     3000.00      30.00       0.00     0         -       0.9
+  scn_two_rows_medium_P5_R5_seed1    milp_job_wDLY  optimal          30.00      30.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed1    igvnd_wDLY     heuristic_       30.00      30.00       0.00     0         -       0.9
+  scn_two_rows_medium_P5_R5_seed1    milp_job_wMOV  optimal          30.00      30.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed1    igvnd_wMOV     heuristic_       30.00      30.00       0.00     0         -       0.8
+  scn_two_rows_tight_P5_R20_seed1    milp_job_wMK   maxTimeLim    13808.00     130.50     746.00    12    63.79%      61.2
+  scn_two_rows_tight_P5_R20_seed1    igvnd_wMK      heuristic_    13060.00     123.50     710.00     0         -      60.0
+  scn_two_rows_tight_P5_R20_seed1    milp_job_wDLY  maxTimeLim    66110.00     138.00     659.50    22    99.92%      61.2
+  scn_two_rows_tight_P5_R20_seed1    igvnd_wDLY     heuristic_    62347.50     131.50     622.00    16         -      60.0
+  scn_two_rows_tight_P5_R20_seed1    milp_job_wMOV  maxTimeLim      832.00     140.50     691.50     0    93.99%      61.3
+  scn_two_rows_tight_P5_R20_seed1    igvnd_wMOV     heuristic_      776.50     126.50     650.00     0         -      60.0
+  scn_two_rows_tight_P5_R30_seed1    milp_job_wMK   maxTimeLim    36076.50     334.50    2626.50     0    80.60%      64.6
+  scn_two_rows_tight_P5_R30_seed1    igvnd_wMK      heuristic_    23767.50     217.00    2067.50     0         -      60.1
+  scn_two_rows_tight_P5_R30_seed1    milp_job_wDLY  maxTimeLim   278861.00     311.00    2785.50     0    99.97%      63.3
+  scn_two_rows_tight_P5_R30_seed1    igvnd_wDLY     heuristic_   193425.50     225.50    1932.00     0         -      60.0
+  scn_two_rows_tight_P5_R30_seed1    milp_job_wMOV  maxTimeLim     2629.00     312.00    2317.00     0    97.34%      68.1
+  scn_two_rows_tight_P5_R30_seed1    igvnd_wMOV     heuristic_     2198.50     224.50    1974.00     0         -      60.0
+  scn_two_rows_tight_P5_R5_seed1     milp_job_wMK   optimal        3000.00      30.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed1     igvnd_wMK      heuristic_     3000.00      30.00       0.00     0         -       1.1
+  scn_two_rows_tight_P5_R5_seed1     milp_job_wDLY  optimal          30.00      30.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed1     igvnd_wDLY     heuristic_       30.00      30.00       0.00     0         -       1.1
+  scn_two_rows_tight_P5_R5_seed1     milp_job_wMOV  optimal          30.00      30.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed1     igvnd_wMOV     heuristic_       30.00      30.00       0.00     0         -       0.9
+  scn_triangle_loose_P5_R20_seed2    milp_job_wMK   maxTimeLim    15443.00     149.00     541.00     2    62.44%      61.8
+  scn_triangle_loose_P5_R20_seed2    igvnd_wMK      heuristic_    13090.00     127.50     340.00     0         -      60.0
+  scn_triangle_loose_P5_R20_seed2    milp_job_wDLY  maxTimeLim    45104.00     136.00     449.50    18    99.87%      61.8
+  scn_triangle_loose_P5_R20_seed2    igvnd_wDLY     heuristic_    32438.50     130.50     323.00     8         -      60.0
+  scn_triangle_loose_P5_R20_seed2    milp_job_wMOV  maxTimeLim      537.50     136.50     401.00     0    89.21%      61.8
+  scn_triangle_loose_P5_R20_seed2    igvnd_wMOV     heuristic_      462.00     125.50     336.50     0         -      60.0
+  scn_triangle_loose_P5_R30_seed2    milp_job_wMK   maxTimeLim    30588.00     286.50    1934.00     4    75.81%      70.4
+  scn_triangle_loose_P5_R30_seed2    igvnd_wMK      heuristic_    24049.50     224.50    1555.50    44         -      60.1
+  scn_triangle_loose_P5_R30_seed2    milp_job_wDLY  maxTimeLim   219983.50     331.50    2196.50     2    99.97%      69.6
+  scn_triangle_loose_P5_R30_seed2    igvnd_wDLY     heuristic_   135050.50     226.50    1348.00    24         -      60.7
+  scn_triangle_loose_P5_R30_seed2    milp_job_wMOV  maxTimeLim     2261.50     294.50    1967.00     0    96.73%      64.7
+  scn_triangle_loose_P5_R30_seed2    igvnd_wMOV     heuristic_     1582.00     219.50    1362.50     0         -      60.1
+  scn_triangle_loose_P5_R5_seed2     milp_job_wMK   optimal        3700.00      37.00       0.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R5_seed2     igvnd_wMK      heuristic_     3700.00      37.00       0.00     0         -       0.9
+  scn_triangle_loose_P5_R5_seed2     milp_job_wDLY  optimal          37.00      37.00       0.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R5_seed2     igvnd_wDLY     heuristic_       37.00      37.00       0.00     0         -       1.0
+  scn_triangle_loose_P5_R5_seed2     milp_job_wMOV  optimal          37.00      37.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed2     igvnd_wMOV     heuristic_       37.00      37.00       0.00     0         -       0.9
+  scn_triangle_medium_P5_R20_seed2   milp_job_wMK   maxTimeLim    14054.50     134.50     584.50    20    58.73%      61.8
+  scn_triangle_medium_P5_R20_seed2   igvnd_wMK      heuristic_    13278.00     127.50     528.00     0         -      60.0
+  scn_triangle_medium_P5_R20_seed2   milp_job_wDLY  maxTimeLim    64361.00     155.00     642.00     6    99.91%      61.8
+  scn_triangle_medium_P5_R20_seed2   igvnd_wDLY     heuristic_    52385.50     127.50     522.50     8         -      60.0
+  scn_triangle_medium_P5_R20_seed2   milp_job_wMOV  maxTimeLim      753.00     144.00     609.00     0    92.30%      61.8
+  scn_triangle_medium_P5_R20_seed2   igvnd_wMOV     heuristic_      666.50     129.50     537.00     0         -      60.0
+  scn_triangle_medium_P5_R30_seed2   milp_job_wMK   maxTimeLim    33300.50     304.00    2894.50     6    77.78%      64.7
+  scn_triangle_medium_P5_R30_seed2   igvnd_wMK      heuristic_    23906.00     220.50    1808.00    48         -      60.1
+  scn_triangle_medium_P5_R30_seed2   milp_job_wDLY  maxTimeLim   246817.00     313.00    2465.00     4    99.97%      64.7
+  scn_triangle_medium_P5_R30_seed2   igvnd_wDLY     heuristic_   166245.50     221.50    1660.00    24         -      60.3
+  scn_triangle_medium_P5_R30_seed2   milp_job_wMOV  maxTimeLim     2877.50     302.00    2575.50     0    97.43%      64.7
+  scn_triangle_medium_P5_R30_seed2   igvnd_wMOV     heuristic_     1870.50     222.50    1648.00     0         -      60.2
+  scn_triangle_medium_P5_R5_seed2    milp_job_wMK   optimal        3700.00      37.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed2    igvnd_wMK      heuristic_     3700.00      37.00       0.00     0         -       0.9
+  scn_triangle_medium_P5_R5_seed2    milp_job_wDLY  optimal          37.00      37.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed2    igvnd_wDLY     heuristic_       37.00      37.00       0.00     0         -       5.2
+  scn_triangle_medium_P5_R5_seed2    milp_job_wMOV  optimal          37.00      37.00       0.00     0     0.00%       0.1
+  scn_triangle_medium_P5_R5_seed2    igvnd_wMOV     heuristic_       37.00      37.00       0.00     0         -       0.9
+  scn_two_rows_loose_P5_R10_seed2    milp_job_wMK   optimal        6824.50      68.00      20.50     4     0.00%       4.5
+  scn_two_rows_loose_P5_R10_seed2    igvnd_wMK      heuristic_     6860.00      68.50       4.00     6         -      60.0
+  scn_two_rows_loose_P5_R10_seed2    milp_job_wDLY  optimal          71.50      71.50       0.00     0     0.00%       3.3
+  scn_two_rows_loose_P5_R10_seed2    igvnd_wDLY     heuristic_       71.50      71.50       0.00     0         -      50.4
+  scn_two_rows_loose_P5_R10_seed2    milp_job_wMOV  optimal          71.50      71.50       0.00     0     0.00%       5.6
+  scn_two_rows_loose_P5_R10_seed2    igvnd_wMOV     heuristic_       71.50      71.50       0.00     0         -      57.6
+  scn_two_rows_loose_P5_R20_seed2    milp_job_wMK   maxTimeLim    13959.00     135.00     435.00    24    58.45%      61.3
+  scn_two_rows_loose_P5_R20_seed2    igvnd_wMK      heuristic_    12809.00     124.50     359.00     0         -      60.0
+  scn_two_rows_loose_P5_R20_seed2    milp_job_wDLY  maxTimeLim    37497.50     139.50     373.50     8    99.85%      61.3
+  scn_two_rows_loose_P5_R20_seed2    igvnd_wDLY     heuristic_    33276.50     126.50     331.50     0         -      60.1
+  scn_two_rows_loose_P5_R20_seed2    milp_job_wMOV  maxTimeLim      551.00     140.00     411.00     0    89.47%      61.3
+  scn_two_rows_loose_P5_R20_seed2    igvnd_wMOV     heuristic_      456.00     127.50     328.50     0         -      60.0
+  scn_two_rows_loose_P5_R30_seed2    milp_job_wMK   maxTimeLim    31177.50     292.50    1927.50     0    76.26%      63.2
+  scn_two_rows_loose_P5_R30_seed2    igvnd_wMK      heuristic_    22212.50     209.50    1262.50     0         -      60.2
+  scn_two_rows_loose_P5_R30_seed2    milp_job_wDLY  maxTimeLim   178533.00     283.00    1782.50     0    99.96%      63.3
+  scn_two_rows_loose_P5_R30_seed2    igvnd_wDLY     heuristic_   123719.50     219.50    1235.00     0         -      60.1
+  scn_two_rows_loose_P5_R30_seed2    milp_job_wMOV  maxTimeLim     1863.00     261.00    1602.00     0    96.03%      63.3
+  scn_two_rows_loose_P5_R30_seed2    igvnd_wMOV     heuristic_     1457.00     220.50    1236.50     0         -      60.3
+  scn_two_rows_loose_P5_R5_seed2     milp_job_wMK   optimal        3700.00      37.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed2     igvnd_wMK      heuristic_     3700.00      37.00       0.00     0         -       0.8
+  scn_two_rows_loose_P5_R5_seed2     milp_job_wDLY  optimal          37.00      37.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed2     igvnd_wDLY     heuristic_       37.00      37.00       0.00     0         -       0.9
+  scn_two_rows_loose_P5_R5_seed2     milp_job_wMOV  optimal          37.00      37.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed2     igvnd_wMOV     heuristic_       37.00      37.00       0.00     0         -       0.9
+  scn_two_rows_medium_P5_R10_seed2   milp_job_wMK   optimal        6876.50      68.00      68.50     8     0.00%       5.5
+  scn_two_rows_medium_P5_R10_seed2   igvnd_wMK      heuristic_     6826.00      67.50      68.00     8         -      60.0
+  scn_two_rows_medium_P5_R10_seed2   milp_job_wDLY  maxTimeLim     6327.50      73.50      62.50     4    99.26%      60.4
+  scn_two_rows_medium_P5_R10_seed2   igvnd_wDLY     heuristic_     6274.50      70.50      62.00     4         -      55.9
+  scn_two_rows_medium_P5_R10_seed2   milp_job_wMOV  maxTimeLim      137.00      70.50      66.50     0    27.74%      60.4
+  scn_two_rows_medium_P5_R10_seed2   igvnd_wMOV     heuristic_      137.00      70.50      66.50     0         -      55.9
+  scn_two_rows_medium_P5_R20_seed2   milp_job_wMK   maxTimeLim    13597.50     129.50     627.50    20    57.35%      61.3
+  scn_two_rows_medium_P5_R20_seed2   igvnd_wMK      heuristic_    12974.50     124.50     524.50     0         -      60.0
+  scn_two_rows_medium_P5_R20_seed2   milp_job_wDLY  maxTimeLim    58616.00     162.00     584.50     4    99.90%      61.3
+  scn_two_rows_medium_P5_R20_seed2   igvnd_wDLY     heuristic_    52328.50     128.50     522.00     0         -      60.1
+  scn_two_rows_medium_P5_R20_seed2   milp_job_wMOV  maxTimeLim      700.00     139.00     561.00     0    91.71%      61.3
+  scn_two_rows_medium_P5_R20_seed2   igvnd_wMOV     heuristic_      626.00     124.50     501.50     0         -      60.0
+  scn_two_rows_medium_P5_R30_seed2   milp_job_wMK   maxTimeLim    31524.50     291.50    2374.50     0    76.53%      63.3
+  scn_two_rows_medium_P5_R30_seed2   igvnd_wMK      heuristic_    23091.00     213.00    1791.00     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed2   milp_job_wDLY  maxTimeLim   241292.50     288.50    2410.00     4    99.97%      63.4
+  scn_two_rows_medium_P5_R30_seed2   igvnd_wDLY     heuristic_   156917.50     217.50    1567.00     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed2   milp_job_wMOV  maxTimeLim     2180.50     266.50    1914.00     0    96.61%      64.6
+  scn_two_rows_medium_P5_R30_seed2   igvnd_wMOV     heuristic_     1767.00     211.50    1555.50     0         -      60.2
+  scn_two_rows_medium_P5_R5_seed2    milp_job_wMK   optimal        3700.00      37.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed2    igvnd_wMK      heuristic_     3700.00      37.00       0.00     0         -       0.8
+  scn_two_rows_medium_P5_R5_seed2    milp_job_wDLY  optimal          37.00      37.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed2    igvnd_wDLY     heuristic_       37.00      37.00       0.00     0         -       0.9
+  scn_two_rows_medium_P5_R5_seed2    milp_job_wMOV  optimal          37.00      37.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed2    igvnd_wMOV     heuristic_       37.00      37.00       0.00     0         -       0.9
+  scn_two_rows_tight_P5_R20_seed2    milp_job_wMK   maxTimeLim    13911.00     131.50     761.00     0    58.31%      61.3
+  scn_two_rows_tight_P5_R20_seed2    igvnd_wMK      heuristic_    13025.00     123.50     671.00     4         -      60.0
+  scn_two_rows_tight_P5_R20_seed2    milp_job_wDLY  maxTimeLim    67638.50     130.50     675.00     8    99.91%      61.3
+  scn_two_rows_tight_P5_R20_seed2    igvnd_wDLY     heuristic_    65284.50     130.50     651.50     4         -      60.1
+  scn_two_rows_tight_P5_R20_seed2    milp_job_wMOV  maxTimeLim      826.50     135.50     691.00     0    92.98%      61.3
+  scn_two_rows_tight_P5_R20_seed2    igvnd_wMOV     heuristic_      790.50     125.50     665.00     0         -      60.0
+  scn_two_rows_tight_P5_R30_seed2    milp_job_wMK   maxTimeLim    25128.50     229.00    2200.50    28    70.55%      63.3
+  scn_two_rows_tight_P5_R30_seed2    igvnd_wMK      heuristic_    22682.50     208.50    1832.50     0         -      60.4
+  scn_two_rows_tight_P5_R30_seed2    milp_job_wDLY  maxTimeLim   212234.50     262.50    2119.50    22    99.97%      63.3
+  scn_two_rows_tight_P5_R30_seed2    igvnd_wDLY     heuristic_   188099.50     225.50    1878.50    24         -      60.1
+  scn_two_rows_tight_P5_R30_seed2    milp_job_wMOV  maxTimeLim     2489.00     254.50    2234.50     0    97.03%      67.7
+  scn_two_rows_tight_P5_R30_seed2    igvnd_wMOV     heuristic_     2180.00     230.00    1950.00     0         -      60.2
+  scn_two_rows_tight_P5_R5_seed2     milp_job_wMK   optimal        3700.00      37.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed2     igvnd_wMK      heuristic_     3700.00      37.00       0.00     0         -       0.8
+  scn_two_rows_tight_P5_R5_seed2     milp_job_wDLY  optimal          37.00      37.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed2     igvnd_wDLY     heuristic_       37.00      37.00       0.00     0         -       0.9
+  scn_two_rows_tight_P5_R5_seed2     milp_job_wMOV  optimal          37.00      37.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed2     igvnd_wMOV     heuristic_       37.00      37.00       0.00     0         -       5.8
+  scn_triangle_loose_P5_R20_seed3    milp_job_wMK   maxTimeLim    16124.00     156.00     524.00     0    67.75%      62.0
+  scn_triangle_loose_P5_R20_seed3    igvnd_wMK      heuristic_    13582.50     131.50     416.50    16         -      60.0
+  scn_triangle_loose_P5_R20_seed3    milp_job_wDLY  maxTimeLim    46157.00     147.00     460.00    10    99.89%      61.9
+  scn_triangle_loose_P5_R20_seed3    igvnd_wDLY     heuristic_    43593.50     143.50     434.50     0         -      60.1
+  scn_triangle_loose_P5_R20_seed3    milp_job_wMOV  maxTimeLim      648.00     165.50     482.50     0    91.98%      61.9
+  scn_triangle_loose_P5_R20_seed3    igvnd_wMOV     heuristic_      554.00     133.50     420.50     0         -      60.4
+  scn_triangle_loose_P5_R30_seed3    milp_job_wMK   maxTimeLim    36279.50     337.50    2529.50     0    78.50%      64.8
+  scn_triangle_loose_P5_R30_seed3    igvnd_wMK      heuristic_    23978.50     224.50    1528.50     0         -      60.8
+  scn_triangle_loose_P5_R30_seed3    milp_job_wDLY  maxTimeLim   272820.50     370.50    2724.50     0    99.97%      64.7
+  scn_triangle_loose_P5_R30_seed3    igvnd_wDLY     heuristic_   147927.00     227.00    1477.00     0         -      60.7
+  scn_triangle_loose_P5_R30_seed3    milp_job_wMOV  maxTimeLim     2578.50     311.00    2267.50     0    96.97%      64.7
+  scn_triangle_loose_P5_R30_seed3    igvnd_wMOV     heuristic_     1714.50     225.00    1489.50     0         -      60.0
+  scn_triangle_loose_P5_R5_seed3     milp_job_wMK   optimal        3100.00      31.00       0.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R5_seed3     igvnd_wMK      heuristic_     3100.00      31.00       0.00     0         -       1.1
+  scn_triangle_loose_P5_R5_seed3     milp_job_wDLY  optimal          31.00      31.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed3     igvnd_wDLY     heuristic_       31.00      31.00       0.00     0         -       0.8
+  scn_triangle_loose_P5_R5_seed3     milp_job_wMOV  optimal          31.00      31.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed3     igvnd_wMOV     heuristic_       31.00      31.00       0.00     0         -       0.8
+  scn_triangle_medium_P5_R20_seed3   milp_job_wMK   maxTimeLim    15047.50     143.50     697.50     0    65.44%      61.9
+  scn_triangle_medium_P5_R20_seed3   igvnd_wMK      heuristic_    13691.00     130.50     633.00     8         -      60.1
+  scn_triangle_medium_P5_R20_seed3   milp_job_wDLY  maxTimeLim    75716.50     164.50     755.50     2    99.93%      61.9
+  scn_triangle_medium_P5_R20_seed3   igvnd_wDLY     heuristic_    60108.50     136.50     599.50    22         -      60.1
+  scn_triangle_medium_P5_R20_seed3   milp_job_wMOV  maxTimeLim      859.50     156.00     703.50     0    93.95%      61.9
+  scn_triangle_medium_P5_R20_seed3   igvnd_wMOV     heuristic_      749.00     141.50     607.50     0         -      60.1
+  scn_triangle_medium_P5_R30_seed3   milp_job_wMK   maxTimeLim    38167.00     347.00    3467.00     0    79.56%      64.7
+  scn_triangle_medium_P5_R30_seed3   igvnd_wMK      heuristic_    23888.50     220.50    1838.50     0         -      60.2
+  scn_triangle_medium_P5_R30_seed3   milp_job_wDLY  maxTimeLim   343126.00     364.00    3427.50    12    99.98%      64.7
+  scn_triangle_medium_P5_R30_seed3   igvnd_wDLY     heuristic_   180282.50     232.50    1800.50     0         -      60.0
+  scn_triangle_medium_P5_R30_seed3   milp_job_wMOV  maxTimeLim     2899.50     295.00    2604.50     0    97.31%      64.7
+  scn_triangle_medium_P5_R30_seed3   igvnd_wMOV     heuristic_     1997.00     228.00    1769.00     0         -      60.1
+  scn_triangle_medium_P5_R5_seed3    milp_job_wMK   optimal        3100.00      31.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed3    igvnd_wMK      heuristic_     3100.00      31.00       0.00     0         -       1.1
+  scn_triangle_medium_P5_R5_seed3    milp_job_wDLY  optimal          31.00      31.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed3    igvnd_wDLY     heuristic_       31.00      31.00       0.00     0         -       1.0
+  scn_triangle_medium_P5_R5_seed3    milp_job_wMOV  optimal          31.00      31.00       0.00     0     0.00%       0.1
+  scn_triangle_medium_P5_R5_seed3    igvnd_wMOV     heuristic_       31.00      31.00       0.00     0         -       5.3
+  scn_two_rows_loose_P5_R10_seed3    milp_job_wMK   optimal        6266.00      62.50      12.00     4     0.00%       3.7
+  scn_two_rows_loose_P5_R10_seed3    igvnd_wMK      heuristic_     6261.50      62.50       7.50     4         -      57.3
+  scn_two_rows_loose_P5_R10_seed3    milp_job_wDLY  optimal          74.50      64.50       0.00    10     0.00%       5.3
+  scn_two_rows_loose_P5_R10_seed3    igvnd_wDLY     heuristic_       74.50      64.50       0.00    10         -      44.9
+  scn_two_rows_loose_P5_R10_seed3    milp_job_wMOV  optimal          67.00      64.50       2.50     0     0.00%       3.8
+  scn_two_rows_loose_P5_R10_seed3    igvnd_wMOV     heuristic_       68.00      64.50       3.50     0         -      56.1
+  scn_two_rows_loose_P5_R20_seed3    milp_job_wMK   maxTimeLim    14231.50     137.50     481.50     0    63.46%      61.3
+  scn_two_rows_loose_P5_R20_seed3    igvnd_wMK      heuristic_    13300.00     128.50     450.00     0         -      60.0
+  scn_two_rows_loose_P5_R20_seed3    milp_job_wDLY  maxTimeLim    44315.50     153.50     441.50    12    99.88%      61.3
+  scn_two_rows_loose_P5_R20_seed3    igvnd_wDLY     heuristic_    39255.50     133.50     391.00    22         -      60.0
+  scn_two_rows_loose_P5_R20_seed3    milp_job_wMOV  maxTimeLim      572.50     133.50     439.00     0    90.92%      61.3
+  scn_two_rows_loose_P5_R20_seed3    igvnd_wMOV     heuristic_      530.00     133.50     396.50     0         -      60.0
+  scn_two_rows_loose_P5_R30_seed3    milp_job_wMK   maxTimeLim    29530.00     275.50    1974.00     6    73.59%      63.3
+  scn_two_rows_loose_P5_R30_seed3    igvnd_wMK      heuristic_    22594.00     212.50    1344.00     0         -      60.1
+  scn_two_rows_loose_P5_R30_seed3    milp_job_wDLY  maxTimeLim   163006.00     256.00    1627.50     0    99.95%      63.3
+  scn_two_rows_loose_P5_R30_seed3    igvnd_wDLY     heuristic_   135020.50     220.50    1348.00     0         -      60.1
+  scn_two_rows_loose_P5_R30_seed3    milp_job_wMOV  maxTimeLim     1750.50     233.50    1517.00     0    95.54%      63.4
+  scn_two_rows_loose_P5_R30_seed3    igvnd_wMOV     heuristic_     1635.50     220.50    1415.00     0         -      60.4
+  scn_two_rows_loose_P5_R5_seed3     milp_job_wMK   optimal        3100.00      31.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed3     igvnd_wMK      heuristic_     3100.00      31.00       0.00     0         -       1.0
+  scn_two_rows_loose_P5_R5_seed3     milp_job_wDLY  optimal          31.00      31.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed3     igvnd_wDLY     heuristic_       31.00      31.00       0.00     0         -       0.9
+  scn_two_rows_loose_P5_R5_seed3     milp_job_wMOV  optimal          31.00      31.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed3     igvnd_wMOV     heuristic_       31.00      31.00       0.00     0         -       0.8
+  scn_two_rows_medium_P5_R10_seed3   milp_job_wMK   optimal        6318.50      62.50      68.50     0     0.00%       6.6
+  scn_two_rows_medium_P5_R10_seed3   igvnd_wMK      heuristic_     6317.00      62.50      63.00     4         -      60.0
+  scn_two_rows_medium_P5_R10_seed3   milp_job_wDLY  maxTimeLim     5821.50      67.50      57.50     4    99.30%      60.4
+  scn_two_rows_medium_P5_R10_seed3   igvnd_wDLY     heuristic_     5814.50      64.50      57.50     0         -      59.1
+  scn_two_rows_medium_P5_R10_seed3   milp_job_wMOV  maxTimeLim      122.00      64.50      57.50     0    39.34%      60.4
+  scn_two_rows_medium_P5_R10_seed3   igvnd_wMOV     heuristic_      122.00      64.50      57.50     0         -      60.0
+  scn_two_rows_medium_P5_R20_seed3   milp_job_wMK   maxTimeLim    14734.50     140.00     720.50    14    64.71%      61.3
+  scn_two_rows_medium_P5_R20_seed3   igvnd_wMK      heuristic_    13376.50     127.50     614.50    12         -      60.0
+  scn_two_rows_medium_P5_R20_seed3   milp_job_wDLY  maxTimeLim    65662.50     144.50     655.00    18    99.92%      61.3
+  scn_two_rows_medium_P5_R20_seed3   igvnd_wDLY     heuristic_    58434.50     134.50     583.00     0         -      60.0
+  scn_two_rows_medium_P5_R20_seed3   milp_job_wMOV  maxTimeLim      799.00     146.50     652.50     0    93.49%      61.4
+  scn_two_rows_medium_P5_R20_seed3   igvnd_wMOV     heuristic_      713.50     134.50     579.00     0         -      60.0
+  scn_two_rows_medium_P5_R30_seed3   milp_job_wMK   maxTimeLim    24655.50     227.50    1903.50     2    68.36%      63.2
+  scn_two_rows_medium_P5_R30_seed3   igvnd_wMK      heuristic_    23062.50     213.50    1712.50     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed3   milp_job_wDLY  maxTimeLim   210592.50     270.50    2103.00    22    99.96%      63.3
+  scn_two_rows_medium_P5_R30_seed3   igvnd_wDLY     heuristic_   174223.50     223.50    1740.00     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed3   milp_job_wMOV  maxTimeLim     2418.50     245.50    2173.00     0    96.77%      64.0
+  scn_two_rows_medium_P5_R30_seed3   igvnd_wMOV     heuristic_     1948.00     218.50    1729.50     0         -      60.1
+  scn_two_rows_medium_P5_R5_seed3    milp_job_wMK   optimal        3100.00      31.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed3    igvnd_wMK      heuristic_     3100.00      31.00       0.00     0         -       1.0
+  scn_two_rows_medium_P5_R5_seed3    milp_job_wDLY  optimal          31.00      31.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed3    igvnd_wDLY     heuristic_       31.00      31.00       0.00     0         -       0.9
+  scn_two_rows_medium_P5_R5_seed3    milp_job_wMOV  optimal          31.00      31.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed3    igvnd_wMOV     heuristic_       31.00      31.00       0.00     0         -       0.8
+  scn_two_rows_tight_P5_R20_seed3    milp_job_wMK   maxTimeLim    14301.50     134.50     827.50    24    63.64%      61.4
+  scn_two_rows_tight_P5_R20_seed3    igvnd_wMK      heuristic_    13589.00     128.50     739.00     0         -      60.0
+  scn_two_rows_tight_P5_R20_seed3    milp_job_wDLY  maxTimeLim    74549.50     135.50     744.00    14    99.93%      61.3
+  scn_two_rows_tight_P5_R20_seed3    igvnd_wDLY     heuristic_    72028.50     128.50     719.00     0         -      60.0
+  scn_two_rows_tight_P5_R20_seed3    milp_job_wMOV  maxTimeLim      904.50     136.50     768.00     0    94.25%      61.3
+  scn_two_rows_tight_P5_R20_seed3    igvnd_wMOV     heuristic_      857.50     132.50     725.00     0         -      60.5
+  scn_two_rows_tight_P5_R30_seed3    milp_job_wMK   maxTimeLim    26528.00     243.00    2220.00     8    70.60%      63.3
+  scn_two_rows_tight_P5_R30_seed3    igvnd_wMK      heuristic_    23227.50     211.50    2077.50     0         -      60.1
+  scn_two_rows_tight_P5_R30_seed3    milp_job_wDLY  maxTimeLim   223905.48     243.50    2236.50    12    99.97%      67.4
+  scn_two_rows_tight_P5_R30_seed3    igvnd_wDLY     heuristic_   200521.50     221.50    2003.00     0         -      60.0
+  scn_two_rows_tight_P5_R30_seed3    milp_job_wMOV  maxTimeLim     2713.00     255.00    2458.00     0    97.12%      63.3
+  scn_two_rows_tight_P5_R30_seed3    igvnd_wMOV     heuristic_     2226.00     230.00    1996.00     0         -      60.1
+  scn_two_rows_tight_P5_R5_seed3     milp_job_wMK   optimal        3100.00      31.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed3     igvnd_wMK      heuristic_     3100.00      31.00       0.00     0         -       1.2
+  scn_two_rows_tight_P5_R5_seed3     milp_job_wDLY  optimal          31.00      31.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed3     igvnd_wDLY     heuristic_       31.00      31.00       0.00     0         -       0.9
+  scn_two_rows_tight_P5_R5_seed3     milp_job_wMOV  optimal          31.00      31.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed3     igvnd_wMOV     heuristic_       31.00      31.00       0.00     0         -       0.8
+  scn_triangle_loose_P5_R20_seed4    milp_job_wMK   maxTimeLim    16194.50     156.00     580.50    14    67.27%      61.8
+  scn_triangle_loose_P5_R20_seed4    igvnd_wMK      heuristic_    13740.00     132.50     490.00     0         -      60.0
+  scn_triangle_loose_P5_R20_seed4    milp_job_wDLY  maxTimeLim    52676.00     160.00     525.00    16    99.90%      61.9
+  scn_triangle_loose_P5_R20_seed4    igvnd_wDLY     heuristic_    40890.50     140.50     407.50     0         -      60.0
+  scn_triangle_loose_P5_R20_seed4    milp_job_wMOV  maxTimeLim      692.00     159.00     533.00     0    92.34%      61.8
+  scn_triangle_loose_P5_R20_seed4    igvnd_wMOV     heuristic_      550.00     135.50     414.50     0         -      60.0
+  scn_triangle_loose_P5_R30_seed4    milp_job_wMK   maxTimeLim    38612.00     353.00    3312.00     0    83.42%      64.8
+  scn_triangle_loose_P5_R30_seed4    igvnd_wMK      heuristic_    24499.00     228.50    1599.00    50         -      60.2
+  scn_triangle_loose_P5_R30_seed4    milp_job_wDLY  maxTimeLim   320204.50     354.50    3198.50     0    99.98%      64.7
+  scn_triangle_loose_P5_R30_seed4    igvnd_wDLY     heuristic_   156290.00     238.00    1560.00    52         -      60.0
+  scn_triangle_loose_P5_R30_seed4    milp_job_wMOV  maxTimeLim     3157.00     353.00    2804.00     0    97.97%      64.7
+  scn_triangle_loose_P5_R30_seed4    igvnd_wMOV     heuristic_     1848.00     230.50    1617.50     0         -      60.4
+  scn_triangle_loose_P5_R5_seed4     milp_job_wMK   optimal        4400.00      44.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed4     igvnd_wMK      heuristic_     4400.00      44.00       0.00     0         -       1.2
+  scn_triangle_loose_P5_R5_seed4     milp_job_wDLY  optimal          44.00      44.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed4     igvnd_wDLY     heuristic_       44.00      44.00       0.00     0         -       0.9
+  scn_triangle_loose_P5_R5_seed4     milp_job_wMOV  optimal          44.00      44.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed4     igvnd_wMOV     heuristic_       44.00      44.00       0.00     0         -       0.8
+  scn_triangle_medium_P5_R20_seed4   milp_job_wMK   maxTimeLim    14626.00     139.50     652.00    24    63.76%      61.9
+  scn_triangle_medium_P5_R20_seed4   igvnd_wMK      heuristic_    13748.00     130.50     674.00    24         -      60.0
+  scn_triangle_medium_P5_R20_seed4   milp_job_wDLY  maxTimeLim    67372.00     154.00     672.00    18    99.92%      61.9
+  scn_triangle_medium_P5_R20_seed4   igvnd_wDLY     heuristic_    60703.50     145.50     605.50     8         -      60.0
+  scn_triangle_medium_P5_R20_seed4   milp_job_wMOV  maxTimeLim      894.00     164.50     729.50     0    94.07%      61.9
+  scn_triangle_medium_P5_R20_seed4   igvnd_wMOV     heuristic_      747.00     140.50     606.50     0         -      60.1
+  scn_triangle_medium_P5_R30_seed4   milp_job_wMK   maxTimeLim    34774.00     321.00    2674.00     0    81.60%      64.7
+  scn_triangle_medium_P5_R30_seed4   igvnd_wMK      heuristic_    24985.00     229.50    2003.00    32         -      60.2
+  scn_triangle_medium_P5_R30_seed4   milp_job_wDLY  maxTimeLim   282366.00     306.00    2820.50    10    99.98%      64.7
+  scn_triangle_medium_P5_R30_seed4   igvnd_wDLY     heuristic_   194031.50     245.50    1937.50    36         -      60.1
+  scn_triangle_medium_P5_R30_seed4   milp_job_wMOV  maxTimeLim     3578.50     348.50    3230.00     0    98.21%      64.7
+  scn_triangle_medium_P5_R30_seed4   igvnd_wMOV     heuristic_     2159.50     229.50    1930.00     0         -      60.1
+  scn_triangle_medium_P5_R5_seed4    milp_job_wMK   optimal        4400.00      44.00       0.00     0     0.00%       0.1
+  scn_triangle_medium_P5_R5_seed4    igvnd_wMK      heuristic_     4400.00      44.00       0.00     0         -       1.3
+  scn_triangle_medium_P5_R5_seed4    milp_job_wDLY  optimal          44.00      44.00       0.00     0     0.00%       0.1
+  scn_triangle_medium_P5_R5_seed4    igvnd_wDLY     heuristic_       44.00      44.00       0.00     0         -       1.0
+  scn_triangle_medium_P5_R5_seed4    milp_job_wMOV  optimal          44.00      44.00       0.00     0     0.00%       0.1
+  scn_triangle_medium_P5_R5_seed4    igvnd_wMOV     heuristic_       44.00      44.00       0.00     0         -       0.8
+  scn_two_rows_loose_P5_R10_seed4    milp_job_wMK   optimal        6687.00      66.50      33.00     4     0.00%      10.3
+  scn_two_rows_loose_P5_R10_seed4    igvnd_wMK      heuristic_     6698.50      66.50      40.50     8         -      60.0
+  scn_two_rows_loose_P5_R10_seed4    milp_job_wDLY  optimal          87.50      79.50       0.00     8     0.00%       3.1
+  scn_two_rows_loose_P5_R10_seed4    igvnd_wDLY     heuristic_       85.50      81.50       0.00     4         -      46.2
+  scn_two_rows_loose_P5_R10_seed4    milp_job_wMOV  optimal          78.50      72.50       6.00     0     0.00%       5.4
+  scn_two_rows_loose_P5_R10_seed4    igvnd_wMOV     heuristic_       79.00      76.50       2.50     0         -      59.7
+  scn_two_rows_loose_P5_R20_seed4    milp_job_wMK   maxTimeLim    14023.00     135.50     449.00    24    62.20%      63.0
+  scn_two_rows_loose_P5_R20_seed4    igvnd_wMK      heuristic_    13285.50     127.50     523.50    12         -      60.1
+  scn_two_rows_loose_P5_R20_seed4    milp_job_wDLY  maxTimeLim    45517.50     143.50     453.50    24    99.88%      61.3
+  scn_two_rows_loose_P5_R20_seed4    igvnd_wDLY     heuristic_    39033.50     133.50     389.00     0         -      60.0
+  scn_two_rows_loose_P5_R20_seed4    milp_job_wMOV  maxTimeLim      595.50     147.50     448.00     0    91.10%      61.4
+  scn_two_rows_loose_P5_R20_seed4    igvnd_wMOV     heuristic_      530.00     132.50     397.50     0         -      60.0
+  scn_two_rows_loose_P5_R30_seed4    milp_job_wMK   maxTimeLim    27088.00     251.50    1926.00    12    76.37%      64.1
+  scn_two_rows_loose_P5_R30_seed4    igvnd_wMK      heuristic_    23491.50     218.50    1599.50    42         -      60.5
+  scn_two_rows_loose_P5_R30_seed4    milp_job_wDLY  maxTimeLim   166058.00     240.00    1658.00    18    99.96%      63.3
+  scn_two_rows_loose_P5_R30_seed4    igvnd_wDLY     heuristic_   148629.50     235.50    1483.50    44         -      60.3
+  scn_two_rows_loose_P5_R30_seed4    milp_job_wMOV  maxTimeLim     1959.50     279.50    1680.00     0    96.73%      63.3
+  scn_two_rows_loose_P5_R30_seed4    igvnd_wMOV     heuristic_     1759.00     236.00    1523.00     0         -      60.1
+  scn_two_rows_loose_P5_R5_seed4     milp_job_wMK   optimal        4400.00      44.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed4     igvnd_wMK      heuristic_     4400.00      44.00       0.00     0         -       0.8
+  scn_two_rows_loose_P5_R5_seed4     milp_job_wDLY  optimal          44.00      44.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed4     igvnd_wDLY     heuristic_       44.00      44.00       0.00     0         -       0.8
+  scn_two_rows_loose_P5_R5_seed4     milp_job_wMOV  optimal          44.00      44.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed4     igvnd_wMOV     heuristic_       44.00      44.00       0.00     0         -       0.7
+  scn_two_rows_medium_P5_R10_seed4   milp_job_wMK   optimal        6746.50      66.50      92.50     4     0.00%      10.1
+  scn_two_rows_medium_P5_R10_seed4   igvnd_wMK      heuristic_     6808.00      67.00      98.00    10         -      60.0
+  scn_two_rows_medium_P5_R10_seed4   milp_job_wDLY  maxTimeLim     6934.50      76.50      68.50     8    99.34%      60.4
+  scn_two_rows_medium_P5_R10_seed4   igvnd_wDLY     heuristic_     6934.50      76.50      68.50     8         -      55.3
+  scn_two_rows_medium_P5_R10_seed4   milp_job_wMOV  maxTimeLim      145.00      72.50      72.50     0    39.31%      60.4
+  scn_two_rows_medium_P5_R10_seed4   igvnd_wMOV     heuristic_      143.00      72.50      70.50     0         -      59.6
+  scn_two_rows_medium_P5_R20_seed4   milp_job_wMK   maxTimeLim    14112.50     134.50     658.50     4    62.44%      61.3
+  scn_two_rows_medium_P5_R20_seed4   igvnd_wMK      heuristic_    13279.50     125.50     711.50    18         -      60.0
+  scn_two_rows_medium_P5_R20_seed4   milp_job_wDLY  maxTimeLim    64672.00     158.00     645.00    14    99.92%      61.3
+  scn_two_rows_medium_P5_R20_seed4   igvnd_wDLY     heuristic_    58834.50     134.50     587.00     0         -      60.0
+  scn_two_rows_medium_P5_R20_seed4   milp_job_wMOV  maxTimeLim      782.00     147.00     635.00     0    93.22%      61.3
+  scn_two_rows_medium_P5_R20_seed4   igvnd_wMOV     heuristic_      724.50     131.50     593.00     0         -      60.0
+  scn_two_rows_medium_P5_R30_seed4   milp_job_wMK   maxTimeLim    27155.50     250.00    2145.50    10    76.43%      63.3
+  scn_two_rows_medium_P5_R30_seed4   igvnd_wMK      heuristic_    23569.50     217.50    1819.50     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed4   milp_job_wDLY  maxTimeLim   201311.00     251.00    2010.50    10    99.97%      63.2
+  scn_two_rows_medium_P5_R30_seed4   igvnd_wDLY     heuristic_   180871.50     221.50    1806.50     0         -      60.2
+  scn_two_rows_medium_P5_R30_seed4   milp_job_wMOV  maxTimeLim     2375.00     258.00    2117.00     0    97.31%      63.2
+  scn_two_rows_medium_P5_R30_seed4   igvnd_wMOV     heuristic_     2031.00     220.50    1810.50     0         -      60.1
+  scn_two_rows_medium_P5_R5_seed4    milp_job_wMK   optimal        4400.00      44.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed4    igvnd_wMK      heuristic_     4400.00      44.00       0.00     0         -       0.8
+  scn_two_rows_medium_P5_R5_seed4    milp_job_wDLY  optimal          44.00      44.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed4    igvnd_wDLY     heuristic_       44.00      44.00       0.00     0         -       0.9
+  scn_two_rows_medium_P5_R5_seed4    milp_job_wMOV  optimal          44.00      44.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed4    igvnd_wMOV     heuristic_       44.00      44.00       0.00     0         -       0.7
+  scn_two_rows_tight_P5_R20_seed4    milp_job_wMK   maxTimeLim    13993.50     132.00     779.50    14    62.13%      61.3
+  scn_two_rows_tight_P5_R20_seed4    igvnd_wMK      heuristic_    13563.00     127.50     813.00     0         -      60.0
+  scn_two_rows_tight_P5_R20_seed4    milp_job_wDLY  maxTimeLim    77413.50     145.50     772.50    18    99.93%      61.3
+  scn_two_rows_tight_P5_R20_seed4    igvnd_wDLY     heuristic_    71761.50     143.50     716.00    18         -      60.0
+  scn_two_rows_tight_P5_R20_seed4    milp_job_wMOV  maxTimeLim      896.00     136.00     760.00     0    94.08%      61.3
+  scn_two_rows_tight_P5_R20_seed4    igvnd_wMOV     heuristic_      867.50     132.50     735.00     0         -      60.0
+  scn_two_rows_tight_P5_R30_seed4    milp_job_wMK   maxTimeLim    28792.00     264.00    2392.00     0    77.77%      63.2
+  scn_two_rows_tight_P5_R30_seed4    igvnd_wMK      heuristic_    24108.50     220.50    2058.50     0         -      60.3
+  scn_two_rows_tight_P5_R30_seed4    milp_job_wDLY  maxTimeLim   244713.50     245.50    2444.50    18    99.97%      63.2
+  scn_two_rows_tight_P5_R30_seed4    igvnd_wDLY     heuristic_   209131.50     231.50    2089.00     0         -      60.1
+  scn_two_rows_tight_P5_R30_seed4    milp_job_wMOV  maxTimeLim     2753.50     282.50    2471.00     0    97.68%      63.2
+  scn_two_rows_tight_P5_R30_seed4    igvnd_wMOV     heuristic_     2279.00     220.50    2058.50     0         -      60.1
+  scn_two_rows_tight_P5_R5_seed4     milp_job_wMK   optimal        4400.00      44.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed4     igvnd_wMK      heuristic_     4402.00      44.00       2.00     0         -       1.0
+  scn_two_rows_tight_P5_R5_seed4     milp_job_wDLY  optimal          44.00      44.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed4     igvnd_wDLY     heuristic_       44.00      44.00       0.00     0         -       1.0
+  scn_two_rows_tight_P5_R5_seed4     milp_job_wMOV  optimal          44.00      44.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed4     igvnd_wMOV     heuristic_       46.00      44.00       2.00     0         -       0.9
+  scn_triangle_loose_P5_R20_seed5    milp_job_wMK   maxTimeLim    14517.00     140.00     515.00     2    59.36%      61.8
+  scn_triangle_loose_P5_R20_seed5    igvnd_wMK      heuristic_    12867.00     125.00     343.00    24         -      60.0
+  scn_triangle_loose_P5_R20_seed5    milp_job_wDLY  maxTimeLim    45023.00     157.00     448.50    16    99.87%      61.8
+  scn_triangle_loose_P5_R20_seed5    igvnd_wDLY     heuristic_    35158.00     140.00     350.00    18         -      60.0
+  scn_triangle_loose_P5_R20_seed5    milp_job_wMOV  maxTimeLim      581.00     149.00     432.00     0    89.85%      61.8
+  scn_triangle_loose_P5_R20_seed5    igvnd_wMOV     heuristic_      481.00     129.50     351.50     0         -      60.0
+  scn_triangle_loose_P5_R30_seed5    milp_job_wMK   maxTimeLim    29520.00     274.50    2066.00     4    73.92%      70.3
+  scn_triangle_loose_P5_R30_seed5    igvnd_wMK      heuristic_    23599.00     220.50    1549.00     0         -      60.0
+  scn_triangle_loose_P5_R30_seed5    milp_job_wDLY  maxTimeLim   275855.50     349.50    2755.00     6    99.97%      64.8
+  scn_triangle_loose_P5_R30_seed5    igvnd_wDLY     heuristic_   143933.50     233.50    1437.00     0         -      60.1
+  scn_triangle_loose_P5_R30_seed5    milp_job_wMOV  maxTimeLim     2092.50     259.50    1833.00     0    96.32%      64.8
+  scn_triangle_loose_P5_R30_seed5    igvnd_wMOV     heuristic_     1664.50     232.50    1432.00     0         -      60.1
+  scn_triangle_loose_P5_R5_seed5     milp_job_wMK   optimal        3200.00      32.00       0.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R5_seed5     igvnd_wMK      heuristic_     3200.00      32.00       0.00     0         -       1.2
+  scn_triangle_loose_P5_R5_seed5     milp_job_wDLY  optimal          32.00      32.00       0.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R5_seed5     igvnd_wDLY     heuristic_       32.00      32.00       0.00     0         -       0.9
+  scn_triangle_loose_P5_R5_seed5     milp_job_wMOV  optimal          32.00      32.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed5     igvnd_wMOV     heuristic_       32.00      32.00       0.00     0         -       1.1
+  scn_triangle_medium_P5_R20_seed5   milp_job_wMK   maxTimeLim    16695.00     159.00     779.00    16    64.66%      61.8
+  scn_triangle_medium_P5_R20_seed5   igvnd_wMK      heuristic_    12996.50     124.00     562.50    34         -      60.0
+  scn_triangle_medium_P5_R20_seed5   milp_job_wDLY  maxTimeLim    66460.50     152.50     663.00     8    99.91%      61.8
+  scn_triangle_medium_P5_R20_seed5   igvnd_wDLY     heuristic_    52559.00     139.00     524.00    20         -      60.0
+  scn_triangle_medium_P5_R20_seed5   milp_job_wMOV  maxTimeLim      767.00     150.00     617.00     0    92.31%      61.8
+  scn_triangle_medium_P5_R20_seed5   igvnd_wMOV     heuristic_      671.00     130.00     541.00     0         -      60.0
+  scn_triangle_medium_P5_R30_seed5   milp_job_wMK   maxTimeLim    30116.00     277.00    2402.00    14    74.43%      64.9
+  scn_triangle_medium_P5_R30_seed5   igvnd_wMK      heuristic_    24311.50     223.50    1961.50     0         -      60.1
+  scn_triangle_medium_P5_R30_seed5   milp_job_wDLY  maxTimeLim   242022.00     312.00    2417.00    10    99.97%      64.8
+  scn_triangle_medium_P5_R30_seed5   igvnd_wDLY     heuristic_   184501.50     251.50    1842.50     0         -      60.2
+  scn_triangle_medium_P5_R30_seed5   milp_job_wMOV  maxTimeLim     3023.50     331.50    2692.00     0    97.45%      64.8
+  scn_triangle_medium_P5_R30_seed5   igvnd_wMOV     heuristic_     2043.00     236.50    1806.50     0         -      60.0
+  scn_triangle_medium_P5_R5_seed5    milp_job_wMK   optimal        3200.00      32.00       0.00     0     0.00%       0.1
+  scn_triangle_medium_P5_R5_seed5    igvnd_wMK      heuristic_     3200.00      32.00       0.00     0         -       5.7
+  scn_triangle_medium_P5_R5_seed5    milp_job_wDLY  optimal          32.00      32.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed5    igvnd_wDLY     heuristic_       32.00      32.00       0.00     0         -       0.9
+  scn_triangle_medium_P5_R5_seed5    milp_job_wMOV  optimal          32.00      32.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed5    igvnd_wMOV     heuristic_       32.00      32.00       0.00     0         -       1.1
+  scn_two_rows_loose_P5_R10_seed5    milp_job_wMK   optimal        5602.50      55.50      42.50    10     0.00%       9.1
+  scn_two_rows_loose_P5_R10_seed5    igvnd_wMK      heuristic_     5569.00      55.50      15.00     4         -      53.4
+  scn_two_rows_loose_P5_R10_seed5    milp_job_wDLY  optimal          61.50      61.50       0.00     0     0.00%       4.5
+  scn_two_rows_loose_P5_R10_seed5    igvnd_wDLY     heuristic_       63.50      61.50       0.00     2         -      44.7
+  scn_two_rows_loose_P5_R10_seed5    milp_job_wMOV  optimal          60.00      59.50       0.50     0     0.00%       3.5
+  scn_two_rows_loose_P5_R10_seed5    igvnd_wMOV     heuristic_       64.50      63.50       1.00     0         -      57.5
+  scn_two_rows_loose_P5_R20_seed5    milp_job_wMK   maxTimeLim    13579.50     132.00     369.50    10    56.55%      61.3
+  scn_two_rows_loose_P5_R20_seed5    igvnd_wMK      heuristic_    12198.50     118.50     348.50     0         -      60.0
+  scn_two_rows_loose_P5_R20_seed5    milp_job_wDLY  maxTimeLim    33306.00     136.00     331.50    20    99.82%      61.3
+  scn_two_rows_loose_P5_R20_seed5    igvnd_wDLY     heuristic_    30446.50     128.50     303.00    18         -      60.0
+  scn_two_rows_loose_P5_R20_seed5    milp_job_wMOV  maxTimeLim      510.00     145.50     364.50     0    88.43%      61.4
+  scn_two_rows_loose_P5_R20_seed5    igvnd_wMOV     heuristic_      444.50     132.50     312.00     0         -      60.1
+  scn_two_rows_loose_P5_R30_seed5    milp_job_wMK   maxTimeLim    33855.00     318.50    2005.00     0    77.26%      63.4
+  scn_two_rows_loose_P5_R30_seed5    igvnd_wMK      heuristic_    23562.00     220.50    1486.00    26         -      60.1
+  scn_two_rows_loose_P5_R30_seed5    milp_job_wDLY  maxTimeLim   189750.50     288.50    1894.50    12    99.96%      63.3
+  scn_two_rows_loose_P5_R30_seed5    igvnd_wDLY     heuristic_   143332.50     232.50    1431.00     0         -      60.1
+  scn_two_rows_loose_P5_R30_seed5    milp_job_wMOV  maxTimeLim     2431.00     307.00    2124.00     0    96.83%      63.4
+  scn_two_rows_loose_P5_R30_seed5    igvnd_wMOV     heuristic_     1692.50     229.50    1463.00     0         -      60.4
+  scn_two_rows_loose_P5_R5_seed5     milp_job_wMK   optimal        3200.00      32.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed5     igvnd_wMK      heuristic_     3200.00      32.00       0.00     0         -       1.1
+  scn_two_rows_loose_P5_R5_seed5     milp_job_wDLY  optimal          32.00      32.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed5     igvnd_wDLY     heuristic_       32.00      32.00       0.00     0         -       0.9
+  scn_two_rows_loose_P5_R5_seed5     milp_job_wMOV  optimal          32.00      32.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed5     igvnd_wMOV     heuristic_       33.00      33.00       0.00     0         -       0.8
+  scn_two_rows_medium_P5_R10_seed5   milp_job_wMK   optimal        5640.50      55.50      80.50    10     0.00%       6.5
+  scn_two_rows_medium_P5_R10_seed5   igvnd_wMK      heuristic_     5605.50      55.50      53.50     2         -      60.0
+  scn_two_rows_medium_P5_R10_seed5   milp_job_wDLY  maxTimeLim     4814.50      60.50      47.50     4    98.87%      60.4
+  scn_two_rows_medium_P5_R10_seed5   igvnd_wDLY     heuristic_     4564.50      60.50      45.00     4         -      45.0
+  scn_two_rows_medium_P5_R10_seed5   milp_job_wMOV  optimal         110.00      59.50      50.50     0     0.00%      51.8
+  scn_two_rows_medium_P5_R10_seed5   igvnd_wMOV     heuristic_      109.00      60.50      48.50     0         -      59.4
+  scn_two_rows_medium_P5_R20_seed5   milp_job_wMK   maxTimeLim    13621.50     130.50     557.50    14    56.69%      61.3
+  scn_two_rows_medium_P5_R20_seed5   igvnd_wMK      heuristic_    12407.50     118.50     545.50    12         -      60.0
+  scn_two_rows_medium_P5_R20_seed5   milp_job_wDLY  maxTimeLim    55548.00     132.00     554.00    16    99.89%      61.3
+  scn_two_rows_medium_P5_R20_seed5   igvnd_wDLY     heuristic_    48695.50     133.50     485.50    12         -      60.0
+  scn_two_rows_medium_P5_R20_seed5   milp_job_wMOV  maxTimeLim      734.50     134.50     600.00     0    91.97%      61.4
+  scn_two_rows_medium_P5_R20_seed5   igvnd_wMOV     heuristic_      638.00     132.50     505.50     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed5   milp_job_wMK   maxTimeLim    27702.50     256.00    2098.50     4    72.20%      63.6
+  scn_two_rows_medium_P5_R30_seed5   igvnd_wMK      heuristic_    23897.50     220.50    1847.50     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed5   milp_job_wDLY  maxTimeLim   201931.50     253.50    2016.50    28    99.96%      63.4
+  scn_two_rows_medium_P5_R30_seed5   igvnd_wDLY     heuristic_   177630.50     230.50    1774.00     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed5   milp_job_wMOV  maxTimeLim     2263.50     247.00    2016.50     0    96.60%      63.3
+  scn_two_rows_medium_P5_R30_seed5   igvnd_wMOV     heuristic_     2009.50     225.50    1784.00     0         -      60.2
+  scn_two_rows_medium_P5_R5_seed5    milp_job_wMK   optimal        3200.00      32.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed5    igvnd_wMK      heuristic_     3200.00      32.00       0.00     0         -       1.3
+  scn_two_rows_medium_P5_R5_seed5    milp_job_wDLY  optimal          32.00      32.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed5    igvnd_wDLY     heuristic_       32.00      32.00       0.00     0         -       1.0
+  scn_two_rows_medium_P5_R5_seed5    milp_job_wMOV  optimal          32.00      32.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed5    igvnd_wMOV     heuristic_       32.00      32.00       0.00     0         -       1.0
+  scn_two_rows_tight_P5_R20_seed5    milp_job_wMK   maxTimeLim    13896.50     132.00     684.50    12    57.54%      61.4
+  scn_two_rows_tight_P5_R20_seed5    igvnd_wMK      heuristic_    12600.00     119.50     650.00     0         -      60.1
+  scn_two_rows_tight_P5_R20_seed5    milp_job_wDLY  maxTimeLim    66809.00     141.00     666.50    18    99.91%      61.3
+  scn_two_rows_tight_P5_R20_seed5    igvnd_wDLY     heuristic_    61634.50     126.50     615.00     8         -      60.0
+  scn_two_rows_tight_P5_R20_seed5    milp_job_wMOV  maxTimeLim      789.50     124.50     665.00     0    92.53%      61.3
+  scn_two_rows_tight_P5_R20_seed5    igvnd_wMOV     heuristic_      745.00     121.50     623.50     0         -      60.0
+  scn_two_rows_tight_P5_R30_seed5    milp_job_wMK   maxTimeLim    34885.00     317.00    3185.00     0    77.93%      63.3
+  scn_two_rows_tight_P5_R30_seed5    igvnd_wMK      heuristic_    24068.50     219.50    2118.50     0         -      60.0
+  scn_two_rows_tight_P5_R30_seed5    milp_job_wDLY  maxTimeLim   285845.00     341.00    2855.00     4    99.97%      64.7
+  scn_two_rows_tight_P5_R30_seed5    igvnd_wDLY     heuristic_   204337.00     237.00    2041.00     0         -      60.0
+  scn_two_rows_tight_P5_R30_seed5    milp_job_wMOV  maxTimeLim     3142.50     353.50    2789.00     0    97.55%      63.4
+  scn_two_rows_tight_P5_R30_seed5    igvnd_wMOV     heuristic_     2290.50     233.50    2057.00     0         -      60.1
+  scn_two_rows_tight_P5_R5_seed5     milp_job_wMK   optimal        3202.00      32.00       0.00     2     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed5     igvnd_wMK      heuristic_     3202.00      32.00       2.00     0         -       1.4
+  scn_two_rows_tight_P5_R5_seed5     milp_job_wDLY  optimal          33.00      33.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed5     igvnd_wDLY     heuristic_       34.00      32.00       0.00     2         -       1.2
+  scn_two_rows_tight_P5_R5_seed5     milp_job_wMOV  optimal          33.00      33.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed5     igvnd_wMOV     heuristic_       34.00      32.00       2.00     0         -       1.0
+  scn_triangle_loose_P5_R20_seed6    milp_job_wMK   maxTimeLim    14556.00     141.00     452.00     4    64.28%      61.8
+  scn_triangle_loose_P5_R20_seed6    igvnd_wMK      heuristic_    12702.00     123.50     342.00    10         -      60.0
+  scn_triangle_loose_P5_R20_seed6    milp_job_wDLY  maxTimeLim    39064.00     148.00     389.00    16    99.87%      61.8
+  scn_triangle_loose_P5_R20_seed6    igvnd_wDLY     heuristic_    31754.50     128.50     316.00    26         -      60.0
+  scn_triangle_loose_P5_R20_seed6    milp_job_wMOV  maxTimeLim      651.00     156.50     494.50     0    92.01%      61.8
+  scn_triangle_loose_P5_R20_seed6    igvnd_wMOV     heuristic_      510.00     131.50     378.50     0         -      60.0
+  scn_triangle_loose_P5_R30_seed6    milp_job_wMK   maxTimeLim    34792.50     324.00    2392.50     0    79.02%      64.9
+  scn_triangle_loose_P5_R30_seed6    igvnd_wMK      heuristic_    24324.50     226.50    1674.50     0         -      60.1
+  scn_triangle_loose_P5_R30_seed6    milp_job_wDLY  maxTimeLim   237793.00     331.00    2374.50    12    99.97%      64.7
+  scn_triangle_loose_P5_R30_seed6    igvnd_wDLY     heuristic_   148886.00     236.00    1486.50     0         -      60.1
+  scn_triangle_loose_P5_R30_seed6    milp_job_wMOV  maxTimeLim     2884.00     350.50    2533.50     0    97.47%      64.7
+  scn_triangle_loose_P5_R30_seed6    igvnd_wMOV     heuristic_     1756.50     236.50    1520.00     0         -      60.2
+  scn_triangle_loose_P5_R5_seed6     milp_job_wMK   optimal        3900.00      39.00       0.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R5_seed6     igvnd_wMK      heuristic_     3900.00      39.00       0.00     0         -       1.1
+  scn_triangle_loose_P5_R5_seed6     milp_job_wDLY  optimal          39.00      39.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed6     igvnd_wDLY     heuristic_       39.00      39.00       0.00     0         -       1.1
+  scn_triangle_loose_P5_R5_seed6     milp_job_wMOV  optimal          39.00      39.00       0.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R5_seed6     igvnd_wMOV     heuristic_       39.00      39.00       0.00     0         -       0.8
+  scn_triangle_medium_P5_R20_seed6   milp_job_wMK   maxTimeLim    15761.50     150.50     709.50     2    67.01%      61.8
+  scn_triangle_medium_P5_R20_seed6   igvnd_wMK      heuristic_    13202.50     126.00     570.50    32         -      60.1
+  scn_triangle_medium_P5_R20_seed6   milp_job_wDLY  maxTimeLim    56768.00     146.00     566.00    22    99.91%      61.8
+  scn_triangle_medium_P5_R20_seed6   igvnd_wDLY     heuristic_    54510.50     132.50     543.50    28         -      60.0
+  scn_triangle_medium_P5_R20_seed6   milp_job_wMOV  maxTimeLim      798.50     151.00     647.50     0    93.49%      61.8
+  scn_triangle_medium_P5_R20_seed6   igvnd_wMOV     heuristic_      700.00     126.50     573.50     0         -      60.0
+  scn_triangle_medium_P5_R30_seed6   milp_job_wMK   maxTimeLim    39841.00     364.00    3441.00     0    81.68%      64.8
+  scn_triangle_medium_P5_R30_seed6   igvnd_wMK      heuristic_    24778.00     228.50    1928.00     0         -      60.1
+  scn_triangle_medium_P5_R30_seed6   milp_job_wDLY  maxTimeLim   310043.50     385.50    3096.50     8    99.98%      69.0
+  scn_triangle_medium_P5_R30_seed6   igvnd_wDLY     heuristic_   185232.50     232.50    1850.00     0         -      60.0
+  scn_triangle_medium_P5_R30_seed6   milp_job_wMOV  maxTimeLim     3915.00     360.50    3554.50     0    98.14%      64.8
+  scn_triangle_medium_P5_R30_seed6   igvnd_wMOV     heuristic_     2076.50     231.50    1845.00     0         -      60.1
+  scn_triangle_medium_P5_R5_seed6    milp_job_wMK   optimal        3900.00      39.00       0.00     0     0.00%       0.1
+  scn_triangle_medium_P5_R5_seed6    igvnd_wMK      heuristic_     3900.00      39.00       0.00     0         -       1.1
+  scn_triangle_medium_P5_R5_seed6    milp_job_wDLY  optimal          39.00      39.00       0.00     0     0.00%       0.1
+  scn_triangle_medium_P5_R5_seed6    igvnd_wDLY     heuristic_       39.00      39.00       0.00     0         -       1.4
+  scn_triangle_medium_P5_R5_seed6    milp_job_wMOV  optimal          39.00      39.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed6    igvnd_wMOV     heuristic_       39.00      39.00       0.00     0         -       0.7
+  scn_two_rows_loose_P5_R10_seed6    milp_job_wMK   optimal        6456.50      64.50       6.50     0     0.00%       3.2
+  scn_two_rows_loose_P5_R10_seed6    igvnd_wMK      heuristic_     6456.50      64.50       2.50     4         -      50.6
+  scn_two_rows_loose_P5_R10_seed6    milp_job_wDLY  optimal         221.50      67.50       1.50     4     0.00%       4.8
+  scn_two_rows_loose_P5_R10_seed6    igvnd_wDLY     heuristic_      117.50      67.50       0.50     0         -      46.6
+  scn_two_rows_loose_P5_R10_seed6    milp_job_wMOV  optimal          69.50      65.50       4.00     0     0.00%       6.1
+  scn_two_rows_loose_P5_R10_seed6    igvnd_wMOV     heuristic_       69.00      67.50       1.50     0         -      48.5
+  scn_two_rows_loose_P5_R20_seed6    milp_job_wMK   maxTimeLim    13327.00     129.50     377.00     0    60.98%      61.3
+  scn_two_rows_loose_P5_R20_seed6    igvnd_wMK      heuristic_    12674.00     123.50     324.00     0         -      60.0
+  scn_two_rows_loose_P5_R20_seed6    milp_job_wDLY  maxTimeLim    39519.00     145.00     393.50    24    99.87%      61.3
+  scn_two_rows_loose_P5_R20_seed6    igvnd_wDLY     heuristic_    30541.50     129.50     304.00    12         -      60.0
+  scn_two_rows_loose_P5_R20_seed6    milp_job_wMOV  maxTimeLim      483.50     132.50     351.00     0    89.25%      61.3
+  scn_two_rows_loose_P5_R20_seed6    igvnd_wMOV     heuristic_      445.50     122.50     323.00     0         -      60.0
+  scn_two_rows_loose_P5_R30_seed6    milp_job_wMK   maxTimeLim    28835.50     270.00    1835.50     0    74.68%      63.3
+  scn_two_rows_loose_P5_R30_seed6    igvnd_wMK      heuristic_    23821.50     223.50    1471.50     0         -      60.0
+  scn_two_rows_loose_P5_R30_seed6    milp_job_wDLY  maxTimeLim   193387.00     279.00    1931.00     8    99.96%      67.5
+  scn_two_rows_loose_P5_R30_seed6    igvnd_wDLY     heuristic_   143224.50     224.50    1430.00     0         -      60.0
+  scn_two_rows_loose_P5_R30_seed6    milp_job_wMOV  maxTimeLim     2422.00     299.50    2122.50     0    96.99%      64.6
+  scn_two_rows_loose_P5_R30_seed6    igvnd_wMOV     heuristic_     1672.50     221.50    1451.00     0         -      60.1
+  scn_two_rows_loose_P5_R5_seed6     milp_job_wMK   optimal        3900.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed6     igvnd_wMK      heuristic_     3900.00      39.00       0.00     0         -       1.1
+  scn_two_rows_loose_P5_R5_seed6     milp_job_wDLY  optimal          39.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed6     igvnd_wDLY     heuristic_       39.00      39.00       0.00     0         -       1.1
+  scn_two_rows_loose_P5_R5_seed6     milp_job_wMOV  optimal          39.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed6     igvnd_wMOV     heuristic_       39.00      39.00       0.00     0         -       0.7
+  scn_two_rows_medium_P5_R10_seed6   milp_job_wMK   optimal        6515.50      64.50      65.50     0     0.00%      16.3
+  scn_two_rows_medium_P5_R10_seed6   igvnd_wMK      heuristic_     6515.50      64.50      65.50     0         -      59.9
+  scn_two_rows_medium_P5_R10_seed6   milp_job_wDLY  maxTimeLim     6469.50      65.50      64.00     4    99.35%      60.4
+  scn_two_rows_medium_P5_R10_seed6   igvnd_wDLY     heuristic_     6268.50      64.50      62.00     4         -      53.0
+  scn_two_rows_medium_P5_R10_seed6   milp_job_wMOV  maxTimeLim      130.00      64.50      65.50     0    38.46%      60.4
+  scn_two_rows_medium_P5_R10_seed6   igvnd_wMOV     heuristic_      129.00      65.50      63.50     0         -      58.9
+  scn_two_rows_medium_P5_R20_seed6   milp_job_wMK   maxTimeLim    13082.00     125.50     528.00     4    60.25%      61.3
+  scn_two_rows_medium_P5_R20_seed6   igvnd_wMK      heuristic_    12559.00     120.50     505.00     4         -      60.0
+  scn_two_rows_medium_P5_R20_seed6   milp_job_wDLY  maxTimeLim    61102.00     146.00     609.50     6    99.91%      61.3
+  scn_two_rows_medium_P5_R20_seed6   igvnd_wDLY     heuristic_    47889.50     123.50     477.50    16         -      60.0
+  scn_two_rows_medium_P5_R20_seed6   milp_job_wMOV  maxTimeLim      666.50     127.50     539.00     0    92.20%      61.3
+  scn_two_rows_medium_P5_R20_seed6   igvnd_wMOV     heuristic_      622.00     126.50     495.50     0         -      60.0
+  scn_two_rows_medium_P5_R30_seed6   milp_job_wMK   maxTimeLim    25571.50     235.00    2071.50     0    71.45%      63.3
+  scn_two_rows_medium_P5_R30_seed6   igvnd_wMK      heuristic_    23886.50     220.50    1836.50     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed6   milp_job_wDLY  maxTimeLim   211276.00     260.00    2110.00    16    99.97%      63.3
+  scn_two_rows_medium_P5_R30_seed6   igvnd_wDLY     heuristic_   182670.50     220.50    1824.50     0         -      60.4
+  scn_two_rows_medium_P5_R30_seed6   milp_job_wMOV  maxTimeLim     2576.50     263.00    2313.50     0    97.17%      64.1
+  scn_two_rows_medium_P5_R30_seed6   igvnd_wMOV     heuristic_     2047.50     226.50    1821.00     0         -      60.2
+  scn_two_rows_medium_P5_R5_seed6    milp_job_wMK   optimal        3900.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed6    igvnd_wMK      heuristic_     3900.00      39.00       0.00     0         -       1.2
+  scn_two_rows_medium_P5_R5_seed6    milp_job_wDLY  optimal          39.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed6    igvnd_wDLY     heuristic_       39.00      39.00       0.00     0         -       1.0
+  scn_two_rows_medium_P5_R5_seed6    milp_job_wMOV  optimal          39.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed6    igvnd_wMOV     heuristic_       39.00      39.00       0.00     0         -       0.8
+  scn_two_rows_tight_P5_R20_seed6    milp_job_wMK   maxTimeLim    13276.00     125.50     720.00     6    60.83%      61.3
+  scn_two_rows_tight_P5_R20_seed6    igvnd_wMK      heuristic_    12757.00     120.50     683.00    24         -      60.0
+  scn_two_rows_tight_P5_R20_seed6    milp_job_wDLY  maxTimeLim    65166.00     152.00     650.00    14    99.92%      61.3
+  scn_two_rows_tight_P5_R20_seed6    igvnd_wDLY     heuristic_    64125.50     125.50     640.00     0         -      60.1
+  scn_two_rows_tight_P5_R20_seed6    milp_job_wMOV  maxTimeLim      821.00     131.50     689.50     0    93.67%      61.3
+  scn_two_rows_tight_P5_R20_seed6    igvnd_wMOV     heuristic_      753.50     122.50     631.00     0         -      60.0
+  scn_two_rows_tight_P5_R30_seed6    milp_job_wMK   maxTimeLim    25985.50     235.50    2435.50     0    71.91%      63.3
+  scn_two_rows_tight_P5_R30_seed6    igvnd_wMK      heuristic_    24663.00     224.50    2185.00    28         -      60.4
+  scn_two_rows_tight_P5_R30_seed6    milp_job_wDLY  maxTimeLim   219862.50     232.50    2196.00    30    99.97%      63.3
+  scn_two_rows_tight_P5_R30_seed6    igvnd_wDLY     heuristic_   212139.50     239.50    2119.00     0         -      60.0
+  scn_two_rows_tight_P5_R30_seed6    milp_job_wMOV  maxTimeLim     2468.00     246.00    2222.00     0    97.04%      64.6
+  scn_two_rows_tight_P5_R30_seed6    igvnd_wMOV     heuristic_     2345.50     230.50    2115.00     0         -      60.0
+  scn_two_rows_tight_P5_R5_seed6     milp_job_wMK   optimal        3900.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed6     igvnd_wMK      heuristic_     3900.00      39.00       0.00     0         -       1.0
+  scn_two_rows_tight_P5_R5_seed6     milp_job_wDLY  optimal          39.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed6     igvnd_wDLY     heuristic_       39.00      39.00       0.00     0         -       1.1
+  scn_two_rows_tight_P5_R5_seed6     milp_job_wMOV  optimal          39.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed6     igvnd_wMOV     heuristic_       47.00      39.00       8.00     0         -       0.7
+  scn_triangle_loose_P5_R20_seed7    milp_job_wMK   maxTimeLim    15060.50     145.00     560.50     0    66.80%      61.7
+  scn_triangle_loose_P5_R20_seed7    igvnd_wMK      heuristic_    12936.00     124.50     452.00    34         -      60.0
+  scn_triangle_loose_P5_R20_seed7    milp_job_wDLY  maxTimeLim    46123.00     159.00     459.50    14    99.89%      61.8
+  scn_triangle_loose_P5_R20_seed7    igvnd_wDLY     heuristic_    38558.50     134.50     384.00    24         -      60.0
+  scn_triangle_loose_P5_R20_seed7    milp_job_wMOV  maxTimeLim      572.50     140.00     432.50     0    91.27%      61.7
+  scn_triangle_loose_P5_R20_seed7    igvnd_wMOV     heuristic_      504.00     130.50     373.50     0         -      60.0
+  scn_triangle_loose_P5_R30_seed7    milp_job_wMK   maxTimeLim    35478.50     332.50    2228.50     0    78.58%      64.7
+  scn_triangle_loose_P5_R30_seed7    igvnd_wMK      heuristic_    24386.00     227.50    1636.00     0         -      60.1
+  scn_triangle_loose_P5_R30_seed7    milp_job_wDLY  maxTimeLim   296170.00     370.00    2958.00     0    99.97%      64.7
+  scn_triangle_loose_P5_R30_seed7    igvnd_wDLY     heuristic_   140404.50     228.50    1401.50    26         -      60.1
+  scn_triangle_loose_P5_R30_seed7    milp_job_wMOV  maxTimeLim     2678.50     342.00    2336.50     0    97.16%      64.8
+  scn_triangle_loose_P5_R30_seed7    igvnd_wMOV     heuristic_     1721.00     240.00    1481.00     0         -      60.1
+  scn_triangle_loose_P5_R5_seed7     milp_job_wMK   optimal        3900.00      39.00       0.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R5_seed7     igvnd_wMK      heuristic_     3900.00      39.00       0.00     0         -       0.9
+  scn_triangle_loose_P5_R5_seed7     milp_job_wDLY  optimal          39.00      39.00       0.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R5_seed7     igvnd_wDLY     heuristic_       39.00      39.00       0.00     0         -       1.0
+  scn_triangle_loose_P5_R5_seed7     milp_job_wMOV  optimal          39.00      39.00       0.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R5_seed7     igvnd_wMOV     heuristic_       39.00      39.00       0.00     0         -       0.8
+  scn_triangle_medium_P5_R20_seed7   milp_job_wMK   maxTimeLim    16828.50     160.50     764.50    14    70.29%      61.8
+  scn_triangle_medium_P5_R20_seed7   igvnd_wMK      heuristic_    13043.00     124.50     593.00     0         -      60.0
+  scn_triangle_medium_P5_R20_seed7   milp_job_wDLY  maxTimeLim    68315.00     155.00     681.50    10    99.93%      61.8
+  scn_triangle_medium_P5_R20_seed7   igvnd_wDLY     heuristic_    53887.50     129.50     537.50     8         -      60.0
+  scn_triangle_medium_P5_R20_seed7   milp_job_wMOV  maxTimeLim      867.50     147.00     720.50     0    94.24%      61.7
+  scn_triangle_medium_P5_R20_seed7   igvnd_wMOV     heuristic_      687.50     131.50     556.00     0         -      60.1
+  scn_triangle_medium_P5_R30_seed7   milp_job_wMK   maxTimeLim    39415.50     363.50    3059.50     6    80.72%      64.7
+  scn_triangle_medium_P5_R30_seed7   igvnd_wMK      heuristic_    24624.00     227.50    1874.00     0         -      60.1
+  scn_triangle_medium_P5_R30_seed7   milp_job_wDLY  maxTimeLim   320480.50     380.50    3201.00     0    99.98%      68.9
+  scn_triangle_medium_P5_R30_seed7   igvnd_wDLY     heuristic_   180378.00     240.00    1801.00    38         -      60.0
+  scn_triangle_medium_P5_R30_seed7   milp_job_wMOV  maxTimeLim     2579.00     273.00    2306.00     0    97.05%      64.7
+  scn_triangle_medium_P5_R30_seed7   igvnd_wMOV     heuristic_     2038.50     242.50    1796.00     0         -      60.4
+  scn_triangle_medium_P5_R5_seed7    milp_job_wMK   optimal        3900.00      39.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed7    igvnd_wMK      heuristic_     3900.00      39.00       0.00     0         -       1.2
+  scn_triangle_medium_P5_R5_seed7    milp_job_wDLY  optimal          39.00      39.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed7    igvnd_wDLY     heuristic_       39.00      39.00       0.00     0         -       1.2
+  scn_triangle_medium_P5_R5_seed7    milp_job_wMOV  optimal          39.00      39.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed7    igvnd_wMOV     heuristic_       39.00      39.00       0.00     0         -       0.8
+  scn_two_rows_loose_P5_R10_seed7    milp_job_wMK   optimal        6182.00      61.50      28.00     4     0.00%      13.0
+  scn_two_rows_loose_P5_R10_seed7    igvnd_wMK      heuristic_     6250.00      62.50       0.00     0         -      54.5
+  scn_two_rows_loose_P5_R10_seed7    milp_job_wDLY  optimal          62.50      62.50       0.00     0     0.00%       3.3
+  scn_two_rows_loose_P5_R10_seed7    igvnd_wDLY     heuristic_       62.50      62.50       0.00     0         -      50.0
+  scn_two_rows_loose_P5_R10_seed7    milp_job_wMOV  optimal          62.50      62.50       0.00     0     0.00%       2.0
+  scn_two_rows_loose_P5_R10_seed7    igvnd_wMOV     heuristic_       67.50      67.50       0.00     0         -      59.4
+  scn_two_rows_loose_P5_R20_seed7    milp_job_wMK   maxTimeLim    13121.50     127.00     413.50     8    61.89%      61.2
+  scn_two_rows_loose_P5_R20_seed7    igvnd_wMK      heuristic_    12273.50     118.50     405.50    18         -      60.0
+  scn_two_rows_loose_P5_R20_seed7    milp_job_wDLY  maxTimeLim    36100.50     138.50     359.50    12    99.86%      61.2
+  scn_two_rows_loose_P5_R20_seed7    igvnd_wDLY     heuristic_    33779.50     129.50     336.50     0         -      60.1
+  scn_two_rows_loose_P5_R20_seed7    milp_job_wMOV  maxTimeLim      505.00     130.50     374.50     0    90.10%      61.2
+  scn_two_rows_loose_P5_R20_seed7    igvnd_wMOV     heuristic_      466.00     125.50     340.50     0         -      60.0
+  scn_two_rows_loose_P5_R30_seed7    milp_job_wMK   maxTimeLim    37209.50     349.00    2307.50     2    79.58%      63.3
+  scn_two_rows_loose_P5_R30_seed7    igvnd_wMK      heuristic_    23481.00     220.50    1431.00     0         -      60.2
+  scn_two_rows_loose_P5_R30_seed7    milp_job_wDLY  maxTimeLim   241447.00     393.00    2410.50     4    99.97%      63.4
+  scn_two_rows_loose_P5_R30_seed7    igvnd_wDLY     heuristic_   134580.50     230.50    1343.50     0         -      60.0
+  scn_two_rows_loose_P5_R30_seed7    milp_job_wMOV  maxTimeLim     2608.50     326.00    2282.50     0    97.09%      63.7
+  scn_two_rows_loose_P5_R30_seed7    igvnd_wMOV     heuristic_     1562.50     227.50    1335.00     0         -      60.0
+  scn_two_rows_loose_P5_R5_seed7     milp_job_wMK   optimal        3900.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed7     igvnd_wMK      heuristic_     3900.00      39.00       0.00     0         -       0.8
+  scn_two_rows_loose_P5_R5_seed7     milp_job_wDLY  optimal          39.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed7     igvnd_wDLY     heuristic_       39.00      39.00       0.00     0         -       0.9
+  scn_two_rows_loose_P5_R5_seed7     milp_job_wMOV  optimal          39.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed7     igvnd_wMOV     heuristic_       39.00      39.00       0.00     0         -       0.7
+  scn_two_rows_medium_P5_R10_seed7   milp_job_wMK   optimal        6226.50      61.50      72.50     4     0.00%       8.1
+  scn_two_rows_medium_P5_R10_seed7   igvnd_wMK      heuristic_     6293.50      62.50      43.50     0         -      60.0
+  scn_two_rows_medium_P5_R10_seed7   milp_job_wDLY  maxTimeLim     4025.50      67.50      39.50     8    98.78%      60.4
+  scn_two_rows_medium_P5_R10_seed7   igvnd_wDLY     heuristic_     4025.50      67.50      39.50     8         -      55.8
+  scn_two_rows_medium_P5_R10_seed7   milp_job_wMOV  optimal         106.00      62.50      43.50     0     0.00%      22.0
+  scn_two_rows_medium_P5_R10_seed7   igvnd_wMOV     heuristic_      110.00      67.50      42.50     0         -      60.0
+  scn_two_rows_medium_P5_R20_seed7   milp_job_wMK   maxTimeLim    13352.00     127.50     602.00     0    62.55%      61.2
+  scn_two_rows_medium_P5_R20_seed7   igvnd_wMK      heuristic_    12572.00     120.50     514.00     8         -      60.0
+  scn_two_rows_medium_P5_R20_seed7   milp_job_wDLY  maxTimeLim    54464.00     142.00     543.00    22    99.91%      61.2
+  scn_two_rows_medium_P5_R20_seed7   igvnd_wDLY     heuristic_    52293.50     127.50     521.50    16         -      60.0
+  scn_two_rows_medium_P5_R20_seed7   milp_job_wMOV  maxTimeLim      702.00     152.00     550.00     0    92.88%      66.4
+  scn_two_rows_medium_P5_R20_seed7   igvnd_wMOV     heuristic_      646.50     124.50     522.00     0         -      60.0
+  scn_two_rows_medium_P5_R30_seed7   milp_job_wMK   maxTimeLim    29427.00     274.50    1973.00     4    74.17%      64.9
+  scn_two_rows_medium_P5_R30_seed7   igvnd_wMK      heuristic_    24164.50     221.50    2014.50     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed7   milp_job_wDLY  maxTimeLim   224632.00     278.00    2243.50     4    99.97%      63.3
+  scn_two_rows_medium_P5_R30_seed7   igvnd_wDLY     heuristic_   168476.50     226.50    1682.50     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed7   milp_job_wMOV  maxTimeLim     2296.00     276.50    2019.50     0    96.69%      63.3
+  scn_two_rows_medium_P5_R30_seed7   igvnd_wMOV     heuristic_     1963.00     238.00    1725.00     0         -      60.1
+  scn_two_rows_medium_P5_R5_seed7    milp_job_wMK   optimal        3900.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed7    igvnd_wMK      heuristic_     3905.50      39.00       5.50     0         -       0.7
+  scn_two_rows_medium_P5_R5_seed7    milp_job_wDLY  optimal          39.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed7    igvnd_wDLY     heuristic_       39.00      39.00       0.00     0         -       1.0
+  scn_two_rows_medium_P5_R5_seed7    milp_job_wMOV  optimal          39.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed7    igvnd_wMOV     heuristic_       41.00      39.00       2.00     0         -       0.7
+  scn_two_rows_tight_P5_R20_seed7    milp_job_wMK   maxTimeLim    13403.50     127.00     695.50     8    62.70%      61.3
+  scn_two_rows_tight_P5_R20_seed7    igvnd_wMK      heuristic_    12893.00     121.50     727.00    16         -      60.0
+  scn_two_rows_tight_P5_R20_seed7    milp_job_wDLY  maxTimeLim    70647.00     129.00     705.00    18    99.93%      61.2
+  scn_two_rows_tight_P5_R20_seed7    igvnd_wDLY     heuristic_    65205.50     135.50     650.50    20         -      60.0
+  scn_two_rows_tight_P5_R20_seed7    milp_job_wMOV  maxTimeLim      882.00     147.00     735.00     0    94.33%      61.3
+  scn_two_rows_tight_P5_R20_seed7    igvnd_wMOV     heuristic_      785.50     129.50     656.00     0         -      60.1
+  scn_two_rows_tight_P5_R30_seed7    milp_job_wMK   maxTimeLim    28926.50     265.50    2364.50    12    73.73%      63.4
+  scn_two_rows_tight_P5_R30_seed7    igvnd_wMK      heuristic_    23477.50     215.50    1927.50     0         -      60.0
+  scn_two_rows_tight_P5_R30_seed7    milp_job_wDLY  maxTimeLim   255387.50     265.50    2551.00    22    99.97%      63.3
+  scn_two_rows_tight_P5_R30_seed7    igvnd_wDLY     heuristic_   195766.50     216.50    1955.50     0         -      60.3
+  scn_two_rows_tight_P5_R30_seed7    milp_job_wMOV  maxTimeLim     2581.50     251.50    2330.00     0    97.06%      63.3
+  scn_two_rows_tight_P5_R30_seed7    igvnd_wMOV     heuristic_     2168.00     223.50    1944.50     0         -      60.0
+  scn_two_rows_tight_P5_R5_seed7     milp_job_wMK   optimal        3900.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed7     igvnd_wMK      heuristic_     3900.00      39.00       0.00     0         -       0.9
+  scn_two_rows_tight_P5_R5_seed7     milp_job_wDLY  optimal          39.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed7     igvnd_wDLY     heuristic_       39.00      39.00       0.00     0         -       0.9
+  scn_two_rows_tight_P5_R5_seed7     milp_job_wMOV  optimal          39.00      39.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed7     igvnd_wMOV     heuristic_       39.00      39.00       0.00     0         -       0.8
+  scn_triangle_loose_P5_R20_seed8    milp_job_wMK   maxTimeLim    17107.50     164.50     639.50    18    70.77%      61.9
+  scn_triangle_loose_P5_R20_seed8    igvnd_wMK      heuristic_    13062.50     126.50     412.50     0         -      60.0
+  scn_triangle_loose_P5_R20_seed8    milp_job_wDLY  maxTimeLim    52052.00     152.00     519.00     0    99.90%      61.9
+  scn_triangle_loose_P5_R20_seed8    igvnd_wDLY     heuristic_    40584.50     134.50     404.50     0         -      60.8
+  scn_triangle_loose_P5_R20_seed8    milp_job_wMOV  maxTimeLim      600.00     147.00     453.00     0    91.67%      61.9
+  scn_triangle_loose_P5_R20_seed8    igvnd_wMOV     heuristic_      557.50     129.50     428.00     0         -      60.2
+  scn_triangle_loose_P5_R30_seed8    milp_job_wMK   maxTimeLim    37210.00     349.00    2298.00    12    80.65%      64.7
+  scn_triangle_loose_P5_R30_seed8    igvnd_wMK      heuristic_    23156.50     217.50    1406.50     0         -      60.1
+  scn_triangle_loose_P5_R30_seed8    milp_job_wDLY  maxTimeLim   192919.00     319.00    1926.00     0    99.96%      64.8
+  scn_triangle_loose_P5_R30_seed8    igvnd_wDLY     heuristic_   138631.00     231.00    1384.00     0         -      60.1
+  scn_triangle_loose_P5_R30_seed8    milp_job_wMOV  maxTimeLim     3211.00     343.50    2867.50     0    97.76%      64.7
+  scn_triangle_loose_P5_R30_seed8    igvnd_wMOV     heuristic_     1613.00     222.00    1391.00     0         -      60.1
+  scn_triangle_loose_P5_R5_seed8     milp_job_wMK   optimal        2800.00      28.00       0.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R5_seed8     igvnd_wMK      heuristic_     2800.00      28.00       0.00     0         -       1.2
+  scn_triangle_loose_P5_R5_seed8     milp_job_wDLY  optimal          28.00      28.00       0.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R5_seed8     igvnd_wDLY     heuristic_       28.00      28.00       0.00     0         -       1.1
+  scn_triangle_loose_P5_R5_seed8     milp_job_wMOV  optimal          28.00      28.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed8     igvnd_wMOV     heuristic_       30.00      30.00       0.00     0         -       0.8
+  scn_triangle_medium_P5_R20_seed8   milp_job_wMK   maxTimeLim    17514.00     166.50     852.00    12    71.45%      61.9
+  scn_triangle_medium_P5_R20_seed8   igvnd_wMK      heuristic_    13169.00     125.50     619.00     0         -      60.0
+  scn_triangle_medium_P5_R20_seed8   milp_job_wDLY  maxTimeLim    69664.00     154.00     695.00    10    99.93%      61.9
+  scn_triangle_medium_P5_R20_seed8   igvnd_wDLY     heuristic_    59627.50     127.50     595.00     0         -      60.0
+  scn_triangle_medium_P5_R20_seed8   milp_job_wMOV  maxTimeLim      829.50     147.00     682.50     0    93.97%      61.9
+  scn_triangle_medium_P5_R20_seed8   igvnd_wMOV     heuristic_      727.50     127.50     600.00     0         -      60.0
+  scn_triangle_medium_P5_R30_seed8   milp_job_wMK   maxTimeLim    35652.00     328.50    2800.00     2    79.80%      64.8
+  scn_triangle_medium_P5_R30_seed8   igvnd_wMK      heuristic_    24128.00     223.50    1778.00     0         -      60.1
+  scn_triangle_medium_P5_R30_seed8   milp_job_wDLY  maxTimeLim   263687.50     337.50    2633.50     0    99.97%      64.7
+  scn_triangle_medium_P5_R30_seed8   igvnd_wDLY     heuristic_   174053.00     231.00    1738.00    22         -      60.1
+  scn_triangle_medium_P5_R30_seed8   milp_job_wMOV  maxTimeLim     3503.50     360.00    3143.50     0    97.94%      64.7
+  scn_triangle_medium_P5_R30_seed8   igvnd_wMOV     heuristic_     1979.00     228.00    1751.00     0         -      60.1
+  scn_triangle_medium_P5_R5_seed8    milp_job_wMK   optimal        2800.00      28.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed8    igvnd_wMK      heuristic_     2800.00      28.00       0.00     0         -       1.3
+  scn_triangle_medium_P5_R5_seed8    milp_job_wDLY  optimal          28.00      28.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed8    igvnd_wDLY     heuristic_       28.00      28.00       0.00     0         -       1.3
+  scn_triangle_medium_P5_R5_seed8    milp_job_wMOV  optimal          28.00      28.00       0.00     0     0.00%       0.1
+  scn_triangle_medium_P5_R5_seed8    igvnd_wMOV     heuristic_       28.00      28.00       0.00     0         -       0.9
+  scn_two_rows_loose_P5_R10_seed8    milp_job_wMK   optimal        6054.50      60.50       4.50     0     0.00%       5.6
+  scn_two_rows_loose_P5_R10_seed8    igvnd_wMK      heuristic_     6057.50      60.50       3.50     4         -      58.4
+  scn_two_rows_loose_P5_R10_seed8    milp_job_wDLY  optimal         115.50      61.50       0.50     4     0.00%       4.6
+  scn_two_rows_loose_P5_R10_seed8    igvnd_wDLY     heuristic_       61.50      61.50       0.00     0         -      44.0
+  scn_two_rows_loose_P5_R10_seed8    milp_job_wMOV  optimal          63.00      61.50       1.50     0     0.00%       2.5
+  scn_two_rows_loose_P5_R10_seed8    igvnd_wMOV     heuristic_       61.50      61.50       0.00     0         -      50.5
+  scn_two_rows_loose_P5_R20_seed8    milp_job_wMK   maxTimeLim    13240.50     128.00     432.50     8    62.24%      61.3
+  scn_two_rows_loose_P5_R20_seed8    igvnd_wMK      heuristic_    12736.00     123.50     386.00     0         -      60.1
+  scn_two_rows_loose_P5_R20_seed8    milp_job_wDLY  maxTimeLim    47051.50     143.50     469.00     8    99.89%      61.3
+  scn_two_rows_loose_P5_R20_seed8    igvnd_wDLY     heuristic_    39077.50     127.50     389.50     0         -      60.0
+  scn_two_rows_loose_P5_R20_seed8    milp_job_wMOV  maxTimeLim      568.50     134.00     434.50     0    91.20%      61.3
+  scn_two_rows_loose_P5_R20_seed8    igvnd_wMOV     heuristic_      526.00     124.50     401.50     0         -      60.0
+  scn_two_rows_loose_P5_R30_seed8    milp_job_wMK   maxTimeLim    25319.50     237.00    1619.50     0    71.56%      64.7
+  scn_two_rows_loose_P5_R30_seed8    igvnd_wMK      heuristic_    22502.00     212.50    1252.00     0         -      60.1
+  scn_two_rows_loose_P5_R30_seed8    milp_job_wDLY  maxTimeLim   219952.00     302.00    2196.50     0    99.97%      63.3
+  scn_two_rows_loose_P5_R30_seed8    igvnd_wDLY     heuristic_   126666.50     216.50    1264.50     0         -      60.5
+  scn_two_rows_loose_P5_R30_seed8    milp_job_wMOV  maxTimeLim     1715.00     246.00    1469.00     0    95.80%      64.7
+  scn_two_rows_loose_P5_R30_seed8    igvnd_wMOV     heuristic_     1485.00     211.50    1273.50     0         -      60.0
+  scn_two_rows_loose_P5_R5_seed8     milp_job_wMK   optimal        2800.00      28.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed8     igvnd_wMK      heuristic_     2800.00      28.00       0.00     0         -       1.0
+  scn_two_rows_loose_P5_R5_seed8     milp_job_wDLY  optimal          28.00      28.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed8     igvnd_wDLY     heuristic_       28.00      28.00       0.00     0         -       0.9
+  scn_two_rows_loose_P5_R5_seed8     milp_job_wMOV  optimal          28.00      28.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed8     igvnd_wMOV     heuristic_       28.00      28.00       0.00     0         -       0.9
+  scn_two_rows_medium_P5_R10_seed8   milp_job_wMK   optimal        6115.50      60.50      65.50     0     0.00%      12.3
+  scn_two_rows_medium_P5_R10_seed8   igvnd_wMK      heuristic_     6117.50      60.50      67.50     0         -      50.5
+  scn_two_rows_medium_P5_R10_seed8   milp_job_wDLY  maxTimeLim     6115.50      61.50      60.50     4    99.36%      60.4
+  scn_two_rows_medium_P5_R10_seed8   igvnd_wDLY     heuristic_     6065.50      61.50      60.00     4         -      56.1
+  scn_two_rows_medium_P5_R10_seed8   milp_job_wMOV  maxTimeLim      124.00      61.50      62.50     0    37.10%      60.4
+  scn_two_rows_medium_P5_R10_seed8   igvnd_wMOV     heuristic_      121.00      61.50      59.50     0         -      59.1
+  scn_two_rows_medium_P5_R20_seed8   milp_job_wMK   maxTimeLim    13934.00     133.00     630.00     4    64.12%      61.3
+  scn_two_rows_medium_P5_R20_seed8   igvnd_wMK      heuristic_    13022.50     124.50     572.50     0         -      60.0
+  scn_two_rows_medium_P5_R20_seed8   milp_job_wDLY  maxTimeLim    65306.00     146.00     651.50    10    99.92%      61.3
+  scn_two_rows_medium_P5_R20_seed8   igvnd_wDLY     heuristic_    57227.50     127.50     571.00     0         -      60.0
+  scn_two_rows_medium_P5_R20_seed8   milp_job_wMOV  maxTimeLim      813.50     135.50     678.00     0    93.85%      61.3
+  scn_two_rows_medium_P5_R20_seed8   igvnd_wMOV     heuristic_      710.50     127.50     583.00     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed8   milp_job_wMK   maxTimeLim    28610.00     265.50    2058.00     2    74.83%      63.3
+  scn_two_rows_medium_P5_R30_seed8   igvnd_wMK      heuristic_    22699.50     210.50    1649.50     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed8   milp_job_wDLY  maxTimeLim   265938.50     338.50    2656.00     0    99.97%      63.3
+  scn_two_rows_medium_P5_R30_seed8   igvnd_wDLY     heuristic_   162714.50     214.50    1625.00     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed8   milp_job_wMOV  maxTimeLim     2571.50     269.50    2302.00     0    97.20%      67.8
+  scn_two_rows_medium_P5_R30_seed8   igvnd_wMOV     heuristic_     1829.50     211.50    1618.00     0         -      60.0
+  scn_two_rows_medium_P5_R5_seed8    milp_job_wMK   optimal        2800.00      28.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed8    igvnd_wMK      heuristic_     2800.00      28.00       0.00     0         -       1.3
+  scn_two_rows_medium_P5_R5_seed8    milp_job_wDLY  optimal          28.00      28.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed8    igvnd_wDLY     heuristic_       28.00      28.00       0.00     0         -       1.1
+  scn_two_rows_medium_P5_R5_seed8    milp_job_wMOV  optimal          28.00      28.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed8    igvnd_wMOV     heuristic_       28.00      28.00       0.00     0         -       1.1
+  scn_two_rows_tight_P5_R20_seed8    milp_job_wMK   maxTimeLim    14740.50     139.50     784.50     6    66.08%      61.3
+  scn_two_rows_tight_P5_R20_seed8    igvnd_wMK      heuristic_    12975.50     122.50     717.50     8         -      60.0
+  scn_two_rows_tight_P5_R20_seed8    milp_job_wDLY  maxTimeLim    73393.50     131.50     732.50    12    99.93%      61.3
+  scn_two_rows_tight_P5_R20_seed8    igvnd_wDLY     heuristic_    71047.50     129.50     709.00    18         -      60.0
+  scn_two_rows_tight_P5_R20_seed8    milp_job_wMOV  maxTimeLim      900.50     133.50     767.00     0    94.45%      61.3
+  scn_two_rows_tight_P5_R20_seed8    igvnd_wMOV     heuristic_      844.50     127.50     717.00     0         -      60.1
+  scn_two_rows_tight_P5_R30_seed8    milp_job_wMK   maxTimeLim    30323.50     277.00    2623.50     0    76.26%      63.3
+  scn_two_rows_tight_P5_R30_seed8    igvnd_wMK      heuristic_    23296.50     213.50    1946.50     0         -      60.1
+  scn_two_rows_tight_P5_R30_seed8    milp_job_wDLY  maxTimeLim   211713.50     251.50    2114.50    12    99.97%      63.4
+  scn_two_rows_tight_P5_R30_seed8    igvnd_wDLY     heuristic_   190381.50     231.50    1901.50     0         -      60.1
+  scn_two_rows_tight_P5_R30_seed8    milp_job_wMOV  maxTimeLim     2931.50     303.00    2628.50     0    97.54%      64.4
+  scn_two_rows_tight_P5_R30_seed8    igvnd_wMOV     heuristic_     2147.00     217.00    1930.00     0         -      60.3
+  scn_two_rows_tight_P5_R5_seed8     milp_job_wMK   optimal        2800.00      28.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed8     igvnd_wMK      heuristic_     2800.00      28.00       0.00     0         -       1.1
+  scn_two_rows_tight_P5_R5_seed8     milp_job_wDLY  optimal          28.00      28.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed8     igvnd_wDLY     heuristic_       28.00      28.00       0.00     0         -       1.1
+  scn_two_rows_tight_P5_R5_seed8     milp_job_wMOV  optimal          28.00      28.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed8     igvnd_wMOV     heuristic_       28.00      28.00       0.00     0         -       0.9
+  scn_triangle_loose_P5_R20_seed9    milp_job_wMK   maxTimeLim    14492.50     139.50     542.50     0    61.36%      61.8
+  scn_triangle_loose_P5_R20_seed9    igvnd_wMK      heuristic_    12622.00     122.50     364.00     8         -      60.0
+  scn_triangle_loose_P5_R20_seed9    milp_job_wDLY  maxTimeLim    39862.00     142.00     397.00    20    99.86%      61.7
+  scn_triangle_loose_P5_R20_seed9    igvnd_wDLY     heuristic_    30685.50     127.50     305.50     8         -      60.0
+  scn_triangle_loose_P5_R20_seed9    milp_job_wMOV  maxTimeLim      519.00     140.50     378.50     0    89.21%      61.7
+  scn_triangle_loose_P5_R20_seed9    igvnd_wMOV     heuristic_      455.00     128.50     326.50     0         -      60.0
+  scn_triangle_loose_P5_R30_seed9    milp_job_wMK   maxTimeLim    33954.50     315.00    2454.50     0    79.38%      64.8
+  scn_triangle_loose_P5_R30_seed9    igvnd_wMK      heuristic_    24333.50     226.50    1653.50    30         -      60.1
+  scn_triangle_loose_P5_R30_seed9    milp_job_wDLY  maxTimeLim   274300.50     346.50    2739.50     4    99.97%      69.2
+  scn_triangle_loose_P5_R30_seed9    igvnd_wDLY     heuristic_   149431.50     231.50    1492.00     0         -      60.1
+  scn_triangle_loose_P5_R30_seed9    milp_job_wMOV  maxTimeLim     2544.00     305.00    2239.00     0    97.25%      69.6
+  scn_triangle_loose_P5_R30_seed9    igvnd_wMOV     heuristic_     1705.00     225.50    1479.50     0         -      60.1
+  scn_triangle_loose_P5_R5_seed9     milp_job_wMK   optimal        4300.00      43.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed9     igvnd_wMK      heuristic_     4300.00      43.00       0.00     0         -       0.9
+  scn_triangle_loose_P5_R5_seed9     milp_job_wDLY  optimal          43.00      43.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed9     igvnd_wDLY     heuristic_       43.00      43.00       0.00     0         -       0.9
+  scn_triangle_loose_P5_R5_seed9     milp_job_wMOV  optimal          43.00      43.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed9     igvnd_wMOV     heuristic_       43.00      43.00       0.00     0         -       0.9
+  scn_triangle_medium_P5_R20_seed9   milp_job_wMK   maxTimeLim    14264.50     136.00     662.50     2    60.74%      61.8
+  scn_triangle_medium_P5_R20_seed9   igvnd_wMK      heuristic_    13124.50     125.50     542.50    32         -      60.0
+  scn_triangle_medium_P5_R20_seed9   milp_job_wDLY  maxTimeLim    51993.00     139.00     518.50     4    99.89%      61.8
+  scn_triangle_medium_P5_R20_seed9   igvnd_wDLY     heuristic_    49137.00     129.00     490.00     8         -      60.0
+  scn_triangle_medium_P5_R20_seed9   milp_job_wMOV  maxTimeLim      761.50     155.50     606.00     0    92.65%      61.8
+  scn_triangle_medium_P5_R20_seed9   igvnd_wMOV     heuristic_      637.00     128.50     508.50     0         -      60.0
+  scn_triangle_medium_P5_R30_seed9   milp_job_wMK   maxTimeLim    48737.50     447.00    4037.50     0    85.64%      64.8
+  scn_triangle_medium_P5_R30_seed9   igvnd_wMK      heuristic_    24114.00     222.50    1864.00     0         -      60.2
+  scn_triangle_medium_P5_R30_seed9   milp_job_wDLY  maxTimeLim   342134.00     380.00    3417.50     4    99.98%      69.3
+  scn_triangle_medium_P5_R30_seed9   igvnd_wDLY     heuristic_   187409.50     229.50    1871.50    30         -      60.2
+  scn_triangle_medium_P5_R30_seed9   milp_job_wMOV  maxTimeLim     3628.50     403.00    3225.50     0    98.07%      64.9
+  scn_triangle_medium_P5_R30_seed9   igvnd_wMOV     heuristic_     2100.00     233.50    1866.50     0         -      60.1
+  scn_triangle_medium_P5_R5_seed9    milp_job_wMK   optimal        4300.00      43.00       0.00     0     0.00%       0.3
+  scn_triangle_medium_P5_R5_seed9    igvnd_wMK      heuristic_     4300.00      43.00       0.00     0         -       1.0
+  scn_triangle_medium_P5_R5_seed9    milp_job_wDLY  optimal          43.00      43.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed9    igvnd_wDLY     heuristic_       43.00      43.00       0.00     0         -       1.1
+  scn_triangle_medium_P5_R5_seed9    milp_job_wMOV  optimal          43.00      43.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed9    igvnd_wMOV     heuristic_       43.00      43.00       0.00     0         -       1.0
+  scn_two_rows_loose_P5_R10_seed9    milp_job_wMK   optimal        6862.00      68.50       8.00     4     0.00%       3.0
+  scn_two_rows_loose_P5_R10_seed9    igvnd_wMK      heuristic_     6862.00      68.50       8.00     4         -      60.0
+  scn_two_rows_loose_P5_R10_seed9    milp_job_wDLY  optimal          80.50      76.50       0.00     4     0.00%       2.9
+  scn_two_rows_loose_P5_R10_seed9    igvnd_wDLY     heuristic_       84.50      76.50       0.00     8         -      44.1
+  scn_two_rows_loose_P5_R10_seed9    milp_job_wMOV  optimal          77.00      72.50       4.50     0     0.00%       6.4
+  scn_two_rows_loose_P5_R10_seed9    igvnd_wMOV     heuristic_       77.00      71.50       5.50     0         -      50.2
+  scn_two_rows_loose_P5_R20_seed9    milp_job_wMK   maxTimeLim    12890.00     125.50     328.00    12    56.56%      61.3
+  scn_two_rows_loose_P5_R20_seed9    igvnd_wMK      heuristic_    12557.00     122.50     307.00     0         -      60.1
+  scn_two_rows_loose_P5_R20_seed9    milp_job_wDLY  maxTimeLim    33123.00     151.00     329.50    22    99.83%      61.2
+  scn_two_rows_loose_P5_R20_seed9    igvnd_wDLY     heuristic_    28594.50     128.50     284.50    16         -      60.0
+  scn_two_rows_loose_P5_R20_seed9    milp_job_wMOV  maxTimeLim      497.50     131.00     366.50     0    88.74%      61.3
+  scn_two_rows_loose_P5_R20_seed9    igvnd_wMOV     heuristic_      415.00     128.50     286.50     0         -      60.0
+  scn_two_rows_loose_P5_R30_seed9    milp_job_wMK   maxTimeLim    36053.00     338.50    2203.00     0    80.58%      63.4
+  scn_two_rows_loose_P5_R30_seed9    igvnd_wMK      heuristic_    23159.50     217.50    1409.50     0         -      60.1
+  scn_two_rows_loose_P5_R30_seed9    milp_job_wDLY  maxTimeLim   218454.50     354.50    2181.00     0    99.97%      63.4
+  scn_two_rows_loose_P5_R30_seed9    igvnd_wDLY     heuristic_   138268.50     218.50    1380.50     0         -      60.1
+  scn_two_rows_loose_P5_R30_seed9    milp_job_wMOV  maxTimeLim     2188.00     299.00    1889.00     0    96.80%      63.7
+  scn_two_rows_loose_P5_R30_seed9    igvnd_wMOV     heuristic_     1607.00     220.50    1386.50     0         -      60.4
+  scn_two_rows_loose_P5_R5_seed9     milp_job_wMK   optimal        4300.00      43.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed9     igvnd_wMK      heuristic_     4300.00      43.00       0.00     0         -       1.0
+  scn_two_rows_loose_P5_R5_seed9     milp_job_wDLY  optimal          43.00      43.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed9     igvnd_wDLY     heuristic_       43.00      43.00       0.00     0         -       0.9
+  scn_two_rows_loose_P5_R5_seed9     milp_job_wMOV  optimal          43.00      43.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed9     igvnd_wMOV     heuristic_       43.00      43.00       0.00     0         -       0.8
+  scn_two_rows_medium_P5_R10_seed9   milp_job_wMK   optimal        6904.50      68.50      50.50     4     0.00%      30.3
+  scn_two_rows_medium_P5_R10_seed9   igvnd_wMK      heuristic_     6905.00      68.50      51.00     4         -      59.5
+  scn_two_rows_medium_P5_R10_seed9   milp_job_wDLY  maxTimeLim     4936.50      76.50      48.50    10    99.05%      60.4
+  scn_two_rows_medium_P5_R10_seed9   igvnd_wDLY     heuristic_     5031.50      71.50      49.50    10         -      57.1
+  scn_two_rows_medium_P5_R10_seed9   milp_job_wMOV  optimal         120.00      69.50      50.50     0     0.00%      33.8
+  scn_two_rows_medium_P5_R10_seed9   igvnd_wMOV     heuristic_      133.00      72.50      60.50     0         -      49.9
+  scn_two_rows_medium_P5_R20_seed9   milp_job_wMK   maxTimeLim    13905.50     132.50     645.50    10    59.73%      63.1
+  scn_two_rows_medium_P5_R20_seed9   igvnd_wMK      heuristic_    12621.00     121.50     471.00     0         -      60.0
+  scn_two_rows_medium_P5_R20_seed9   milp_job_wDLY  maxTimeLim    50623.00     145.00     504.50    28    99.89%      61.3
+  scn_two_rows_medium_P5_R20_seed9   igvnd_wDLY     heuristic_    44287.50     125.50     441.50    12         -      60.0
+  scn_two_rows_medium_P5_R20_seed9   milp_job_wMOV  maxTimeLim      615.00     127.50     487.50     0    90.89%      61.3
+  scn_two_rows_medium_P5_R20_seed9   igvnd_wMOV     heuristic_      595.00     125.50     469.50     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed9   milp_job_wMK   maxTimeLim    33178.00     305.50    2626.00     2    78.90%      63.4
+  scn_two_rows_medium_P5_R30_seed9   igvnd_wMK      heuristic_    23648.50     218.50    1798.50     0         -      60.0
+  scn_two_rows_medium_P5_R30_seed9   milp_job_wDLY  maxTimeLim   215619.50     265.50    2153.50     4    99.97%      63.3
+  scn_two_rows_medium_P5_R30_seed9   igvnd_wDLY     heuristic_   175279.50     229.50    1750.50     0         -      60.2
+  scn_two_rows_medium_P5_R30_seed9   milp_job_wMOV  maxTimeLim     2612.00     318.00    2294.00     0    97.32%      63.4
+  scn_two_rows_medium_P5_R30_seed9   igvnd_wMOV     heuristic_     1989.00     222.50    1766.50     0         -      60.3
+  scn_two_rows_medium_P5_R5_seed9    milp_job_wMK   optimal        4300.00      43.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed9    igvnd_wMK      heuristic_     4300.00      43.00       0.00     0         -       0.9
+  scn_two_rows_medium_P5_R5_seed9    milp_job_wDLY  optimal          43.00      43.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed9    igvnd_wDLY     heuristic_       43.00      43.00       0.00     0         -       0.9
+  scn_two_rows_medium_P5_R5_seed9    milp_job_wMOV  optimal          43.00      43.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed9    igvnd_wMOV     heuristic_       43.00      43.00       0.00     0         -       0.8
+  scn_two_rows_tight_P5_R20_seed9    milp_job_wMK   maxTimeLim    13943.00     132.50     671.00    22    59.84%      61.3
+  scn_two_rows_tight_P5_R20_seed9    igvnd_wMK      heuristic_    12479.00     118.50     617.00    12         -      60.0
+  scn_two_rows_tight_P5_R20_seed9    milp_job_wDLY  maxTimeLim    63664.00     144.00     635.00    20    99.91%      61.3
+  scn_two_rows_tight_P5_R20_seed9    igvnd_wDLY     heuristic_    59329.50     129.50     592.00     0         -      60.0
+  scn_two_rows_tight_P5_R20_seed9    milp_job_wMOV  maxTimeLim      793.50     138.50     655.00     0    92.94%      66.3
+  scn_two_rows_tight_P5_R20_seed9    igvnd_wMOV     heuristic_      709.50     121.50     588.00     0         -      60.0
+  scn_two_rows_tight_P5_R30_seed9    milp_job_wMK   maxTimeLim    29563.00     271.50    2393.00    20    76.32%      63.4
+  scn_two_rows_tight_P5_R30_seed9    igvnd_wMK      heuristic_    24165.50     220.50    2115.50     0         -      60.1
+  scn_two_rows_tight_P5_R30_seed9    milp_job_wDLY  maxTimeLim   236362.00     252.00    2361.00    10    99.97%      63.4
+  scn_two_rows_tight_P5_R30_seed9    igvnd_wDLY     heuristic_   201266.50     216.50    2010.50     0         -      60.1
+  scn_two_rows_tight_P5_R30_seed9    milp_job_wMOV  maxTimeLim     2655.00     252.00    2403.00     0    97.36%      63.4
+  scn_two_rows_tight_P5_R30_seed9    igvnd_wMOV     heuristic_     2231.00     216.50    2014.50     0         -      60.1
+  scn_two_rows_tight_P5_R5_seed9     milp_job_wMK   optimal        4300.00      43.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed9     igvnd_wMK      heuristic_     4301.00      43.00       1.00     0         -       1.0
+  scn_two_rows_tight_P5_R5_seed9     milp_job_wDLY  optimal          43.00      43.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed9     igvnd_wDLY     heuristic_       43.00      43.00       0.00     0         -       1.0
+  scn_two_rows_tight_P5_R5_seed9     milp_job_wMOV  optimal          43.00      43.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed9     igvnd_wMOV     heuristic_       43.00      43.00       0.00     0         -       1.0
+  scn_triangle_loose_P5_R20_seed10   milp_job_wMK   maxTimeLim    15293.00     148.00     483.00    10    64.69%      61.9
+  scn_triangle_loose_P5_R20_seed10   igvnd_wMK      heuristic_    12988.00     125.50     438.00     0         -      60.1
+  scn_triangle_loose_P5_R20_seed10   milp_job_wDLY  maxTimeLim    46204.00     154.00     460.50     0    99.88%      61.9
+  scn_triangle_loose_P5_R20_seed10   igvnd_wDLY     heuristic_    37399.50     129.50     372.50    20         -      60.0
+  scn_triangle_loose_P5_R20_seed10   milp_job_wMOV  maxTimeLim      594.50     149.00     445.50     0    90.92%      61.9
+  scn_triangle_loose_P5_R20_seed10   igvnd_wMOV     heuristic_      507.00     133.50     373.50     0         -      60.0
+  scn_triangle_loose_P5_R30_seed10   milp_job_wMK   maxTimeLim    37332.00     344.50    2882.00     0    79.11%      64.7
+  scn_triangle_loose_P5_R30_seed10   igvnd_wMK      heuristic_    23800.50     224.50    1350.50     0         -      60.2
+  scn_triangle_loose_P5_R30_seed10   milp_job_wDLY  maxTimeLim   251203.50     353.50    2508.50     0    99.97%      68.6
+  scn_triangle_loose_P5_R30_seed10   igvnd_wDLY     heuristic_   145377.00     233.00    1451.00    44         -      60.1
+  scn_triangle_loose_P5_R30_seed10   milp_job_wMOV  maxTimeLim     2480.50     295.00    2185.50     0    96.86%      64.6
+  scn_triangle_loose_P5_R30_seed10   igvnd_wMOV     heuristic_     1635.00     240.50    1394.50     0         -      60.1
+  scn_triangle_loose_P5_R5_seed10    milp_job_wMK   optimal        3500.00      35.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed10    igvnd_wMK      heuristic_     3500.00      35.00       0.00     0         -       1.2
+  scn_triangle_loose_P5_R5_seed10    milp_job_wDLY  optimal          35.00      35.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed10    igvnd_wDLY     heuristic_       35.00      35.00       0.00     0         -       1.0
+  scn_triangle_loose_P5_R5_seed10    milp_job_wMOV  optimal          35.00      35.00       0.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R5_seed10    igvnd_wMOV     heuristic_       35.00      35.00       0.00     0         -       1.1
+  scn_triangle_medium_P5_R20_seed10  milp_job_wMK   maxTimeLim    15725.50     150.00     721.50     4    65.66%      61.9
+  scn_triangle_medium_P5_R20_seed10  igvnd_wMK      heuristic_    13273.00     126.50     623.00     0         -      60.1
+  scn_triangle_medium_P5_R20_seed10  milp_job_wDLY  maxTimeLim    66987.50     167.50     668.00    20    99.92%      61.9
+  scn_triangle_medium_P5_R20_seed10  igvnd_wDLY     heuristic_    56749.00     131.00     566.00    18         -      60.1
+  scn_triangle_medium_P5_R20_seed10  milp_job_wMOV  maxTimeLim      760.50     145.00     615.50     0    92.90%      61.9
+  scn_triangle_medium_P5_R20_seed10  igvnd_wMOV     heuristic_      702.00     132.50     569.50     0         -      60.1
+  scn_triangle_medium_P5_R30_seed10  milp_job_wMK   maxTimeLim    37946.00     344.50    3496.00     0    79.44%      64.6
+  scn_triangle_medium_P5_R30_seed10  igvnd_wMK      heuristic_    24244.00     225.50    1694.00     0         -      60.2
+  scn_triangle_medium_P5_R30_seed10  milp_job_wDLY  maxTimeLim   288878.50     328.50    2885.50     0    99.97%      64.8
+  scn_triangle_medium_P5_R30_seed10  igvnd_wDLY     heuristic_   167281.00     231.00    1670.50     0         -      60.0
+  scn_triangle_medium_P5_R30_seed10  milp_job_wMOV  maxTimeLim     3139.00     311.00    2828.00     0    97.52%      64.7
+  scn_triangle_medium_P5_R30_seed10  igvnd_wMOV     heuristic_     1947.00     234.00    1713.00     0         -      60.0
+  scn_triangle_medium_P5_R5_seed10   milp_job_wMK   optimal        3500.00      35.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed10   igvnd_wMK      heuristic_     3500.00      35.00       0.00     0         -       1.0
+  scn_triangle_medium_P5_R5_seed10   milp_job_wDLY  optimal          35.00      35.00       0.00     0     0.00%       0.2
+  scn_triangle_medium_P5_R5_seed10   igvnd_wDLY     heuristic_       35.00      35.00       0.00     0         -       1.0
+  scn_triangle_medium_P5_R5_seed10   milp_job_wMOV  optimal          35.00      35.00       0.00     0     0.00%       0.1
+  scn_triangle_medium_P5_R5_seed10   igvnd_wMOV     heuristic_       35.00      35.00       0.00     0         -       0.8
+  scn_two_rows_loose_P5_R10_seed10   milp_job_wMK   optimal        6164.00      61.50      10.00     4     0.00%       3.1
+  scn_two_rows_loose_P5_R10_seed10   igvnd_wMK      heuristic_     6168.00      61.50      10.00     8         -      57.3
+  scn_two_rows_loose_P5_R10_seed10   milp_job_wDLY  optimal          69.50      65.50       0.00     4     0.00%       4.0
+  scn_two_rows_loose_P5_R10_seed10   igvnd_wDLY     heuristic_       73.50      65.50       0.00     8         -      42.4
+  scn_two_rows_loose_P5_R10_seed10   milp_job_wMOV  optimal          68.00      67.50       0.50     0     0.00%       7.4
+  scn_two_rows_loose_P5_R10_seed10   igvnd_wMOV     heuristic_       70.00      65.50       4.50     0         -      55.1
+  scn_two_rows_loose_P5_R20_seed10   milp_job_wMK   maxTimeLim    13593.50     131.50     431.50    12    60.28%      61.3
+  scn_two_rows_loose_P5_R20_seed10   igvnd_wMK      heuristic_    12686.50     122.50     424.50    12         -      60.0
+  scn_two_rows_loose_P5_R20_seed10   milp_job_wDLY  maxTimeLim    43098.00     140.00     429.50     8    99.87%      61.4
+  scn_two_rows_loose_P5_R20_seed10   igvnd_wDLY     heuristic_    34638.50     126.50     345.00    12         -      60.0
+  scn_two_rows_loose_P5_R20_seed10   milp_job_wMOV  maxTimeLim      535.50     136.50     399.00     0    89.92%      61.4
+  scn_two_rows_loose_P5_R20_seed10   igvnd_wMOV     heuristic_      484.00     124.50     359.50     0         -      60.1
+  scn_two_rows_loose_P5_R30_seed10   milp_job_wMK   maxTimeLim    30038.50     283.50    1688.50     0    74.03%      64.6
+  scn_two_rows_loose_P5_R30_seed10   igvnd_wMK      heuristic_    23157.50     217.50    1407.50     0         -      60.1
+  scn_two_rows_loose_P5_R30_seed10   milp_job_wDLY  maxTimeLim   173675.00     275.00    1734.00     0    99.96%      64.3
+  scn_two_rows_loose_P5_R30_seed10   igvnd_wDLY     heuristic_   130374.50     224.50    1301.50     0         -      60.0
+  scn_two_rows_loose_P5_R30_seed10   milp_job_wMOV  maxTimeLim     2463.00     304.00    2159.00     0    96.83%      63.2
+  scn_two_rows_loose_P5_R30_seed10   igvnd_wMOV     heuristic_     1522.50     224.50    1298.00     0         -      60.1
+  scn_two_rows_loose_P5_R5_seed10    milp_job_wMK   optimal        3500.00      35.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed10    igvnd_wMK      heuristic_     3500.00      35.00       0.00     0         -       1.1
+  scn_two_rows_loose_P5_R5_seed10    milp_job_wDLY  optimal          35.00      35.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed10    igvnd_wDLY     heuristic_       35.00      35.00       0.00     0         -       1.0
+  scn_two_rows_loose_P5_R5_seed10    milp_job_wMOV  optimal          35.00      35.00       0.00     0     0.00%       0.1
+  scn_two_rows_loose_P5_R5_seed10    igvnd_wMOV     heuristic_       35.00      35.00       0.00     0         -       0.9
+  scn_two_rows_medium_P5_R10_seed10  milp_job_wMK   optimal        6210.50      61.50      56.50     4     0.00%       3.9
+  scn_two_rows_medium_P5_R10_seed10  igvnd_wMK      heuristic_     6213.50      61.50      55.50     8         -      56.4
+  scn_two_rows_medium_P5_R10_seed10  milp_job_wDLY  maxTimeLim     5617.50      63.50      55.50     4    99.22%      60.4
+  scn_two_rows_medium_P5_R10_seed10  igvnd_wDLY     heuristic_     5520.50      62.50      54.50     8         -      51.7
+  scn_two_rows_medium_P5_R10_seed10  milp_job_wMOV  maxTimeLim      123.00      64.50      58.50     0    31.71%      60.4
+  scn_two_rows_medium_P5_R10_seed10  igvnd_wMOV     heuristic_      124.00      63.50      60.50     0         -      57.1
+  scn_two_rows_medium_P5_R20_seed10  milp_job_wMK   maxTimeLim    14102.00     133.50     742.00    10    61.71%      61.3
+  scn_two_rows_medium_P5_R20_seed10  igvnd_wMK      heuristic_    12755.00     121.50     585.00    20         -      60.1
+  scn_two_rows_medium_P5_R20_seed10  milp_job_wDLY  maxTimeLim    57597.50     133.50     574.50    14    99.91%      61.4
+  scn_two_rows_medium_P5_R20_seed10  igvnd_wDLY     heuristic_    54100.50     134.50     539.50    16         -      60.0
+  scn_two_rows_medium_P5_R20_seed10  milp_job_wMOV  maxTimeLim      731.00     136.00     595.00     0    92.61%      61.3
+  scn_two_rows_medium_P5_R20_seed10  igvnd_wMOV     heuristic_      671.50     125.50     546.00     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed10  milp_job_wMK   maxTimeLim    34423.00     318.00    2617.00     6    77.34%      63.3
+  scn_two_rows_medium_P5_R30_seed10  igvnd_wMK      heuristic_    23497.50     216.50    1819.50    28         -      60.3
+  scn_two_rows_medium_P5_R30_seed10  milp_job_wDLY  maxTimeLim   251278.50     328.50    2509.50     0    99.97%      63.3
+  scn_two_rows_medium_P5_R30_seed10  igvnd_wDLY     heuristic_   167580.50     230.50    1673.50     0         -      60.0
+  scn_two_rows_medium_P5_R30_seed10  milp_job_wMOV  maxTimeLim     2515.50     304.50    2211.00     0    96.90%      63.3
+  scn_two_rows_medium_P5_R30_seed10  igvnd_wMOV     heuristic_     1851.00     214.50    1636.50     0         -      60.0
+  scn_two_rows_medium_P5_R5_seed10   milp_job_wMK   optimal        3500.00      35.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed10   igvnd_wMK      heuristic_     3500.00      35.00       0.00     0         -       1.0
+  scn_two_rows_medium_P5_R5_seed10   milp_job_wDLY  optimal          35.00      35.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed10   igvnd_wDLY     heuristic_       35.00      35.00       0.00     0         -       0.9
+  scn_two_rows_medium_P5_R5_seed10   milp_job_wMOV  optimal          35.00      35.00       0.00     0     0.00%       0.1
+  scn_two_rows_medium_P5_R5_seed10   igvnd_wMOV     heuristic_       35.00      35.00       0.00     0         -       0.8
+  scn_two_rows_tight_P5_R20_seed10   milp_job_wMK   maxTimeLim    13841.00     131.50     681.00    10    60.99%      61.4
+  scn_two_rows_tight_P5_R20_seed10   igvnd_wMK      heuristic_    12931.00     122.50     673.00     8         -      60.1
+  scn_two_rows_tight_P5_R20_seed10   milp_job_wDLY  maxTimeLim    70709.00     145.00     705.50    14    99.92%      61.3
+  scn_two_rows_tight_P5_R20_seed10   igvnd_wDLY     heuristic_    66453.50     129.50     663.00    24         -      60.0
+  scn_two_rows_tight_P5_R20_seed10   milp_job_wMOV  maxTimeLim      880.00     143.50     736.50     0    93.86%      67.1
+  scn_two_rows_tight_P5_R20_seed10   igvnd_wMOV     heuristic_      801.50     126.50     675.00     0         -      60.0
+  scn_two_rows_tight_P5_R30_seed10   igvnd_wMK      heuristic_    23398.00     214.50    1936.00    12         -      60.3
+  scn_two_rows_tight_P5_R30_seed10   milp_job_wDLY  maxTimeLim   323748.50     346.50    3234.00     2    99.98%      63.2
+  scn_two_rows_tight_P5_R30_seed10   igvnd_wDLY     heuristic_   191431.50     231.50    1912.00     0         -      60.1
+  scn_two_rows_tight_P5_R30_seed10   milp_job_wMOV  maxTimeLim     3810.50     372.00    3438.50     0    97.95%      63.2
+  scn_two_rows_tight_P5_R30_seed10   igvnd_wMOV     heuristic_     2126.50     219.50    1907.00     0         -      60.1
+  scn_two_rows_tight_P5_R5_seed10    milp_job_wMK   optimal        3500.00      35.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed10    igvnd_wMK      heuristic_     3500.00      35.00       0.00     0         -       1.0
+  scn_two_rows_tight_P5_R5_seed10    milp_job_wDLY  optimal          35.00      35.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed10    igvnd_wDLY     heuristic_       35.00      35.00       0.00     0         -       0.9
+  scn_two_rows_tight_P5_R5_seed10    milp_job_wMOV  optimal          35.00      35.00       0.00     0     0.00%       0.1
+  scn_two_rows_tight_P5_R5_seed10    igvnd_wMOV     heuristic_       36.00      35.00       1.00     0         -       0.9
+
+  Failed runs:
+    x scn_triangle_loose_P5_R30_seed1  ·  milp_job_wMK  ->  Out of memory
+    x scn_two_rows_tight_P5_R30_seed10  ·  milp_job_wMK  ->  Out of memory
+==================================================================
