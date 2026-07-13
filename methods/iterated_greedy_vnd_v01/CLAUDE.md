@@ -1,109 +1,78 @@
-# Isolation contract for the `iterated_greedy_vnd_v01` method
+# `iterated_greedy_vnd_v01` — the ACTIVE method under improvement
 
-You are working inside `methods/iterated_greedy_vnd_v01/`.  This is the
-v01 attempt at paper #2 via the `theory_assisted` scaffold, built with
-ChatGPT assistance (see [`PROVENANCE.md`](PROVENANCE.md)).  It is
-**frozen for algorithmic comparison** with the in-progress v02
-(Claude-assisted) attempt — only bug fixes, doc cleanups, and
-non-algorithmic perf tweaks are in scope (see PROVENANCE for the full
-freeze policy).
+You are working inside `methods/iterated_greedy_vnd_v01/`.  Since the
+repo refocus (2026-07-13) this is **the** method the repository exists
+to improve: the IG+VND heuristic for the job-level problem (paper #2),
+measured against the fixed MILP baseline
+(`methods/manual/jobs/milp_jobs_v2_solver.py`, labels `milp_job_*`).
 
-It is **developed in isolation** from the other methods in the
-repository, even though it originated from a `theory_assisted` process
-— the theoretical work is captured in `jobs/synthesis.md` +
-`jobs/design.md` right here.
+> **History.** This method originated as the "v01 attempt" of a
+> multi-method comparison built with ChatGPT assistance (see
+> [`PROVENANCE.md`](PROVENANCE.md)) and was frozen while sister attempts
+> (v02, brkga_v02, theory_assisted) were explored.  That era is over:
+> the freeze is lifted, the sister attempts are retired (inert, pending
+> deletion; preserved on `archive/pre-restructure-20260713`), and
+> behaviour-changing work on this method is the repo's main activity.
 
-## You MAY read, freely
+## Read policy
 
-- `methods/iterated_greedy_vnd_v01/**` — this method's own code, docs,
-  synthesis, design.
-- `problems/jobs/**` — problem statement, schema, checker, instances.
-  `problems/jobs/problem_statement.md` is the full self-contained brief;
-  `problems/jobs/checker.py` is the source of truth for feasibility.
-- `shared/**` — Application dispatcher contract, instance_io, plotting,
-  RCL helpers.
-- `experiments/run_experiments.py` — the integration point (the
-  `igvnd_wMK` / `igvnd_wDLY` / `igvnd_wMOV` labels live there).
+Project-wide read access (user-authorised 2026-06-28).  The retired
+method directories (`iterated_greedy_vnd_v02`, `brkga_v02`,
+`theory_assisted`, `autoresearch`) may be read for reference but are
+dead code — do not resurrect or import from them.
 
-## You MUST NOT read
+## Import policy (still enforced)
 
-- `methods/manual/**`               (other method)
-- `methods/autoresearch/**`         (other method)
-- `methods/iterated_greedy_vnd_v02/**` (sister attempt — Claude-assisted
-                                     trajectory from the same 30e1af0
-                                     baseline; reading it contaminates
-                                     the v01-vs-v02 comparison)
-- `methods/brkga_v02/**`            (sister attempt — Claude-assisted
-                                     Candidate C from the same scaffold;
-                                     reveals an alternative-algorithm
-                                     trajectory)
-- `methods/theory_assisted/**`      (the literature-informed process
-                                     that birthed this method has
-                                     already been distilled into
-                                     synthesis.md + design.md in
-                                     this tree; the original digest/
-                                     and inspiration/ folders are
-                                     reusable theory reserved for
-                                     FUTURE method attempts)
-- `papers/cejor_aircraft/**`, `papers/jobs_extension/**`,
-  `papers/_legacy_draft/**`        (publishable manuscripts of OUR work)
-- `literature_review/**`           (repo-wide bucket — not this
-                                     method's input)
-
-If the user explicitly asks "look at how method X did this", REFUSE and
-remind them of this contract.
-
-## Running other methods (allowed — outputs only, not source)
-
-There is an important distinction between **reading** another method's
-source and **running** it for comparison.  Reading is forbidden;
-running is allowed because the result is just numbers, not knowledge
-of how those numbers were produced.
-
-The bridge is `experiments/run_experiments.py`.  You may:
-
-- Invoke any registered method via Bash:
-  ```
-  py -3 experiments/run_experiments.py "<inst_filter>" "<exp_label>" data/instances_202605_02
-  ```
-  Useful labels for cross-method comparison:
-  - `milp_baseline_job`, `milp_baseline_job_wB`, `milp_baseline_job_wC`
-    — the manual MILP (paper #2).
-  - `igvnd_wMK`, `igvnd_wDLY`, `igvnd_wMOV` — this method.
-- Read `outputs/solutions/scn_…__<label>__<timestamp>.json` and
-  `outputs/solutions/results.csv`.
-- Read `outputs/logs/*.log`.
-
-What you must NOT do, even while comparing:
-
-- Open or grep any `.py` file under `methods/manual/`,
-  `methods/autoresearch/`, or `methods/theory_assisted/`.
-
-## The standard battery
-
-The full benchmark composition (12 configs × 10 seeds × 3 weight
-profiles), the cached-MILP rule, the subset shortcuts, and how to
-read results are all defined in
-[`experiments/BATTERY.md`](../../experiments/BATTERY.md).  v01's
-Part II numbers were produced under this same convention.
-
-Since v01 is **frozen for algorithmic comparison**, re-running the
-battery on it is only useful as a sanity check (the numbers must
-reproduce within run-to-run noise).  Do not retune.
-
-## Verification
-
-Before any commit on this method:
+The solver imports nothing from other methods (only stdlib + the lazy
+`problems/jobs/checker` import).  Before any commit here:
 
 ```
-py -3 experiments/tests/test_method_isolation.py
+py -3 experiments/tests/test_method_isolation.py     # must report 0 violations
 ```
 
-Must report `0 violations`.
+New cross-method imports require an `_ALLOWLIST` entry in that test
+with a written rationale.
 
-## Allowed cross-method import policy
+## Workflow for behaviour changes (the improvement loop)
 
-Currently zero.  If a future need arises (in-process baseline import,
-shared infrastructure refactor), add an entry to the `_ALLOWLIST` dict
-in `experiments/tests/test_method_isolation.py` with a written
-rationale.  Allowlisting silently is not acceptable.
+Every improvement attempt follows the journal discipline in
+[`IMPROVEMENT_LOG.md`](IMPROVEMENT_LOG.md):
+
+1. Branch `exp/<slug>` off `dev`; open a journal entry with the
+   **hypothesis before coding**.
+2. Measure both arms FRESH (baseline vs candidate) against the
+   **cached MILP** rows in `outputs/solutions/results.csv` — never
+   re-run the MILP, and never trust cached heuristic rows (they go
+   stale; see Step 0 of the 2026-07 campaign).
+3. Apply the noise-floor check (per-stratum; see the journal) — a delta
+   below the run-to-run spread is NEUTRAL, not an improvement.
+4. KEPT → merge `--no-ff` into `main`, tag `igvnd-v01-<milestone>`,
+   run `/sync-method-doc`.  DROPPED → keep the `exp/` branch and add a
+   Change-log "attempted & DROPPED" row.
+
+**Simplicity is an acceptance criterion** (user, 2026-07-13): prefer
+changes that REMOVE parts (knobs, rules, phases) over ones that add
+them; a new mechanism must pay for itself by retiring at least as much
+machinery as it introduces.
+
+## The battery
+
+Composition, cached-MILP rule, subset shortcuts and result-reading
+conventions live in [`experiments/BATTERY.md`](../../experiments/BATTERY.md).
+Standard run:
+
+```
+py -3 experiments/run_experiments.py "<inst_filter>" \
+    "igvnd_wMK,igvnd_wDLY,igvnd_wMOV" data/instances_202605_02
+```
+
+## Documentation layers (keep all three in sync)
+
+- [`jobs/iterated_greedy_vnd.md`](jobs/iterated_greedy_vnd.md) — living
+  spec (Part I method / II results / III roadmap / IV code + Change
+  log).  Sync after every behaviour change and every battery via
+  `/sync-method-doc`.
+- [`IMPROVEMENT_LOG.md`](IMPROVEMENT_LOG.md) — attempt journal
+  (hypothesis → verdict), including dead ends.
+- `jobs/design.md` + `jobs/synthesis.md` — design rationale and the
+  literature synthesis that seeded the method (historical, stable).
