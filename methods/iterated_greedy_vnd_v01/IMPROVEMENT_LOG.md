@@ -3,7 +3,7 @@
 Attempt-anchored record of **every** effort to improve the heuristic, kept or
 dropped. This complements the two other documentation layers:
 
-- **Living spec** (`methods/iterated_greedy_vnd_v01/jobs/iterated_greedy_vnd.md`,
+- **Living spec** ([`jobs/iterated_greedy_vnd.md`](jobs/iterated_greedy_vnd.md),
   Part I–IV) — the *current* method + latest battery.
 - **Change log** (tail of that `.md`) — one row per *shipped/deferred commit*.
 - **This journal** — one entry per *attempt*, opened with a hypothesis **before**
@@ -14,7 +14,8 @@ dropped. This complements the two other documentation layers:
 (290-instance battery `outputs/logs/combined_290_iterated_greedy_vnd_v01_20260628.log`;
 solver behaviour = Commit 5 / `4a80e79`). Every attempt is measured against the
 current `main` tip, and improvements are judged with the **cached-MILP rule** +
-the **~19 delay-unit noise floor** described in [`BATTERY.md`](BATTERY.md).
+the **~19 delay-unit noise floor** described in
+[`experiments/BATTERY.md`](../../experiments/BATTERY.md).
 
 ## How to use
 
