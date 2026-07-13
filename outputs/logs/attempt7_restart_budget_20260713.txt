@@ -1,0 +1,36 @@
+================================================================================================================
+  ATTEMPT 7 — restart-budget:  BASELINE (dev) vs CANDIDATE (exp/restart-budget)
+  fresh runs, in-process, seed=1, 60 s; MILP reference from cached results.csv
+================================================================================================================
+
+  cell                                 prof  grp            BASE obj     dly  CAND obj     dly     Δobj  MILP obj     dly   B#    C#
+  --------------------------------------------------------------------------------------------------------------
+  scn_triangle_tight_P5_R5_seed1       wMOV  target-R5          30.0     0.0      30.0     0.0     +0.0      30.0     0.0    8   840
+  scn_triangle_tight_P5_R5_seed2       wMOV  target-R5          37.0     0.0      37.0     0.0     +0.0      37.0     0.0    8   870
+  scn_triangle_tight_P5_R5_seed3       wMOV  target-R5          33.0     2.0      32.0     1.0     -1.0      32.0     1.0    8   858
+  scn_triangle_tight_P5_R5_seed4       wMOV  target-R5          45.0     1.0      45.0     1.0     +0.0      45.0     1.0    8   874
+  scn_triangle_tight_P5_R5_seed5       wMOV  target-R5          38.0     6.0      33.0     1.0     -5.0      33.0     1.0    8   826
+  scn_triangle_tight_P5_R5_seed6       wMOV  target-R5          47.0     8.0      39.0     0.0     -8.0      39.0     0.0    8   907
+  scn_triangle_tight_P5_R5_seed7       wMOV  target-R5          39.0     0.0      39.0     0.0     +0.0      39.0     0.0    8   913
+  scn_triangle_tight_P5_R5_seed8       wMOV  target-R5          28.0     0.0      28.0     0.0     +0.0      28.0     0.0    8   858
+  scn_triangle_tight_P5_R5_seed9       wMOV  target-R5          43.0     0.0      43.0     0.0     +0.0      43.0     0.0    8   885
+  scn_triangle_tight_P5_R5_seed10      wMOV  target-R5          35.0     0.0      35.0     0.0     +0.0      35.0     0.0    8   911
+  scn_two_rows_tight_P5_R5_seed10      wMOV  target-R5          36.0     1.0      35.0     0.0     -1.0      35.0     0.0    8   898
+  scn_triangle_tight_P5_R10_seed1      wMOV  target-R10        167.5   106.0     166.0   103.5     -1.5     166.0   103.5    8     8
+  scn_none_tight_P5_R10_seed1          wMK   guard-control    5844.5    94.5    5844.5    94.5     +0.0    5844.5    94.5    8    10
+  scn_chain_tight_P5_R10_seed1         wMK   guard-noisy      6367.5   107.5    6275.0   109.0    -92.5    6223.0   109.0    7     8
+  scn_triangle_tight_P5_R10_seed1      wDLY  guard-wDLY      10069.5   100.0   10068.5   100.0     -1.0   10220.5   101.5    8     8
+  scn_triangle_loose_P5_R10_seed10     wDLY  guard-wDLY        230.5     1.5     219.5     1.5    -11.0      77.0     0.0    8     9
+  scn_triangle_tight_P5_R20_seed1      wMK   guard-scale     12960.0   710.0   13019.0   669.0    +59.0   15507.5   855.5    4     4
+
+================================================================================================================
+  SUMMARY by group   (Δobj = candidate − baseline; negative = candidate better)
+================================================================================================================
+  target-R5      n=11  mean Δobj=   -1.36   mean gap vs MILP: base  -3.79%  ->  cand  +0.00%
+  target-R10     n=1   mean Δobj=   -1.50   mean gap vs MILP: base  -0.90%  ->  cand  +0.00%
+  guard-control  n=1   mean Δobj=   +0.00   mean gap vs MILP: base  +0.00%  ->  cand  +0.00%
+  guard-noisy    n=1   mean Δobj=  -92.50   mean gap vs MILP: base  -2.32%  ->  cand  -0.84%
+  guard-wDLY     n=2   mean Δobj=   -6.00   mean gap vs MILP: base -98.94%  ->  cand -91.79%
+  guard-scale    n=1   mean Δobj=  +59.00   mean gap vs MILP: base +16.43%  ->  cand +16.05%
+
+  [DONE]

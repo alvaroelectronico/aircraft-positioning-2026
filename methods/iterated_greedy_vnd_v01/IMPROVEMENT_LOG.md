@@ -37,7 +37,7 @@ the **~19 delay-unit noise floor** described in
 | 4 | dense concentric-nesting builder (wMOV) | `cb5656c` | `…_20260613_235129.log` | **KEPT** | `full_R10 wMOV` −17.1% → **−5.05%** |
 | 5 | risk diagnostics (delay/nesting/search) | `dd20bf6` | `combined_290_iterated_greedy_vnd_v01_20260628.log` | **KEPT** | observability only, no behaviour change |
 | 6 | DelayRiskRepair (delay-biased re-search) | `95669a2` → reverted `4a80e79` | `ablation_commit6_delayrepair.txt` | **DROPPED** | 0/74 runs accepted; residual is search-variance-bound, within noise |
-| 7 | restarts-until-deadline + slim portfolio (NEH+SLACK) + biased-randomised construction | `exp/restart-budget` | *(pending)* | **OPEN** | targets wMOV R5/R10 residual delay (97 % idle budget) |
+| 7 | restarts-until-deadline + slim portfolio (NEH+SLACK) + biased-randomised construction | `exp/restart-budget` (`76d43e0`) | `attempt7_restart_budget_20260713.txt` | **KEPT** (pending merge) | wMOV R5/R10 stratum −3.79 % → **+0.00 % = MILP optimum on every cell**; no guard regressed |
 | 8 | profile-aware budget split (v2/v3 phases) | `exp/profile-budget` *(planned)* | *(pending)* | *(open)* | targets timed-out R10+ cells |
 
 *(Entries 4–6 backfilled from the living-spec Change log; entry 7 onward is
@@ -209,7 +209,30 @@ What the results say (evidence, not just structure):
   inter-start spread.
 - **Noise check:** stratum floor = 0 (Step 0) → any ≥ 1 delay-unit gain is real;
   wMK/R10 guard judged against its ~16–19-unit floor.
-- **Status:** implementing.
+- **Log:** [`outputs/logs/attempt7_restart_budget_20260713.txt`](../../outputs/logs/attempt7_restart_budget_20260713.txt)
+  (both arms fresh, in-process, 60 s, seed=1; MILP from cached results.csv).
+- **Result vs baseline (implementation `76d43e0`):**
+  - **Target wMOV R5 (11 cells): mean gap vs MILP −3.79 % → +0.00 % — the
+    candidate matches the MILP optimum on EVERY cell.** All misses eliminated:
+    seed3 33→32, seed5 38→33 (dly 6→1), seed6 47→39 (dly 8→0), two_rows s10
+    36→35. Restarts 8 → ~830–915 per run.
+  - **Target wMOV R10:** 167.5 → 166.0 **= MILP exactly** (−0.90 % → 0.00 %).
+  - **Guards — none regressed:** control `none wMK` identical (5844.5);
+    noisy `chain_R10 wMK` −92.5 (improved, within its ~72-unit floor);
+    wDLY guards −1.0 / −11.0 (improved); **extra guard** `triangle_tight_R5
+    seed10 wDLY` (the historical due-date-seed case, Commit 2) intact at
+    35.0 = MILP with the slim portfolio; scale `triangle_tight_R20 wMK`
+    +59.0 on 12 960 (+0.45 %, within run-to-run noise at that size — both
+    arms still beat the unconverged MILP by ~+16 %).
+- **Noise check:** target deltas (−1, −5, −8, −1.5) are on a floor-0 stratum →
+  all REAL. The only adverse delta (+59 scale) is 0.45 % on a cell whose
+  run-to-run noise band is larger → neutral.
+- **Decision: KEPT.** Simplicity ledger: −1 knob (`n_starts` cap → optional
+  test-only), −4 construction rules (EDD/CR/BLEND/regret-2), +1 mechanism
+  (`_biased_order`, ~15 lines). Net: the solver is smaller than before.
+  *Pending:* merge `--no-ff` into `main` + tag `igvnd-v01-restart-budget` +
+  `/sync-method-doc` + full-battery refresh (Part II / paper tables are now
+  stale for the heuristic side).
 
 ### Step 0 — noise-floor measurement (DONE 2026-07-13)
 - **Goal:** run the wMOV R5/R10 stratum twice with identical seeds at the
