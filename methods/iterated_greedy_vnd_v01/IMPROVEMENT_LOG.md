@@ -37,8 +37,8 @@ the **~19 delay-unit noise floor** described in
 | 4 | dense concentric-nesting builder (wMOV) | `cb5656c` | `…_20260613_235129.log` | **KEPT** | `full_R10 wMOV` −17.1% → **−5.05%** |
 | 5 | risk diagnostics (delay/nesting/search) | `dd20bf6` | `combined_290_iterated_greedy_vnd_v01_20260628.log` | **KEPT** | observability only, no behaviour change |
 | 6 | DelayRiskRepair (delay-biased re-search) | `95669a2` → reverted `4a80e79` | `ablation_commit6_delayrepair.txt` | **DROPPED** | 0/74 runs accepted; residual is search-variance-bound, within noise |
-| 7 | profile-aware budget split (v2/v3 phases) | `exp/profile-budget` *(planned)* | *(pending)* | *(open)* | targets wMOV R5/R10 residual delay |
-| 8 | profile-composed portfolio + biased-randomised construction | `exp/biased-construction` *(planned)* | *(pending)* | *(open)* | targets inter-start spread (variance) |
+| 7 | restarts-until-deadline + slim portfolio (NEH+SLACK) + biased-randomised construction | `exp/restart-budget` | *(pending)* | **OPEN** | targets wMOV R5/R10 residual delay (97 % idle budget) |
+| 8 | profile-aware budget split (v2/v3 phases) | `exp/profile-budget` *(planned)* | *(pending)* | *(open)* | targets timed-out R10+ cells |
 
 *(Entries 4–6 backfilled from the living-spec Change log; entry 7 onward is
 opened here first, before coding. The 2026-07 campaign that motivates 7–8 is
@@ -179,23 +179,37 @@ What the results say (evidence, not just structure):
 
 ---
 
-## Attempt 7 — profile-budget (OPEN)
-- **Date:** 2026-07-13 (opened; coding not started)
-- **Hypothesis:** the fixed 50/50 v2/v3 phase split wastes budget under
-  wMOV, where the v3 polish almost never buys a manoeuvre. A
-  profile-dependent split — under an effective wS-dominant objective, shrink or
-  skip v3 and reinvest the time in more independent restarts — reduces the
-  residual delay on wMOV R5/R10 without regressing wMK/wDLY (where v3 earns its
-  half).
-- **Ref:** branch `exp/profile-budget` off `dev` *(not yet created)*; baseline =
+## Attempt 7 — restart-budget (OPEN)
+- **Date:** 2026-07-13 (opened after Step 0; design agreed with the user —
+  simplicity is an explicit acceptance criterion: the change must REMOVE parts,
+  not add them)
+- **Hypothesis:** the wMOV R5/R10 residual delay is a real, deterministic gap
+  caused by a capped, non-diverse restart set that leaves ~97 % of the 60 s
+  budget idle (Step 0). Looping restarts **until the deadline** and diversifying
+  them with **rank-biased randomised construction** finds the better basin the
+  8 fixed starts miss (`triangle_tight_R5 seed5` 38 → towards MILP 33).
+- **Design (agreed):**
+  1. *Loop shape:* `while time remains: run one start`. The `n_starts` cap is
+     removed (per-start slice kept as today, `time_limit / (8|4|3)`, so R20/R30
+     behaviour is unchanged — the slice never binds on R5 where starts end by
+     `max_no_improve` in ~0.15 s). Nets out: −1 knob.
+  2. *Slim portfolio:* first two starts = deterministic NEH + SLACK. All later
+     starts = **one** mechanism: geometric rank-biased sampling of the insertion
+     order, base = the better-scoring of the two deterministic seeds. Removes
+     EDD / CR / BLEND / regret-2 (the costliest constructor). Nets out: −4 rules,
+     +1 sampler.
+  3. *Not touched:* v2/v3 phases (Attempt 8), independent restarts (Commit-3
+     lesson), dense-nest, VND, IG perturbation.
+- **Ref:** branch `exp/restart-budget` off `dev` (`66eaefc`); baseline =
   tag `igvnd-v01-baseline-20260713` (`fc3ec71`).
-- **How measured:** ablation arms {current 50/50, v2-only, v3-only,
-  profile-split} on the wMOV R5/R10 stratum + wMK/wDLY controls; paired vs
-  cached MILP; judged by **per-component Δdelay** (not relative gap, which
-  inflates at small denominators) and by inter-start `obj_spread`.
-- **Noise check:** against the Step-0 stratum floor (below), not the wMK
-  19-unit figure.
-- **Status:** blocked on Step 0.
+- **How measured:** both arms run FRESH back-to-back on a quiet machine (Step 0
+  found cached igvnd rows stale and results load-sensitive): baseline (dev) vs
+  candidate (branch) on the wMOV R5/R10 stratum + wMK/wDLY/R20 guards; paired vs
+  cached MILP rows only. Judged by **per-component Δdelay/Δmakespan** and
+  inter-start spread.
+- **Noise check:** stratum floor = 0 (Step 0) → any ≥ 1 delay-unit gain is real;
+  wMK/R10 guard judged against its ~16–19-unit floor.
+- **Status:** implementing.
 
 ### Step 0 — noise-floor measurement (DONE 2026-07-13)
 - **Goal:** run the wMOV R5/R10 stratum twice with identical seeds at the

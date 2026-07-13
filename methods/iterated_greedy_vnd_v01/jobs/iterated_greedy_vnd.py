@@ -39,12 +39,16 @@ The outer combinatorial state ``(assignment, order)`` is optimised by a
 multi-start Iterated-Greedy + VND loop.  Highlights (full detail in the
 companion ``iterated_greedy_vnd.md``):
 
-- **Construction portfolio** (``_build_portfolio``): each restart seeds
-  from a different rule — NEH / EDD / slack / regret-2 / critical-ratio /
-  blend — so due-date rules steer tight-target aircraft into early slots.
-- **Adaptive multi-start**: more restarts on the cheap small instances
-  (the time-limited search is non-deterministic; restarts avoid bad
-  basins).
+- **Slim construction portfolio** (Attempt 7): two deterministic seed
+  orders — NEH (makespan) and SLACK (due-date headroom) — then a single
+  diversification mechanism, a rank-biased geometric shuffle
+  (``_biased_order``) of the better deterministic base, so every restart
+  explores a distinct-but-sensible insertion order.
+- **Restarts until the deadline** (Attempt 7): the restart loop runs
+  while time remains (no fixed start count); each start ends on its own
+  stale counter, so small instances do hundreds of diverse restarts
+  instead of leaving the budget idle, and large ones keep their
+  per-start time slice.
 - **Decode cache** (``_eval``) memoises decodes within a solve.
 - **Time budget** (``_time_up``) is polled inside every loop, so the
   solver respects ``time_limit_s`` even on large instances.
@@ -95,8 +99,9 @@ class IteratedGreedyVNDJobSolver:
             weight_delay      : W^D (default 1.0)
             weight_movements  : W^S (default 10.0)
             seed              : base RNG seed (default 1); start i uses seed+i
-            n_starts          : multi-start restarts (default adaptive to R:
-                                8 / 4 / 3 for R<=10 / <=20 / else)
+            n_starts          : optional HARD CAP on restarts (testing/ablation
+                                only; default None = restart until the
+                                deadline)
             k_destroy         : aircraft removed per IG perturbation
                                 (default max(1, R // 4))
             max_no_improve    : early-stop after this many non-improving
@@ -129,36 +134,43 @@ class IteratedGreedyVNDJobSolver:
         self.max_no_improve = int(cfg.get("max_no_improve", 400))
         self.use_v3 = bool(cfg.get("use_v3", True))
         base_seed = int(cfg.get("seed", 1) or 1)
-        # Multi-start count, adaptive to instance size.  The time-limited
-        # search is non-deterministic and on some instances occasionally lands
-        # in a bad (high-delay) basin; more *independent* restarts make finding
-        # the good basin reliable.  Small instances are cheap, so they can
-        # afford many restarts; large ones need the per-start time, so fewer.
-        default_starts = 8 if R <= 10 else 4 if R <= 20 else 3
-        n_starts = int(cfg.get("n_starts", default_starts))
+        # Per-start time slice, adaptive to instance size (large instances need
+        # their per-start time; small ones end each start early on the stale
+        # counter anyway).  The slice is a CAP, not a schedule: restarts keep
+        # looping until the deadline, so no budget is left idle (Attempt 7 —
+        # the old fixed n_starts cap left ~97 % of the 60 s unused on R5).
+        slice_div = 8 if R <= 10 else 4 if R <= 20 else 3
+        # Optional hard cap on restarts (testing/ablation only; None = until
+        # the deadline).
+        max_starts = cfg.get("n_starts")
+        max_starts = int(max_starts) if max_starts is not None else None
 
         t0 = time.perf_counter()
         global_dl = t0 + self.time_limit
-        per_start = self.time_limit / max(1, n_starts)
+        per_start = self.time_limit / slice_div
 
         # Per-solve decode cache (instance + weights are fixed within a solve).
         self._cache = {}
         self._cache_hits = self._cache_misses = 0
 
-        # Construction portfolio: each multi-start restart builds its own seed
-        # from a different rule, so the starts differ by *construction* (not
-        # only by the IG perturbation RNG).  The due-date rules (EDD / slack /
-        # critical-ratio) and regret-2 steer tight-target aircraft into early
-        # slots, which is what `wDLY` needs.
-        # Build the construction portfolio: a list of (name, constructor); each
-        # constructor, when called, returns a seed state (assignment, order).
-        portfolio = self._build_portfolio()
+        # Slim construction portfolio (Attempt 7): two deterministic seed
+        # orders — NEH (longest total work first, the makespan rule) and SLACK
+        # (least due-date headroom first, the delay rule) — and, from the third
+        # restart on, ONE diversification mechanism: a rank-biased (geometric)
+        # shuffle of whichever deterministic order scored better, so restarts
+        # explore unlimited distinct-but-sensible insertion orders.
+        ids = self.aircraft_ids
+        by_neh = sorted(ids, key=lambda r: -self.T[r])
+        by_slack = sorted(ids, key=lambda r: self.L[r] - self.E[r] - self.T[r])
+        det_seeds = [("NEH", by_neh), ("SLACK", by_slack)]
+        rule_obj: dict[str, float] = {}       # deterministic rule -> its start obj
 
         # Global incumbent (best solution dict and its objective) over all restarts.
         best_sol, best_obj = None, float("inf")
         start_objs: list[float] = []          # per-start incumbents (search risk)
         i = 0                                  # restart counter
-        while time.perf_counter() < global_dl - 0.05 and i < n_starts:
+        while (time.perf_counter() < global_dl - 0.05
+               and (max_starts is None or i < max_starts)):
             # --- one independent multi-start restart ---
             # Each restart gets its own RNG (seed = base+i): restarts are
             # reproducible and independent, so they explore different basins.
@@ -169,23 +181,30 @@ class IteratedGreedyVNDJobSolver:
             self._decode_fn = self._decode
             # Tag the active decoder so the decode cache keys stay disjoint.
             self._decoder_tag = "v2"
-            # Pick this restart's construction rule, cycling through the portfolio.
-            ctor_name, ctor = portfolio[i % len(portfolio)]
-            # Run the chosen constructor -> seed (assignment a0, priority order o0).
-            a0, o0 = ctor()
+            # This restart's insertion order: deterministic for the first two
+            # starts, rank-biased around the better deterministic base after.
+            if i < len(det_seeds):
+                name, order0 = det_seeds[i]
+            else:
+                base = min(rule_obj, key=rule_obj.get) if rule_obj else "NEH"
+                order0 = self._biased_order(dict(det_seeds)[base])
+                name = f"biased-{base}"
+            a0 = self._greedy_construct(order0)
             # _one_start runs the full restart on this seed: a zero-movement
             # search, then the checker-validated manoeuvre-aware polish; it
             # returns the restart's best solution dict and its objective value.
-            sol, obj = self._one_start(instance_data, a0, o0, start_dl)
+            sol, obj = self._one_start(instance_data, a0, list(order0), start_dl)
+            if i < len(det_seeds):
+                rule_obj[name] = obj           # remember each rule's quality
             start_objs.append(obj)            # record for the search-risk diagnostic
             # Keep this restart's result iff it strictly improves the incumbent.
             if obj < best_obj - 1e-9:
                 best_sol, best_obj = sol, obj
-            self._log.append(
-                f"start {i} (seed {base_seed + i}, ctor {ctor_name})  obj={obj:.4f}  "
-                f"ms={sol['metrics']['makespan']:.1f} dly={sol['metrics']['total_delay']:.1f} "
-                f"mov={sol['metrics']['movements']}  best={best_obj:.4f}"
-            )
+                self._log.append(
+                    f"start {i} (seed {base_seed + i}, ctor {name})  obj={obj:.4f}  "
+                    f"ms={sol['metrics']['makespan']:.1f} dly={sol['metrics']['total_delay']:.1f} "
+                    f"mov={sol['metrics']['movements']}  best={best_obj:.4f}"
+                )
             i += 1                             # advance to the next restart
 
         # Option B — dense concentric-nesting schedule (targets dense `wMOV`).
@@ -760,117 +779,24 @@ class IteratedGreedyVNDJobSolver:
             assignment[r] = best_p
         return assignment
 
-    def _neh_order(self, assignment: dict) -> list[str]:
-        return sorted(self.aircraft_ids, key=lambda r: -self.T[r])
+    def _biased_order(self, base: list[str]) -> list[str]:
+        """Rank-biased (geometric) shuffle of a base priority order.
 
-    def _build_portfolio(self):
-        """Construction portfolio for the multi-start.  Each entry returns a
-        seed ``(assignment, order)``.  The order rules diversify the starts;
-        the due-date rules (EDD / slack / critical-ratio) and regret-2 steer
-        tight-target aircraft into early slots — the lever `wDLY` needs."""
-        ids = self.aircraft_ids
-        # Each rule below is a *priority order* in which the greedy constructor
-        # will insert the aircraft.  Inserting an aircraft early gives it the
-        # pick of positions/timing, so the rule decides who gets that priority.
-        #
-        # NEH (makespan): longest total processing time T_r first.  The classic
-        # NEH idea — placing the bulkiest jobs while the schedule is still empty
-        # leaves the small ones to fill the gaps — which packs makespan tightly.
-        by_neh   = sorted(ids, key=lambda r: -self.T[r])                      # makespan
-        # EDD (earliest due date): smallest target finish L_r first.  Jackson's
-        # rule for minimising maximum lateness; gives the tightest-deadline
-        # aircraft the earliest slots, so it targets the delay objective.
-        by_edd   = sorted(ids, key=lambda r: self.L[r])                       # earliest due date
-        # SLACK: least slack L_r - E_r - T_r first.  Slack is the headroom
-        # between the time window and the work; aircraft with little (or
-        # negative) slack are the most at risk of being late, so they go first.
-        by_slack = sorted(ids, key=lambda r: self.L[r] - self.E[r] - self.T[r])
-        # CR (critical ratio): smallest L_r / T_r first.  Relates the deadline
-        # to the workload — a small ratio means a tight deadline for a lot of
-        # work (urgent); guards against EDD favouring a near but light job over
-        # a slightly later but much heavier one.  Infinite ratio (T_r = 0) last.
-        by_cr    = sorted(ids, key=lambda r: (self.L[r] / self.T[r]) if self.T[r] > 0 else float("inf"))
-        # BLEND: rank each aircraft by its *position* in the NEH / EDD / SLACK
-        # orders and sort by a weighted average of those ranks (0.4 makespan,
-        # 0.3 + 0.3 due-date).  A hedge ordering that compromises between the
-        # makespan and delay rules instead of committing to either.
-        rT = {r: i for i, r in enumerate(by_neh)}
-        rL = {r: i for i, r in enumerate(by_edd)}
-        rS = {r: i for i, r in enumerate(by_slack)}
-        by_blend = sorted(ids, key=lambda r: 0.4 * rT[r] + 0.3 * rL[r] + 0.3 * rS[r])
-
-        # Helper that turns a fixed priority order `o` into a portfolio entry:
-        # it returns a *constructor* (a zero-argument callable) which, when the
-        # multi-start calls it, runs the greedy insertion in that order and
-        # returns the seed (assignment, copy of the order).  The `o=o` default
-        # binds the current order into each lambda, so every entry keeps its own
-        # order rather than all sharing the loop variable's final value.
-        def fixed(o):
-            return lambda o=o: (self._greedy_construct(o), list(o))
-
-        # The portfolio: five fixed-order greedy seeds plus one dynamic
-        # regret-2 seed.  The list order matters because the multi-start uses
-        # only the first n_starts entries on large instances — it is arranged so
-        # that mix covers the makespan rule (NEH), two due-date rules (EDD,
-        # SLACK) and the regret-2 rule first, the most useful spread when
-        # n_starts is small; CR and BLEND are extra diversity for small
-        # instances that can afford more restarts.
-        return [
-            ("NEH",     fixed(by_neh)),      # makespan-oriented seed
-            ("EDD",     fixed(by_edd)),      # due-date seed (max-lateness rule)
-            ("SLACK",   fixed(by_slack)),    # due-date seed (least headroom first)
-            ("regret2", self._regret2_construct),  # dynamic: largest-regret insertion
-            ("CR",      fixed(by_cr)),       # due-date seed (deadline vs workload)
-            ("BLEND",   fixed(by_blend)),    # compromise of makespan + due-date ranks
-        ]
-
-    def _regret2_construct(self):
-        """Regret-2 insertion: at each step insert the aircraft whose 2nd-best
-        position is much worse than its best (largest regret), at its best
-        position (appended to the order).  Targets low-slack / high-`Wᴰ`
-        aircraft that have few good slots.
-
-        KPI used for the regret.  The score of placing aircraft ``r`` at
-        position ``p`` is the **partial decoded objective** of the schedule
-        built so far plus ``r`` at ``p`` — i.e. ``self._objective(self._eval(
-        assignment, order + [r]))``, which decodes that partial state and
-        returns ``W^M·makespan + W^D·total_delay + W^S·movements`` (with the
-        active v2 decoder, ``movements = 0``, so it reduces to the weighted
-        makespan-plus-delay of the committed aircraft).  For each aircraft this
-        score is evaluated at every position; the regret is the gap between its
-        two cheapest positions, ``second_best_objective − best_objective``.  A
-        large regret means the aircraft has essentially one good slot and would
-        be expensive to place later, so it is committed now — exactly the
-        low-slack / tight-deadline aircraft that drive the delay objective.
+        Repeatedly draws the next aircraft from the *remaining* base order with
+        a geometric distribution over the rank (P(pick rank k) ∝ (1−β)^k), so
+        the result stays close to the base rule's logic while every restart
+        explores a distinct insertion order.  This is the single
+        diversification mechanism of the slim portfolio (Attempt 7) — it
+        replaces the retired EDD / CR / BLEND / regret-2 rules.
         """
-        assignment: dict = {}
-        order: list[str] = []
-        unplaced = list(self.aircraft_ids)
-        while unplaced and not self._time_up():
-            choice = None  # (regret, r, best_p)
-            for r in unplaced:
-                costs = []
-                for p in self.positions:
-                    assignment[r] = p
-                    # KPI = partial decoded objective (weighted makespan+delay,
-                    # movements=0 under v2) of the committed prefix plus r@p.
-                    costs.append((self._objective(self._eval(assignment, order + [r])), p))
-                del assignment[r]
-                costs.sort(key=lambda c: c[0])          # cheapest position first
-                best_o, best_p = costs[0]               # best objective and its position
-                second_o = costs[1][0] if len(costs) > 1 else best_o  # 2nd-best objective
-                regret = second_o - best_o              # how much worse the fallback slot is
-                # Track the aircraft with the largest regret (most to lose by waiting).
-                if choice is None or regret > choice[0]:
-                    choice = (regret, r, best_p)
-            _, r, p = choice
-            assignment[r] = p
-            order.append(r)
-            unplaced.remove(r)
-        for r in unplaced:                         # budget-exhausted fallback
-            assignment[r] = self.positions[0]
-            order.append(r)
-        return assignment, order
+        beta = 0.3                       # bias strength: ~70 % mass on ranks 0-3
+        pool = list(base)
+        out: list[str] = []
+        while pool:
+            u = self.rng.random()
+            idx = int(math.log(u) / math.log(1.0 - beta)) if u > 1e-12 else 0
+            out.append(pool.pop(min(idx, len(pool) - 1)))
+        return out
 
     # ==================================================================
     # VND  (sequential, B-VND reset over three neighbourhoods)
