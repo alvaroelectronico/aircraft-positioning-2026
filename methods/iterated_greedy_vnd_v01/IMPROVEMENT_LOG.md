@@ -197,9 +197,66 @@ What the results say (evidence, not just structure):
   19-unit figure.
 - **Status:** blocked on Step 0.
 
-### Step 0 — noise-floor measurement (in progress)
+### Step 0 — noise-floor measurement (DONE 2026-07-13)
 - **Goal:** run the wMOV R5/R10 stratum twice with identical seeds at the
   production 60 s budget; the per-instance objective spread is the noise floor
   for this stratum. Also record whether R5 runs converge (deterministic) or
   wander.
-- **Log:** `outputs/logs/step0_noise_floor_20260713.txt` *(pending)*
+- **Log:** [`outputs/logs/step0_noise_floor_20260713.txt`](../../outputs/logs/step0_noise_floor_20260713.txt)
+  (in-process solver, seed=1, 60 s, K=2 repeats/cell).
+- **Results:**
+
+  | cell | prof | run-to-run obj_spread | dly_spread | verdict | inter-start spread | wall |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | triangle_tight_R5 seed3 | wMOV | 0.0 | 0.0 | converged | 0.864 | 1.2 s |
+  | triangle_tight_R5 seed5 | wMOV | 0.0 | 0.0 | converged | 0.421 | 1.5 s |
+  | triangle_tight_R5 seed9 | wMOV | 0.0 | 0.0 | converged | 1.012 | 1.3 s |
+  | two_rows_tight_R5 seed10 | wMOV | 0.0 | 0.0 | converged | 0.444 | 1.0 s |
+  | triangle_tight_R10 seed1 | wMOV | 0.0 | 0.0 | converged (timed out) | 0.033 | 60 s |
+  | **chain_tight_R10 seed1** | **wMK** | **72.0** | **16.0** | **wanders** | 0.047 | 60 s |
+
+- **Conclusions:**
+  1. **The whole wMOV R5/R10 stratum is deterministic run-to-run (floor = 0)** —
+     even the timed-out R10 cell gives identical objectives across runs. So the
+     residuals vs MILP here are **REAL search-quality gaps, not noise**, and any
+     improvement ≥ 1 delay unit is cleanly measurable.
+  2. **The one wandering cell is the wMK/R10 control** (obj_spread 72 ≈ 16 delay
+     units run-to-run), which **reproduces the documented ~19-unit floor** and
+     confirms that floor is a **wMK-at-R10 phenomenon, not a wMOV-R5 one**. Good:
+     the control validates the measurement.
+  3. **The small-instance wMOV gap is caused by an idle budget, not by time
+     pressure.** R5 runs converge in ~1–1.5 s doing exactly `n_starts=8` starts
+     and then **stop with ~58 s (97 %) of the 60 s budget unused** (the `solve`
+     loop is `while … and i < n_starts`). `seed5` best-of-8 = 38 (dly 6) while
+     MILP = 33 (dly 1) — **makespan already matches (32=32)**, so it is a pure
+     +5 delay gap left on the table with the budget almost entirely idle, and
+     the 8 starts disagree (inter-start spread 0.4–1.0), i.e. a better basin
+     exists but the capped, non-randomised restart set never reaches it.
+  4. **Measurement caveat found:** fresh `seed9` = 43 (= MILP) but the cached
+     battery row was 47 (−9.3 %). Step 0 is perfectly deterministic here, so the
+     cached igvnd row is **stale** (different code state). ⇒ the ablation MUST
+     re-run the heuristic fresh and only reuse the cached **MILP** rows — which
+     `ablation_subset.py` already does. Do not trust cached igvnd objectives.
+
+### Revised plan after Step 0 (2026-07-13)
+
+Step 0 **reorders** the attempts. The user's headline problem (poor on small
+triangulars) is a *real, deterministic* gap whose immediate cause is a **capped,
+non-diverse restart set leaving 97 % of the budget idle** — not the v2/v3 phase
+split. So the direct fix moves first:
+
+- **Attempt 7 (was 8) — `exp/restart-budget`:** exhaust the idle budget with
+  **more, more-diverse restarts** — remove/raise the `n_starts` cap so small
+  instances keep restarting until the deadline, and diversify restarts with
+  **biased-randomised construction** (rank-geometric pick over the rule-sorted
+  list; RCL helpers in `shared/`). Direct target: wMOV R5 residual delay
+  (`seed5` 38→33). Cleanly measurable (floor = 0 on this stratum). Guards:
+  no wMK/wDLY regression; the wMK/R10 control (16-unit floor) bounds "real".
+- **Attempt 8 (was 7) — `exp/profile-budget`:** profile-dependent v2/v3 phase
+  split, targeting the **timed-out** R10+ cells where reallocating v3's half
+  matters (R5 does not time out, so the split is irrelevant there). Opened after
+  7, since 7 changes how the budget is spent.
+- **Parked (unchanged):** v3-only single phase; prefix-incremental decode.
+
+The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
+"effective wS-dominant" from ŵᵢ·magnitude, to trigger the restart policy).
