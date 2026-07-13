@@ -34,90 +34,103 @@ sys.path.insert(0, str(_ROOT / "problems" / "jobs"))                # checker (p
 sys.path.insert(0, str(_ROOT / "methods" / "manual" / "aircraft"))  # paper #1 MILP + heuristics
 sys.path.insert(0, str(_ROOT / "methods" / "manual" / "jobs"))      # paper #2 MILPs + heuristics
 
-# Both problems define a top-level ``checker.py`` (with distinct contents).
-# To disambiguate we import them via their package paths and alias the
-# module symbol.
-from problems.aircraft import checker as _checker_aircraft        # noqa: E402
-from problems.jobs     import checker as _checker_jobs            # noqa: E402
-
-from milp_jobs_solver import MILPSolver                     # noqa: E402
-from milp_aircraft_solver import MILPAircraftSolver         # noqa: E402
-from milp_jobs_v2_solver  import MILPJobsV2Solver           # noqa: E402
-from constructive_heuristic import ConstructiveHeuristic    # noqa: E402  (used in archived experiments)
-from lns_solver import LNSSolver                            # noqa: E402  (used in archived experiments)
-from topology_heuristic_aircraft import TopologyHeuristicAircraft  # noqa: E402
-from topology_heuristic_job      import TopologyHeuristicJob       # noqa: E402
-
-# Autoresearch variant of TopologyHeuristicJob — loaded explicitly from the
-# autoresearch_heuristics/ working copy so it does not collide with the
-# canonical one already imported above.  Same public class name, distinct
-# in-memory class object.
+# ---------------------------------------------------------------------------
+# Solver imports.
+#
+# This repo is focused on the job-level IG+VND heuristic (v01) vs the MILP
+# baseline.  FOUR imports are ESSENTIAL and imported hard (a failure here is a
+# real error): the paper-#2 jobs checker, the MILP baseline (labels
+# ``milp_job_*``), the IG+VND v01 solver (labels ``igvnd_*``), and the
+# Application dispatcher.
+#
+# Every other solver belongs to the retired paper #1 (aircraft) or a discarded
+# method attempt (autoresearch, iterated_greedy_vnd_v02, brkga_v02,
+# theory_assisted, and the old manual job heuristics).  Those imports are
+# GUARDED: if the module/dir has been removed the symbol becomes ``None`` and
+# any EXPERIMENTS entry that references it is skipped at run time (see the
+# ``solver_class is not None`` filter below).  This lets the runner keep
+# working after the discarded directories are deleted.
+# ---------------------------------------------------------------------------
 import importlib.util as _il_util                                  # noqa: E402
-_AR_PATH = _ROOT / "methods" / "autoresearch" / "jobs" / "topology_heuristic_job.py"
-_ar_spec = _il_util.spec_from_file_location(
-    "_ar_topology_heuristic_job", str(_AR_PATH),
-)
-_ar_mod = _il_util.module_from_spec(_ar_spec)
-_ar_spec.loader.exec_module(_ar_mod)
-TopologyHeuristicJobAR = _ar_mod.TopologyHeuristicJob
 
-# iterated_greedy_vnd_v01 method — Iterated Greedy + VND, ChatGPT-assisted
-# v01.  Originated from the theory_assisted process (see jobs/synthesis.md +
-# jobs/design.md inside the v01 dir) and graduated to its own isolated
-# method.  This runner is NOT under methods/<X>/ so it is exempt from the
-# cross-method isolation scan, and importing the solver here is the
-# sanctioned batch-registration step.  Labels remain "igvnd_*" without a
-# v01_ prefix for backward compatibility with existing results.csv rows.
-sys.path.insert(0, str(_ROOT / "methods" / "iterated_greedy_vnd_v01" / "jobs"))  # iterated_greedy_vnd
-from iterated_greedy_vnd import IteratedGreedyVNDJobSolver  # noqa: E402
 
-# iterated_greedy_vnd_v02 method — Claude-assisted v02, descended from the
-# same IGVND baseline as v01.  Its solver class shares the name
-# IteratedGreedyVNDJobSolver with v01, so it is loaded via importlib under a
-# distinct module name (mirroring the autoresearch loader above) to avoid
-# colliding with the v01 import.  This is the sanctioned batch-registration
-# step; the runner is outside methods/<X>/ so it is exempt from the
-# cross-method isolation scan.  Labels keep the "ta_" prefix for results.csv
-# continuity (they originated when the method lived under theory_assisted/).
-_TA_PATH = _ROOT / "methods" / "iterated_greedy_vnd_v02" / "jobs" / "iterated_greedy_vnd.py"
-_ta_spec = _il_util.spec_from_file_location("_v02_iterated_greedy_vnd", str(_TA_PATH))
-_ta_mod = _il_util.module_from_spec(_ta_spec)
-_ta_spec.loader.exec_module(_ta_mod)
-TheoryAssistedIGVND = _ta_mod.IteratedGreedyVNDJobSolver
+def _load_class(path: Path, module_name: str, class_name: str):
+    """importlib loader for a solver whose entry module would collide on
+    sys.path; returns the class or None if the file/dir is gone."""
+    try:
+        spec = _il_util.spec_from_file_location(module_name, str(path))
+        mod = _il_util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return getattr(mod, class_name)
+    except (ImportError, FileNotFoundError, AttributeError, OSError) as exc:  # noqa: BLE001
+        print(f"[run_experiments] optional solver unavailable "
+              f"({module_name}): {exc}", file=sys.stderr)
+        return None
 
-# brkga_v02 method — Claude-assisted v02, Candidate C of the literature
-# synthesis (BRKGA with mixed-chromosome decoder).  Sibling of
-# iterated_greedy_vnd_v02 (same scaffold + LLM, different candidate).
-# Loaded via importlib (the entry-point module is just called brkga.py and
-# would collide with the internal brkga_engine module if it were on
-# sys.path).  The runner is outside methods/<X>/ and exempt from the
-# cross-method isolation scan.  Labels keep the "ta_brkga_" prefix for
-# results.csv continuity (they originated when the method lived under
-# methods/theory_assisted/).
-_BRKGA_V02_PATH = _ROOT / "methods" / "brkga_v02" / "jobs" / "brkga.py"
-_brkga_v02_spec = _il_util.spec_from_file_location("_brkga_v02_solver", str(_BRKGA_V02_PATH))
-_brkga_v02_mod = _il_util.module_from_spec(_brkga_v02_spec)
-_brkga_v02_spec.loader.exec_module(_brkga_v02_mod)
-TheoryAssistedBRKGA = _brkga_v02_mod.BRKGAJobSolver
 
-# theory_assisted method — SECOND independent Claude-assisted attempt at
-# Candidate C (BRKGA with mixed-chromosome decoder), built from scratch in
-# isolation from brkga_v02 for the replication study.  Loaded via importlib
-# under a distinct module name from methods/theory_assisted/jobs/; its own
-# ``brkga`` sub-package is added to sys.path at the FRONT inside the module, so
-# it does not collide with brkga_v02's internal modules.  Fresh "ta2_brkga_"
-# labels pair its rows against brkga_v02's "ta_brkga_" rows in results.csv.
-# The runner is outside methods/<X>/ and exempt from the isolation scan.
-_TA2_PATH = _ROOT / "methods" / "theory_assisted" / "jobs" / "theory_assisted_job.py"
-_ta2_spec = _il_util.spec_from_file_location("_ta2_theory_assisted_job", str(_TA2_PATH))
-_ta2_mod = _il_util.module_from_spec(_ta2_spec)
-_ta2_spec.loader.exec_module(_ta2_mod)
-TheoryAssistedBRKGA2 = _ta2_mod.TheoryAssistedJobSolver
+# --- ESSENTIAL (hard) — the focus of this repo -----------------------------
+from problems.jobs import checker as _checker_jobs               # noqa: E402
+sys.path.insert(0, str(_ROOT / "methods" / "iterated_greedy_vnd_v01" / "jobs"))
+from iterated_greedy_vnd import IteratedGreedyVNDJobSolver       # noqa: E402  (labels igvnd_*)
+from milp_jobs_v2_solver import MILPJobsV2Solver                 # noqa: E402  (MILP baseline, labels milp_job_*)
+from application import Application                              # noqa: E402
 
-from tgr_solver import TGRSolver                            # noqa: E402
-from fixed_assignment_scheduler_aircraft import FixedAssignmentSchedulerAircraft  # noqa: E402
-from fixed_assignment_scheduler_job      import FixedAssignmentSchedulerJob       # noqa: E402
-from application import Application                         # noqa: E402  (was aircraft_positioning.py — now shared/application.py)
+# --- GUARDED: retired paper #1 (aircraft) ----------------------------------
+try:
+    from problems.aircraft import checker as _checker_aircraft   # noqa: E402
+except ImportError:
+    _checker_aircraft = None
+try:
+    from milp_aircraft_solver import MILPAircraftSolver          # noqa: E402
+except ImportError:
+    MILPAircraftSolver = None
+try:
+    from topology_heuristic_aircraft import TopologyHeuristicAircraft  # noqa: E402
+except ImportError:
+    TopologyHeuristicAircraft = None
+try:
+    from fixed_assignment_scheduler_aircraft import FixedAssignmentSchedulerAircraft  # noqa: E402
+except ImportError:
+    FixedAssignmentSchedulerAircraft = None
+
+# --- GUARDED: discarded job-method attempts --------------------------------
+try:
+    from milp_jobs_solver import MILPSolver                      # noqa: E402  (old jobs MILP)
+except ImportError:
+    MILPSolver = None
+try:
+    from constructive_heuristic import ConstructiveHeuristic     # noqa: E402
+except ImportError:
+    ConstructiveHeuristic = None
+try:
+    from lns_solver import LNSSolver                             # noqa: E402
+except ImportError:
+    LNSSolver = None
+try:
+    from topology_heuristic_job import TopologyHeuristicJob      # noqa: E402
+except ImportError:
+    TopologyHeuristicJob = None
+try:
+    from fixed_assignment_scheduler_job import FixedAssignmentSchedulerJob  # noqa: E402
+except ImportError:
+    FixedAssignmentSchedulerJob = None
+try:
+    from tgr_solver import TGRSolver                             # noqa: E402
+except ImportError:
+    TGRSolver = None
+
+TopologyHeuristicJobAR = _load_class(
+    _ROOT / "methods" / "autoresearch" / "jobs" / "topology_heuristic_job.py",
+    "_ar_topology_heuristic_job", "TopologyHeuristicJob")
+TheoryAssistedIGVND = _load_class(
+    _ROOT / "methods" / "iterated_greedy_vnd_v02" / "jobs" / "iterated_greedy_vnd.py",
+    "_v02_iterated_greedy_vnd", "IteratedGreedyVNDJobSolver")
+TheoryAssistedBRKGA = _load_class(
+    _ROOT / "methods" / "brkga_v02" / "jobs" / "brkga.py",
+    "_brkga_v02_solver", "BRKGAJobSolver")
+TheoryAssistedBRKGA2 = _load_class(
+    _ROOT / "methods" / "theory_assisted" / "jobs" / "theory_assisted_job.py",
+    "_ta2_theory_assisted_job", "TheoryAssistedJobSolver")
 
 
 # =============================================================================
@@ -162,8 +175,10 @@ def _git_commit() -> str:
         return "?"
 
 
+# Default instance root: the paper-#2 jobs battery (this repo's focus).  A bare
+# invocation therefore runs the jobs benchmark; pass a 3rd CLI arg to override.
 INSTANCE_PATHS: list[Path] = sorted(
-    (_ROOT / "problems" / "aircraft" / "instances").glob("scn_*/scn_*.json"),
+    (_ROOT / "data" / "instances_202605_02").glob("scn_*/scn_*.json"),
     key=_seed_sort_key,
 )
 
@@ -1185,11 +1200,18 @@ if __name__ == "__main__":
     # exp_filter uses EXACT label matching (labels are unique strings,
     # substring would inadvertently pull "_heur"/"_wB"/"_wC" siblings).
     _all_experiments = EXPERIMENTS + SEED_EXPERIMENTS + MULTISTART_EXPERIMENTS
+    # Drop entries whose solver class is unavailable (guarded import returned
+    # None because its retired/discarded method dir was removed).
+    _all_experiments = [e for e in _all_experiments if e.get("solver_class") is not None]
     if exp_filter:
         _wanted = {e.strip() for e in exp_filter.split(",")}
+        _missing = _wanted - {e["label"] for e in _all_experiments}
+        if _missing:
+            print(f"[run_experiments] skipping unavailable labels (solver removed): "
+                  f"{', '.join(sorted(_missing))}", file=sys.stderr)
         experiments = [e for e in _all_experiments if e["label"] in _wanted]
     else:
-        experiments = EXPERIMENTS
+        experiments = [e for e in EXPERIMENTS if e.get("solver_class") is not None]
 
     if not instances:
         print(f"No instances match filter '{inst_filter}'.", file=sys.stderr)

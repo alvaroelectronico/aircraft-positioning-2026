@@ -1,136 +1,100 @@
-# Aircraft positioning — comparison of solving methods
+# Aircraft hangar positioning — job-level IG+VND heuristic
 
-This repository compares different solving methods for two scheduling
-problems on shared aircraft-positioning resources:
+This repository develops and evaluates **one** solving method for the
+**job-level** hangar-positioning problem (paper #2): the **`iterated_greedy_vnd_v01`**
+heuristic (Iterated Greedy + Variable Neighbourhood Descent), measured against a
+**MILP baseline**. The companion manuscript is `papers/jobs_extension/`.
 
-- **Paper #1 (aircraft-level):** atomic resource requests `D_r`; objective
-  combines makespan, total delay, and topology movements.
-- **Paper #2 (job-level extension):** each request decomposes into jobs
-  `J(r)` with three modes (A continuous, B partial-overlap, C interruptible)
-  and per-mode access semantics.
+> **Focus (since 2026-07).** The repo was refocused from a broad
+> two-problem / six-method comparison to improving **`iterated_greedy_vnd_v01`**
+> alone. The aircraft-level problem (paper #1) and the other method attempts
+> (`iterated_greedy_vnd_v02`, `brkga_v02`, `theory_assisted`, `autoresearch`,
+> and the old manual job heuristics) are **retired**. They remain in the tree
+> for now (inert, pending a later deletion pass) and the full pre-refocus tree
+> is preserved on the branch `archive/pre-restructure-20260713`. The **MILP
+> baseline** (`methods/manual/jobs/milp_jobs_v2_solver.py`) is **kept** — it is
+> the comparison reference the paper uses, not a discarded attempt.
 
-The point of the layout below is to make it possible to add a new solving
-method (hand-coded or LLM-driven) **without seeing how existing methods
-solved the problem**.  A new method consumes only the self-contained
-problem statement, the schema, the loader, and the checker — never another
-method's source or the papers that document the formulation history.
-
-## Layout
-
-```
-problems/                # What a method is allowed to know.
-  aircraft/              # Paper #1.
-    problem_statement.md     # self-contained spec; the ONLY background
-    instance_schema.json     # JSON schema for instances
-    checker.py               # feasibility / metric checker
-    instances/               # scn_*/scn_*_seed{N}.json
-  jobs/                  # Paper #2.
-    problem_statement.md
-    instance_schema.json
-    checker.py
-    instances/
-
-shared/                  # Cross-method, cross-problem infrastructure.
-  application.py             # the Application dispatcher (solver contract)
-  instance_io.py             # JSON loader (single canonical, both papers)
-  rcl.py                     # GRASP RCL helpers
-  plotting.py                # Gantt-chart plotting
-
-methods/                 # ONE subtree per solving approach. ISOLATED.
-  manual/                # hand-coded MILPs + heuristics (FAS, TGR, LNS, …)
-    aircraft/                # paper #1 manual code + docs/
-    jobs/                    # paper #2 manual code + docs/
-  autoresearch/          # LLM-iterative loop (snapshot + evaluate harness)
-    aircraft/                # (placeholder — no autoresearch yet)
-    jobs/                    # paper #2 autoresearch (only one done so far)
-  theory_assisted/       # scaffold for literature-informed attempts;
-                         # inspiration/ + digest/ carry reusable theory
-                         # across attempts, the rest is reset per attempt.
-    jobs/                    # paper #2 (the only scope so far)
-  iterated_greedy_vnd_v01/  # IG + VND solver, ChatGPT-assisted v01 — graduated
-                            # from a theory_assisted process.  Frozen for
-                            # comparison with v02.
-    jobs/                       # paper #2
-  iterated_greedy_vnd_v02/  # IG + VND solver, Claude-assisted v02 — graduated
-                            # from a theory_assisted process from the same
-                            # 30e1af0 baseline as v01.  Frozen for comparison.
-    jobs/                       # paper #2
-  brkga_v02/                # BRKGA with mixed-chromosome decoder, Claude-
-                            # assisted v02 — graduated from theory_assisted,
-                            # Candidate C of the synthesis.  Frozen.
-    jobs/                       # paper #2
-
-experiments/             # Cross-method orchestration; imports any method.
-  run_experiments.py         # batch runner (the bridge across methods)
-  tests/                     # incl. test_method_isolation.py
-
-outputs/                 # All solver outputs.
-  solutions/                 # per-run JSONs + results.csv
-  logs/                      # batch logs
-  logs_heuristic/
-
-papers/                  # Publishable manuscripts. Not on any read path.
-  cejor_aircraft/            # paper #1 draft
-  jobs_extension/            # paper #2 draft
-  _legacy_draft/             # superseded earlier drafts (archive)
-
-literature_review/       # Bibliography + external papers (reference only).
-```
-
-## Isolation contract
-
-| From                                | May read `problems/<paper>/` | May read `shared/` | May read `methods/<other>/` | May read `papers/` |
-| ----------------------------------- | :--: | :--: | :----------------------------------: | :--: |
-| `methods/<X>/`                      |  ✅  |  ✅  | ❌ (allowlist: see isolation test)   |  ❌  |
-| `experiments/`                      |  ✅  |  ✅  |  ✅                                  |  ❌  |
-| `papers/<paper>/` (manuscript build)|  ✅  |  —  |  ❌                                  |  ✅  |
-
-The single documented exception is
-`methods/autoresearch/jobs/precompute_baseline.py`, which imports the
-manual MILP because the autoresearch loop's score is defined as
-`(variant_obj − milp_obj) / max(1, |milp_obj|)`.  The exception is
-allowlisted explicitly in `experiments/tests/test_method_isolation.py`.
-
-Run the contract:
+## What is active
 
 ```
-py -3 experiments/tests/test_method_isolation.py
+methods/iterated_greedy_vnd_v01/jobs/
+    iterated_greedy_vnd.py        # the heuristic under study (labels igvnd_*)
+    iterated_greedy_vnd.md        # living spec: Part I method / II results / III roadmap / IV code + Change log
+    design.md, synthesis.md       # design rationale + literature synthesis
+methods/manual/jobs/
+    milp_jobs_v2_solver.py        # MILP baseline (labels milp_job_*), Gurobi
+problems/jobs/                    # problem statement, checker (source of truth), schema, instances
+data/instances_202605_02/         # the jobs benchmark (default instance root)
+shared/                           # Application dispatcher, instance_io, plotting, rcl
+experiments/                      # runner + battery tooling (see below)
+papers/jobs_extension/            # the manuscript (tables auto-generated from results.csv)
+outputs/                          # solutions/ (per-run JSONs + results.csv), logs/ (battery logs)
 ```
 
-## How to add a new method
+Retired-but-inert (to be deleted in a later pass; preserved on the archive branch):
+`problems/aircraft/`, `methods/manual/aircraft/`, `methods/{autoresearch,iterated_greedy_vnd_v02,brkga_v02,theory_assisted}/`, `papers/cejor_aircraft/`.
 
-1. Create `methods/<your_method>/<paper>/` (where `<paper>` is
-   `aircraft` or `jobs`).
-2. Read `problems/<paper>/problem_statement.md`.  That is the entire
-   permitted briefing.  Do not read `papers/`, `literature_review/`,
-   or any other `methods/<X>/`.
-3. Implement the solver contract from `shared/application.py`
-   (`configure_solver`, `solve(instance) -> {objective, metrics,
-   schedule, status}`).
-4. Add an entry to `experiments/run_experiments.py` so the batch runner
-   can dispatch your method against the benchmark.
-5. `py -3 experiments/tests/test_method_isolation.py` must pass.
+## Branch / tag map
 
-## Running things
+| ref | kind | meaning |
+| --- | --- | --- |
+| `main` | branch | **stable published baseline** = last *kept* improvement + paper |
+| `dev` | branch | integration branch for active work |
+| `exp/<slug>` | branch | one per improvement attempt (kept **or** dropped; never force-deleted) |
+| `igvnd-v01-baseline-20260713` | tag | **the return point** — v01 code + 290-instance battery + paper |
+| `igvnd-v01-<milestone>` | tag | each shipped improvement |
+| `archive/pre-restructure-20260713` | branch | full pre-refocus tree (all methods + aircraft) |
+| `v02-start`, `origin/theory_assisted-v02` | existing | historical markers |
 
-Paper #1, one instance, the manual MILP baseline:
-
+**Return to the baseline at any time:**
 ```
-py -3 experiments/run_experiments.py "scn_triangle_tight_P5_R5_seed1$" \
-    "milp_baseline" problems/aircraft/instances
-```
-
-Paper #2, the manual MILP + the autoresearch heuristic on the same
-instance:
-
-```
-py -3 experiments/run_experiments.py "scn_triangle_tight_P5_R5_seed1$" \
-    "milp_baseline_job,topology_ms6_job_ar" data/instances_202605_02
+git switch --detach igvnd-v01-baseline-20260713     # inspect the exact baseline
+# or start over from it:
+git switch -c try-again igvnd-v01-baseline-20260713
 ```
 
-Score the autoresearch working copy of `topology_heuristic_job.py`
-against its MILP baseline:
+## Running a battery
 
+The default instance root is now the jobs benchmark (`data/instances_202605_02`).
+The convention (weight profiles, 60 s budget, **cached-MILP rule**, subset
+shortcuts, quality judging + noise floor) lives in
+[`experiments/BATTERY.md`](experiments/BATTERY.md) — read it first.
+
+Heuristic on one instance, three weight profiles:
 ```
-py -3 methods/autoresearch/jobs/evaluate.py fast_eval
+py -3 experiments/run_experiments.py "scn_triangle_tight_P5_R10_seed1$" \
+    "igvnd_wMK,igvnd_wDLY,igvnd_wMOV" data/instances_202605_02
+```
+**Do not re-run the MILP** — its rows are cached in `outputs/solutions/results.csv`.
+Pair a fresh heuristic run against the cached MILP with
+`experiments/paired_report.py` / `experiments/gap_summary.py`, and A/B a code
+change on a stratified subset with `experiments/ablation_subset.py` (applies the
+~19 delay-unit noise floor). The `/run-battery` skill drives all of this.
+
+## Documenting each step (improve or not)
+
+Three layers keep a full trail, not just the latest code:
+
+1. **Living spec** — `methods/iterated_greedy_vnd_v01/jobs/iterated_greedy_vnd.md`
+   (Part I–IV): current method + latest battery. Sync after each kept change with
+   `/sync-method-doc methods/iterated_greedy_vnd_v01 <hint> [log: <path>]`.
+2. **Change log** — tail of that `.md`: one row per shipped/deferred commit.
+3. **Improvement journal** — [`experiments/IMPROVEMENT_LOG.md`](experiments/IMPROVEMENT_LOG.md):
+   one entry **per attempt**, recorded *before* coding (hypothesis) and closed
+   with a verdict (KEPT / DROPPED / neutral-within-noise), its `exp/<slug>`
+   branch or tag, and the battery log — so dead ends are documented too.
+
+Per-attempt workflow: branch `exp/<slug>` off `dev` + add a journal row with the
+hypothesis → run battery/ablation paired vs cached MILP → apply the noise-floor
+check → fill the verdict. If KEPT: merge `--no-ff` into `main`, tag
+`igvnd-v01-<milestone>`, run `/sync-method-doc`. If DROPPED: keep the `exp/`
+branch and add a Change-log "attempted & DROPPED" row.
+
+## Isolation test
+
+The runner still guards its imports so removing retired methods won't break it.
+Before committing solver/infra changes:
+```
+py -3 experiments/tests/test_method_isolation.py     # must report 0 violations
 ```
