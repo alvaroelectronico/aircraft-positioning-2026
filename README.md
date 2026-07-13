@@ -80,7 +80,7 @@ Three layers keep a full trail, not just the latest code:
    (Part I–IV): current method + latest battery. Sync after each kept change with
    `/sync-method-doc methods/iterated_greedy_vnd_v01 <hint> [log: <path>]`.
 2. **Change log** — tail of that `.md`: one row per shipped/deferred commit.
-3. **Improvement journal** — [`experiments/IMPROVEMENT_LOG.md`](experiments/IMPROVEMENT_LOG.md):
+3. **Improvement journal** — [`methods/iterated_greedy_vnd_v01/IMPROVEMENT_LOG.md`](methods/iterated_greedy_vnd_v01/IMPROVEMENT_LOG.md):
    one entry **per attempt**, recorded *before* coding (hypothesis) and closed
    with a verdict (KEPT / DROPPED / neutral-within-noise), its `exp/<slug>`
    branch or tag, and the battery log — so dead ends are documented too.

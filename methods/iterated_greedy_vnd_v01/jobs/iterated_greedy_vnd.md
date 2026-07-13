@@ -5,17 +5,17 @@ the way a paper would, with no reference to the source code; **Part II**
 reports the results and their analysis; **Part III** is the improvement
 roadmap; **Part IV** explains how the method is realised in code.
 
-> **Status (code `4a80e79`, full battery `…114558`).** Commits 1–5 shipped:
-> enforced time budget + decode cache + construction portfolio + regret-2 +
-> adaptive multi-start + dense concentric-nesting builder, plus Commit-5 risk
-> diagnostics (observability). Commit 6 (DelayRiskRepair) was built, measured,
-> and **reverted** — no benefit above search noise (Part III). On the full
-> 120-instance battery the heuristic is **at or beyond the MILP wherever the
-> MILP is a reliable target** (within ±2.5 % on R10, winning on `wMOV`
-> blocking topologies and at R20/R30 scale where the MILP times out); the
-> remaining residuals are noise-level or against an unconverged MILP. The
-> method is **near its practical ceiling on small/medium instances**; next
-> direction (consolidate / scale up / variance experiment) is open.
+> **Status (code `76d43e0`, Attempt 7 KEPT; full battery pending).**
+> Commits 1–5 plus **Attempt 7 (restart-budget)**: the restart loop now runs
+> **until the deadline** (no fixed start count) and the construction portfolio
+> is **slimmed to NEH + SLACK + one rank-biased geometric shuffle** of the
+> better base (`_biased_order`; EDD/CR/BLEND/regret-2 retired). Measured on the
+> two-arm ablation (`attempt7_restart_budget_20260713.txt`): the wMOV R5/R10
+> stratum goes from −3.79 % to **0.00 % = the MILP optimum on every cell**, no
+> guard regressed, and the solver got *smaller* (−1 knob, −4 rules,
+> +1 mechanism). **Part II below still shows the pre-Attempt-7 battery** (code
+> `4a80e79`); a full fresh battery is running and Part II will be refreshed
+> from its log.
 
 ---
 
@@ -147,24 +147,28 @@ extension, and it is the only way to move a rear aircraft past a
 non-interruptible front job. It lets the heuristic find compact overlapping
 schedules that pure nesting cannot.
 
-## 4. Construction — a portfolio of seeds
+## 4. Construction — two deterministic seeds plus one diversifier
 
-Each multi-start restart builds its own seed from a different **construction
-rule**, so the restarts differ by *construction* (not only by the
-perturbation RNG):
+Every restart seeds from an **insertion order**; aircraft are taken in that
+order and each is inserted, in turn, at the position minimising the partial
+objective of the aircraft placed so far (NEH-style greedy insertion).
 
-- **NEH-style greedy insertion** under an ordering rule: aircraft are taken in
-  the rule's order and each is inserted, in turn, at the position minimising
-  the partial objective of the aircraft placed so far. The ordering rule is
-  one of: `−Tᵣ` (NEH, makespan), `Lᵣ` (EDD, earliest due date), slack
-  `Lᵣ−Eᵣ−Tᵣ`, critical ratio `Lᵣ/Tᵣ`, or a rank blend.
-- **Regret-2 insertion**: a *dynamic* order — at each step insert the aircraft
-  whose 2nd-best position is much worse than its best (largest regret), at its
-  best position.
+- The **first two restarts** use the two deterministic orders that cover the
+  objective's two combinatorial levers: `−Tᵣ` (**NEH**, the classic makespan
+  rule — bulkiest aircraft placed while the schedule is empty) and slack
+  `Lᵣ−Eᵣ−Tᵣ` (**SLACK**, least due-date headroom first — steers tight-target
+  aircraft into early slots, the delay lever).
+- **Every later restart** applies a single diversification mechanism: a
+  **rank-biased geometric shuffle** of whichever deterministic order scored
+  better — the next aircraft is drawn from the *remaining* base order with
+  `P(rank k) ∝ (1−β)^k` (β = 0.3), so each restart explores a distinct but
+  still rule-shaped insertion order. Restarts are unlimited (§7), so the
+  search sees hundreds of such orders on small instances.
 
-The due-date rules (EDD / slack / critical-ratio) and regret-2 are what steer
-**tight-target aircraft into early slots**, the lever the delay-priority
-profile needs; NEH remains the strong makespan seed.
+This slim portfolio (Attempt 7) replaced the earlier six-rule portfolio
+(NEH / EDD / SLACK / regret-2 / CR / BLEND): the retired due-date variants
+were near-duplicates of SLACK, regret-2 was the costliest constructor, and
+one biased sampler dominates them all once restarts are unlimited.
 
 ## 5. Local search — Variable Neighbourhood Descent
 
@@ -191,16 +195,21 @@ Around the VND runs an Iterated-Greedy perturbation loop:
   current walk; track the global best separately; restart the walk from the
   global best after a streak of non-improving iterations.
 
-## 7. Multi-start
+## 7. Multi-start — restarts until the deadline
 
-The whole construct-and-improve procedure is run several times — each restart
-with its own construction rule (§4) *and* its own perturbation RNG — and the
-best result is kept. The restart count is **adaptive to instance size** (more
-restarts on the cheap small instances, fewer on large ones that need their
-per-start time). This matters because the search is *time-limited and hence
-non-deterministic*: on some instances a single run occasionally settles in a
-bad (high-delay) basin, and independent restarts make finding the good basin
-reliable.
+The whole construct-and-improve procedure is repeated — each restart with its
+own seed order (§4) *and* its own RNG — **until the time budget runs out**,
+and the best result is kept. There is no fixed restart count: each restart
+terminates on its own stale counter (§6), so cheap small instances do
+hundreds of independent restarts while large ones naturally get few. A
+per-start time *slice* (budget/8, /4 or /3 by instance size) caps any single
+restart so one slow start cannot eat the whole budget.
+
+This matters twice over. The search is time-limited and non-deterministic, so
+independent restarts make finding the good basin reliable (the original
+motivation); and the old *fixed* restart count (8/4/3) left ~97 % of the
+budget idle on small instances — the direct cause of the wMOV small-instance
+losses that Attempt 7 eliminated (Part III, campaign 2026-07).
 
 ## 8. How the two regimes are combined
 
@@ -240,32 +249,34 @@ schedule is `F = Wᴹ·makespan + Wᴰ·Σ delay + Wˢ·movements`.
 ALGORITHM  Solve(instance, time_limit, weights, base_seed):
     preprocess instance  (job chains, Tᵣ, blocking arcs, position depths)
     reset the decode cache                               # memoised per solve
-    portfolio ← BuildPortfolio()                         # construction rules
-    n_starts  ← 8 if R ≤ 10 else 4 if R ≤ 20 else 3      # adaptive: small = cheap
-    best ← ∅ ;  best_F ← +∞
-    for i in 0 … n_starts−1  while time remains:
+    slice ← time_limit / (8 if R ≤ 10 else 4 if R ≤ 20 else 3)   # per-start cap
+    σ_NEH   ← R sorted by −Tᵣ            # makespan rule
+    σ_SLACK ← R sorted by Lᵣ−Eᵣ−Tᵣ       # due-date (least headroom) rule
+    best ← ∅ ;  best_F ← +∞ ;  i ← 0
+    while time remains:                                  # restarts until deadline
         seed the RNG with base_seed + i
-        deadline_i ← now + time_limit / n_starts
-        (π₀, σ₀) ← portfolio[i mod |portfolio|]()        # this start's seed
-        (sol, F) ← OneStart(π₀, σ₀, deadline_i)
+        deadline_i ← min(global deadline, now + slice)
+        σ ← σ_NEH        if i = 0                        # two deterministic seeds…
+          | σ_SLACK      if i = 1
+          | BiasedOrder(better of the two, RNG)  if i ≥ 2    # …then one diversifier
+        π ← GreedyConstruct(σ)
+        (sol, F) ← OneStart(π, σ, deadline_i)
         if F < best_F:  best, best_F ← sol, F
+        i ← i + 1
     return best
-    # Each restart differs by construction rule AND RNG.  The time-limited
-    # search is non-deterministic, so more *independent* restarts on the cheap
-    # small instances reliably avoid the occasional bad (high-delay) basin.
+    # No fixed restart count: each restart ends on its own stale counter, so
+    # small instances do hundreds of diverse restarts (the old fixed 8/4/3 cap
+    # left ~97 % of the budget idle there) and large ones keep their slice.
 
 
-PROCEDURE  BuildPortfolio():        # construction rules; each returns a seed (π, σ)
-    return [
-        NEH     :  GreedyConstruct( R sorted by −Tᵣ        )    # makespan
-        EDD     :  GreedyConstruct( R sorted by Lᵣ         )    # earliest due date
-        SLACK   :  GreedyConstruct( R sorted by Lᵣ−Eᵣ−Tᵣ   )
-        regret2 :  Regret2Construct()
-        CR      :  GreedyConstruct( R sorted by Lᵣ/Tᵣ      )    # critical ratio
-        BLEND   :  GreedyConstruct( R sorted by rank-blend )
-    ]
-    # The due-date rules (EDD / SLACK / CR) and regret-2 steer tight-target
-    # aircraft into early slots — the lever `wDLY` needs.
+PROCEDURE  BiasedOrder(σ_base, RNG):    # rank-biased geometric shuffle (β = 0.3)
+    pool ← copy of σ_base ;  out ← []
+    while pool not empty:
+        draw rank k with P(k) ∝ (1−β)^k          # mostly ranks 0–3
+        move pool[min(k, |pool|−1)] to out
+    return out
+    # Stays close to the base rule's logic while every restart explores a
+    # distinct insertion order — the single diversification mechanism.
 
 
 PROCEDURE  GreedyConstruct(σ):              # NEH-style greedy insertion
@@ -276,18 +287,7 @@ PROCEDURE  GreedyConstruct(σ):              # NEH-style greedy insertion
             π[r] ← p                          # tentative
             evaluate F of the partial decode of 'placed'   (cached)
         π[r] ← the position p with the lowest partial F
-    return (π, σ)                             # σ is the start's priority order
-
-
-PROCEDURE  Regret2Construct():      # dynamic insertion order, by regret
-    π ← ∅ ;  order ← []
-    while aircraft remain unplaced:
-        for each unplaced r:
-            (best, second) ← the two lowest F of inserting r at each position
-            regret[r] ← second − best
-        place the r with the largest regret at its best position; append to order
-    return (π, order)
-    # Prioritises low-slack / high-Wᴰ aircraft that have few good slots.
+    return π                                  # σ is the start's priority order
 
 
 PROCEDURE  OneStart(π, σ, deadline):
@@ -924,7 +924,7 @@ The returned dict matches `problems/jobs/checker.py`: `status`, `objective`,
 | `time_limit_s` | 60 | wall-clock cap |
 | `weight_makespan` / `weight_delay` / `weight_movements` | 0.1 / 1 / 10 | `Wᴹ, Wᴰ, Wˢ` |
 | `seed` | 1 | base RNG seed; start *i* uses `seed+i` |
-| `n_starts` | adaptive: 8 / 4 / 3 for R≤10 / ≤20 / else | multi-start restarts (§I.7); overridable |
+| `n_starts` | `None` (= restart until the deadline) | optional HARD CAP on restarts, testing/ablation only (§I.7) |
 | `k_destroy` | `max(1, R//4)` | aircraft removed per IG perturbation (§I.6) |
 | `max_no_improve` | 400 | stale-iteration early stop per search |
 | `use_v3` | `True` | enable the manoeuvre-aware polish (§I.3.2) |
@@ -940,12 +940,12 @@ The returned dict matches `problems/jobs/checker.py`: `status`, `objective`,
 | Cached decode (memoised eval) | `_eval` (keyed by decoder tag, order, positions-along-order; reset per solve) |
 | Dense concentric-nesting builder (§8; explicit starts, best-of) | `_dense_nest_solution` (called once in `solve` when `Wˢ`-dominant + arcs) |
 | Risk diagnostics (Commit 5; observability) | `_diagnostics(best_sol, start_objs)` → `delay_risk` / `nesting_risk` / `search_risk`, attached to the solution + one log line |
-| Construction portfolio (§4) | `_build_portfolio`; `_greedy_construct(order)`; `_regret2_construct` |
+| Slim construction portfolio (§4: NEH + SLACK + biased shuffle) | seed orders inline in `solve`; `_greedy_construct(order)`; `_biased_order(base)` |
 | VND neighbourhoods (§5) | `_vnd`, `_n_reassign`, `_n_swap_pos`, `_n_reorder` |
 | IG perturbation (§6) | `_perturb` |
 | Search driver (decoder-agnostic via `self._decode_fn`) | `_search` |
 | Two-regime combination per restart (§8) | `_one_start(a0, o0, …)` (phase 1 = `_decode`, phase 2 = `_decode_v3`) |
-| Multi-start, adaptive count (§7) | loop in `solve` over `_build_portfolio()` |
+| Multi-start until deadline (§7) | `while` loop in `solve` (per-start slice; optional `n_starts` hard cap) |
 | Time budget enforced in every loop | `_time_up` (`self._deadline`) |
 | Safety net (§8) | `_is_compliant` calls the real `check_solution` |
 
@@ -1012,6 +1012,7 @@ the code that produced it. Behaviour-affecting commits (newest last):
 | `dd20bf6` | **Commit 5 (risk diagnostics) — shipped.** `_diagnostics(best_sol, start_objs)` attaches `delay_risk` / `nesting_risk` / `search_risk` to the solution + a one-line log summary (Part III Priority 6, risk-triggered route). | no behaviour change (same search, same objectives); enables Commits 6–7 to fire on internal symptoms. First read: `chain_R10 wMOV` reports `min_slack_delayed=2.0` (removable lateness even at `mov=0`) and `serial_points=1/10` (already nested). |
 | `95669a2` → reverted | **Commit 6 (DelayRiskRepair) — attempted & DROPPED.** A best-of'd re-search from a delay-biased seed (delayed aircraft pulled to the front in EDD order) on leftover budget. | **Measured on the ablation subset (baseline `…103224`, repaired `…delayrepair`): never improved the incumbent (0/74 runs accepted).** The one clean target `triangle_loose_R10` seed10 wDLY stayed at delay 1.5; the run-to-run search noise (≈19 delay units on `chain_R10` wMK, where the repair is gated out and *cannot* act) dwarfed any apparent wMOV/wDLY gain (0.5–0.75 units, within noise). The `search_risk` diagnostic (spread 1.73 on that seed) had already flagged the residual as **search-variance-bound, not order-bound** — the multi-start portfolio already reaches an equally good delay-biased basin. Reverted; only a `NOTE` comment + this row remain. Lesson = Commit 3 again: measure before keeping. |
 | `4a80e79` | **Revert Commit 6 + full battery snapshot.** Code = Commit 5 (Commits 1–4 behaviour + diagnostics). Ran the full 120-instance heuristic battery seed-first (log `…114558`, self-stamped `4a80e79`), paired against the cached MILP via the new `experiments/paired_report.py` (per-instance MILP-then-heuristic detail) + `gap_summary.py`. | Part II refreshed to this state. Confirms Commit 5 is behaviour-neutral (numbers reproduce Commits 1–4 within run-to-run noise) and documents the definitive comparison: heuristic at/above MILP across R10, wins at scale (R20/R30 MILP timeouts), residuals are noise-level or vs unconverged MILP. |
+| `76d43e0` | **Attempt 7 (restart-budget) — KEPT.** Restart loop runs **until the deadline** (`n_starts` now an optional test-only hard cap; per-start slice unchanged). Portfolio slimmed to **NEH + SLACK + `_biased_order`** (rank-biased geometric shuffle, β = 0.3, of the better base); EDD / CR / BLEND / regret-2 retired. Per-start log line only on improvement. See `IMPROVEMENT_LOG.md` Attempt 7 + campaign 2026-07 (Step-0 noise floor: the wMOV R5/R10 stratum is deterministic run-to-run, and the old fixed cap left ~97 % of the budget idle there). | Two-arm ablation (`attempt7_restart_budget_20260713.txt`): **wMOV R5/R10 stratum −3.79 % → 0.00 % = MILP optimum on every cell** (seed5 38→33, seed6 47→39 at delay 0; R10 167.5→166 = MILP); ~850–900 restarts/run vs 8. No guard regressed (control identical; wDLY guards improved; R20 +0.45 % within noise; historical `R5 seed10 wDLY` = 35 = MILP intact). Solver got smaller: −1 knob, −4 rules, +1 mechanism. Part II battery refresh pending. |
 
 **Evaluation shortcut.** The MILP baseline is fixed, so re-running it is
 wasteful. To judge a heuristic change, run `ablation_subset.py` (heuristic

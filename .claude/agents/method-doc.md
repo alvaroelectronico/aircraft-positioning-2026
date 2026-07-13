@@ -77,9 +77,12 @@ of the contract.
   `iterated_greedy_vnd.py` ↔ `iterated_greedy_vnd.md`).
 - Nothing else.  No code edits, no other docs, no commits.
 
-You must NOT write to frozen-for-comparison directories.  In
-particular: never touch `methods/iterated_greedy_vnd_v01/**`.  If the
-target resolves there, refuse with a clear message.
+`methods/iterated_greedy_vnd_v01/` is the ACTIVE method under
+improvement (repo refocus of 2026-07-13; the old freeze-for-comparison
+era is over) — syncing its spec is this agent's primary job.  The
+retired sister attempts (`iterated_greedy_vnd_v02`, `brkga_v02`,
+`theory_assisted`, `autoresearch`) are inert pending deletion; do not
+write there.
 
 # Workflow per invocation
 
