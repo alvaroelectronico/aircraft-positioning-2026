@@ -39,6 +39,7 @@ the **~19 delay-unit noise floor** described in
 | 6 | DelayRiskRepair (delay-biased re-search) | `95669a2` → reverted `4a80e79` | `ablation_commit6_delayrepair.txt` | **DROPPED** | 0/74 runs accepted; residual is search-variance-bound, within noise |
 | 7 | restarts-until-deadline + slim portfolio (NEH+SLACK) + biased-randomised construction | `exp/restart-budget` (`76d43e0`) | `attempt7_restart_budget_20260713.txt` | **KEPT** (pending merge) | wMOV R5/R10 stratum −3.79 % → **+0.00 % = MILP optimum on every cell**; no guard regressed |
 | 8 | phase policy: v2/v3 split vs single decoder (4-arm ablation) | `exp/profile-budget` (`6952f14`) | `attempt8_phase_policy_20260714.txt` + `attempt8b_noise_resolution_20260714.txt` | **DROPPED** | two decoders earn their keep: v3-only regresses at R20 (+377/+1933 real); v2-only/split refuted (wMOV +20/+9.5 real) |
+| 9 | nest-stretch: dense-nest generalised to the real blocking DAG | `exp/nest-stretch` (`164519a`) | `attempt9_nest_stretch_20260714.txt` | **KEPT** | −120.5 net over 19 wMOV cells, 0 regressions; `t_loose_R10 s5` 74.5→63 (MILP 61.5), `full_R10` 258→235 / 294→235 (beats MILP), `chain_R10` −10.4 %→≈−1.3 % |
 
 *(Entries 4–6 backfilled from the living-spec Change log; entry 7 onward is
 opened here first, before coding. The 2026-07 campaign that motivates 7–8 is
@@ -332,6 +333,55 @@ What the results say (evidence, not just structure):
   arm shows the *search*, not the decoder, is the binding constraint (seed7
   62.5 exists and `both` misses it) — consistent with the stay-stretching
   gap being the real target.
+
+## Attempt 9 — nest-stretch (OPEN)
+- **Date:** 2026-07-14 (opened; hypothesis before coding)
+- **Hypothesis:** the certified-optimum losses (`triangle_loose_R10 wMOV`,
+  3/10 seeds, 5–16 units) are caused by the dense-nest candidate's rigid
+  complete-graph wave model: it nests ALL wave members concentrically and
+  serialises whole waves, so on non-complete topologies its candidate is
+  wasteful and loses the best-of. **Generalising the same builder to the real
+  blocking DAG** — concentric stay-stretching only along actual arcs (deepest
+  rear = outermost, stays stepped by 2η along each front→rear chain, verified
+  mechanism of the seed7 optimum), unconflicted positions tight and parallel,
+  rounds serialised per blocking component — recovers those losses.
+  **Simplicity ledger: net 0** (replaces the existing `_dense_nest_solution`
+  internals; same gate `wS`-dominant + arcs, same two-partition beam, same
+  best-of + checker safety).
+- **Ref:** branch `exp/nest-stretch` off `dev` (`8aa06b6`); baseline = tag
+  `igvnd-v01-restart-budget-20260713`.
+- **How measured:** two arms fresh (dev vs branch), 60 s, seed=1:
+  `triangle_loose_R10 wMOV` all 10 seeds (3 losses + 7 ties/wins as guards),
+  `triangle_tight_R10 wMOV`, `full_tight_P5_R10 wMOV` (the complete-graph
+  case the old builder owned — must not regress), chain/hub wMOV, one R5 wMOV
+  spot, R20 wMOV scale guard. Judged per-component vs cached MILP (all
+  R10-loose wMOV MILP rows are certified optimal).
+- **Noise check:** wMOV stratum deterministic (floor 0, Step 0) → ≥ 1-unit
+  deltas are real.
+- **Log:** [`attempt9_nest_stretch_20260714.txt`](../../outputs/logs/attempt9_nest_stretch_20260714.txt)
+  (19 wMOV cells × 2 arms, fresh, 60 s).
+- **Result vs baseline (implementation `164519a`): TOTAL −120.5, zero
+  regressions.**
+  - `triangle_loose_R10 seed5` 74.5 → **63.0** (−11.5; MILP optimum 61.5 —
+    the largest certified loss nearly closed); `seed7` 81 → 77 (−4).
+  - `full_R10 seed1` 258 → **235** (−23, beats MILP 261); `seed2` 294 →
+    **235** (−59, MILP 322) — the complete-graph case the old builder owned
+    is the biggest beneficiary of the generalisation.
+  - `chain_R10` 258 → **235** (−23; MILP 232, unconverged) — the oldest wMOV
+    residual drops from −10.4 % to ≈ −1.3 %.
+  - Guards all intact (best-of + checker makes regression impossible by
+    construction): hub, R5 (= MILP), R20 scale, and the non-improving loose
+    seeds unchanged. One debug iteration was needed mid-implementation: the
+    first cut anchored the whole round at the worst member's `E` and
+    partitioned only by duration — fixed with per-position anchoring (the
+    finish pass stretches rears around late-starting fronts) and a
+    4-partition beam (long/short/earliest-E/round-robin).
+- **Decision: KEPT.** Simplicity ledger: **net 0** — same candidate slot,
+  same gate, same beam+best-of+checker; only the internals generalised from
+  complete-graph waves to the real arc DAG. Merged `--no-ff` into `main`,
+  tagged `igvnd-v01-nest-stretch-20260714`, spec synced. Remaining known
+  residuals: `t_loose_R10` seeds 7/10 (search-bound — the v3-only arm of
+  Attempt 8 proved 62.5 exists on seed7) and the R20+ measurement gap.
 
 ### Revised plan after Step 0 (2026-07-13)
 

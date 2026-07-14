@@ -638,44 +638,46 @@ class IteratedGreedyVNDJobSolver:
         }
 
     def _dense_nest_solution(self):
-        """Option B — explicit concentric-nesting schedule for dense blocking.
+        """Explicit concentric-nesting candidate, generalised to the actual
+        blocking DAG (Attempt 9; the mechanism the certified optimum uses).
 
-        Groups aircraft into **waves** that nest concentrically: sorted by
-        duration descending, each aircraft joins the wave whose innermost
-        member can still wrap it (`Tᵣ ≤ inner − 2·eta`) and has a free
-        position, else opens a new wave.  Within a wave the longest member is
-        the outer container and is assigned the **deepest** position (so the
-        rear aircraft encloses the fronts); successive members start `eta`
-        later (concentric nesting).  Waves are serialised (`+eta`).  Start
-        times are written **explicitly** — this does NOT go through the
+        Aircraft are grouped into **rounds** of one aircraft per position.
+        Within a round only the positions that actually block each other get
+        the concentric treatment: along every front→rear arc the rear's stay
+        is **stretched with inter-job idle** so it wraps the front's stay by
+        `eta` on both sides (deepest rear = outermost shell, stays stepped by
+        ≥ 2·eta along each chain).  Unconflicted positions simply run tight
+        and in parallel.  Rounds are serialised within the blocking component
+        (`+ max(eps, eta)`), and chained per position (`+ eps`) elsewhere.
+        Start times are written **explicitly** — this does NOT go through the
         earliest-feasible decode (which would un-nest it) — and every rear
         access lands Mode A, so movements = 0 by construction.  Returns a full
-        solution dict, or None.  (Checker-validated and best-of in `solve`.)
+        solution dict.  (Checker-validated and best-of in `solve`.)
         """
-        eta = self.eta
+        eta, eps = self.eta, self.eps
         P = self._pos_by_depth_desc                       # deepest (rear) first
         cap = len(P)
+        # depth rank: index in the deepest-first list (higher = more front)
+        rank = {p: i for i, p in enumerate(P)}
+        # fronts this position must wrap (its already-front positions)
+        fronts_of = {p: [f for (f, r) in self._arcs if r == p] for p in P}
+        conf_pos = {p for arc in self._arcs for p in arc}  # any arc endpoint
         by_dur = sorted(self.aircraft_ids, key=lambda r: -self.T[r])
-        # Try a small "beam" of wave partitions (each wave <= |P|), keep the
-        # lowest-objective one.  Within a wave the *stay length* (not the work
-        # T) must decrease by >= 2*eta to nest, achieved by stretching shorter
-        # aircraft with idle.
-        n_waves = max(1, math.ceil(len(by_dur) / cap))
-        chunk = [by_dur[k:k + cap] for k in range(0, len(by_dur), cap)]
-        rr = [[] for _ in range(n_waves)]                 # round-robin (balances waves)
+        n_rounds = max(1, math.ceil(len(by_dur) / cap))
+        rr = [[] for _ in range(n_rounds)]                # round-robin (balances rounds)
         for idx, r in enumerate(by_dur):
-            rr[idx % n_waves].append(r)
-        partitions = [chunk, [w for w in rr if w]]
+            rr[idx % n_rounds].append(r)
 
-        def stay_lengths(w):
-            # minimal stay L_i (outer..inner) with L_i >= T_i and
-            # L_{i-1} >= L_i + 2*eta; computed inner->outer to stay minimal.
-            T = [self.T[r] for r in w]
-            L = [0.0] * len(w)
-            L[-1] = T[-1]
-            for i in range(len(w) - 2, -1, -1):
-                L[i] = max(T[i], L[i + 1] + 2 * eta)
-            return L
+        def chunks(seq):
+            return [sorted(seq[k:k + cap], key=lambda r: -self.T[r])
+                    for k in range(0, len(seq), cap)]
+        # Small partition beam: long-first / short-first / earliest-E-first
+        # chunking + duration round-robin.  Within a round the members are
+        # always ordered by duration (longest gets the outermost shell).
+        partitions = [chunks(by_dur),
+                      chunks(list(reversed(by_dur))),
+                      chunks(sorted(self.aircraft_ids, key=lambda r: self.E[r])),
+                      [sorted(w, key=lambda r: -self.T[r]) for w in rr if w]]
 
         def build_jobs(r, s, L):
             # lay jobs from s; insert the idle (L - T) after the first job so
@@ -690,22 +692,57 @@ class IteratedGreedyVNDJobSolver:
                     t += extra
             return jobs, t                                # t = final finish
 
-        def build_from(waves):
+        def build_from(rounds):
             placed: dict[str, tuple] = {}
             assignment: dict[str, str] = {}
-            prev_finish = None
-            for w in waves:                               # w sorted by dur desc
-                L = stay_lengths(w)
-                anchor_lb = max(self.E[w[i]] - i * eta for i in range(len(w)))
-                anchor = anchor_lb if prev_finish is None else max(prev_finish + eta, anchor_lb)
-                w_finish = None
-                for i, r in enumerate(w):
-                    s = anchor + i * eta
-                    jobs, f = build_jobs(r, s, L[i])
-                    placed[r] = (s, f, jobs)
-                    assignment[r] = P[i]
-                    w_finish = f if w_finish is None else max(w_finish, f)
-                prev_finish = w_finish
+            prev_fin = {p: None for p in P}               # per-position chain
+            comp_fin = None                               # blocking-component round finish
+            for w in rounds:                              # w sorted by dur desc
+                # Longest aircraft to the deepest conflicted positions (they
+                # carry the longest, most-stretched stays); a short tail
+                # prefers the free positions (tight, parallel).
+                use = list(P) if len(w) == cap else \
+                    ([p for p in P if p not in conf_pos] +
+                     [p for p in P if p in conf_pos])[:len(w)]
+                use.sort(key=lambda p: (p not in conf_pos, rank[p]))
+                occ = {p: r for p, r in zip(use, w)}
+                # Start times.  Conflicted positions share a round anchor and
+                # stagger +eta outermost-first along the arcs; free positions
+                # just chain on their own history.
+                base = {p: max(self.E[occ[p]],
+                               (prev_fin[p] + eps) if prev_fin[p] is not None else 0.0)
+                        for p in occ}
+                # Per-position anchoring: a front may start later than its
+                # rear's stagger (the finish pass stretches the rear to keep
+                # wrapping it); only the component round anchor is shared, so
+                # this round's rear accesses clear last round's fronts.
+                comp_anchor = (comp_fin + max(eps, eta)) if comp_fin is not None else 0.0
+                s: dict[str, float] = {}
+                for p in sorted(occ, key=lambda q: rank[q]):      # deepest first
+                    if p in conf_pos:
+                        t = max(base[p], comp_anchor)
+                        for q in occ:                             # rears wrapping p
+                            if p in fronts_of[q] and q in s:
+                                t = max(t, s[q] + eta)
+                        s[p] = t
+                    else:
+                        s[p] = base[p]
+                # Finishes.  Fronts first (shallowest): each rear's stay is
+                # stretched so it also wraps its fronts' finishes by eta.
+                fin: dict[str, float] = {}
+                for p in sorted(occ, key=lambda q: -rank[q]):     # fronts first
+                    f_need = s[p] + self.T[occ[p]]
+                    for f in fronts_of[p]:
+                        if f in occ:
+                            f_need = max(f_need, fin[f] + eta)
+                    fin[p] = f_need
+                for p, r in occ.items():
+                    jobs, f_r = build_jobs(r, s[p], fin[p] - s[p])
+                    placed[r] = (s[p], f_r, jobs)
+                    assignment[r] = p
+                    prev_fin[p] = f_r
+                    if p in conf_pos:
+                        comp_fin = f_r if comp_fin is None else max(comp_fin, f_r)
 
             aircraft_out, makespan, total_delay = [], 0.0, 0.0
             for r in self.aircraft_ids:
@@ -724,8 +761,8 @@ class IteratedGreedyVNDJobSolver:
             }
 
         best = None
-        for waves in partitions:
-            sol = build_from(waves)
+        for rounds in partitions:
+            sol = build_from(rounds)
             if best is None or sol["objective"] < best["objective"]:
                 best = sol
         return best
