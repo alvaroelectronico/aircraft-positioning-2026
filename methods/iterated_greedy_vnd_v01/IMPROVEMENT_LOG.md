@@ -38,7 +38,7 @@ the **~19 delay-unit noise floor** described in
 | 5 | risk diagnostics (delay/nesting/search) | `dd20bf6` | `combined_290_iterated_greedy_vnd_v01_20260628.log` | **KEPT** | observability only, no behaviour change |
 | 6 | DelayRiskRepair (delay-biased re-search) | `95669a2` → reverted `4a80e79` | `ablation_commit6_delayrepair.txt` | **DROPPED** | 0/74 runs accepted; residual is search-variance-bound, within noise |
 | 7 | restarts-until-deadline + slim portfolio (NEH+SLACK) + biased-randomised construction | `exp/restart-budget` (`76d43e0`) | `attempt7_restart_budget_20260713.txt` | **KEPT** (pending merge) | wMOV R5/R10 stratum −3.79 % → **+0.00 % = MILP optimum on every cell**; no guard regressed |
-| 8 | phase policy: v2/v3 split vs single decoder (4-arm ablation) | `exp/profile-budget` | *(pending)* | **OPEN** | targets timed-out R10+ cells; decides one-decoder-vs-two |
+| 8 | phase policy: v2/v3 split vs single decoder (4-arm ablation) | `exp/profile-budget` (`6952f14`) | `attempt8_phase_policy_20260714.txt` + `attempt8b_noise_resolution_20260714.txt` | **DROPPED** | two decoders earn their keep: v3-only regresses at R20 (+377/+1933 real); v2-only/split refuted (wMOV +20/+9.5 real) |
 
 *(Entries 4–6 backfilled from the living-spec Change log; entry 7 onward is
 opened here first, before coding. The 2026-07 campaign that motivates 7–8 is
@@ -307,7 +307,31 @@ What the results say (evidence, not just structure):
   `igvnd-v01-restart-budget-20260713`.
 - **Noise check:** wMK/R10 floor ≈ 16–19 delay units (Step 0); wMOV R10
   deterministic (floor 0); R20 judged loosely (band unknown).
-- **Status:** implementing.
+- **Logs:**
+  [`attempt8_phase_policy_20260714.txt`](../../outputs/logs/attempt8_phase_policy_20260714.txt)
+  (4 arms × 14 cells) +
+  [`attempt8b_noise_resolution_20260714.txt`](../../outputs/logs/attempt8b_noise_resolution_20260714.txt)
+  (both vs v3, K=3, on the noise-ambiguous cells).
+- **Result:**
+  - `v2-only` and `split` **refuted** on deterministic wMOV cells: real
+    regressions +20 (`t_loose_R10 seed6`) and +9.5 (seed9); `v2` also +2023
+    on `chain wMK` (no manoeuvre machinery — expected).
+  - `v3-only` (the single-decoder simplification): mixed on the target
+    stratum — real wins on `t_loose_R10 seed7` (**62.5, beats the MILP's
+    integer-gridded optimum 64.5**) and seed10 (−1.5), real loss on seed9
+    (+9.5). The 8a scale deltas were noise-ambiguous, so 8b re-ran K=3:
+    `tri_tight_R10 wMK` +7.3 (within noise), but **R20 wMK +377 and R20 wDLY
+    +1933 are REAL regressions** (v3 is perfectly deterministic at R20 —
+    spread 0 across repeats — because its costly decode leaves so little
+    search per slice; the cheap v2 phase is what makes scale work).
+- **Decision: DROPPED.** The pre-registered rule was "ship one decoder iff
+  v3-only ≥ both"; it is not (real R20 regressions). The two-phase design
+  earns its keep with data. The `phase_mode` knob stays on the `exp/` branch
+  as ablation infrastructure (no behaviour change shipped to `main`).
+  Side-finding for a future attempt: on the certified-loss cells the v3-only
+  arm shows the *search*, not the decoder, is the binding constraint (seed7
+  62.5 exists and `both` misses it) — consistent with the stay-stretching
+  gap being the real target.
 
 ### Revised plan after Step 0 (2026-07-13)
 

@@ -1,0 +1,15 @@
+ATTEMPT 8b — noise resolution, both vs v3, K=3, 60 s, seed=1
+
+  scn_triangle_tight_P5_R10_seed1      wMK   both      5961.0      5961.0      5961.0   mean=    5961.0  spread=     0.0
+  scn_triangle_tight_P5_R10_seed1      wMK   v3        5983.0      5961.0      5961.0   mean=    5968.3  spread=    22.0
+    -> mean(v3) - mean(both) = +7.3   (max within-arm spread 22.0)   within noise
+
+  scn_triangle_tight_P5_R20_seed1      wMK   both     13019.0     13019.0     13385.5   mean=   13141.2  spread=   366.5
+  scn_triangle_tight_P5_R20_seed1      wMK   v3       13518.5     13518.5     13518.5   mean=   13518.5  spread=     0.0
+    -> mean(v3) - mean(both) = +377.3   (max within-arm spread 366.5)   REAL regression
+
+  scn_two_rows_tight_P5_R20_seed1      wDLY  both     63393.5     63291.5     64179.5   mean=   63621.5  spread=   888.0
+  scn_two_rows_tight_P5_R20_seed1      wDLY  v3       65554.5     65554.5     65554.5   mean=   65554.5  spread=     0.0
+    -> mean(v3) - mean(both) = +1933.0   (max within-arm spread 888.0)   REAL regression
+
+[DONE]
