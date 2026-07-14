@@ -383,6 +383,27 @@ What the results say (evidence, not just structure):
   residuals: `t_loose_R10` seeds 7/10 (search-bound — the v3-only arm of
   Attempt 8 proved 62.5 exists on seed7) and the R20+ measurement gap.
 
+## Attempt 10 — perturb-mix (OPEN)
+- **Date:** 2026-07-14 (opened; hypothesis before coding)
+- **Hypothesis:** the remaining `t_loose_R10 wMOV` residuals are
+  *search-bound* (Attempt 8's v3-only arm proved 62.5 exists on seed7 and the
+  shipped search misses it). A likely cause is diagnosis #5: IG destruction
+  scores `wD·delay + 0.001·T`, which under wMOV/wMK (delay ≈ 0) degenerates
+  into "almost always the same longest k+2, shuffled" — the walk cannot leave
+  its basin. **Mixing targeted with uniform-random destruction (50/50 per
+  perturbation, no new knob)** restores walk diversity and recovers part of
+  the residual. Simplicity ledger: +4 lines, 0 knobs.
+- **Ref:** branch `exp/perturb-mix` off `dev` (`999cc13`); baseline = tag
+  `igvnd-v01-nest-stretch-20260714`.
+- **How measured:** two arms fresh, 60 s, seed=1, deterministic wMOV cells:
+  `t_loose_R10` seeds 5/7/10, `t_tight_R10` s1, chain s1, hub s1,
+  `two_rows_medium_R10` s2 + guards (`t_tight_R5` s5 wMOV, `none_R10` wMK
+  control; wMK/wDLY spot-checks judged against their ~16–19-unit floor).
+  Cheap-to-falsify by design: if not promising → DROPPED and the full
+  battery launches without it.
+- **Noise check:** wMOV stratum floor 0 (Step 0).
+- **Status:** implementing.
+
 ### Revised plan after Step 0 (2026-07-13)
 
 Step 0 **reorders** the attempts. The user's headline problem (poor on small
