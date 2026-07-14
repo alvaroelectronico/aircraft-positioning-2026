@@ -107,6 +107,12 @@ class IteratedGreedyVNDJobSolver:
             max_no_improve    : early-stop after this many non-improving
                                 IG iterations (default 400)
             use_v3            : enable the manoeuvre-aware polish (default True)
+            phase_mode        : per-restart phase policy (Attempt 8 ablation):
+                                "both" (default) = v2 search then v3 polish;
+                                "v2"   = zero-movement search only;
+                                "v3"   = single-decoder search (no phase-1
+                                search; the seed's raw v2 decode remains the
+                                feasibility floor for the safety net)
         """
         self._config.update(kwargs)
 
@@ -133,6 +139,10 @@ class IteratedGreedyVNDJobSolver:
         self.k_destroy = int(cfg.get("k_destroy", max(1, R // 4)))
         self.max_no_improve = int(cfg.get("max_no_improve", 400))
         self.use_v3 = bool(cfg.get("use_v3", True))
+        # Phase policy (Attempt 8): default keeps the two-phase behaviour;
+        # use_v3=False maps to "v2" for backwards compatibility.
+        self.phase_mode = str(cfg.get("phase_mode")
+                              or ("both" if self.use_v3 else "v2"))
         base_seed = int(cfg.get("seed", 1) or 1)
         # Per-start time slice, adaptive to instance size (large instances need
         # their per-start time; small ones end each start early on the stale
@@ -343,26 +353,45 @@ class IteratedGreedyVNDJobSolver:
                 "search_risk": search_risk}
 
     def _one_start(self, instance_data: dict, a0: dict, o0: list, deadline: float) -> tuple[dict, float]:
-        """One multi-start restart from the seed ``(a0, o0)``: zero-movement
-        (v2) search, then an optional manoeuvre-aware (v3) polish validated by
-        the real checker.  Returns (solution, objective)."""
-        # ---- Phase 1: zero-movement search (v2 decoder) ----
-        # The v2 floor is feasible by construction, so the incumbent returned
-        # here is always a complete, valid schedule.
-        self._decode_fn = self._decode
-        self._decoder_tag = "v2"
-        dl1 = min(deadline, time.perf_counter() + (deadline - time.perf_counter()) *
-                  (0.5 if self.use_v3 else 1.0))
-        a1, o1 = self._search(dict(a0), list(o0), dl1)
-        best_sol = self._finalize(self._decode(a1, o1))
-        best_obj = best_sol["objective"]
-        best_sol["phase"] = "zero"
+        """One multi-start restart from the seed ``(a0, o0)``, following the
+        phase policy ``self.phase_mode`` (Attempt 8):
 
-        # ---- Phase 2: manoeuvre-aware polish (v3 decoder) ----
+        * ``"both"`` — zero-movement (v2) search, then a manoeuvre-aware (v3)
+          polish validated by the real checker (the historical behaviour).
+        * ``"v2"``   — zero-movement search only.
+        * ``"v3"``   — single-decoder mode: no phase-1 search; the seed's raw
+          v2 decode is kept as the guaranteed-feasible floor and the whole
+          restart searches with the v3 decoder.
+
+        Returns (solution, objective)."""
+        mode = self.phase_mode
+
+        if mode == "v3":
+            # Floor = raw zero-movement decode of the seed (feasible by
+            # construction, no search time spent on it).
+            best_sol = self._finalize(self._decode(dict(a0), list(o0)))
+            best_obj = best_sol["objective"]
+            best_sol["phase"] = "zero"
+            a1, o1 = dict(a0), list(o0)
+        else:
+            # ---- Phase 1: zero-movement search (v2 decoder) ----
+            # The v2 floor is feasible by construction, so the incumbent
+            # returned here is always a complete, valid schedule.
+            self._decode_fn = self._decode
+            self._decoder_tag = "v2"
+            dl1 = min(deadline, time.perf_counter() +
+                      (deadline - time.perf_counter()) *
+                      (0.5 if mode == "both" else 1.0))
+            a1, o1 = self._search(dict(a0), list(o0), dl1)
+            best_sol = self._finalize(self._decode(a1, o1))
+            best_obj = best_sol["objective"]
+            best_sol["phase"] = "zero"
+
+        # ---- Phase 2: manoeuvre-aware search/polish (v3 decoder) ----
         # v2 is the guaranteed floor; the v3 candidate is taken only if the
         # real checker certifies it AND it strictly improves — so a timed-out
         # or invalid manoeuvre-aware search can never worsen the incumbent.
-        if self.use_v3:
+        if mode in ("both", "v3"):
             self._decode_fn = self._decode_v3
             self._decoder_tag = "v3"
             a3, o3 = self._search(dict(a1), list(o1), deadline)

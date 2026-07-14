@@ -38,7 +38,7 @@ the **~19 delay-unit noise floor** described in
 | 5 | risk diagnostics (delay/nesting/search) | `dd20bf6` | `combined_290_iterated_greedy_vnd_v01_20260628.log` | **KEPT** | observability only, no behaviour change |
 | 6 | DelayRiskRepair (delay-biased re-search) | `95669a2` → reverted `4a80e79` | `ablation_commit6_delayrepair.txt` | **DROPPED** | 0/74 runs accepted; residual is search-variance-bound, within noise |
 | 7 | restarts-until-deadline + slim portfolio (NEH+SLACK) + biased-randomised construction | `exp/restart-budget` (`76d43e0`) | `attempt7_restart_budget_20260713.txt` | **KEPT** (pending merge) | wMOV R5/R10 stratum −3.79 % → **+0.00 % = MILP optimum on every cell**; no guard regressed |
-| 8 | profile-aware budget split (v2/v3 phases) | `exp/profile-budget` *(planned)* | *(pending)* | *(open)* | targets timed-out R10+ cells |
+| 8 | phase policy: v2/v3 split vs single decoder (4-arm ablation) | `exp/profile-budget` | *(pending)* | **OPEN** | targets timed-out R10+ cells; decides one-decoder-vs-two |
 
 *(Entries 4–6 backfilled from the living-spec Change log; entry 7 onward is
 opened here first, before coding. The 2026-07 campaign that motivates 7–8 is
@@ -283,6 +283,31 @@ What the results say (evidence, not just structure):
      cached igvnd row is **stale** (different code state). ⇒ the ablation MUST
      re-run the heuristic fresh and only reuse the cached **MILP** rows — which
      `ablation_subset.py` already does. Do not trust cached igvnd objectives.
+
+## Attempt 8 — profile-budget / phase policy (OPEN)
+- **Date:** 2026-07-14 (opened; hypothesis before coding)
+- **Hypothesis:** on the cells that exhaust the 60 s budget (R10+ under
+  blocking; R5 is unaffected — its restarts end on the stale counter), the
+  fixed 50/50 v2/v3 phase split is not the best use of time. Either a single
+  decoder (v3-only, since v3 ⊇ v2 in coverage — user's idea 1, the
+  simplification) or a profile-dependent split (skip v3 when effective-wS
+  dominates, since v3 rarely buys a manoeuvre there) beats the current split
+  on the timed-out stratum. The ablation decides **one decoder or two** with
+  data.
+- **Design:** add a `phase_mode` config knob — `both` (current), `v2`
+  (zero-movement only), `v3` (single decoder: no phase-1 search; the raw v2
+  decode of each seed remains the feasibility floor for the safety net).
+  Run 4 arms {both, v2, v3, profile-split (v2 under wS-dominant, both
+  otherwise)} fresh, back-to-back, on the timed-out stratum: the
+  `triangle_loose_R10 wMOV` certified-optimum losses (seeds 5/7/10), chain/hub
+  R10 wMK+wMOV, triangle_tight_R10 (3 profiles), one R20 scale cell + the
+  `none_R10` control. Judged per-component vs cached MILP; simplicity is the
+  tie-break: **if v3-only ≥ both, ship one decoder** (−1 phase).
+- **Ref:** branch `exp/profile-budget` off `dev` (`1587242`); baseline = tag
+  `igvnd-v01-restart-budget-20260713`.
+- **Noise check:** wMK/R10 floor ≈ 16–19 delay units (Step 0); wMOV R10
+  deterministic (floor 0); R20 judged loosely (band unknown).
+- **Status:** implementing.
 
 ### Revised plan after Step 0 (2026-07-13)
 
