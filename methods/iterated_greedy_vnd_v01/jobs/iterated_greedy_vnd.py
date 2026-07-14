@@ -914,15 +914,23 @@ class IteratedGreedyVNDJobSolver:
         """Destruction–reconstruction: remove the k highest-contribution
         aircraft, then greedily reinsert each at its best position and a
         good spot in the order."""
-        sol = self._eval(assignment, order)
-        contrib = {a["id"]: self.wD * a["delay"] + 1e-3 * self.T[a["id"]]
-                   for a in sol["aircraft"]}
-        # Remove the k worst contributors, with a little randomisation so the
-        # loop explores rather than removing the same set every iteration.
-        ranked = sorted(self.aircraft_ids, key=lambda r: -contrib[r])
-        pool = ranked[: min(len(ranked), k + 2)]
-        self.rng.shuffle(pool)
-        removed = pool[:k]
+        # Half the perturbations remove k aircraft uniformly at random: the
+        # targeted (delay-weighted) rule below degenerates under wMK/wMOV
+        # (delay ~ 0 -> almost always the same longest k+2), anchoring the
+        # walk in its basin (Attempt 10).  The random half restores diversity.
+        if self.rng.random() < 0.5:
+            removed = self.rng.sample(self.aircraft_ids,
+                                      min(k, len(self.aircraft_ids)))
+        else:
+            sol = self._eval(assignment, order)
+            contrib = {a["id"]: self.wD * a["delay"] + 1e-3 * self.T[a["id"]]
+                       for a in sol["aircraft"]}
+            # Remove the k worst contributors, with a little randomisation so
+            # the loop explores rather than removing the same set every time.
+            ranked = sorted(self.aircraft_ids, key=lambda r: -contrib[r])
+            pool = ranked[: min(len(ranked), k + 2)]
+            self.rng.shuffle(pool)
+            removed = pool[:k]
 
         a2 = dict(assignment)
         kept_order = [r for r in order if r not in removed]

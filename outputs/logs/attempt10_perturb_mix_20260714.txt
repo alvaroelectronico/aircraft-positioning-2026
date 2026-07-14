@@ -1,0 +1,23 @@
+====================================================================================================
+  ATTEMPT 10 — perturb-mix (targeted/random destruction 50/50): baseline vs candidate
+  fresh runs, 60 s, seed=1; MILP from cached results.csv
+====================================================================================================
+
+  cell                                 prof  grp               BASE      CAND    delta      MILP
+  ------------------------------------------------------------------------------------------------
+  scn_triangle_loose_P5_R10_seed5      wMOV  target            63.0      63.0     +0.0      61.5
+  scn_triangle_loose_P5_R10_seed7      wMOV  target            77.0      62.5    -14.5      64.5
+  scn_triangle_loose_P5_R10_seed10     wMOV  target            73.5      67.0     -6.5      67.0
+  scn_triangle_tight_P5_R10_seed1      wMOV  target           166.0     166.0     +0.0     166.0
+  scn_chain_tight_P5_R10_seed1         wMOV  target           235.0     235.0     +0.0     232.0
+  scn_hub_tight_P5_R10_seed1           wMOV  target           173.5     173.5     +0.0     174.0
+  scn_two_rows_medium_P5_R10_seed2     wMOV  target           137.0     138.0     +1.0     137.0
+  scn_triangle_tight_P5_R5_seed5       wMOV  guard             33.0      33.0     +0.0      33.0
+  scn_none_tight_P5_R10_seed1          wMK   guard           5844.5    5844.5     +0.0    5844.5
+  scn_triangle_tight_P5_R10_seed1      wMK   guard-noisy     5961.0    5961.0     +0.0    6059.5
+  scn_triangle_tight_P5_R10_seed1      wDLY  guard-noisy    10068.5   10169.5   +101.0   10220.5
+  scn_triangle_tight_P5_R20_seed1      wMK   guard-scale    13399.5   12880.5   -519.0   15507.5
+
+  TOTAL delta (cand - base): -438.0   (negative = candidate better)
+
+  [DONE]

@@ -40,6 +40,7 @@ the **~19 delay-unit noise floor** described in
 | 7 | restarts-until-deadline + slim portfolio (NEH+SLACK) + biased-randomised construction | `exp/restart-budget` (`76d43e0`) | `attempt7_restart_budget_20260713.txt` | **KEPT** (pending merge) | wMOV R5/R10 stratum −3.79 % → **+0.00 % = MILP optimum on every cell**; no guard regressed |
 | 8 | phase policy: v2/v3 split vs single decoder (4-arm ablation) | `exp/profile-budget` (`6952f14`) | `attempt8_phase_policy_20260714.txt` + `attempt8b_noise_resolution_20260714.txt` | **DROPPED** | two decoders earn their keep: v3-only regresses at R20 (+377/+1933 real); v2-only/split refuted (wMOV +20/+9.5 real) |
 | 9 | nest-stretch: dense-nest generalised to the real blocking DAG | `exp/nest-stretch` (`164519a`) | `attempt9_nest_stretch_20260714.txt` | **KEPT** | −120.5 net over 19 wMOV cells, 0 regressions; `t_loose_R10 s5` 74.5→63 (MILP 61.5), `full_R10` 258→235 / 294→235 (beats MILP), `chain_R10` −10.4 %→≈−1.3 % |
+| 10 | perturb-mix: 50/50 targeted/uniform-random IG destruction | `exp/perturb-mix` (`15082a0`) | `attempt10_perturb_mix_20260714.txt` | **KEPT** | −438 net; `t_loose_R10 s7` 77→**62.5** (< MILP 64.5), `s10` →**67 = MILP**; certified-loss family closed; +4 lines, 0 knobs |
 
 *(Entries 4–6 backfilled from the living-spec Change log; entry 7 onward is
 opened here first, before coding. The 2026-07 campaign that motivates 7–8 is
@@ -382,6 +383,43 @@ What the results say (evidence, not just structure):
   tagged `igvnd-v01-nest-stretch-20260714`, spec synced. Remaining known
   residuals: `t_loose_R10` seeds 7/10 (search-bound — the v3-only arm of
   Attempt 8 proved 62.5 exists on seed7) and the R20+ measurement gap.
+
+## Attempt 10 — perturb-mix (OPEN)
+- **Date:** 2026-07-14 (opened; hypothesis before coding)
+- **Hypothesis:** the remaining `t_loose_R10 wMOV` residuals are
+  *search-bound* (Attempt 8's v3-only arm proved 62.5 exists on seed7 and the
+  shipped search misses it). A likely cause is diagnosis #5: IG destruction
+  scores `wD·delay + 0.001·T`, which under wMOV/wMK (delay ≈ 0) degenerates
+  into "almost always the same longest k+2, shuffled" — the walk cannot leave
+  its basin. **Mixing targeted with uniform-random destruction (50/50 per
+  perturbation, no new knob)** restores walk diversity and recovers part of
+  the residual. Simplicity ledger: +4 lines, 0 knobs.
+- **Ref:** branch `exp/perturb-mix` off `dev` (`999cc13`); baseline = tag
+  `igvnd-v01-nest-stretch-20260714`.
+- **How measured:** two arms fresh, 60 s, seed=1, deterministic wMOV cells:
+  `t_loose_R10` seeds 5/7/10, `t_tight_R10` s1, chain s1, hub s1,
+  `two_rows_medium_R10` s2 + guards (`t_tight_R5` s5 wMOV, `none_R10` wMK
+  control; wMK/wDLY spot-checks judged against their ~16–19-unit floor).
+  Cheap-to-falsify by design: if not promising → DROPPED and the full
+  battery launches without it.
+- **Noise check:** wMOV stratum floor 0 (Step 0).
+- **Log:** [`attempt10_perturb_mix_20260714.txt`](../../outputs/logs/attempt10_perturb_mix_20260714.txt)
+  (12 cells × 2 arms, fresh, 60 s).
+- **Result vs baseline (implementation `15082a0`): TOTAL −438.**
+  - `t_loose_R10 seed7` 77 → **62.5** (−14.5; **below** the MILP's
+    integer-gridded optimum 64.5 — exactly the solution the Attempt-8
+    v3-only arm proved existed); `seed10` 73.5 → **67.0 = MILP** (−6.5).
+    With `seed5` at 63.0 (−1.5 vs MILP) the certified-loss family is
+    essentially closed.
+  - Cons: +1.0 real on `two_rows_medium_R10 s2` (137→138, MILP 137) and
+    +101 obj (≈1 delay unit, within that profile's noise) on the wDLY
+    guard. R20 wMK −519 (improvement or noise; band ≈525).
+  - All other cells identical; R5 and control guards intact.
+- **Decision: KEPT.** Simplicity ledger: +4 lines, 0 knobs, no new
+  mechanism (a probability mix inside the existing perturbation). Merged
+  `--no-ff` into `main`, tagged `igvnd-v01-perturb-mix-20260714`, spec
+  synced. Full battery relaunch follows (covers Attempts 9+10 for
+  Part II + paper).
 
 ### Revised plan after Step 0 (2026-07-13)
 
