@@ -333,6 +333,32 @@ What the results say (evidence, not just structure):
   62.5 exists and `both` misses it) — consistent with the stay-stretching
   gap being the real target.
 
+## Attempt 9 — nest-stretch (OPEN)
+- **Date:** 2026-07-14 (opened; hypothesis before coding)
+- **Hypothesis:** the certified-optimum losses (`triangle_loose_R10 wMOV`,
+  3/10 seeds, 5–16 units) are caused by the dense-nest candidate's rigid
+  complete-graph wave model: it nests ALL wave members concentrically and
+  serialises whole waves, so on non-complete topologies its candidate is
+  wasteful and loses the best-of. **Generalising the same builder to the real
+  blocking DAG** — concentric stay-stretching only along actual arcs (deepest
+  rear = outermost, stays stepped by 2η along each front→rear chain, verified
+  mechanism of the seed7 optimum), unconflicted positions tight and parallel,
+  rounds serialised per blocking component — recovers those losses.
+  **Simplicity ledger: net 0** (replaces the existing `_dense_nest_solution`
+  internals; same gate `wS`-dominant + arcs, same two-partition beam, same
+  best-of + checker safety).
+- **Ref:** branch `exp/nest-stretch` off `dev` (`8aa06b6`); baseline = tag
+  `igvnd-v01-restart-budget-20260713`.
+- **How measured:** two arms fresh (dev vs branch), 60 s, seed=1:
+  `triangle_loose_R10 wMOV` all 10 seeds (3 losses + 7 ties/wins as guards),
+  `triangle_tight_R10 wMOV`, `full_tight_P5_R10 wMOV` (the complete-graph
+  case the old builder owned — must not regress), chain/hub wMOV, one R5 wMOV
+  spot, R20 wMOV scale guard. Judged per-component vs cached MILP (all
+  R10-loose wMOV MILP rows are certified optimal).
+- **Noise check:** wMOV stratum deterministic (floor 0, Step 0) → ≥ 1-unit
+  deltas are real.
+- **Status:** implementing.
+
 ### Revised plan after Step 0 (2026-07-13)
 
 Step 0 **reorders** the attempts. The user's headline problem (poor on small
