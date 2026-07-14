@@ -1,0 +1,30 @@
+========================================================================================================
+  ATTEMPT 9 — nest-stretch (DAG-generalised dense-nest): baseline (dev) vs candidate
+  all wMOV, fresh runs, 60 s, seed=1; MILP from cached results.csv
+========================================================================================================
+
+  cell                                 grp              BASE      CAND    delta      MILP   phases b->c
+  ----------------------------------------------------------------------------------------------------
+  scn_triangle_loose_P5_R10_seed1      target           68.5      68.5     +0.0      70.0   manoeuvre->manoeuvre
+  scn_triangle_loose_P5_R10_seed2      target           76.0      76.0     +0.0      76.5   manoeuvre->manoeuvre
+  scn_triangle_loose_P5_R10_seed3      target           69.5      69.5     +0.0      72.5   manoeuvre->manoeuvre
+  scn_triangle_loose_P5_R10_seed4      target           81.0      81.0     +0.0      82.5   manoeuvre->manoeuvre
+  scn_triangle_loose_P5_R10_seed5      target           74.5      63.0    -11.5      61.5   manoeuvre->dense_nest
+  scn_triangle_loose_P5_R10_seed6      target           69.0      69.0     +0.0      73.5   manoeuvre->manoeuvre
+  scn_triangle_loose_P5_R10_seed7      target           81.0      77.0     -4.0      64.5   manoeuvre->dense_nest
+  scn_triangle_loose_P5_R10_seed8      target           67.0      67.0     +0.0      67.5   manoeuvre->manoeuvre
+  scn_triangle_loose_P5_R10_seed9      target           74.0      74.0     +0.0      74.0   manoeuvre->manoeuvre
+  scn_triangle_loose_P5_R10_seed10     target           73.5      73.5     +0.0      67.0   zero->zero
+  scn_triangle_tight_P5_R10_seed1      target          166.0     166.0     +0.0     166.0   zero->zero
+  scn_full_tight_P5_R10_seed1          full-guard      258.0     235.0    -23.0     261.0   dense_nest->dense_nest
+  scn_full_tight_P5_R10_seed2          full-guard      294.0     235.0    -59.0     322.0   manoeuvre->dense_nest
+  scn_full_tight_P5_R10_seed5          full-guard      232.0     232.0     +0.0     262.0   manoeuvre->manoeuvre
+  scn_chain_tight_P5_R10_seed1         chain-hub       258.0     235.0    -23.0     232.0   dense_nest->dense_nest
+  scn_hub_tight_P5_R10_seed1           chain-hub       173.5     173.5     +0.0     174.0   manoeuvre->manoeuvre
+  scn_triangle_tight_P5_R5_seed5       r5-guard         33.0      33.0     +0.0      33.0   manoeuvre->manoeuvre
+  scn_triangle_loose_P5_R20_seed1      scale           507.0     507.0     +0.0     611.0   zero->zero
+  scn_triangle_tight_P5_R20_seed1      scale           791.5     791.5     +0.0     909.0   zero->zero
+
+  TOTAL delta (cand - base): -120.5   (negative = candidate better)
+
+  [DONE]
