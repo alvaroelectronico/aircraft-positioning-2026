@@ -1,0 +1,29 @@
+======================================================================================================================
+  ATTEMPT 8 — phase policy: both (current) / v2-only / v3-only / profile-split
+  fresh runs, in-process, seed=1, 60 s; MILP reference from cached results.csv
+======================================================================================================================
+
+  cell                                 prof  grp                BOTH        V2        V3     SPLIT      MILP   best-arm
+  ------------------------------------------------------------------------------------------------------------------
+  scn_triangle_loose_P5_R10_seed5      wMOV  cert-loss          74.5      72.5      74.5      72.5      61.5   v2  (starts b/2/3/s: 9/63/10/65)
+  scn_triangle_loose_P5_R10_seed7      wMOV  cert-loss          71.5      67.5      62.5      67.5      64.5   v3  (starts b/2/3/s: 9/60/10/59)
+  scn_triangle_loose_P5_R10_seed10     wMOV  cert-loss          73.5      73.5      72.0      73.5      67.0   v3  (starts b/2/3/s: 9/69/8/69)
+  scn_triangle_loose_P5_R10_seed6      wMOV  guard-win          69.0      89.0      68.5      89.0      73.5   v3  (starts b/2/3/s: 8/66/9/64)
+  scn_triangle_loose_P5_R10_seed9      wMOV  guard-win          74.0      83.5      83.5      83.5      74.0   both  (starts b/2/3/s: 9/61/9/60)
+  scn_chain_tight_P5_R10_seed3         wMOV  chain-hub         260.5     265.0     257.5     265.0     270.0   v3  (starts b/2/3/s: 8/49/8/48)
+  scn_chain_tight_P5_R10_seed1         wMK   chain-hub        6275.0    8298.0    6271.5    6275.0    6223.0   v3  (starts b/2/3/s: 8/28/8/8)
+  scn_hub_tight_P5_R10_seed2           wMOV  chain-hub         194.5     196.0     196.5     196.0     196.0   both  (starts b/2/3/s: 8/49/8/49)
+  scn_triangle_tight_P5_R10_seed1      wMK   tri-tight        5961.0    6258.5    6159.0    5961.0    6059.5   both  (starts b/2/3/s: 8/47/8/8)
+  scn_triangle_tight_P5_R10_seed1      wDLY  tri-tight       10068.5   10412.5   10069.5   10068.5   10220.5   both  (starts b/2/3/s: 8/41/8/8)
+  scn_triangle_tight_P5_R10_seed1      wMOV  tri-tight         166.0     166.0     169.5     166.0     166.0   both  (starts b/2/3/s: 8/41/9/39)
+  scn_triangle_tight_P5_R20_seed1      wMK   guard-scale     13019.0   13019.0   13518.5   13544.5   15507.5   both  (starts b/2/3/s: 4/4/4/4)
+  scn_two_rows_tight_P5_R20_seed1      wDLY  guard-scale     63684.5   63727.5   65554.5   65493.5   66110.0   both  (starts b/2/3/s: 4/4/4/3)
+  scn_none_tight_P5_R10_seed1          wMK   guard-control    5844.5    5844.5    5844.5    5844.5    5844.5   both  (starts b/2/3/s: 11/23/15/11)
+
+  Sum of (arm obj - BOTH obj) over all cells  (negative = arm better than current):
+    both         +0.0
+    v2        +2737.0
+    v3        +2566.0
+    split     +2364.0
+
+  [DONE]
