@@ -186,9 +186,12 @@ neighbourhoods, explored first-improvement:
 
 Around the VND runs an Iterated-Greedy perturbation loop:
 
-- **Destruction** — remove the `k` aircraft that contribute most to the
-  objective (delay-weighted, with light randomisation so the loop explores
-  rather than repeating the same removals).
+- **Destruction** — half the time, remove the `k` aircraft that contribute
+  most to the objective (delay-weighted, with light randomisation); the
+  other half, remove `k` aircraft **uniformly at random** (Attempt 10). The
+  targeted rule degenerates under the makespan- and movement-priority
+  weights (all delays ≈ 0 ⇒ almost always the same longest `k`), anchoring
+  the walk in its basin; the random half restores walk diversity.
 - **Reconstruction** — greedily reinsert each removed aircraft at its best
   (position, order-slot).
 - **Local search** — re-apply the VND.
@@ -344,8 +347,11 @@ PROCEDURE  FirstImprovement(N, π, σ, Decode):        # take the first better m
 
 
 PROCEDURE  Perturb(π, σ):                            # Iterated Greedy kick
-    remove the k aircraft of largest contribution (Wᴰ·delayᵣ + small·Tᵣ),
-        with light randomisation
+    with probability ½:
+        remove k aircraft uniformly at random        # walk diversity
+    otherwise:
+        remove the k aircraft of largest contribution (Wᴰ·delayᵣ + small·Tᵣ),
+            with light randomisation                  # targeted (delay) rule
     for each removed r:                              # greedy reconstruction
         insert r at the (position, slot in σ) minimising F of the decode
     return the rebuilt state
@@ -1133,6 +1139,7 @@ the code that produced it. Behaviour-affecting commits (newest last):
 | `76d43e0` | **Attempt 7 (restart-budget) — KEPT.** Restart loop runs **until the deadline** (`n_starts` now an optional test-only hard cap; per-start slice unchanged). Portfolio slimmed to **NEH + SLACK + `_biased_order`** (rank-biased geometric shuffle, β = 0.3, of the better base); EDD / CR / BLEND / regret-2 retired. Per-start log line only on improvement. See `IMPROVEMENT_LOG.md` Attempt 7 + campaign 2026-07 (Step-0 noise floor: the wMOV R5/R10 stratum is deterministic run-to-run, and the old fixed cap left ~97 % of the budget idle there). | Two-arm ablation (`attempt7_restart_budget_20260713.txt`): **wMOV R5/R10 stratum −3.79 % → 0.00 % = MILP optimum on every cell** (seed5 38→33, seed6 47→39 at delay 0; R10 167.5→166 = MILP); ~850–900 restarts/run vs 8. No guard regressed (control identical; wDLY guards improved; R20 +0.45 % within noise; historical `R5 seed10 wDLY` = 35 = MILP intact). Solver got smaller: −1 knob, −4 rules, +1 mechanism. Part II battery refresh pending. |
 | `6952f14` (branch `exp/profile-budget`) → **not merged** | **Attempt 8 (phase policy) — attempted & DROPPED.** 4-arm ablation {both, v2-only, v3-only, profile-split} on the timed-out R10+/R20 stratum to decide one-decoder-vs-two (user's simplification hypothesis). A `phase_mode` knob was built on the branch; no behaviour change ships to `main`. | `attempt8_phase_policy_20260714.txt` + K=3 noise resolution `attempt8b_…txt`: v2-only/split refuted (real wMOV regressions +20/+9.5; chain wMK +2023); v3-only wins some certified-loss seeds (`t_loose_R10 s7` 62.5, beats the MILP's integer-gridded 64.5) but has **real R20 regressions** (+377 wMK, +1933 wDLY — its costly decode leaves too little search per slice). **Two decoders earn their keep.** Side-finding: on the certified-loss cells the search, not the decoder, is the binding constraint — the stay-stretching gap stays the target. |
 | `164519a` (merged `5d6fcbc`, tag `igvnd-v01-nest-stretch-20260714`) | **Attempt 9 (nest-stretch) — KEPT.** `_dense_nest_solution` internals generalised from complete-graph waves to the **real blocking DAG**: concentric stay-stretching only along actual front→rear arcs (deepest rear = outermost; finish pass stretches rears around late-starting fronts), unconflicted positions tight/parallel, rounds serialised per component, 4-partition beam (long/short/E/rr). Same gate, same best-of + checker — net machinery 0. | Two-arm ablation (`attempt9_nest_stretch_20260714.txt`): **−120.5 net over 19 wMOV cells, 0 regressions**. `t_loose_R10 s5` 74.5→**63.0** (MILP optimum 61.5), `s7` −4; `full_R10` 258→**235** and 294→**235** (beats MILP 261/322); `chain_R10` 258→**235** (−10.4 %→≈−1.3 %). Part II battery refresh pending for the wMOV columns. |
+| `15082a0` (merged, tag `igvnd-v01-perturb-mix-20260714`) | **Attempt 10 (perturb-mix) — KEPT.** IG destruction is now a 50/50 mix of the targeted delay-weighted rule and **uniform-random removal** (+4 lines, 0 knobs): the targeted rule degenerates under wMK/wMOV (delay ≈ 0 ⇒ same longest k every kick), anchoring the walk. | Two-arm ablation (`attempt10_perturb_mix_20260714.txt`): **−438 net**. `t_loose_R10 s7` 77→**62.5** (below the MILP's integer-gridded 64.5 — the solution the Attempt-8 v3-only arm proved existed), `s10` →**67 = MILP**; the certified-loss family is closed (s5 63.0 vs 61.5 remains). Cons: +1.0 real on `two_rows_medium_R10 s2`; wDLY guard +1 delay unit (noise). Part II battery refresh covers Attempts 9+10 together. |
 
 **Evaluation shortcut.** The MILP baseline is fixed, so re-running it is
 wasteful. To judge a heuristic change, run `ablation_subset.py` (heuristic
