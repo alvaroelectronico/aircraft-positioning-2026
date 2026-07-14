@@ -230,9 +230,18 @@ What the results say (evidence, not just structure):
 - **Decision: KEPT.** Simplicity ledger: −1 knob (`n_starts` cap → optional
   test-only), −4 construction rules (EDD/CR/BLEND/regret-2), +1 mechanism
   (`_biased_order`, ~15 lines). Net: the solver is smaller than before.
-  *Pending:* merge `--no-ff` into `main` + tag `igvnd-v01-restart-budget` +
-  `/sync-method-doc` + full-battery refresh (Part II / paper tables are now
-  stale for the heuristic side).
+  Merged `--no-ff` into `main` (`cbf64c7`) + tag
+  `igvnd-v01-restart-budget-20260713` + spec synced.
+- **Full-battery confirmation (2026-07-14,
+  log `202605_02_main_methods_20260713_211851.log`, 870 runs / 0 failures,
+  code `cbf64c7`):** R5 closed across ALL profiles (wMK/wMOV exact on every
+  config 10/10; wDLY 8–10/10, worst −3 %); R10 wMOV residuals vs unconverged
+  MILP shrank (chain −10.4→−8.3, hub −4.0→−3.7, full −5.1→−3.4); R20/R30
+  unchanged (+5 % to +42 %). Watch-item for Attempt 8: `triangle_loose_R10
+  wMOV` −0.02→−4.08 % (3/10 seeds concede 5–16 absolute units on timed-out
+  cells); `triangle_loose_R10 wDLY` −33.8 % mean is the known Δdelay ≤ 1.5-unit
+  denominator artifact (heuristic wins 5/10 seeds there). Part II of the
+  living spec refreshed from this log.
 
 ### Step 0 — noise-floor measurement (DONE 2026-07-13)
 - **Goal:** run the wMOV R5/R10 stratum twice with identical seeds at the
