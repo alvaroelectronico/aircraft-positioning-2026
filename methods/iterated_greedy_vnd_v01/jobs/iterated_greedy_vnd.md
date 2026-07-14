@@ -224,19 +224,25 @@ regardless of any approximation inside the manoeuvre-aware decoder.
 
 When the **movement-priority** profile meets a **blocking topology**, one
 extra candidate is also built once and folded in by the same best-of /
-checker rule: a **dense concentric-nesting schedule**. In a dense component
-the zero-movement optimum packs aircraft into a few *concentric-nesting
-waves* — a long aircraft wraps shorter ones, all overlapping in one wave's
-span — but the earliest-feasible decode cannot produce that (it always
-prefers placing *before* over *nested*). So this candidate is written with
-**explicit start times**, not via the decode: sort aircraft by stay length,
-group into waves of ≤ |P|, make the longest of each wave the outer container
-on the deepest position, and *stretch* shorter aircraft with idle so the
-stay lengths step down by ≥ 2·η (the nesting condition) even when their work
-durations are equal. A tiny beam (two wave partitions) is tried and the best
-kept. On the complete-blocking `full` topology this reaches — and beats — the
-MILP's reported makespan-at-zero-movements; on other topologies it is simply
-ignored by best-of.
+checker rule: a **concentric nest-stretch schedule** over the *actual
+blocking DAG* (Attempt 9; originally a complete-graph-only wave builder,
+Commit 4). The zero-movement optimum often *stretches* an aircraft's stay
+with inter-job idle so it can wrap a blocking partner — a schedule shape the
+earliest-feasible decode cannot produce (it always prefers placing *before*
+over *nested*, and packs jobs tight). So this candidate is written with
+**explicit start times**, not via the decode: aircraft are grouped into
+*rounds* of one per position; within a round, **only the positions that
+actually block each other** get the concentric treatment — along every
+front→rear arc the rear's stay is stretched so it wraps the front's stay by
+η on both sides (deepest rear = outermost shell), while unconflicted
+positions run tight and in parallel. Rounds are serialised within the
+blocking component and simply chained (`+ε`) per position elsewhere. A small
+beam of four round partitions (long-first / short-first / earliest-`E` /
+round-robin) is tried and the best kept. On the complete graph this reduces
+to the original wave builder (and now beats it: `full_R10` 258 → 235, below
+the MILP's 261); on sparse topologies it reproduces the stay-stretching
+mechanism verified in the certified optima (e.g. `triangle_loose_R10`); where
+it does not help it is simply ignored by best-of.
 
 ## 9. The complete algorithm in pseudocode
 
@@ -1050,7 +1056,7 @@ The returned dict matches `problems/jobs/checker.py`: `status`, `objective`,
 | Zero-movement decoder (§3.1) | `_decode`; admissible-placement bands in `_forbidden` |
 | Manoeuvre-aware decoder (§3.2) | `_decode_v3`; per-front placement `_place_front`; forward simulation with Mode-B/C `_sim_front` |
 | Cached decode (memoised eval) | `_eval` (keyed by decoder tag, order, positions-along-order; reset per solve) |
-| Dense concentric-nesting builder (§8; explicit starts, best-of) | `_dense_nest_solution` (called once in `solve` when `Wˢ`-dominant + arcs) |
+| Concentric nest-stretch builder over the blocking DAG (§8; explicit starts, best-of) | `_dense_nest_solution` (called once in `solve` when `Wˢ`-dominant + arcs; Attempt 9 generalised its internals from complete-graph waves to the real arc structure) |
 | Risk diagnostics (Commit 5; observability) | `_diagnostics(best_sol, start_objs)` → `delay_risk` / `nesting_risk` / `search_risk`, attached to the solution + one log line |
 | Slim construction portfolio (§4: NEH + SLACK + biased shuffle) | seed orders inline in `solve`; `_greedy_construct(order)`; `_biased_order(base)` |
 | VND neighbourhoods (§5) | `_vnd`, `_n_reassign`, `_n_swap_pos`, `_n_reorder` |
@@ -1126,6 +1132,7 @@ the code that produced it. Behaviour-affecting commits (newest last):
 | `4a80e79` | **Revert Commit 6 + full battery snapshot.** Code = Commit 5 (Commits 1–4 behaviour + diagnostics). Ran the full 120-instance heuristic battery seed-first (log `…114558`, self-stamped `4a80e79`), paired against the cached MILP via the new `experiments/paired_report.py` (per-instance MILP-then-heuristic detail) + `gap_summary.py`. | Part II refreshed to this state. Confirms Commit 5 is behaviour-neutral (numbers reproduce Commits 1–4 within run-to-run noise) and documents the definitive comparison: heuristic at/above MILP across R10, wins at scale (R20/R30 MILP timeouts), residuals are noise-level or vs unconverged MILP. |
 | `76d43e0` | **Attempt 7 (restart-budget) — KEPT.** Restart loop runs **until the deadline** (`n_starts` now an optional test-only hard cap; per-start slice unchanged). Portfolio slimmed to **NEH + SLACK + `_biased_order`** (rank-biased geometric shuffle, β = 0.3, of the better base); EDD / CR / BLEND / regret-2 retired. Per-start log line only on improvement. See `IMPROVEMENT_LOG.md` Attempt 7 + campaign 2026-07 (Step-0 noise floor: the wMOV R5/R10 stratum is deterministic run-to-run, and the old fixed cap left ~97 % of the budget idle there). | Two-arm ablation (`attempt7_restart_budget_20260713.txt`): **wMOV R5/R10 stratum −3.79 % → 0.00 % = MILP optimum on every cell** (seed5 38→33, seed6 47→39 at delay 0; R10 167.5→166 = MILP); ~850–900 restarts/run vs 8. No guard regressed (control identical; wDLY guards improved; R20 +0.45 % within noise; historical `R5 seed10 wDLY` = 35 = MILP intact). Solver got smaller: −1 knob, −4 rules, +1 mechanism. Part II battery refresh pending. |
 | `6952f14` (branch `exp/profile-budget`) → **not merged** | **Attempt 8 (phase policy) — attempted & DROPPED.** 4-arm ablation {both, v2-only, v3-only, profile-split} on the timed-out R10+/R20 stratum to decide one-decoder-vs-two (user's simplification hypothesis). A `phase_mode` knob was built on the branch; no behaviour change ships to `main`. | `attempt8_phase_policy_20260714.txt` + K=3 noise resolution `attempt8b_…txt`: v2-only/split refuted (real wMOV regressions +20/+9.5; chain wMK +2023); v3-only wins some certified-loss seeds (`t_loose_R10 s7` 62.5, beats the MILP's integer-gridded 64.5) but has **real R20 regressions** (+377 wMK, +1933 wDLY — its costly decode leaves too little search per slice). **Two decoders earn their keep.** Side-finding: on the certified-loss cells the search, not the decoder, is the binding constraint — the stay-stretching gap stays the target. |
+| `164519a` (merged `5d6fcbc`, tag `igvnd-v01-nest-stretch-20260714`) | **Attempt 9 (nest-stretch) — KEPT.** `_dense_nest_solution` internals generalised from complete-graph waves to the **real blocking DAG**: concentric stay-stretching only along actual front→rear arcs (deepest rear = outermost; finish pass stretches rears around late-starting fronts), unconflicted positions tight/parallel, rounds serialised per component, 4-partition beam (long/short/E/rr). Same gate, same best-of + checker — net machinery 0. | Two-arm ablation (`attempt9_nest_stretch_20260714.txt`): **−120.5 net over 19 wMOV cells, 0 regressions**. `t_loose_R10 s5` 74.5→**63.0** (MILP optimum 61.5), `s7` −4; `full_R10` 258→**235** and 294→**235** (beats MILP 261/322); `chain_R10` 258→**235** (−10.4 %→≈−1.3 %). Part II battery refresh pending for the wMOV columns. |
 
 **Evaluation shortcut.** The MILP baseline is fixed, so re-running it is
 wasteful. To judge a heuristic change, run `ablation_subset.py` (heuristic
