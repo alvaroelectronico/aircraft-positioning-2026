@@ -17,9 +17,13 @@ The experimental comparison on 270 instances delivers a clear and honest
 picture.  On the tractable end of the benchmark --- small fleets,
 no or loose blocking --- the MILP proves optimality and IGVND matches it,
 being exact on the no-blocking and five-aircraft instances and within a
-couple of percent on the remaining converged cases; the lone large relative
+few percent on the remaining converged cases; the lone large relative
 gap is a small-denominator artefact that vanishes in the per-component
-view.  On the intractable end --- larger fleets and the profiles that
+view, and the one genuine concession to a certified optimum (three seeds
+of the loose triangle under movement-priority) isolates a precise
+structural cause: the optimum stretches aircraft stays with inter-job
+idle to nest tighter, a schedule shape outside the tight-packing
+decoder's reach.  On the intractable end --- larger fleets and the profiles that
 activate the manoeuvre machinery --- the MILP no longer converges within the
 budget, and IGVND returns markedly better feasible solutions in the same
 60\,s, by up to $+44\%$ and hundreds of objective units in absolute terms;
@@ -32,10 +36,11 @@ scale where exact optimisation times out --- or fails outright.
 Several directions remain open.  The MILP could be tightened with
 valid inequalities or a branch-and-cut treatment of the partition
 constraint to push the tractability frontier outward.  On the heuristic
-side, the residual gaps that survive at scale are at the level of the
-time-limited search's run-to-run variance, so the most promising lever is
-variance reduction --- elite restarts or instance-adaptive restart counts
---- rather than additional neighbourhoods.  Finally, the present study
+side, the one residual measured against a certified optimum points to a
+decoder extension --- letting the zero-movement regime stretch a stay with
+inter-job idle when that enables a tighter nesting --- while the remaining
+gaps at scale are at the level of the time-limited search's run-to-run
+variance.  Finally, the present study
 fixes a single 60\,s budget and three corner weight profiles; an anytime
 profile of solution quality versus time, and a sweep over intermediate
 weight combinations, would further characterise the operating envelope of

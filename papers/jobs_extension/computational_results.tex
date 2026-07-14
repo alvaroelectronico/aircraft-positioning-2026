@@ -123,23 +123,27 @@ together, grouping the configurations by what the MILP can certify.
 \paragraph{Where the MILP is a proven optimum, IGVND matches it.}
 On the configurations the MILP solves to optimality, IGVND is at or within
 a small fraction of a percent of that optimum.  It is \emph{exact} on the
-no-blocking baseline and on the five-aircraft instances (mean
-$|g| \le 0.2\%$ across all profiles), and within roughly $\pm 2.5\%$ on the
-remaining converged $R{=}10$ cases.  The makespan-priority column, where
-the MILP converges on most $R{=}10$ topologies, shows IGVND tracking the
-optimum closely (\emph{None}, \emph{Triangle}, \emph{Two rows} all within
-$1\%$); the small negative entries on \emph{Chain} and \emph{Hub} are at
-the level of the search's run-to-run noise.  The corresponding
+no-blocking baseline and on the five-aircraft instances --- $g = 0.00\%$ on
+every $R{=}5$ configuration under the makespan- and movement-priority
+profiles, and within $0.3\%$ on average under delay-priority (a single
+seed at $-3\%$) --- and within roughly $\pm 2.5\%$ on the remaining
+converged $R{=}10$ cases.  The makespan-priority column, where the MILP
+converges on most $R{=}10$ topologies, shows IGVND tracking the optimum
+closely (\emph{None}, \emph{Triangle}, \emph{Two rows} all within $1\%$);
+the small negative entries on \emph{Chain} and \emph{Hub} are at the level
+of the search's run-to-run noise.  The corresponding
 $\Delta m, \Delta D, \Delta n$ in Table~\ref{tab:components} are
 near-zero, confirming that these are genuine near-ties rather than
 denominator artefacts.
 
 \paragraph{The one apparent outlier is a small-denominator artefact.}
 The most negative entry in Table~\ref{tab:gap_profile} is the
-loosely-constrained triangle under delay-priority ($-19\%$ mean, driven by
-a single seed at $-199\%$).  Here the MILP drives the total delay to zero
-by spending a handful of manoeuvres, so the denominator $z_{\mathrm{MILP}}$
-is tiny and any residual delay explodes the relative gap.  The
+loosely-constrained triangle under delay-priority ($-34\%$ mean, driven by
+two seeds at $\approx -187\%$).  Here the MILP drives the total delay to
+zero by spending a handful of manoeuvres, so the denominator
+$z_{\mathrm{MILP}}$ is tiny and any residual delay explodes the relative
+gap: on the two extreme seeds IGVND concedes only $1.5$ delay units, and it
+attains the strictly better objective on half of the ten seeds.  The
 corresponding $\Delta D$ in Table~\ref{tab:components} is essentially zero:
 in absolute terms IGVND loses a negligible amount of delay, not a large
 one.  This is exactly the small-denominator inflation the per-component
@@ -150,8 +154,8 @@ On the configurations the MILP cannot close in 60\,s --- every $R{=}20$ and
 $R{=}30$ case, and the delay-/movement-priority profiles on the tight
 $R{=}10$ topologies --- IGVND returns a substantially better feasible
 solution within the same budget.  The advantage grows monotonically with
-fleet size: the relative gap rises from roughly $+5\%$ to $+20\%$ at
-$R{=}20$ to $+19\%$ to $+44\%$ at $R{=}30$, across both the \emph{Two rows}
+fleet size: the relative gap rises from roughly $+5\%$ to $+18\%$ at
+$R{=}20$ to $+14\%$ to $+44\%$ at $R{=}30$, across both the \emph{Two rows}
 and \emph{Triangle} families and all three slack levels, peaking under
 delay-priority (e.g.\ $+44\%$ on \emph{Triangle}-loose-$R{=}30$).  The
 per-component differences confirm a large absolute improvement and not a
@@ -178,19 +182,24 @@ the zero-movement schedule tightest.  Because that denominator is not small
 (it ranges from $\approx 36$ at $R{=}5$ to several thousand at $R{=}30$), the
 relative gaps here are genuine and not a small-denominator artefact --- unlike
 the delay-priority outlier of the previous paragraph.  IGVND matches the MILP
-on the instances the exact solver can close ($R{=}5$ and the loose/converged
-$R{=}10$ cases, $|g| \lesssim 1\%$) and dominates at $R{=}20$ and $R{=}30$
-($+7\%$ to $+35\%$, with large negative $\Delta m$ and $\Delta D$ ---
-hundreds of objective units in absolute terms).  It does, however,
-\emph{trail} on the tight \emph{Chain} ($-10.4\%$, $\Delta m \approx +13$) and
-\emph{Hub} ($-4.0\%$, $\Delta m \approx +4$) topologies at $R{=}10$, where the
-MILP incumbent packs the zero-movement schedule slightly tighter than the
-earliest-feasible decode achieves; since the MILP is itself unconverged there
-($82\%$ and $32\%$ optimality gaps), this is a comparison of two feasible
-solutions, not a defeat against a proven optimum, but it is a genuine residual
-weakness of the zero-movement packing on linear and star blocking.  The
-sub-$4\%$ losses at $R{=}5$ are small-denominator noise (a one-unit difference
-on an objective of $\approx 36$).
+\emph{exactly} on every five-aircraft configuration ($g = 0.00\%$, all seeds)
+and dominates at $R{=}20$ and $R{=}30$ ($+7\%$ to $+35\%$, with large negative
+$\Delta m$ and $\Delta D$ --- hundreds of objective units in absolute terms).
+Two kinds of residual remain at $R{=}10$.  It \emph{trails} on the tight
+\emph{Chain} ($-8.3\%$, $\Delta m \approx +10$) and \emph{Hub} ($-3.7\%$,
+$\Delta m \approx +2$) topologies, where the MILP incumbent packs the
+zero-movement schedule slightly tighter than the earliest-feasible decode
+achieves; since the MILP is itself unconverged there ($82\%$ and $32\%$
+optimality gaps), this is a comparison of two feasible solutions, not a
+defeat against a proven optimum, though it is a genuine residual weakness of
+the zero-movement packing on linear and star blocking.  On the loose
+\emph{Triangle} at $R{=}10$, by contrast, the MILP \emph{does} prove
+optimality, and IGVND concedes on three of ten seeds ($-4.1\%$ mean, worst
+seed $-26\%$; $5$--$16$ objective units): there the optimum stretches
+aircraft stays with inter-job idle to enable a tighter nesting, a schedule
+shape the tight-packing decoder cannot represent.  This is the one
+configuration family where the heuristic measurably loses to a certified
+optimum, and it delimits the method's remaining structural gap.
 
 % ------------------------------------------------------------------------------
 \subsection{Discussion}

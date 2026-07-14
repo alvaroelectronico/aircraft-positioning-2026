@@ -38,8 +38,10 @@ The method is built from five blocks, each detailed in a subsection below:
         a zero-movement regime that is feasible by construction, and a
         manoeuvre-aware regime that may spend Mode-(B)/Mode-(C) movements
         when they reduce the objective;
-  \item a \textbf{construction portfolio} (\S\ref{sec:igvnd_construction})
-        that seeds each restart from a different priority rule;
+  \item a \textbf{construction scheme} (\S\ref{sec:igvnd_construction})
+        built on two deterministic priority rules plus a rank-biased
+        randomised shuffle that gives every further restart a distinct
+        seed;
   \item a \textbf{Variable Neighbourhood Descent}
         (\S\ref{sec:igvnd_vnd}) that refines a state to a local optimum;
   \item an \textbf{Iterated-Greedy} loop (\S\ref{sec:igvnd_ig}) that
@@ -48,13 +50,18 @@ The method is built from five blocks, each detailed in a subsection below:
         (\S\ref{sec:igvnd_safety}).
 \end{enumerate}
 
-Algorithm~\ref{alg:igvnd} states the method at a high level.  Each restart
-draws a seed from the portfolio, optimises it first in the zero-movement
-regime to obtain a guaranteed-feasible \emph{floor}, and then polishes it
-in the manoeuvre-aware regime, retaining the polished schedule only if an
+Algorithm~\ref{alg:igvnd} states the method at a high level.  Restarts are
+drawn \emph{until the time budget is exhausted}: each restart takes a seed
+order (deterministic for the first two, biased-randomised afterwards),
+optimises it first in the zero-movement regime to obtain a
+guaranteed-feasible \emph{floor}, and then polishes it in the
+manoeuvre-aware regime, retaining the polished schedule only if an
 independent feasibility check certifies it and it improves the floor.  A
 single dense-nesting candidate is added when the weights reward it.  The
-best certified schedule over all restarts is returned.
+best certified schedule over all restarts is returned.  Because every
+restart ends early once its own search stalls, small instances perform
+hundreds of independent restarts within the budget while large ones
+naturally receive few, without any instance-dependent tuning.
 
 \begin{algorithm}[htbp]
 \DontPrintSemicolon
@@ -62,15 +69,18 @@ best certified schedule over all restarts is returned.
 \SetKwInput{KwResult}{Output}
 \KwData{instance $I$; weights $(W^M, W^D, W^S)$; time budget $T$.}
 \KwResult{a feasible schedule.}
-preprocess $I$; build the construction portfolio
-   $\mathcal{C} = (\rho_1, \ldots, \rho_6)$ (\S\ref{sec:igvnd_construction})\;
-set the number of restarts $n_s = 8$ if $R \le 10$, $\;4$ if $R \le 20$,
-   $\;3$ otherwise\;
-$z^\star \leftarrow +\infty$\;
-\For{$i = 1$ \KwTo $n_s$ \textbf{\emph{while}} time remains}{
-  allot the time share $T/n_s$ to restart $i$\;
-  $(\pi, \sigma) \leftarrow \textsc{Construct}(\rho_{1 + (i-1 \bmod 6)})$
+preprocess $I$; let $\rho_{\mathrm{NEH}}, \rho_{\mathrm{SLACK}}$ be the two
+   deterministic priority rules (\S\ref{sec:igvnd_construction})\;
+set the per-restart time cap $\tau = T/8$ if $R \le 10$, $\;T/4$ if
+   $R \le 20$, $\;T/3$ otherwise\;
+$z^\star \leftarrow +\infty$;\quad $i \leftarrow 1$\;
+\While{time remains}{
+  allot $\min(\tau,\ \text{remaining time})$ to restart $i$\;
+  $\rho \leftarrow \rho_{\mathrm{NEH}}$ if $i{=}1$;\;\quad
+     $\rho_{\mathrm{SLACK}}$ if $i{=}2$;\;\quad
+     $\textsc{BiasedShuffle}$ of the better-scoring of the two if $i \ge 3$
      \tcp*{Alg.~\ref{alg:construct}}
+  $(\pi, \sigma) \leftarrow \textsc{Construct}(\rho)$\;
   $(\pi, \sigma) \leftarrow \textsc{Search}(\pi, \sigma, \textsc{Decode}_0)$;
      \quad $z_{\mathrm{floor}} \leftarrow z_0(\pi, \sigma)$
      \tcp*{zero-movement floor}
@@ -83,6 +93,7 @@ $z^\star \leftarrow +\infty$\;
     $(\sigma^\circ, z^\circ) \leftarrow$ the floor schedule and $z_{\mathrm{floor}}$\;
   }
   \lIf{$z^\circ < z^\star$}{$z^\star \leftarrow z^\circ$; record the schedule}
+  $i \leftarrow i + 1$\;
 }
 \If{$W^S$ dominates the weights \textbf{\emph{and}} $\calA \ne \emptyset$}{
   build the dense-nesting candidate (\S\ref{sec:igvnd_safety})\;
@@ -209,21 +220,26 @@ no-movement schedule.
 \end{algorithm}
 
 % ------------------------------------------------------------------------------
-\subsection{Construction portfolio}
+\subsection{Construction: two rules and a biased shuffle}
 \label{sec:igvnd_construction}
 % ------------------------------------------------------------------------------
 
-Each restart builds its seed from a different construction rule, so the
-restarts differ by construction and not only by the perturbation source.
-Five rules use greedy insertion under a fixed priority order $\rho$ ---
-$-T_r$ (the NEH makespan rule), $L_r$ (earliest due date), the slack
-$L_r - E_r - T_r$, the critical ratio $L_r / T_r$, and a rank blend of
-these --- and a sixth uses regret-2 insertion, a dynamic order that
-repeatedly commits the aircraft whose second-best position is much worse
-than its best (Algorithm~\ref{alg:construct}).  The due-date and regret-2
-rules steer tight-target aircraft into early slots, which is the lever the
-delay-priority profile needs; the NEH rule remains the strong makespan
-seed.  In both variants the cost of a tentative insertion is the value
+Each restart builds its seed by greedy insertion under a priority order
+$\rho$, so restarts differ by construction and not only by the
+perturbation source.  Two deterministic orders cover the objective's two
+combinatorial levers: $-T_r$ (the NEH makespan rule --- the bulkiest
+aircraft are placed while the schedule is still empty) and the slack
+$L_r - E_r - T_r$ (least due-date headroom first, which steers
+tight-target aircraft into early slots --- the delay lever).  Every
+restart after the second draws its order from a single diversification
+mechanism: a \emph{rank-biased geometric shuffle} of whichever
+deterministic order scored better, in which the next aircraft is drawn
+from the remaining base order with $\Pr(\text{rank } k) \propto
+(1-\beta)^k$ (we use $\beta = 0.3$), so each restart explores a distinct
+but still rule-shaped insertion order
+(Algorithm~\ref{alg:construct}).  Combined with the open-ended restart
+loop of Algorithm~\ref{alg:igvnd}, this gives the search an unlimited
+supply of diverse seeds.  The cost of a tentative insertion is the value
 returned by the zero-movement decoder restricted to the aircraft committed
 so far.
 
@@ -231,7 +247,7 @@ so far.
 \DontPrintSemicolon
 \SetKwInput{KwData}{Input}
 \SetKwInput{KwResult}{Output}
-\KwData{a priority order $\rho$ (greedy variant), or none (regret-2 variant).}
+\KwData{a priority order $\rho$; for the shuffle, a base order and the RNG.}
 \KwResult{a seed state $(\pi, \sigma)$.}
 \textbf{Greedy insertion under $\rho$:}\;
 \Indp
@@ -244,21 +260,18 @@ so far.
   \Return $(\pi,\ \rho)$\;
 \Indm
 \BlankLine
-\textbf{Regret-2 insertion:}\;
+\textbf{\textsc{BiasedShuffle} of a base order $\rho_{\mathrm{base}}$:}\;
 \Indp
-  $\pi \leftarrow \emptyset$;\quad $\sigma \leftarrow ()$\;
-  \While{some aircraft is unplaced}{
-    \ForEach{unplaced $r$}{
-      let $z^{(1)}_r \le z^{(2)}_r$ be the two lowest values of
-         $z_0\big(\pi \cup \{r \mapsto p\}\big)$ over $p \in \calP$\;
-    }
-    $r^\star \leftarrow \argmax_r \big(z^{(2)}_r - z^{(1)}_r\big)$
-       \tcp*{largest regret}
-    place $r^\star$ at its best position; append $r^\star$ to $\sigma$\;
+  $\mathit{pool} \leftarrow \rho_{\mathrm{base}}$;\quad $\rho \leftarrow ()$\;
+  \While{$\mathit{pool}$ is not empty}{
+    draw a rank $k$ with $\Pr(k) \propto (1-\beta)^{k}$
+       \tcp*{$\beta = 0.3$: most mass on ranks 0--3}
+    move the $\min(k, |\mathit{pool}|-1)$-th element of $\mathit{pool}$
+       to the end of $\rho$\;
   }
-  \Return $(\pi,\ \sigma)$\;
+  \Return $\rho$ \tcp*{then construct greedily under $\rho$}
 \Indm
-\caption{\textsc{Construct} --- portfolio seed generators.}
+\caption{\textsc{Construct} --- greedy insertion and the biased shuffle.}
 \label{alg:construct}
 \end{algorithm}
 

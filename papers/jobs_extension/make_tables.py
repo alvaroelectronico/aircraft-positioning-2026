@@ -1,15 +1,14 @@
 """Generate the LaTeX result tables for the job-level extension paper.
 
-Rebuilt on the **combined 290-instance battery** (heuristic IGVND v01 vs MILP),
-**excluding the Full topology**.  Data sources (kept consistent with the
-experimentation, NOT a blanket results.csv read):
+Built on the **2026-07-13 full battery** (heuristic IGVND v01 at Attempt 7 /
+`cbf64c7` vs the cached MILP), **excluding the Full topology**.  Data sources
+(kept consistent with the experimentation, NOT a blanket results.csv read):
 
-  * heuristic, 12 original configs : parsed from the June-14 paper battery log
-    (results.csv's 'latest' igvnd rows were later overwritten by a rerun, so
-    they are not a reliable source for the paper numbers);
-  * heuristic, new configs         : the step-2 battery rows in results.csv
-    (timestamp >= STEP2_TS);
-  * MILP, all configs              : latest milp_job_* per (instance,label) in
+  * heuristic, ALL 29 configs : parsed from the single battery log
+    `202605_02_main_methods_20260713_211851.log` (870 runs / 0 failures;
+    results.csv 'latest' igvnd rows are not a reliable paper source — they
+    get overwritten by ablation reruns);
+  * MILP, all configs         : latest milp_job_* per (instance,label) in
     results.csv, with the Gurobi optimality gap read from the solution JSONs.
 
 Failed MILP runs (Gurobi ran **out of memory** on the largest R=30 instances)
@@ -35,9 +34,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CSV = ROOT / "outputs" / "solutions" / "results.csv"
-JUN14_LOG = ROOT / "outputs" / "logs" / "instances_main_methods_20260614_114558_iterated_greedy_vnd_v01.log"
+BATTERY_LOG = ROOT / "outputs" / "logs" / "202605_02_main_methods_20260713_211851.log"
 OUT = Path(__file__).resolve().parent / "tables"
-STEP2_TS = "20260628_0810"      # new-config heuristic rows are at/after this
 
 # (profile key, MILP label, heuristic label, display header)
 PROFILES = [
@@ -78,12 +76,12 @@ def parse_stem(stem: str):
 # Data loading (combined battery)
 # ---------------------------------------------------------------------------
 
-def _parse_old_igvnd() -> dict:
-    """{(instance, igvnd_label): (obj, mk, mov, dly)} from the June-14 log."""
+def _parse_battery_igvnd() -> dict:
+    """{(instance, igvnd_label): (obj, mk, mov, dly)} from the battery log."""
     pat = re.compile(r"\s+(scn_\S+)\s+(igvnd_w\w+)\s+heuristic_\S*\s+"
                      r"([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+(\d+)\s")
     out = {}
-    for line in JUN14_LOG.read_text(encoding="utf-8", errors="replace").splitlines():
+    for line in BATTERY_LOG.read_text(encoding="utf-8", errors="replace").splitlines():
         m = pat.match(line)
         if m:
             inst, exp, obj, mk, dly, mov = m.groups()
@@ -92,17 +90,16 @@ def _parse_old_igvnd() -> dict:
 
 
 def load_combined() -> dict:
-    """instance -> label -> (obj, mk, mov, dly), combining the paper's heuristic
-    log (old configs) + step-2 results.csv (new configs) + latest MILP."""
+    """instance -> label -> (obj, mk, mov, dly): heuristic from the battery
+    log, MILP (latest per instance/label) from the cached results.csv."""
     byinst: dict[str, dict] = defaultdict(dict)
 
-    # old-config heuristic from the paper log
-    for (inst, label), tup in _parse_old_igvnd().items():
+    # heuristic — single fresh battery log (all 29 configs)
+    for (inst, label), tup in _parse_battery_igvnd().items():
         byinst[inst][label] = tup
 
-    # MILP (latest) + new-config heuristic from results.csv
+    # MILP (latest) from the cached ledger
     milp_ts: dict[tuple, str] = {}
-    igv_ts: dict[tuple, str] = {}
     for r in csv.reader(open(CSV, newline="")):
         if len(r) < 10:
             continue
@@ -115,10 +112,6 @@ def load_combined() -> dict:
         if label in MILP_LABELS:
             if key not in milp_ts or ts > milp_ts[key]:
                 milp_ts[key] = ts
-                byinst[inst][label] = tup
-        elif label in IGVND_LABELS and ts >= STEP2_TS:
-            if key not in igv_ts or ts > igv_ts[key]:
-                igv_ts[key] = ts
                 byinst[inst][label] = tup
     return byinst
 
