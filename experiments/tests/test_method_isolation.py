@@ -33,14 +33,8 @@ _METHODS  = _ROOT / "methods"
 # Each entry is keyed by the relative-to-repo path of the file allowed
 # to reach across.  The value is the cross-method prefix it may touch.
 _ALLOWLIST: dict[str, str] = {
-    # The autoresearch loop scores variants relative to the manual MILP
-    # baseline: score = (variant_obj - milp_obj) / max(1, |milp_obj|).
-    # precompute_baseline.py is the build-time helper that runs the
-    # manual MILP once per benchmark instance and caches the values into
-    # baseline_metrics.json.  It is NOT part of the autoresearch solving
-    # logic -- it produces the reference numbers the loop measures
-    # against.  Allowed to import methods/manual/jobs/.
-    "methods/autoresearch/jobs/precompute_baseline.py": "methods/manual/jobs",
+    # (empty — the only historical entry, autoresearch's baseline helper,
+    # moved to retired_heuristics/ with the 2026-07 refocus.)
 }
 
 _FORBIDDEN_PKG_PREFIXES = ("papers", "literature_review")

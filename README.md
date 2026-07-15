@@ -7,13 +7,16 @@ heuristic (Iterated Greedy + Variable Neighbourhood Descent), measured against a
 
 > **Focus (since 2026-07).** The repo was refocused from a broad
 > two-problem / six-method comparison to improving **`iterated_greedy_vnd_v01`**
-> alone. The aircraft-level problem (paper #1) and the other method attempts
-> (`iterated_greedy_vnd_v02`, `brkga_v02`, `theory_assisted`, `autoresearch`,
-> and the old manual job heuristics) are **retired**. They remain in the tree
-> for now (inert, pending a later deletion pass) and the full pre-refocus tree
-> is preserved on the branch `archive/pre-restructure-20260713`. The **MILP
-> baseline** (`methods/manual/jobs/milp_jobs_v2_solver.py`) is **kept** — it is
-> the comparison reference the paper uses, not a discarded attempt.
+> alone. The other method attempts (`iterated_greedy_vnd_v02`, `brkga_v02`,
+> `theory_assisted`, `autoresearch`) are **retired** and archived inert under
+> [`retired_heuristics/`](retired_heuristics/) (its README says what each was
+> and why it lost); the full pre-refocus tree is preserved on the branch
+> `archive/pre-restructure-20260713`. The **MILP baseline**
+> (`methods/manual/jobs/milp_jobs_v2_solver.py`) is **kept** — it is the
+> comparison reference the paper uses, not a discarded attempt. The
+> aircraft-level problem (paper #1) is also retired; its code still sits in
+> place (`problems/aircraft/`, `methods/manual/aircraft/`,
+> `papers/cejor_aircraft/`).
 
 ## What is active
 
@@ -32,8 +35,10 @@ papers/jobs_extension/            # the manuscript (tables auto-generated from r
 outputs/                          # solutions/ (per-run JSONs + results.csv), logs/ (battery logs)
 ```
 
-Retired-but-inert (to be deleted in a later pass; preserved on the archive branch):
-`problems/aircraft/`, `methods/manual/aircraft/`, `methods/{autoresearch,iterated_greedy_vnd_v02,brkga_v02,theory_assisted}/`, `papers/cejor_aircraft/`.
+Retired-but-inert (preserved on the archive branch too):
+`retired_heuristics/{autoresearch,iterated_greedy_vnd_v02,brkga_v02,theory_assisted}/`
+(the discarded method attempts, with their own README) and the aircraft-level
+problem (`problems/aircraft/`, `methods/manual/aircraft/`, `papers/cejor_aircraft/`).
 
 ## Branch / tag map
 
