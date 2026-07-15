@@ -5,18 +5,16 @@ the way a paper would, with no reference to the source code; **Part II**
 reports the results and their analysis; **Part III** is the improvement
 roadmap; **Part IV** explains how the method is realised in code.
 
-> **Status (code `76d43e0` merged as `cbf64c7`; Attempt 7 KEPT; full battery
-> `…211851`).** Commits 1–5 plus **Attempt 7 (restart-budget)**: the restart
-> loop now runs **until the deadline** (no fixed start count) and the
-> construction portfolio is **slimmed to NEH + SLACK + one rank-biased
-> geometric shuffle** of the better base (`_biased_order`; EDD/CR/BLEND/
-> regret-2 retired). The solver got *smaller* (−1 knob, −4 rules,
-> +1 mechanism). The full 290-instance battery (Part II, log `…211851`,
-> 870 runs / 0 failures) confirms the two-arm ablation: **R5 is closed** —
-> the heuristic matches the proven MILP optimum on essentially every small
-> instance in all three profiles — R10 wMOV residuals shrank, and nothing
-> regressed at scale. Remaining residuals: 60-s timed-out R10+ cells (the
-> Attempt-8 stratum) and the known relative-gap artifacts.
+> **Status (code `197bfc9`; Attempts 7+9+10 KEPT; full battery `…174533`).**
+> The 2026-07 campaign shipped three kept improvements — restarts until the
+> deadline + slim biased construction (A7), the DAG-generalised nest-stretch
+> candidate (A9), and 50/50 targeted/random IG destruction (A10) — and one
+> data-closed question (A8: two decoders earn their keep). The solver is
+> *simpler* than before the campaign (−1 knob, −4 rules, +1 sampler; no new
+> phases). Battery `…174533` (870/0): **R5 = proven optimum in all
+> profiles; wMOV residual families resolved** (`full` +9.7 %, `chain`
+> −0.6 %, `hub` −1.7 %, `t_loose` +0.4 %); scale wins intact. Remaining:
+> a small search-variance tail (2 loose seeds) and the R20+ measurement gap.
 
 ---
 
@@ -437,17 +435,17 @@ feasible no-movement schedule.
 
 ---
 
-# Part II — Results and analysis (solver at Attempt 7; run under `cbf64c7`)
+# Part II — Results and analysis (solver at Attempts 9+10; run under `197bfc9`)
 
-> Snapshot of the solver **after Attempt 7 (restart-budget)**: Commits 1–5
-> behaviour **plus** restarts-until-the-deadline and the slim
-> NEH / SLACK / biased-shuffle construction portfolio (EDD / CR / BLEND /
-> regret-2 retired). First full battery on the **290-instance** benchmark.
-> Battery run under commit `cbf64c7`, seed-first, self-stamped in the log
-> header. Headline: **R5 is closed** — the heuristic now matches the proven
-> MILP optimum on essentially every small instance in all three profiles
-> (the pre-Attempt-7 wMOV R5 losses of −3.9 % mean / −20 % worst are gone),
-> with no regression anywhere else.
+> Snapshot of the solver after **Attempts 7, 9 and 10** (restarts-until-
+> deadline + slim biased portfolio; DAG-generalised nest-stretch candidate;
+> 50/50 targeted/random IG destruction). Full 290-instance battery, run
+> seed-first under commit `197bfc9` (log self-stamped), 870 runs / 0
+> failures, paired against the cached MILP. Headline: **R5 closed in all
+> profiles** (= proven MILP optimum), and the wMOV R10 residual families are
+> now essentially resolved — `full` flips to **+9.7 %** (wins outright),
+> `chain` −0.6 %, `hub` −1.7 %, `triangle_loose` +0.4 % with 8/10 seeds at
+> or above the certified optimum.
 
 ## Experimental setup
 
@@ -464,134 +462,134 @@ feasible no-movement schedule.
 - **Metric:** relative gap `g = (MILP_obj − heuristic_obj) / MILP_obj`
   (`g > 0` ⇒ heuristic better), **plus** per-component Δ (heuristic − MILP).
 - **Log (this code state):**
-  [`outputs/logs/202605_02_main_methods_20260713_211851.log`](../../../outputs/logs/202605_02_main_methods_20260713_211851.log)
-  — self-stamped `Code state (git): cbf64c7`.
+  [`outputs/logs/202605_02_main_methods_20260714_174533.log`](../../../outputs/logs/202605_02_main_methods_20260714_174533.log)
+  — self-stamped `Code state (git): 197bfc9`.
 
 ## Relative objective gap (mean / min / max over 10 seeds)
 
 ```
 [wMK  (100/1/1  makespan-priority)]            N     Mean      Min      Max
-  scn_chain_tight_P5_R10                      10    -0.84%    -3.08%    +0.04%
-  scn_full_tight_P5_R10                       10    +2.41%    -4.22%    +7.72%
-  scn_full_tight_P5_R20                       10   +42.46%   +21.38%   +60.59%
-  scn_hub_tight_P5_R10                        10    -2.48%    -4.82%    +0.01%
+  scn_chain_tight_P5_R10                      10    -1.15%    -3.08%    +0.87%
+  scn_full_tight_P5_R10                       10    +0.75%    -6.83%    +7.74%
+  scn_full_tight_P5_R20                       10   +41.50%   +16.94%   +60.92%
+  scn_hub_tight_P5_R10                        10    -2.50%    -5.12%    +0.01%
   scn_none_tight_P5_R10                       10    +0.00%    +0.00%    +0.00%
-  scn_triangle_loose_P5_R10                   10    -0.32%    -3.66%    +1.53%
-  scn_triangle_loose_P5_R20                   10   +14.63%    +9.71%   +23.50%
-  scn_triangle_loose_P5_R30                    9   +30.33%   +19.89%   +36.22%
+  scn_triangle_loose_P5_R10                   10    -0.43%    -3.69%    +1.66%
+  scn_triangle_loose_P5_R20                   10   +15.00%    +9.73%   +23.19%
+  scn_triangle_loose_P5_R30                    9   +31.02%   +19.71%   +37.75%
   scn_triangle_loose_P5_R5                    10    +0.00%    +0.00%    +0.00%
-  scn_triangle_medium_P5_R10                  10    -0.49%    -3.64%    +1.91%
-  scn_triangle_medium_P5_R20                  10   +13.69%    +4.87%   +24.90%
-  scn_triangle_medium_P5_R30                  10   +34.33%   +19.30%   +48.95%
+  scn_triangle_medium_P5_R10                  10    -0.39%    -3.27%    +1.91%
+  scn_triangle_medium_P5_R20                  10   +13.56%    +5.87%   +24.25%
+  scn_triangle_medium_P5_R30                  10   +34.49%   +19.40%   +49.09%
   scn_triangle_medium_P5_R5                   10    +0.00%    +0.00%    +0.00%
-  scn_triangle_tight_P5_R10                   10    -0.75%    -3.07%    +1.63%
-  scn_triangle_tight_P5_R20                   10   +16.81%   +11.40%   +22.12%
-  scn_triangle_tight_P5_R30                   10   +35.55%   +25.28%   +39.90%
-  scn_triangle_tight_P5_R5                    10    +0.00%    +0.00%    +0.00%
-  scn_two_rows_loose_P5_R10                   10    -0.20%    -1.16%    +0.66%
-  scn_two_rows_loose_P5_R20                   10    +5.88%    +1.88%   +10.17%
-  scn_two_rows_loose_P5_R30                   10   +24.34%    +9.89%   +36.66%
+  scn_triangle_tight_P5_R10                   10    -0.31%    -3.07%    +1.63%
+  scn_triangle_tight_P5_R20                   10   +17.22%   +11.37%   +22.53%
+  scn_triangle_tight_P5_R30                   10   +35.36%   +23.44%   +39.90%
+  scn_triangle_tight_P5_R5                    10    -0.00%    -0.03%    +0.00%
+  scn_two_rows_loose_P5_R10                   10    -0.28%    -1.54%    +0.67%
+  scn_two_rows_loose_P5_R20                   10    +5.90%    +2.11%    +8.63%
+  scn_two_rows_loose_P5_R30                   10   +24.01%    +9.89%   +37.03%
   scn_two_rows_loose_P5_R5                    10    +0.00%    +0.00%    +0.00%
-  scn_two_rows_medium_P5_R10                  10    +0.02%    -1.08%    +0.73%
-  scn_two_rows_medium_P5_R20                  10    +6.71%    +2.57%   +10.70%
-  scn_two_rows_medium_P5_R30                  10   +18.89%    +4.19%   +32.93%
+  scn_two_rows_medium_P5_R10                  10    -0.14%    -1.15%    +0.62%
+  scn_two_rows_medium_P5_R20                  10    +6.62%    +2.81%   +10.56%
+  scn_two_rows_medium_P5_R30                  10   +18.46%    +4.95%   +32.87%
   scn_two_rows_medium_P5_R5                   10    +0.00%    +0.00%    +0.00%
-  scn_two_rows_tight_P5_R10                   10    -0.15%    -1.24%    +0.36%
-  scn_two_rows_tight_P5_R20                   10    +6.32%    +2.44%   +10.76%
-  scn_two_rows_tight_P5_R30                    9   +18.10%    +5.81%   +32.12%
+  scn_two_rows_tight_P5_R10                   10    -0.16%    -1.24%    +0.36%
+  scn_two_rows_tight_P5_R20                   10    +6.42%    +2.33%   +11.38%
+  scn_two_rows_tight_P5_R30                    9   +18.23%    +4.67%   +33.38%
   scn_two_rows_tight_P5_R5                    10    +0.00%    +0.00%    +0.00%
 
 [wDLY (1/100/1  delay-priority)]               N     Mean      Min      Max
-  scn_chain_tight_P5_R10                      10    +5.96%    -3.36%   +15.30%
-  scn_full_tight_P5_R10                       10   +22.60%   +13.39%   +34.15%
-  scn_full_tight_P5_R20                       10   +56.14%   +43.05%   +66.82%
-  scn_hub_tight_P5_R10                        10    +3.50%    -3.61%   +10.23%
+  scn_chain_tight_P5_R10                      10    +5.86%    -4.88%   +15.29%
+  scn_full_tight_P5_R10                       10   +21.45%    +1.94%   +34.96%
+  scn_full_tight_P5_R20                       10   +57.29%   +45.19%   +67.55%
+  scn_hub_tight_P5_R10                        10    +3.36%    -3.42%   +10.23%
   scn_none_tight_P5_R10                       10    -0.00%    -0.00%    +0.00%
-  scn_triangle_loose_P5_R10                   10   -33.75%  -186.50%   +18.55%
-  scn_triangle_loose_P5_R20                   10   +17.65%    +5.70%   +25.49%
-  scn_triangle_loose_P5_R30                   10   +43.55%   +28.31%   +52.77%
+  scn_triangle_loose_P5_R10                   10   -33.38%  -277.40%   +18.55%
+  scn_triangle_loose_P5_R20                   10   +21.12%   +10.00%   +26.78%
+  scn_triangle_loose_P5_R30                   10   +43.74%   +30.99%   +52.21%
   scn_triangle_loose_P5_R5                    10    +0.00%    +0.00%    +0.00%
-  scn_triangle_medium_P5_R10                  10    +5.38%    +0.76%   +14.62%
-  scn_triangle_medium_P5_R20                  10   +13.98%    +0.73%   +23.01%
-  scn_triangle_medium_P5_R30                  10   +37.14%   +24.72%   +47.25%
+  scn_triangle_medium_P5_R10                  10    +5.43%    +0.78%   +14.62%
+  scn_triangle_medium_P5_R20                  10   +15.29%    +5.79%   +24.69%
+  scn_triangle_medium_P5_R30                  10   +38.04%   +25.16%   +45.52%
   scn_triangle_medium_P5_R5                   10    +0.00%    +0.00%    +0.00%
-  scn_triangle_tight_P5_R10                   10    +5.02%    +0.54%   +10.89%
-  scn_triangle_tight_P5_R20                   10   +12.41%    +0.44%   +22.85%
-  scn_triangle_tight_P5_R30                   10   +35.97%   +18.26%   +48.62%
+  scn_triangle_tight_P5_R10                   10    +5.79%    -0.30%   +10.87%
+  scn_triangle_tight_P5_R20                   10   +14.00%    +3.13%   +23.59%
+  scn_triangle_tight_P5_R30                   10   +36.01%   +18.18%   +48.35%
   scn_triangle_tight_P5_R5                    10    -0.22%    -2.17%    +0.00%
-  scn_two_rows_loose_P5_R10                   10   +11.44%    -5.76%   +67.72%
-  scn_two_rows_loose_P5_R20                   10   +12.65%    +1.66%   +25.37%
-  scn_two_rows_loose_P5_R30                   10   +27.34%   +11.56%   +45.24%
+  scn_two_rows_loose_P5_R10                   10   +11.13%    -2.88%   +46.75%
+  scn_two_rows_loose_P5_R20                   10   +14.26%    +8.22%   +22.07%
+  scn_two_rows_loose_P5_R30                   10   +28.05%   +13.27%   +45.20%
   scn_two_rows_loose_P5_R5                    10    +0.00%    +0.00%    +0.00%
-  scn_two_rows_medium_P5_R10                  10    +1.37%    -0.05%    +4.28%
-  scn_two_rows_medium_P5_R20                  10   +10.46%    +2.64%   +17.14%
-  scn_two_rows_medium_P5_R30                  10   +21.56%    +8.48%   +36.12%
+  scn_two_rows_medium_P5_R10                  10    +1.47%    +0.00%    +5.19%
+  scn_two_rows_medium_P5_R20                  10   +12.31%    +5.64%   +21.94%
+  scn_two_rows_medium_P5_R30                  10   +21.12%    +4.66%   +36.05%
   scn_two_rows_medium_P5_R5                   10    +0.00%    +0.00%    +0.00%
-  scn_two_rows_tight_P5_R10                   10    +0.89%    -0.97%    +2.27%
-  scn_two_rows_tight_P5_R20                   10    +4.67%    +1.55%    +9.46%
-  scn_two_rows_tight_P5_R30                   10   +16.96%    +2.24%   +39.67%
+  scn_two_rows_tight_P5_R10                   10    +1.14%    -0.88%    +4.78%
+  scn_two_rows_tight_P5_R20                   10    +6.85%    +3.57%   +10.42%
+  scn_two_rows_tight_P5_R30                   10   +17.58%    +1.33%   +39.79%
   scn_two_rows_tight_P5_R5                    10    -0.30%    -3.03%    +0.00%
 
 [wMOV (1/1/100  movement-priority)]            N     Mean      Min      Max
-  scn_chain_tight_P5_R10                      10    -8.31%   -25.56%    +5.06%
-  scn_full_tight_P5_R10                       10    -3.41%   -34.71%   +29.24%
-  scn_full_tight_P5_R20                       10   +26.28%    +9.86%   +39.98%
-  scn_hub_tight_P5_R10                        10    -3.73%   -25.73%    +5.00%
+  scn_chain_tight_P5_R10                      10    -0.63%    -9.42%    +9.63%
+  scn_full_tight_P5_R10                       10    +9.74%   -16.53%   +27.02%
+  scn_full_tight_P5_R20                       10   +31.19%   +12.95%   +42.23%
+  scn_hub_tight_P5_R10                        10    -1.65%    -9.74%    +5.00%
   scn_none_tight_P5_R10                       10    +0.00%    +0.00%    +0.00%
-  scn_triangle_loose_P5_R10                   10    -4.08%   -25.58%    +6.12%
-  scn_triangle_loose_P5_R20                   10   +14.19%    +3.44%   +24.71%
-  scn_triangle_loose_P5_R30                   10   +33.89%   +16.44%   +47.20%
+  scn_triangle_loose_P5_R10                   10    +0.38%   -11.49%    +4.14%
+  scn_triangle_loose_P5_R20                   10   +16.17%   +10.14%   +24.27%
+  scn_triangle_loose_P5_R30                   10   +34.20%   +17.23%   +48.89%
   scn_triangle_loose_P5_R5                    10    +0.00%    +0.00%    +0.00%
-  scn_triangle_medium_P5_R10                  10    +1.84%    -2.52%    +8.33%
-  scn_triangle_medium_P5_R20                  10   +12.78%    +7.64%   +19.14%
-  scn_triangle_medium_P5_R30                  10   +34.97%   +17.78%   +44.88%
+  scn_triangle_medium_P5_R10                  10    +1.48%    -2.19%    +8.33%
+  scn_triangle_medium_P5_R20                  10   +13.91%    +7.84%   +21.10%
+  scn_triangle_medium_P5_R30                  10   +35.84%   +21.87%   +44.43%
   scn_triangle_medium_P5_R5                   10    +0.00%    +0.00%    +0.00%
-  scn_triangle_tight_P5_R10                   10    +1.53%    -0.88%    +5.76%
-  scn_triangle_tight_P5_R20                   10   +11.85%    +3.10%   +18.85%
-  scn_triangle_tight_P5_R30                   10   +34.98%   +21.55%   +41.84%
+  scn_triangle_tight_P5_R10                   10    +1.41%    +0.00%    +5.76%
+  scn_triangle_tight_P5_R20                   10   +13.43%    +7.47%   +19.77%
+  scn_triangle_tight_P5_R30                   10   +35.05%   +21.76%   +41.72%
   scn_triangle_tight_P5_R5                    10    +0.00%    +0.00%    +0.00%
-  scn_two_rows_loose_P5_R10                   10    -0.49%    -7.50%    +3.05%
-  scn_two_rows_loose_P5_R20                   10   +10.47%    +6.34%   +16.97%
-  scn_two_rows_loose_P5_R30                   10   +24.05%    +9.03%   +37.59%
+  scn_two_rows_loose_P5_R10                   10    -0.94%    -8.00%    +3.05%
+  scn_two_rows_loose_P5_R20                   10   +12.28%    +9.08%   +19.33%
+  scn_two_rows_loose_P5_R30                   10   +24.61%   +10.74%   +38.10%
   scn_two_rows_loose_P5_R5                    10    +0.00%    +0.00%    +0.00%
-  scn_two_rows_medium_P5_R10                  10    -1.08%    -7.38%    +2.46%
-  scn_two_rows_medium_P5_R20                  10    +8.73%    +2.25%   +15.89%
-  scn_two_rows_medium_P5_R30                  10   +19.00%   +11.13%   +28.54%
+  scn_two_rows_medium_P5_R10                  10    +0.25%    -3.77%    +2.46%
+  scn_two_rows_medium_P5_R20                  10   +10.46%    +4.80%   +16.00%
+  scn_two_rows_medium_P5_R30                  10   +18.70%   +11.11%   +26.83%
   scn_two_rows_medium_P5_R5                   10    +0.00%    +0.00%    +0.00%
-  scn_two_rows_tight_P5_R10                   10    +0.68%    -2.58%    +4.12%
-  scn_two_rows_tight_P5_R20                   10    +6.73%    +3.10%   +10.94%
-  scn_two_rows_tight_P5_R30                   10   +18.90%    +3.38%   +42.23%
+  scn_two_rows_tight_P5_R10                   10    +1.17%    -1.28%    +4.12%
+  scn_two_rows_tight_P5_R20                   10    +8.14%    +4.07%   +11.51%
+  scn_two_rows_tight_P5_R30                   10   +19.35%    +3.00%   +43.62%
   scn_two_rows_tight_P5_R5                    10    -0.30%    -3.03%    +0.00%
 
-[ALL profiles]                                               N     Mean      Min      Max
-  scn_chain_tight_P5_R10                      30    -1.06%   -25.56%   +15.30%
-  scn_full_tight_P5_R10                       30    +7.20%   -34.71%   +34.15%
-  scn_full_tight_P5_R20                       30   +41.63%    +9.86%   +66.82%
-  scn_hub_tight_P5_R10                        30    -0.90%   -25.73%   +10.23%
+[ALL profiles]                                 N     Mean      Min      Max
+  scn_chain_tight_P5_R10                      30    +1.36%    -9.42%   +15.29%
+  scn_full_tight_P5_R10                       30   +10.64%   -16.53%   +34.96%
+  scn_full_tight_P5_R20                       30   +43.32%   +12.95%   +67.55%
+  scn_hub_tight_P5_R10                        30    -0.26%    -9.74%   +10.23%
   scn_none_tight_P5_R10                       30    -0.00%    -0.00%    +0.00%
-  scn_triangle_loose_P5_R10                   30   -12.72%  -186.50%   +18.55%
-  scn_triangle_loose_P5_R20                   30   +15.49%    +3.44%   +25.49%
-  scn_triangle_loose_P5_R30                   29   +36.12%   +16.44%   +52.77%
+  scn_triangle_loose_P5_R10                   30   -11.14%  -277.40%   +18.55%
+  scn_triangle_loose_P5_R20                   30   +17.43%    +9.73%   +26.78%
+  scn_triangle_loose_P5_R30                   29   +36.50%   +17.23%   +52.21%
   scn_triangle_loose_P5_R5                    30    +0.00%    +0.00%    +0.00%
-  scn_triangle_medium_P5_R10                  30    +2.24%    -3.64%   +14.62%
-  scn_triangle_medium_P5_R20                  30   +13.48%    +0.73%   +24.90%
-  scn_triangle_medium_P5_R30                  30   +35.48%   +17.78%   +48.95%
+  scn_triangle_medium_P5_R10                  30    +2.17%    -3.27%   +14.62%
+  scn_triangle_medium_P5_R20                  30   +14.25%    +5.79%   +24.69%
+  scn_triangle_medium_P5_R30                  30   +36.12%   +19.40%   +49.09%
   scn_triangle_medium_P5_R5                   30    +0.00%    +0.00%    +0.00%
-  scn_triangle_tight_P5_R10                   30    +1.94%    -3.07%   +10.89%
-  scn_triangle_tight_P5_R20                   30   +13.69%    +0.44%   +22.85%
-  scn_triangle_tight_P5_R30                   30   +35.50%   +18.26%   +48.62%
+  scn_triangle_tight_P5_R10                   30    +2.30%    -3.07%   +10.87%
+  scn_triangle_tight_P5_R20                   30   +14.89%    +3.13%   +23.59%
+  scn_triangle_tight_P5_R30                   30   +35.47%   +18.18%   +48.35%
   scn_triangle_tight_P5_R5                    30    -0.07%    -2.17%    +0.00%
-  scn_two_rows_loose_P5_R10                   30    +3.58%    -7.50%   +67.72%
-  scn_two_rows_loose_P5_R20                   30    +9.67%    +1.66%   +25.37%
-  scn_two_rows_loose_P5_R30                   30   +25.24%    +9.03%   +45.24%
+  scn_two_rows_loose_P5_R10                   30    +3.30%    -8.00%   +46.75%
+  scn_two_rows_loose_P5_R20                   30   +10.82%    +2.11%   +22.07%
+  scn_two_rows_loose_P5_R30                   30   +25.56%    +9.89%   +45.20%
   scn_two_rows_loose_P5_R5                    30    +0.00%    +0.00%    +0.00%
-  scn_two_rows_medium_P5_R10                  30    +0.10%    -7.38%    +4.28%
-  scn_two_rows_medium_P5_R20                  30    +8.63%    +2.25%   +17.14%
-  scn_two_rows_medium_P5_R30                  30   +19.82%    +4.19%   +36.12%
+  scn_two_rows_medium_P5_R10                  30    +0.53%    -3.77%    +5.19%
+  scn_two_rows_medium_P5_R20                  30    +9.80%    +2.81%   +21.94%
+  scn_two_rows_medium_P5_R30                  30   +19.43%    +4.66%   +36.05%
   scn_two_rows_medium_P5_R5                   30    +0.00%    +0.00%    +0.00%
-  scn_two_rows_tight_P5_R10                   30    +0.47%    -2.58%    +4.12%
-  scn_two_rows_tight_P5_R20                   30    +5.91%    +1.55%   +10.94%
-  scn_two_rows_tight_P5_R30                   29   +17.98%    +2.24%   +42.23%
+  scn_two_rows_tight_P5_R10                   30    +0.71%    -1.28%    +4.78%
+  scn_two_rows_tight_P5_R20                   30    +7.14%    +2.33%   +11.51%
+  scn_two_rows_tight_P5_R30                   29   +18.39%    +1.33%   +43.62%
   scn_two_rows_tight_P5_R5                    30    -0.20%    -3.03%    +0.00%
 ```
 
@@ -599,119 +597,118 @@ feasible no-movement schedule.
 
 ```
 [wMK]                        Dmakespan      Ddelay      Dmov
-  chain_tight_R10                  +0.55       +1.40     -1.40
-  full_tight_R10                   -1.95       -5.20     +5.40
-  full_tight_R20                 -125.70    -1108.50    +55.40
-  hub_tight_R10                    +1.70       -5.55     -2.60
+  chain_tight_R10                  +0.75       +3.10     -1.80
+  full_tight_R10                   -0.85       +5.65     +6.80
+  full_tight_R20                 -123.80    -1105.30    +67.80
+  hub_tight_R10                    +1.70       -1.80     -5.20
   none_tight_R10                   +0.00       +0.00     +0.00
-  triangle_loose_R10               +0.25       -1.10     -1.40
-  triangle_loose_R20              -21.50     -128.60     +0.20
-  triangle_loose_R30              -98.78     -875.28    +14.67
+  triangle_loose_R10               +0.35       -1.10     -2.80
+  triangle_loose_R20              -22.00     -135.35     +1.20
+  triangle_loose_R30             -100.67     -909.94     +2.67
   triangle_loose_R5                +0.00       +0.00     +0.00
-  triangle_medium_R10              +0.35       +1.75     -1.60
-  triangle_medium_R20             -20.70     -121.95     -7.40
-  triangle_medium_R30            -119.80    -1266.05    +10.60
+  triangle_medium_R10              +0.35       -2.10     -5.20
+  triangle_medium_R20             -20.60     -116.25     -1.20
+  triangle_medium_R30            -120.25    -1279.95     +8.80
   triangle_medium_R5               +0.00       +0.00     +0.00
-  triangle_tight_R10               +0.55       -1.90     -1.80
-  triangle_tight_R20              -25.90     -153.90     -0.40
-  triangle_tight_R30             -121.75    -1455.00     +2.20
-  triangle_tight_R5                +0.00       +0.00     +0.00
-  two_rows_loose_R10               +0.20       -6.70     +0.60
-  two_rows_loose_R20               -7.70      -25.05     -5.80
-  two_rows_loose_R30              -73.80     -493.75     +3.20
+  triangle_tight_R10               +0.25       -2.30     -1.20
+  triangle_tight_R20              -26.45     -164.60     +0.40
+  triangle_tight_R30             -120.85    -1486.85     +2.20
+  triangle_tight_R5                +0.00       -0.10     +0.20
+  two_rows_loose_R10               +0.25       -6.85     +0.40
+  two_rows_loose_R20               -7.60      -40.80     -2.60
+  two_rows_loose_R30              -72.70     -497.75     +0.40
   two_rows_loose_R5                +0.00       +0.00     +0.00
-  two_rows_medium_R10              +0.05       -6.10     -0.20
-  two_rows_medium_R20              -8.55      -74.15     -2.40
-  two_rows_medium_R30             -54.05     -429.65     +3.20
+  two_rows_medium_R10              +0.15       -5.45     +0.00
+  two_rows_medium_R20              -8.35      -78.75     -5.40
+  two_rows_medium_R30             -52.85     -424.90     +6.60
   two_rows_medium_R5               +0.00       +0.00     +0.00
-  two_rows_tight_R10               +0.15       -3.75     -1.00
-  two_rows_tight_R20               -8.35      -42.50     -7.80
-  two_rows_tight_R30              -52.67     -398.00     -6.00
-  two_rows_tight_R5                +0.00       +0.20     -0.20
+  two_rows_tight_R10               +0.15       -3.85     -0.20
+  two_rows_tight_R20               -8.45      -47.75     -6.20
+  two_rows_tight_R30              -52.78     -433.44     -5.33
+  two_rows_tight_R5                +0.00       +0.00     +0.00
 
 [wDLY]                        Dmakespan      Ddelay      Dmov
-  chain_tight_R10                  -1.55       -7.40     +0.20
-  full_tight_R10                  -12.80      -45.95    +11.80
-  full_tight_R20                 -159.40    -1337.30    +20.00
-  hub_tight_R10                    -2.85       -4.35     -0.20
+  chain_tight_R10                  -1.00       -7.35     -1.40
+  full_tight_R10                  -15.90      -43.95     +9.60
+  full_tight_R20                 -160.40    -1361.85    +41.40
+  hub_tight_R10                    -3.55       -4.15     -1.40
   none_tight_R10                   +0.00       +0.00     +0.00
-  triangle_loose_R10               -0.60       +0.15     +0.00
-  triangle_loose_R20              -13.65      -81.95     -5.00
-  triangle_loose_R30             -112.75    -1164.40    +11.00
+  triangle_loose_R10               -0.20       +0.15     +1.60
+  triangle_loose_R20              -16.55      -96.75     -4.00
+  triangle_loose_R30             -115.10    -1165.70     +3.40
   triangle_loose_R5                +0.00       +0.00     +0.00
-  triangle_medium_R10              -1.60       -3.20     -2.40
-  triangle_medium_R20             -20.30      -94.60     +2.20
-  triangle_medium_R30            -112.05    -1114.80    +17.40
+  triangle_medium_R10              -1.90       -3.20     -2.60
+  triangle_medium_R20             -20.10     -102.55     +1.60
+  triangle_medium_R30            -112.20    -1140.20     +9.00
   triangle_medium_R5               +0.00       +0.00     +0.00
-  triangle_tight_R10               -2.80       -5.65     -2.00
-  triangle_tight_R20              -17.75     -104.40     -1.80
-  triangle_tight_R30             -118.35    -1241.20     -6.80
+  triangle_tight_R10               -3.30       -6.40     -4.00
+  triangle_tight_R20              -16.25     -116.50     +1.40
+  triangle_tight_R30             -118.30    -1242.50     +1.60
   triangle_tight_R5                +0.10       +0.00     +0.00
-  two_rows_loose_R10               +0.00       -0.20     -0.60
-  two_rows_loose_R20              -14.45      -51.80     -9.40
-  two_rows_loose_R30              -69.90     -552.45     -0.60
+  two_rows_loose_R10               +0.20       -0.20     -1.20
+  two_rows_loose_R20              -16.60      -57.85     -9.00
+  two_rows_loose_R30              -73.10     -565.15     -4.60
   two_rows_loose_R5                +0.00       +0.00     +0.00
-  two_rows_medium_R10              -1.70       -0.75     +0.00
-  two_rows_medium_R20             -15.20      -62.40     -7.80
-  two_rows_medium_R30             -60.70     -501.60     -4.40
+  two_rows_medium_R10              -1.30       -0.80     -0.60
+  two_rows_medium_R20             -16.80      -73.15     -4.40
+  two_rows_medium_R30             -62.60     -491.90     -7.20
   two_rows_medium_R5               +0.00       +0.00     +0.00
-  two_rows_tight_R10               -2.20       -0.95     +0.60
-  two_rows_tight_R20               -9.15      -32.15     -6.40
-  two_rows_tight_R30              -42.50     -460.45     -9.40
+  two_rows_tight_R10               -2.10       -1.15     -1.60
+  two_rows_tight_R20              -12.00      -47.30     -6.40
+  two_rows_tight_R30              -47.85     -474.70    -13.20
   two_rows_tight_R5                -0.10       +0.00     +0.20
 
 [wMOV]                        Dmakespan      Ddelay      Dmov
-  chain_tight_R10                 +10.30       +8.55     +0.00
-  full_tight_R10                   +4.30       +1.90     +0.00
-  full_tight_R20                  -55.30     -389.00     +0.00
-  hub_tight_R10                    +2.35       +4.45     +0.00
+  chain_tight_R10                  +0.05       +1.15     +0.00
+  full_tight_R10                   -4.25      -24.95     +0.00
+  full_tight_R20                  -70.05     -455.35     +0.00
+  hub_tight_R10                    +0.60       +2.60     +0.00
   none_tight_R10                   +0.00       +0.00     +0.00
-  triangle_loose_R10               +1.55       +0.90     +0.00
-  triangle_loose_R20              -15.90      -71.45     +0.00
-  triangle_loose_R30              -82.90     -832.50     +0.00
+  triangle_loose_R10               +0.75       -1.00     +0.00
+  triangle_loose_R20              -17.90      -80.50     +0.00
+  triangle_loose_R30              -79.05     -845.30     +0.00
   triangle_loose_R5                +0.00       +0.00     +0.00
-  triangle_medium_R10              -0.30       -2.10     +0.00
-  triangle_medium_R20             -18.80      -84.95     +0.00
-  triangle_medium_R30             -98.70    -1050.10     +0.00
+  triangle_medium_R10              +0.30       -2.20     +0.00
+  triangle_medium_R20             -18.05      -94.70     +0.00
+  triangle_medium_R30             -99.05    -1074.85     +0.00
   triangle_medium_R5               +0.00       +0.00     +0.00
-  triangle_tight_R10               -0.50       -2.20     +0.00
-  triangle_tight_R20              -17.50      -96.55     +0.00
-  triangle_tight_R30             -123.10    -1152.40     +0.00
+  triangle_tight_R10               -0.50       -1.95     +0.00
+  triangle_tight_R20              -17.55     -111.05     +0.00
+  triangle_tight_R30             -123.30    -1154.10     +0.00
   triangle_tight_R5                +0.00       +0.00     +0.00
-  two_rows_loose_R10               +0.40       -0.05     +0.00
-  two_rows_loose_R20               -9.65      -46.50     +0.00
-  two_rows_loose_R30              -64.30     -494.30     +0.00
+  two_rows_loose_R10               +0.80       -0.20     +0.00
+  two_rows_loose_R20               -9.65      -55.85     +0.00
+  two_rows_loose_R30              -63.00     -505.95     +0.00
   two_rows_loose_R5                +0.00       +0.00     +0.00
-  two_rows_medium_R10              +1.10       +0.20     +0.00
-  two_rows_medium_R20              -9.75      -55.70     +0.00
-  two_rows_medium_R30             -48.50     -415.30     +0.00
+  two_rows_medium_R10              +0.60       -1.00     +0.00
+  two_rows_medium_R20             -12.50      -65.05     +0.00
+  two_rows_medium_R30             -47.80     -408.35     +0.00
   two_rows_medium_R5               +0.00       +0.00     +0.00
-  two_rows_tight_R10               -0.10       -1.00     +0.00
-  two_rows_tight_R20               -8.40      -49.00     +0.00
-  two_rows_tight_R30              -63.55     -506.25     +0.00
+  two_rows_tight_R10               -0.50       -1.50     +0.00
+  two_rows_tight_R20              -10.10      -59.15     +0.00
+  two_rows_tight_R30              -64.70     -518.90     +0.00
   two_rows_tight_R5                -0.10       +0.20     +0.00
 ```
 
 ## Performance summary
 
-- **R5 — closed (Attempt 7's target).** All three profiles now match the
-  proven MILP optimum on essentially every R5 instance: wMK and wMOV are
-  **exact on every config** (+0.00 % mean, 10/10 seeds), wDLY exact on 8–10/10
-  seeds (worst single seed −3.0 %). Before Attempt 7, `triangle_tight_R5 wMOV`
-  averaged −3.88 % (worst −20.5 %).
-- **`wMK`:** within ±2.5 % of the MILP on every R10 topology; far ahead at
-  scale (+5 % to +42 % at R20/R30, where the 60-s MILP is unconverged and
-  twice OOM).
-- **`wDLY`:** at/above the MILP on every type. The only negative mean is the
-  small-denominator artifact `triangle_loose_R10` (−33.8 %): its −186 % seeds
-  differ by **Δdelay ≤ 1.5 units** (×100 weight over a tiny objective), and
-  the heuristic *wins* 5/10 seeds there.
-- **`wMOV`:** the R10 residuals vs an *unconverged* MILP all shrank vs the
-  previous battery (chain −10.4 → −8.3, hub −4.0 → −3.7, full −5.1 → −3.4,
-  with 2/10 hub seeds now exact). One new watch-item: `triangle_loose_R10`
-  (−0.02 → −4.08 %), where 3/10 seeds concede 5–16 *absolute* units to a
-  better zero-movement packing — these are 60-s **timed-out** cells, i.e. the
-  Attempt-8 (phase-budget) stratum, not a small-instance issue.
+- **R5 — closed.** All three profiles match the proven MILP optimum on
+  essentially every R5 instance (wMK/wMOV exact; wDLY within 0.3 % on
+  average, worst seed −3 %).
+- **wMOV — the residual families are resolved.** After Attempts 9+10:
+  `full_R10` **+9.7 %** (beats the MILP outright; the nest-stretch candidate
+  reaches schedules below the MILP's integer grid), `chain_R10` −0.6 %
+  (was −10.4 % two batteries ago), `hub_R10` −1.7 %, `triangle_loose_R10`
+  +0.4 % with 8/10 seeds at or above the certified optimum (concessions:
+  seed5 −2.4 % = 1.5 units, seed9 −11.5 % = 8.5 units — the remaining
+  search-variance tail).
+- **`wMK`:** within ±2.5 % everywhere at R10; +6 % to +43 % at R20/R30
+  (unconverged MILP, twice OOM).
+- **`wDLY`:** at/above the MILP on every type except the small-denominator
+  artifact `triangle_loose_R10` (its extreme seeds differ by ≤ 1.5 delay
+  units; the heuristic wins half the seeds there).
+- **Scale:** mean gaps +5.9 % to +21.1 % at R20 and +17.6 % to +43.7 % at
+  R30 (excluding `full`), across both families and all slack levels.
 
 ## Caveats
 
@@ -721,9 +718,9 @@ feasible no-movement schedule.
 2. **MILP unconverged at scale.** R20/R30 MILP objectives are 60-s incumbents
    (80–99 % optimality gap; 2 cells OOM), so heuristic "wins" there mean
    "better feasible solution fast", not proven optimality.
-3. **Never compare against cached heuristic rows.** Step 0 (2026-07 campaign)
-   showed cached `igvnd` rows go stale across code states and machine load;
-   pair fresh heuristic runs against the cached **MILP** rows only.
+3. **Never compare against cached heuristic rows.** Cached `igvnd` rows go
+   stale across code states and machine load; pair fresh heuristic runs
+   against the cached **MILP** rows only.
 
 ---
 

@@ -5,7 +5,7 @@ Built on the **2026-07-13 full battery** (heuristic IGVND v01 at Attempt 7 /
 (kept consistent with the experimentation, NOT a blanket results.csv read):
 
   * heuristic, ALL 29 configs : parsed from the single battery log
-    `202605_02_main_methods_20260713_211851.log` (870 runs / 0 failures;
+    `202605_02_main_methods_20260714_174533.log` (870 runs / 0 failures;
     results.csv 'latest' igvnd rows are not a reliable paper source — they
     get overwritten by ablation reruns);
   * MILP, all configs         : latest milp_job_* per (instance,label) in
@@ -34,7 +34,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CSV = ROOT / "outputs" / "solutions" / "results.csv"
-BATTERY_LOG = ROOT / "outputs" / "logs" / "202605_02_main_methods_20260713_211851.log"
+BATTERY_LOG = ROOT / "outputs" / "logs" / "202605_02_main_methods_20260714_174533.log"
 OUT = Path(__file__).resolve().parent / "tables"
 
 # (profile key, MILP label, heuristic label, display header)

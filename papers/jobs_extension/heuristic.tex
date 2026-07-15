@@ -57,7 +57,7 @@ optimises it first in the zero-movement regime to obtain a
 guaranteed-feasible \emph{floor}, and then polishes it in the
 manoeuvre-aware regime, retaining the polished schedule only if an
 independent feasibility check certifies it and it improves the floor.  A
-single dense-nesting candidate is added when the weights reward it.  The
+single nest-stretch candidate is added when the weights reward it.  The
 best certified schedule over all restarts is returned.  Because every
 restart ends early once its own search stalls, small instances perform
 hundreds of independent restarts within the budget while large ones
@@ -96,7 +96,7 @@ $z^\star \leftarrow +\infty$;\quad $i \leftarrow 1$\;
   $i \leftarrow i + 1$\;
 }
 \If{$W^S$ dominates the weights \textbf{\emph{and}} $\calA \ne \emptyset$}{
-  build the dense-nesting candidate (\S\ref{sec:igvnd_safety})\;
+  build the nest-stretch candidate (\S\ref{sec:igvnd_safety})\;
   adopt it if it is feasible and improves $z^\star$\;
 }
 \Return the recorded schedule attaining $z^\star$\;
@@ -356,7 +356,8 @@ $(\pi, \sigma) \leftarrow \textsc{Vnd}(\pi, \sigma, \textsc{Decode}_d)$\;
 \Return \emph{best}\;
 \BlankLine
 \Fn{\FPert{$(\pi, \sigma)$}}{
-  remove the $k$ aircraft of largest score
+  with probability $\tfrac12$: remove $k$ aircraft uniformly at random;\;
+  otherwise: remove the $k$ aircraft of largest score
      $W^D v^D_r + \omega\, T_r$ (lightly randomised)\;
   \ForEach{removed aircraft $r$}{
     reinsert $r$ at the $(\text{position}, \text{slot in } \sigma)$
@@ -387,18 +388,21 @@ check} certifies it and it strictly improves the zero-movement floor
 (Algorithm~\ref{alg:igvnd}); the method can therefore never return an
 infeasible schedule and can never do worse than its zero-movement result,
 whatever approximation the manoeuvre-aware decoder makes.  Second, when the
-movement-priority profile meets a dense blocking topology, one further
-candidate is built once and folded in by the same best-of / check rule: a
-\emph{dense concentric-nesting} schedule written with explicit start times
-rather than via the earliest-feasible decode.  In a dense component the
-zero-movement optimum packs aircraft into a few concentric-nesting waves
---- a long aircraft wraps shorter ones, all overlapping within a wave's
-span --- but the earliest-feasible decode cannot produce that, because it
-always prefers placing \emph{before} over \emph{nested}.  The dedicated
-builder sorts aircraft by stay length, groups them into waves of at most
-$|\calP|$, makes the longest of each wave the outer container on the
-deepest position, and \emph{stretches} shorter aircraft with idle time so
-the stay lengths step down by at least $2\eta$ (the nesting condition) even
-when their work durations tie; a small beam over two wave partitions is
-tried and the best kept.  On other topologies this candidate is dominated
-and ignored by the best-of.
+movement-priority profile meets a blocking topology, one further candidate
+is built once and folded in by the same best-of / check rule: a
+\emph{concentric nest-stretch} schedule over the actual blocking digraph,
+written with explicit start times rather than via the earliest-feasible
+decode.  The zero-movement optimum often \emph{stretches} an aircraft's
+stay with inter-job idle so it can wrap a blocking partner --- a schedule
+shape the earliest-feasible decode cannot produce, because it always
+prefers placing \emph{before} over \emph{nested} and packs jobs tight.  The
+builder groups aircraft into rounds of one per position; within a round,
+only the positions that actually block each other receive the concentric
+treatment --- along every front$\to$rear arc the rear's stay is stretched
+so it wraps the front's stay by $\eta$ on both sides (deepest rear =
+outermost shell) --- while unconflicted positions run tight and in
+parallel.  Rounds are serialised within the blocking component and simply
+chained per position elsewhere; a small beam over four round partitions
+(long-first, short-first, earliest-release, round-robin) is tried and the
+best kept.  Where the candidate does not help it is dominated and ignored
+by the best-of.
