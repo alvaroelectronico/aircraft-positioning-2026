@@ -131,12 +131,14 @@ glued together by a safe pipeline that returns the best solution found
 by its components.  The exact solver is competitive on small
 instances, in line with the scale at which the formulations of
 \citet{Guepet2015, Shaukat2020, Pazhooh2025} also close to optimality,
-while the safe pipeline takes over as the fleet size grows: the
-crossover between exact and heuristic methods in our benchmark sits
-near $R = 14$ aircraft for a 60-second wall-clock budget, consistent
-with the $14$--$25$-aircraft threshold reported across the hangar
+while the safe pipeline takes over as the fleet size grows: in our
+benchmark the exact solver is optimal only at $R = 5$ and is already
+dominated by the heuristics at $R = 10$ under a 60-second wall-clock
+budget, placing the crossover between $5$ and $10$ aircraft --- earlier
+than the $14$--$25$-aircraft threshold reported across the hangar
 literature for exact MILP optimality \citep{Pazhooh2025, Guepet2015,
-Shaukat2020, Qin2019}.  Rather than competing directly with
+Shaukat2020, Qin2019}, as expected for our deliberately congested
+benchmark layouts.  Rather than competing directly with
 general continuous-time layout formulations on their own benchmark
 classes, the focus is on a topology-driven blocking abstraction and on
 a fast solver portfolio that delivers high-quality feasible solutions

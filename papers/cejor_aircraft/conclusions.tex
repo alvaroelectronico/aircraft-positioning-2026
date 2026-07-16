@@ -19,21 +19,22 @@ The computational study on the 120-instance benchmark gives a clear
 picture of when each method dominates.  Within the 60-second wall-clock
 budget, the exact MILP only proves optimality on the small $R{=}5$
 configuration; for every $R{=}10$ configuration the Gurobi gap remains
-above 90\,\%, including the unconstrained \emph{None} topology, which
-points to bound weakness rather than blocking interactions as the
-dominant source of difficulty.  At $R{=}20$ the solver exhausts the
-budget with a gap close to $100\,\%$, and at $R{=}30$ it aborts before
-returning any feasible incumbent, so the heuristic pipeline becomes the
-only available source of solutions for the largest configurations.  On
+above $86\,\%$ --- $86\,\%$ even on the unconstrained \emph{None}
+topology and above $93\,\%$ elsewhere --- which points to bound weakness
+rather than blocking interactions as the dominant source of difficulty.
+At $R{=}20$ the solver exhausts the budget with a gap close to
+$100\,\%$, and at $R{=}30$ only a single seed returns a feasible
+incumbent, so the heuristic pipeline becomes the primary source of
+solutions for the largest configurations.  On
 the $R{=}10$ configurations with non-trivial blocking the heuristic
-pipeline cuts the best feasible MILP objective by 5--25\,\%, and at
-$R{=}20$ the gap widens by an order of magnitude (e.g.\ $\bar f = 635$
-versus $2425$ on \emph{Triangle}, and $881$ versus $4676$ on
+pipeline cuts the best feasible MILP objective by $17$--$34\,\%$, and at
+$R{=}20$ the gap widens by an order of magnitude (e.g.\ $\bar f = 681$
+versus $2449$ on \emph{Triangle}, and $959$ versus $3332$ on
 \emph{Full}).  The topology heuristic alone already matches the
 safe-pipeline objective on every $R{=}10$ row, so the additional FAS
 pass acts mostly as an insurance policy; its value becomes apparent at
 the boundary of tractability, where FAS occasionally times out --- on
-\emph{Triangle $R{=}30$}, for instance, FAS lags Topo by $2.2\,\%$ and
+\emph{Triangle $R{=}30$}, for instance, FAS lags Topo by about $0.7\,\%$ and
 the safe pipeline correctly falls back to the Topo solution.  The three
 weight profiles act as effective dials between the objectives: the
 default movement-priority profile returns \emph{zero} blocking

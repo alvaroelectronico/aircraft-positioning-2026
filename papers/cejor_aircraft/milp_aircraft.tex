@@ -20,8 +20,9 @@ letters and decision variables with lower-case Latin letters, with Greek
 letters reserved for fixed scalar constants such as the minimum
 separation $\varepsilon$ and the big-$M$ relaxation $M$.
 
-\subsection*{Sets}
+\subsection*{Notation}
 
+\noindent\textit{Sets and indices.}
 \begin{tabular}{@{}l@{\quad}p{0.78\textwidth}@{}}
   $\calP$
     & maintenance positions \\
@@ -31,8 +32,8 @@ separation $\varepsilon$ and the big-$M$ relaxation $M$.
     & blocking arcs $(p, p')$: position $p$ blocks position $p'$ \\
 \end{tabular}
 
-\subsection*{Parameters}
-
+\smallskip
+\noindent\textit{Parameters.}
 \begin{tabular}{@{}l@{\quad}p{0.78\textwidth}@{}}
   $D_r$
     & total processing time of aircraft $r$ (sum of its job durations) \\
@@ -72,30 +73,23 @@ becomes vacuous.  The same value also relaxes the blocking indicator
 constraints whenever any of their position or comparison guards are not
 active.
 
-\subsection*{Variables}
-
-\paragraph{Assignment and timing.}
+\smallskip
+\noindent\textit{Decision variables.}
 Continuous variables $s_r, f_r \in [0,\, H^{UB}]$ are the start and
-finish times of aircraft $r$ at its assigned position.  The binary
-variables are $x_{rp}$ (1 if aircraft $r$ is assigned to position $p$)
-and $q_{rr'p}$ (1 if aircraft $r$ precedes aircraft $r'$ at position
-$p$).
-
-\paragraph{Blocking.}
-For every pair of distinct aircraft $r \ne r'$ and every blocking arc
-$(p, p') \in \calA$, we introduce six binary variables.  On the entry
-side, $\alpha^{\mathrm{in}}_{rr'pp'} = 1$ iff $s_{r'} > s_r$,
-$\beta^{\mathrm{in}}_{rr'pp'} = 1$ iff $s_{r'} \le f_r - \varepsilon$, and
-$u^{\mathrm{in}}_{rr'pp'} = 1$ iff the entry of $r'$ at $p'$ forces
-displacing $r$ at $p$.  The exit-side variables
-$\alpha^{\mathrm{out}}_{rr'pp'}, \beta^{\mathrm{out}}_{rr'pp'},
+finish times of aircraft $r$ at its assigned position.  The assignment
+and sequencing binaries are $x_{rp}$ (1 if aircraft $r$ is assigned to
+position $p$) and $q_{rr'p}$ (1 if aircraft $r$ precedes aircraft $r'$ at
+position $p$).  For every pair of distinct aircraft $r \ne r'$ and every
+blocking arc $(p, p') \in \calA$ we add six binary variables that detect
+blocking: on the entry side, $\alpha^{\mathrm{in}}_{rr'pp'} = 1$ iff
+$s_{r'} > s_r$, $\beta^{\mathrm{in}}_{rr'pp'} = 1$ iff
+$s_{r'} \le f_r - \varepsilon$, and $u^{\mathrm{in}}_{rr'pp'} = 1$ iff the
+entry of $r'$ at $p'$ forces displacing $r$ at $p$; the exit-side
+variables $\alpha^{\mathrm{out}}_{rr'pp'}, \beta^{\mathrm{out}}_{rr'pp'},
 u^{\mathrm{out}}_{rr'pp'}$ are defined symmetrically by replacing $s_{r'}$
-with $f_{r'}$ in the conditions above.
-
-\paragraph{Objective.}
-The makespan $m \in \NR$, the per-aircraft delay $v^D_r \in \NR$, and the
-total number of movements $n \in \NZ$ collect the three components of the
-objective.
+with $f_{r'}$.  Finally, the makespan $m \in \NR$, the per-aircraft delay
+$v^D_r \in \NR$, and the total number of movements $n \in \NZ$ collect the
+three components of the objective.
 
 \subsection*{Constraints}
 
