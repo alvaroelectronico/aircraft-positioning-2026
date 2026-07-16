@@ -120,7 +120,7 @@ causing wMOV regression despite Δmov remaining near zero.)
 | Weight profiles   | wMK (100/1/1) / wDLY (1/100/1) / wMOV (1/1/100) |
 | Budget            | 60 s wall-clock per run |
 | Metric            | relative gap = (MILP_obj − heuristic_obj) / MILP_obj; gap > 0 means heuristic BETTER |
-| Log               | wMK/wDLY R5–R10: [`…_20260619_070616.log`](../../../outputs/logs/202605_02_main_methods_20260619_070616.log) (v2); wMOV: [`…_20260620_074942.log`](../../../outputs/logs/202605_02_main_methods_20260620_074942.log) (v3 gated); wMK/wDLY R20/R30: [`…_20260621_074725.log`](../../../outputs/logs/202605_02_main_methods_20260621_074725.log) (P2 budget-honest re-battery) |
+| Log               | wMK/wDLY R5–R10: [`…_20260619_070616.log`](../../../outputs/logs/old/202605_02_main_methods_20260619_070616.log) (v2); wMOV: [`…_20260620_074942.log`](../../../outputs/logs/old/202605_02_main_methods_20260620_074942.log) (v3 gated); wMK/wDLY R20/R30: [`…_20260621_074725.log`](../../../outputs/logs/old/202605_02_main_methods_20260621_074725.log) (P2 budget-honest re-battery) |
 | State             | **v3 + P2 (profile-gated Mode-C; 60 s budget enforced mid-decode).** Mode C on for wMK/wDLY (W^S≤max(W^M,W^D)), off for wMOV. All numbers respect the 60 s budget (large-R wMK/wDLY re-batteried after the budget guard). |
 
 ## Relative objective gap (mean / min / max over seeds)

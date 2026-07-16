@@ -11,7 +11,7 @@ dropped. This complements the two other documentation layers:
   (their `exp/<slug>` branch + battery log) even when they ship no commit.
 
 **Baseline / return point:** tag `igvnd-v01-baseline-20260713`
-(290-instance battery `outputs/logs/combined_290_iterated_greedy_vnd_v01_20260628.log`;
+(290-instance battery `outputs/logs/old/combined_290_iterated_greedy_vnd_v01_20260628.log`;
 solver behaviour = Commit 5 / `4a80e79`). Every attempt is measured against the
 current `main` tip, and improvements are judged with the **cached-MILP rule** +
 the **~19 delay-unit noise floor** described in
@@ -67,6 +67,18 @@ documented below, after the template.)*
 ---
 
 # Campaign 2026-07 — profile-aware search & variance reduction
+
+> **Definitive artefacts & log organisation (2026-07-16).** The battery of
+> record for the CURRENT algorithm (Attempts 7+9+10, code `197bfc9`) is
+> [`outputs/logs/202605_02_main_methods_20260714_174533.log`](../../outputs/logs/202605_02_main_methods_20260714_174533.log)
+> (870 runs / 0 failures) — it is the source of the living spec's Part II and
+> of the paper's tables (`papers/jobs_extension/make_tables.py` points at it;
+> the MILP side comes from the cached `results.csv` + the tracked
+> `outputs/solutions/*__milp_job_*__*.json`). `outputs/logs/` now holds ONLY
+> that log plus this campaign's measurement logs (`step0_…`, `attempt7…10`);
+> every superseded log (earlier batteries, the June comparison era,
+> pre-campaign ablations) lives in `outputs/logs/old/`. Per-run scratch
+> (`data/logs_heuristic/`, per-run heuristic solution JSONs) is gitignored.
 
 Opened 2026-07-13 off the `igvnd-v01-baseline-20260713` tag (290-instance battery
 `combined_290_iterated_greedy_vnd_v01_20260628.log`). This section records the

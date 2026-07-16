@@ -14,7 +14,7 @@ extending any job — making it competitive on all three weight profiles rather
 than only the movement-priority one.
 
 > **Status (code `7f53652` = v05; latest battery
-> [`outputs/logs/instances_main_methods_20260616_210727_iterated_greedy_vnd_v02_02.log`](../../../outputs/logs/instances_main_methods_20260616_210727_iterated_greedy_vnd_v02_02.log)).**
+> [`outputs/logs/instances_main_methods_20260616_210727_iterated_greedy_vnd_v02_02.log`](../../../outputs/logs/old/instances_main_methods_20260616_210727_iterated_greedy_vnd_v02_02.log)).**
 > v05 stack: Mode-B + strict-60 s deadline + interval caching (v03.1) +
 > light-objective decode (v04) + incremental zero decode (v05).  The
 > zero-movement baseline (v01 rule) is always retained as a fallback, and
@@ -137,7 +137,7 @@ zero-movement decode, which is optimal on the dominant term).  The decoder is
 | Weight profiles   | wMK (100/1/1) / wDLY (1/100/1) / wMOV (1/1/100) |
 | Budget            | 60 s wall-clock per run (strictly enforced) |
 | Metric            | relative gap = (MILP_obj − heuristic_obj) / MILP_obj; gap > 0 means heuristic BETTER |
-| Log               | [`…_20260616_210727_iterated_greedy_vnd_v02_02.log`](../../../outputs/logs/instances_main_methods_20260616_210727_iterated_greedy_vnd_v02_02.log) — code state `7f53652` (v05 = v03.1 + v04 light-objective + v05 incremental zero decode) |
+| Log               | [`…_20260616_210727_iterated_greedy_vnd_v02_02.log`](../../../outputs/logs/old/instances_main_methods_20260616_210727_iterated_greedy_vnd_v02_02.log) — code state `7f53652` (v05 = v03.1 + v04 light-objective + v05 incremental zero decode) |
 | Compliance        | **360/360 pass `problems/jobs/checker.py`** (0 violations) |
 | State             | **v05 (incremental zero decode).** v04/v05 add +14–49 % search iterations vs v03.1 but the numbers are **statistically unchanged** (deltas ±0.1–1.7 pt either direction): the search is **quality-saturated at 60 s**.  Further throughput will not move quality; only decoder expressiveness will. |
 

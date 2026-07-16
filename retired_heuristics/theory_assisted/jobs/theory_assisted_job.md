@@ -8,8 +8,8 @@ how much two Claude-assisted attempts at the same algorithm family diverge in
 implementation choices and final quality.
 
 > **Status (code `4837874`, latest battery seeds 1–3 v2:
-> [`…180236`](../../../outputs/logs/seed1$_202605_02_main_methods_20260622_180236.log)
-> + [`…184024`](../../../outputs/logs/seed2$,_seed3$_202605_02_main_methods_20260622_184024.log)).**
+> [`…180236`](../../../outputs/logs/old/seed1$_202605_02_main_methods_20260622_180236.log)
+> + [`…184024`](../../../outputs/logs/old/seed2$,_seed3$_202605_02_main_methods_20260622_184024.log)).**
 > Decoder at **v2: Mode-A + in-fitness Mode-C (profile-gated) + timing genes
 > (chromosome 3|R|, cap 0.5·mean_T)**.  Part II reflects the seeds-1–3 v2 battery
 > (N=3, 108 runs).  Timing genes roughly halve the Mode-C gap again on the
@@ -229,7 +229,7 @@ when Mode C is heavily used (e.g. ~13–30 gens at R20/R30 vs hundreds at R10).
 | Weight profiles   | wMK (100/1/1) · wDLY (1/100/1) · wMOV (1/1/100) |
 | Budget            | 60 s wall-clock per run |
 | Metric            | relative gap = (MILP_obj − heuristic_obj) / MILP_obj; positive = heuristic better |
-| Log               | seeds 1–3 across two runs: [`…180236`](../../../outputs/logs/seed1$_202605_02_main_methods_20260622_180236.log) (seed 1) + [`…184024`](../../../outputs/logs/seed2$,_seed3$_202605_02_main_methods_20260622_184024.log) (seeds 2–3); aggregated from `results.csv` |
+| Log               | seeds 1–3 across two runs: [`…180236`](../../../outputs/logs/old/seed1$_202605_02_main_methods_20260622_180236.log) (seed 1) + [`…184024`](../../../outputs/logs/old/seed2$,_seed3$_202605_02_main_methods_20260622_184024.log) (seeds 2–3); aggregated from `results.csv` |
 
 ## Relative objective gap (seeds 1–3 — N=3 per cell)
 

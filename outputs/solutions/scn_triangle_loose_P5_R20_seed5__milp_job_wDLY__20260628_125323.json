@@ -1,0 +1,711 @@
+{
+  "instance": "scn_triangle_loose_P5_R20_seed5",
+  "solver": "milp_jobs_v2",
+  "label": "milp_job_wDLY",
+  "config": {
+    "min_separation": 0.5,
+    "weight_makespan": 1,
+    "weight_delay": 100,
+    "weight_movements": 1,
+    "time_limit_s": 60,
+    "MIPGap": 0.0,
+    "NoRelHeurTime": 0
+  },
+  "timestamp": "20260628_125323",
+  "solve_time_s": 61.799,
+  "status": "maxTimeLim",
+  "objective": 45023.0,
+  "mip_gap": 0.99869,
+  "metrics": {
+    "makespan": 157.0,
+    "movements": 16,
+    "total_delay": 448.5
+  },
+  "aircraft": [
+    {
+      "id": "R1",
+      "position": "P5",
+      "start": 54.0,
+      "finish": 92.5,
+      "delay": 24.5,
+      "jobs": [
+        {
+          "id": "J1-1",
+          "start": 54.0,
+          "finish": 61.0
+        },
+        {
+          "id": "J1-2",
+          "start": 61.0,
+          "finish": 64.0
+        },
+        {
+          "id": "J1-3",
+          "start": 64.0,
+          "finish": 71.0
+        },
+        {
+          "id": "J1-4",
+          "start": 71.0,
+          "finish": 76.0
+        },
+        {
+          "id": "J1-5",
+          "start": 76.0,
+          "finish": 82.0
+        },
+        {
+          "id": "J1-6",
+          "start": 86.5,
+          "finish": 92.5
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "position": "P3",
+      "start": 3.0,
+      "finish": 24.0,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J2-1",
+          "start": 3.0,
+          "finish": 7.0
+        },
+        {
+          "id": "J2-2",
+          "start": 8.0,
+          "finish": 13.0
+        },
+        {
+          "id": "J2-3",
+          "start": 13.0,
+          "finish": 19.0
+        },
+        {
+          "id": "J2-4",
+          "start": 19.0,
+          "finish": 24.0
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "position": "P3",
+      "start": 24.5,
+      "finish": 44.5,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J3-1",
+          "start": 24.5,
+          "finish": 27.5
+        },
+        {
+          "id": "J3-2",
+          "start": 27.5,
+          "finish": 30.5
+        },
+        {
+          "id": "J3-3",
+          "start": 32.5,
+          "finish": 40.5
+        },
+        {
+          "id": "J3-4",
+          "start": 40.5,
+          "finish": 44.5
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "position": "P3",
+      "start": 67.5,
+      "finish": 88.5,
+      "delay": 46.5,
+      "jobs": [
+        {
+          "id": "J4-1",
+          "start": 67.5,
+          "finish": 71.5
+        },
+        {
+          "id": "J4-2",
+          "start": 71.5,
+          "finish": 76.5
+        },
+        {
+          "id": "J4-3",
+          "start": 76.5,
+          "finish": 80.5
+        },
+        {
+          "id": "J4-4",
+          "start": 80.5,
+          "finish": 88.5
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "position": "P1",
+      "start": 117.0,
+      "finish": 150.0,
+      "delay": 75.0,
+      "jobs": [
+        {
+          "id": "J5-1",
+          "start": 117.0,
+          "finish": 125.0
+        },
+        {
+          "id": "J5-2",
+          "start": 125.0,
+          "finish": 128.0
+        },
+        {
+          "id": "J5-3",
+          "start": 128.0,
+          "finish": 133.0
+        },
+        {
+          "id": "J5-4",
+          "start": 133.0,
+          "finish": 139.0
+        },
+        {
+          "id": "J5-5",
+          "start": 139.0,
+          "finish": 144.0
+        },
+        {
+          "id": "J5-6",
+          "start": 144.0,
+          "finish": 150.0
+        }
+      ]
+    },
+    {
+      "id": "R6",
+      "position": "P2",
+      "start": 24.5,
+      "finish": 50.5,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J6-1",
+          "start": 24.5,
+          "finish": 32.5
+        },
+        {
+          "id": "J6-2",
+          "start": 32.5,
+          "finish": 38.5
+        },
+        {
+          "id": "J6-3",
+          "start": 38.5,
+          "finish": 46.5
+        },
+        {
+          "id": "J6-4",
+          "start": 46.5,
+          "finish": 50.5
+        }
+      ]
+    },
+    {
+      "id": "R7",
+      "position": "P3",
+      "start": 45.0,
+      "finish": 65.0,
+      "delay": 12.0,
+      "jobs": [
+        {
+          "id": "J7-1",
+          "start": 45.0,
+          "finish": 48.0
+        },
+        {
+          "id": "J7-2",
+          "start": 49.0,
+          "finish": 54.0
+        },
+        {
+          "id": "J7-3",
+          "start": 55.0,
+          "finish": 62.0
+        },
+        {
+          "id": "J7-4",
+          "start": 62.0,
+          "finish": 65.0
+        }
+      ]
+    },
+    {
+      "id": "R8",
+      "position": "P1",
+      "start": 86.5,
+      "finish": 116.5,
+      "delay": 55.5,
+      "jobs": [
+        {
+          "id": "J8-1",
+          "start": 86.5,
+          "finish": 92.5
+        },
+        {
+          "id": "J8-2",
+          "start": 92.5,
+          "finish": 100.5
+        },
+        {
+          "id": "J8-3",
+          "start": 100.5,
+          "finish": 108.5
+        },
+        {
+          "id": "J8-4",
+          "start": 108.5,
+          "finish": 116.5
+        }
+      ]
+    },
+    {
+      "id": "R9",
+      "position": "P4",
+      "start": 31.0,
+      "finish": 66.0,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J9-1",
+          "start": 31.0,
+          "finish": 38.0
+        },
+        {
+          "id": "J9-2",
+          "start": 38.0,
+          "finish": 45.0
+        },
+        {
+          "id": "J9-3",
+          "start": 48.0,
+          "finish": 51.0
+        },
+        {
+          "id": "J9-4",
+          "start": 51.0,
+          "finish": 54.0
+        },
+        {
+          "id": "J9-5",
+          "start": 55.0,
+          "finish": 61.0
+        },
+        {
+          "id": "J9-6",
+          "start": 61.0,
+          "finish": 66.0
+        }
+      ]
+    },
+    {
+      "id": "R10",
+      "position": "P2",
+      "start": 3.0,
+      "finish": 24.0,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J10-1",
+          "start": 3.0,
+          "finish": 9.0
+        },
+        {
+          "id": "J10-2",
+          "start": 9.0,
+          "finish": 13.0
+        },
+        {
+          "id": "J10-3",
+          "start": 13.0,
+          "finish": 17.0
+        },
+        {
+          "id": "J10-4",
+          "start": 17.0,
+          "finish": 24.0
+        }
+      ]
+    },
+    {
+      "id": "R11",
+      "position": "P1",
+      "start": 10.0,
+      "finish": 30.0,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J11-1",
+          "start": 10.0,
+          "finish": 13.0
+        },
+        {
+          "id": "J11-2",
+          "start": 13.0,
+          "finish": 17.0
+        },
+        {
+          "id": "J11-3",
+          "start": 17.0,
+          "finish": 24.0
+        },
+        {
+          "id": "J11-4",
+          "start": 24.0,
+          "finish": 30.0
+        }
+      ]
+    },
+    {
+      "id": "R12",
+      "position": "P1",
+      "start": 58.0,
+      "finish": 86.0,
+      "delay": 24.0,
+      "jobs": [
+        {
+          "id": "J12-1",
+          "start": 58.0,
+          "finish": 65.0
+        },
+        {
+          "id": "J12-2",
+          "start": 65.0,
+          "finish": 69.0
+        },
+        {
+          "id": "J12-3",
+          "start": 69.0,
+          "finish": 72.0
+        },
+        {
+          "id": "J12-4",
+          "start": 72.0,
+          "finish": 76.0
+        },
+        {
+          "id": "J12-5",
+          "start": 76.0,
+          "finish": 79.0
+        },
+        {
+          "id": "J12-6",
+          "start": 79.0,
+          "finish": 86.0
+        }
+      ]
+    },
+    {
+      "id": "R13",
+      "position": "P4",
+      "start": 0.0,
+      "finish": 30.5,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J13-1",
+          "start": 0.0,
+          "finish": 6.0
+        },
+        {
+          "id": "J13-2",
+          "start": 11.5,
+          "finish": 19.5
+        },
+        {
+          "id": "J13-3",
+          "start": 19.5,
+          "finish": 23.5
+        },
+        {
+          "id": "J13-4",
+          "start": 23.5,
+          "finish": 30.5
+        }
+      ]
+    },
+    {
+      "id": "R14",
+      "position": "P2",
+      "start": 120.0,
+      "finish": 157.0,
+      "delay": 68.0,
+      "jobs": [
+        {
+          "id": "J14-1",
+          "start": 120.0,
+          "finish": 128.0
+        },
+        {
+          "id": "J14-2",
+          "start": 128.0,
+          "finish": 131.0
+        },
+        {
+          "id": "J14-3",
+          "start": 131.0,
+          "finish": 139.0
+        },
+        {
+          "id": "J14-4",
+          "start": 139.0,
+          "finish": 147.0
+        },
+        {
+          "id": "J14-5",
+          "start": 147.0,
+          "finish": 152.0
+        },
+        {
+          "id": "J14-6",
+          "start": 152.0,
+          "finish": 157.0
+        }
+      ]
+    },
+    {
+      "id": "R15",
+      "position": "P5",
+      "start": 8.0,
+      "finish": 48.0,
+      "delay": 0.0,
+      "jobs": [
+        {
+          "id": "J15-1",
+          "start": 8.0,
+          "finish": 13.0
+        },
+        {
+          "id": "J15-2",
+          "start": 13.0,
+          "finish": 17.0
+        },
+        {
+          "id": "J15-3",
+          "start": 17.0,
+          "finish": 25.0
+        },
+        {
+          "id": "J15-4",
+          "start": 25.0,
+          "finish": 29.0
+        },
+        {
+          "id": "J15-5",
+          "start": 29.0,
+          "finish": 35.0
+        },
+        {
+          "id": "J15-6",
+          "start": 41.0,
+          "finish": 48.0
+        }
+      ]
+    },
+    {
+      "id": "R16",
+      "position": "P4",
+      "start": 93.5,
+      "finish": 130.5,
+      "delay": 41.5,
+      "jobs": [
+        {
+          "id": "J16-1",
+          "start": 93.5,
+          "finish": 97.5
+        },
+        {
+          "id": "J16-2",
+          "start": 97.5,
+          "finish": 104.5
+        },
+        {
+          "id": "J16-3",
+          "start": 104.5,
+          "finish": 112.5
+        },
+        {
+          "id": "J16-4",
+          "start": 112.5,
+          "finish": 119.5
+        },
+        {
+          "id": "J16-5",
+          "start": 119.5,
+          "finish": 125.5
+        },
+        {
+          "id": "J16-6",
+          "start": 125.5,
+          "finish": 130.5
+        }
+      ]
+    },
+    {
+      "id": "R17",
+      "position": "P4",
+      "start": 66.5,
+      "finish": 91.5,
+      "delay": 27.5,
+      "jobs": [
+        {
+          "id": "J17-1",
+          "start": 66.5,
+          "finish": 72.5
+        },
+        {
+          "id": "J17-2",
+          "start": 72.5,
+          "finish": 78.5
+        },
+        {
+          "id": "J17-3",
+          "start": 78.5,
+          "finish": 81.5
+        },
+        {
+          "id": "J17-4",
+          "start": 81.5,
+          "finish": 84.5
+        },
+        {
+          "id": "J17-5",
+          "start": 84.5,
+          "finish": 91.5
+        }
+      ]
+    },
+    {
+      "id": "R18",
+      "position": "P1",
+      "start": 30.5,
+      "finish": 57.5,
+      "delay": 0.5,
+      "jobs": [
+        {
+          "id": "J18-1",
+          "start": 30.5,
+          "finish": 35.5
+        },
+        {
+          "id": "J18-2",
+          "start": 35.5,
+          "finish": 39.5
+        },
+        {
+          "id": "J18-3",
+          "start": 39.5,
+          "finish": 46.5
+        },
+        {
+          "id": "J18-4",
+          "start": 46.5,
+          "finish": 49.5
+        },
+        {
+          "id": "J18-5",
+          "start": 49.5,
+          "finish": 53.5
+        },
+        {
+          "id": "J18-6",
+          "start": 53.5,
+          "finish": 57.5
+        }
+      ]
+    },
+    {
+      "id": "R19",
+      "position": "P2",
+      "start": 51.0,
+      "finish": 83.0,
+      "delay": 22.0,
+      "jobs": [
+        {
+          "id": "J19-1",
+          "start": 51.0,
+          "finish": 59.0
+        },
+        {
+          "id": "J19-2",
+          "start": 59.0,
+          "finish": 64.0
+        },
+        {
+          "id": "J19-3",
+          "start": 64.0,
+          "finish": 67.0
+        },
+        {
+          "id": "J19-4",
+          "start": 67.0,
+          "finish": 74.0
+        },
+        {
+          "id": "J19-5",
+          "start": 74.0,
+          "finish": 77.0
+        },
+        {
+          "id": "J19-6",
+          "start": 77.0,
+          "finish": 83.0
+        }
+      ]
+    },
+    {
+      "id": "R20",
+      "position": "P2",
+      "start": 83.5,
+      "finish": 119.5,
+      "delay": 51.5,
+      "jobs": [
+        {
+          "id": "J20-1",
+          "start": 83.5,
+          "finish": 91.5
+        },
+        {
+          "id": "J20-2",
+          "start": 91.5,
+          "finish": 97.5
+        },
+        {
+          "id": "J20-3",
+          "start": 97.5,
+          "finish": 104.5
+        },
+        {
+          "id": "J20-4",
+          "start": 104.5,
+          "finish": 109.5
+        },
+        {
+          "id": "J20-5",
+          "start": 109.5,
+          "finish": 116.5
+        },
+        {
+          "id": "J20-6",
+          "start": 116.5,
+          "finish": 119.5
+        }
+      ]
+    }
+  ]
+}
