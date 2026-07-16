@@ -3,32 +3,33 @@
 \label{sec:intro}
 % ==============================================================================
 
-Maintenance hangars are a scarce and tightly constrained resource.  An
-aircraft parked at a \emph{front} position physically blocks the access
-path of any aircraft parked at the \emph{rear} positions behind it, so
-servicing the rear aircraft may require temporarily towing the front one
-out of the way and returning it once the manoeuvre is complete.  Each such
-manoeuvre occupies the ground crew, interrupts ongoing service, and carries
-a non-negligible risk of damage, so an operator wants to schedule the fleet
-to finish on time while keeping makespan and the number of manoeuvres low.
+Keeping a commercial aircraft fleet airworthy requires a continual
+programme of scheduled maintenance, most of which is carried out in hangars
+whose parking capacity is limited and costly.  A hangar's parking positions
+are therefore a scarce and tightly constrained resource, and their physical
+layout adds a further complication: an aircraft parked at a \emph{front}
+position physically blocks the access path of any aircraft parked at the
+\emph{rear} positions behind it, so servicing the rear aircraft may require
+temporarily towing the front one out of the way and returning it once the
+manoeuvre is complete.  Each such manoeuvre occupies the ground crew,
+interrupts ongoing service, and carries a non-negligible risk of damage, so
+an operator wants to schedule the fleet to finish on time while keeping
+makespan and the number of manoeuvres low.
 
-A companion paper modelled this problem at the \emph{aircraft level},
-treating each aircraft as a single uninterrupted block of occupancy.  That
-abstraction is adequate when a blocking interaction can only be resolved by
-serialising the two aircraft, but it discards the operational reality that
-the work performed on an aircraft is a \emph{chain of jobs} with individual
-durations, and that some of those jobs can be paused briefly to clear the
-way for a neighbouring movement while others cannot.  Whether a rear
-aircraft can be accessed while a front aircraft is being serviced depends
-precisely on \emph{which job} the front aircraft is running at that
-instant: an access that falls in an inter-job gap is cheap, one that falls
-inside an interruptible job costs a bounded extension, and one that falls
-inside a non-interruptible job is simply impossible.  Capturing these
-distinctions requires modelling blocking at the \emph{job level}, which is
-the subject of this paper.
+The work performed on an aircraft is not monolithic: it is a \emph{chain of
+jobs} with individual durations, and some of those jobs can be paused
+briefly to clear the way for a neighbouring movement while others cannot.
+Whether a rear aircraft can be accessed while a front aircraft is being
+serviced therefore depends precisely on \emph{which job} the front aircraft
+is running at that instant: an access that falls in an inter-job gap is
+cheap, one that falls inside an interruptible job costs a bounded
+extension, and one that falls inside a non-interruptible job is simply
+impossible.  These distinctions determine both the feasibility and the cost
+of every manoeuvre, so treating them faithfully is essential --- and it is
+what this paper sets out to do.
 
 We make two contributions.  First, we give an exact mixed-integer linear
-programming (MILP) formulation of the job-level problem
+programming (MILP) formulation of the problem
 (\S\ref{sec:milp}).  Its central device is a partition constraint that
 classifies every access of a blocked aircraft into exactly one of four
 mutually exclusive states --- before the front stay, after it, in an

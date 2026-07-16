@@ -1,19 +1,18 @@
 %% ===========================================================================
-%% Aircraft Hangar Positioning, Extension: Job-Level Scheduling with
-%% Refined Blocking Semantics — formatted for Central European Journal
-%% of Operations Research (CEJOR), Springer Nature.
+%% Aircraft Hangar Positioning under Blocking Constraints — formatted for
+%% the Central European Journal of Operations Research (CEJOR),
+%% Springer Nature.
 %%
-%% Companion to the aircraft-level paper (papers/cejor_aircraft/).
-%% The extension treats blocking at the job level: it is no longer
-%% sufficient to represent each aircraft as a single uninterrupted block,
-%% because blocking interactions depend on the per-job timing.
+%% Blocking is modelled at the granularity of individual jobs:
+%% representing each aircraft as a single uninterrupted block is
+%% insufficient, because blocking interactions depend on per-job timing.
 %%
 %% Document class: sn-jnl with the sn-mathphys-ay option (author-year
 %% style, as in CEJOR).  The class file (sn-jnl.cls) and the bibliography
 %% style (sn-mathphys-ay.bst) live alongside this file.
 %%
-%% NOTE: this paper is intentionally self-contained.  Do NOT \input{}
-%% files from ../cejor_aircraft/.  When content overlaps, copy it.
+%% NOTE: this paper is intentionally self-contained; keep all content
+%% local to this folder.
 %% ===========================================================================
 
 \documentclass[pdflatex,sn-mathphys-ay]{sn-jnl}
@@ -37,7 +36,7 @@
 \SetCommentSty{textit}
 \usepackage{natbib}
 
-%%%%%% Custom math macros (mirrors paper #1)  %%%%%%
+%%%%%% Custom math macros  %%%%%%
 \newcommand{\calP}{\mathcal{P}}
 \newcommand{\calA}{\mathcal{A}}
 \newcommand{\calR}{\mathcal{R}}
@@ -50,9 +49,9 @@
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\argmax}{arg\,max}
 
-%%%%%% Upright (non-italic) run-in heading for the MILP variable / constraint
-%%%%%% groups, without a trailing period.
-\newcommand{\fmlgroup}[1]{\paragraph{\normalfont\bfseries #1}}
+%%%%%% Italic run-in heading for the MILP variable / constraint groups
+%%%%%% (minimal bold, matching the CEJOR run-in-label house style).
+\newcommand{\fmlgroup}[1]{\paragraph{\normalfont\itshape #1}}
 
 \theoremstyle{thmstyleone}
 \newtheorem{theorem}{Theorem}
@@ -69,8 +68,9 @@
 % ============================================================================
 \begin{document}
 
-\title[Aircraft Hangar Positioning: Job-Level Extension]{Aircraft Hangar
-Positioning with Job-Level Blocking: A Mixed-Integer Programming Extension}
+\title[Aircraft Maintenance Hangar Positioning]{Aircraft Maintenance Hangar
+Positioning under Blocking Constraints: A MILP Model and a Heuristic
+Approach}
 
 \author*[1]{\fnm{\'Alvaro} \sur{Garc\'ia}}
 \email{alvaro.garcia@upm.es}
@@ -78,31 +78,31 @@ Positioning with Job-Level Blocking: A Mixed-Integer Programming Extension}
 \affil*[1]{\orgname{Universidad Polit\'ecnica de Madrid},
            \orgaddress{\city{Madrid}, \country{Spain}}}
 
-\abstract{Maintenance hangars are blocking resources: an aircraft at a
-front position obstructs the access path of the aircraft behind it, and
-clearing that path may require towing the front aircraft out and back, an
-expensive manoeuvre.  We study this problem at the \emph{job level}, where
-whether a rear aircraft can be accessed depends on which job the front
-aircraft is running --- an inter-job gap admits a cheap manoeuvre, an
-interruptible job admits one at the cost of a bounded extension, and a
-non-interruptible job admits none.  We contribute (i) an exact
-mixed-integer linear programming formulation whose partition constraint
-classifies every access into one of four admissible states and renders
-the impossible ones infeasible, and (ii) IGVND, an Iterated-Greedy /
-Variable-Neighbourhood-Descent metaheuristic that separates the
+\abstract{Scheduled maintenance keeps an airline's fleet airworthy, and
+much of it is carried out in hangars whose parking capacity is limited and
+whose layout constrains how aircraft move in and out.  Such hangars are
+blocking resources: an aircraft at a front position obstructs the access
+path of the aircraft behind it, and clearing that path may require towing
+the front aircraft out and back, an expensive manoeuvre.  Whether a rear
+aircraft can be accessed while a front aircraft is being serviced depends
+on which of the front aircraft's jobs is running: an inter-job gap admits a
+cheap manoeuvre, an interruptible job admits one at the cost of a bounded
+extension, and a non-interruptible job admits none.  We contribute (i) an
+exact mixed-integer linear programming formulation whose partition
+constraint classifies every access into one of four admissible states and
+renders the impossible ones infeasible, and (ii) IGVND, an Iterated-Greedy
+/ Variable-Neighbourhood-Descent metaheuristic that separates the
 combinatorial assignment-and-ordering decision from the timing decision and
 prices it with a fast two-regime decoder under a checker-validated safety
 net.  On a controlled 270-instance benchmark spanning five blocking
-topologies, four fleet sizes and three weight profiles, the heuristic
-matches the MILP wherever the latter proves optimality (exact on the
-no-blocking and five-aircraft instances, within a couple of percent
-elsewhere) and returns substantially better feasible solutions in the same
-60\,s budget on every configuration the MILP cannot close --- larger
-fleets, dense topologies, and the profiles that activate the manoeuvre
-machinery.}
+topologies, four fleet sizes and three slack levels, the MILP is effective
+on the small instances --- where the heuristic matches it, exactly on the
+easiest cases and within a couple of percent elsewhere --- while on larger
+and more constrained instances, which the MILP can no longer close, the
+heuristic returns substantially better feasible solutions.}
 
 \keywords{Aircraft hangar scheduling,
-          Job-level mixed-integer linear programming,
+          Mixed-integer linear programming,
           Blocking constraints,
           Maintenance planning,
           Resource-constrained project scheduling}
@@ -110,16 +110,6 @@ machinery.}
 \maketitle
 
 % ============================================================================
-%% TODO: add body sections as they are written.
-%% Suggested skeleton (mirroring paper #1):
-%%   \input{intro}
-%%   \input{related_work_extension}    % short, mostly cross-ref to paper #1
-%%   \input{problem_statement_jobs}
-%%   \input{milp_jobs_v2}
-%%   \input{solving_approaches_v2}
-%%   \input{computational_results_v2}
-%%   \input{conclusions}
-
 \input{intro}
 \input{problem_statement}
 \input{milp}

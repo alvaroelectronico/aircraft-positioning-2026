@@ -90,7 +90,7 @@ well under a second, as do the loosely-constrained $R{=}10$ instances.  As
 soon as the fleet grows ($R \ge 20$) or the profile activates the manoeuvre
 machinery (\emph{delay-} and \emph{movement-priority} couple the timing and
 classification binaries far more tightly than makespan-priority), the gap blows
-up: it exceeds $60\%$ at $R{=}20$, surpasses $75\%$ at $R{=}30$, and reaches
+up: it exceeds $60\%$ at $R{=}20$, climbs to around $75$--$80\%$ at $R{=}30$, and reaches
 essentially $100\%$ under the delay-priority profile, where Gurobi returns a
 feasible incumbent without closing the bound at all.  Makespan-priority is
 consistently the easiest profile for the exact solver (smallest gaps),
@@ -127,7 +127,9 @@ no-blocking baseline and on the five-aircraft instances --- $g = 0.00\%$ on
 every $R{=}5$ configuration under the makespan- and movement-priority
 profiles, and within $0.3\%$ on average under delay-priority (a single
 seed at $-3\%$) --- and within roughly $\pm 2.5\%$ on the remaining
-converged $R{=}10$ cases.  The makespan-priority column, where the MILP
+converged $R{=}10$ cases, apart from the delay-priority column on the two
+loose $R{=}10$ configurations, whose near-zero delay denominator inflates
+the relative gap (discussed next).  The makespan-priority column, where the MILP
 converges on most $R{=}10$ topologies, shows IGVND tracking the optimum
 closely (\emph{None}, \emph{Triangle}, \emph{Two rows} all within $1\%$);
 the small negative entries on \emph{Chain} and \emph{Hub} are at the level
@@ -136,7 +138,7 @@ $\Delta m, \Delta D, \Delta n$ in Table~\ref{tab:components} are
 near-zero, confirming that these are genuine near-ties rather than
 denominator artefacts.
 
-\paragraph{The one apparent outlier is a small-denominator artefact.}
+\paragraph{The apparent delay-priority outliers are small-denominator artefacts.}
 The most negative entry in Table~\ref{tab:gap_profile} is the
 loosely-constrained triangle under delay-priority ($-33\%$ mean, driven by
 one seed at $-277\%$).  Here the MILP drives the total delay to
@@ -147,7 +149,10 @@ attains the strictly better objective on half of the ten seeds.  The
 corresponding $\Delta D$ in Table~\ref{tab:components} is essentially zero
 ($+0.15$ delay units on average):
 in absolute terms IGVND loses a negligible amount of delay, not a large
-one.  This is exactly the small-denominator inflation the per-component
+one.  The loose \emph{Two rows} row under the same profile is the mirror
+image ($+11.1\%$): IGVND shaves a fraction of a delay unit off a near-zero
+optimum, which the tiny denominator turns into a double-digit relative
+gain.  Both are exactly the small-denominator inflation the per-component
 table is meant to expose.
 
 \paragraph{Where the MILP times out, IGVND wins decisively.}
@@ -184,7 +189,7 @@ the zero-movement schedule tightest.  Because that denominator is not small
 relative gaps here are genuine and not a small-denominator artefact --- unlike
 the delay-priority outlier of the previous paragraph.  IGVND matches the MILP
 \emph{exactly} on every five-aircraft configuration ($g = 0.00\%$, all seeds)
-and dominates at $R{=}20$ and $R{=}30$ ($+7\%$ to $+35\%$, with large negative
+and dominates at $R{=}20$ and $R{=}30$ ($+8\%$ to $+36\%$, with large negative
 $\Delta m$ and $\Delta D$ --- hundreds of objective units in absolute terms).
 The $R{=}10$ blocking topologies, which earlier revisions of the method lost
 by up to $-10\%$, are now near-ties or wins: $-0.6\%$ on the tight

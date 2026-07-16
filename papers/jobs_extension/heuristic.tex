@@ -55,8 +55,9 @@ drawn \emph{until the time budget is exhausted}: each restart takes a seed
 order (deterministic for the first two, biased-randomised afterwards),
 optimises it first in the zero-movement regime to obtain a
 guaranteed-feasible \emph{floor}, and then polishes it in the
-manoeuvre-aware regime, retaining the polished schedule only if an
-independent feasibility check certifies it and it improves the floor.  A
+manoeuvre-aware regime, with the two phases splitting the restart's time
+slice evenly; the polished schedule is retained only if an independent
+feasibility check certifies it and it improves the floor.  A
 single nest-stretch candidate is added when the weights reward it.  The
 best certified schedule over all restarts is returned.  Because every
 restart ends early once its own search stalls, small instances perform
@@ -318,12 +319,12 @@ $k \leftarrow 1$\;
 % ------------------------------------------------------------------------------
 
 Around the VND runs an Iterated-Greedy loop (Algorithm~\ref{alg:search}).
-Each iteration \emph{perturbs} the current state by removing the $k$
-aircraft of largest contribution to the objective --- a delay-weighted
-score with light randomisation, so the loop explores rather than repeating
-the same removals --- and \emph{reconstructs} the state by reinserting each
-removed aircraft at the position and order-slot that minimises the decoded
-objective.  The perturbed state is re-optimised by the VND and accepted as
+Each iteration \emph{perturbs} the current state by removing $k$ aircraft
+--- with equal probability either uniformly at random or by a delay-weighted
+contribution score (lightly randomised), the two together keeping the walk
+from anchoring on the same removals --- and \emph{reconstructs} the state by
+reinserting each removed aircraft at the position and order-slot that
+minimises the decoded objective.  The perturbed state is re-optimised by the VND and accepted as
 the new current state when it does not worsen the walk; the best state is
 tracked separately, and the walk is restarted from it after a streak of
 non-improving iterations.  The procedure is decoder-agnostic: the master
@@ -374,10 +375,12 @@ $(\pi, \sigma) \leftarrow \textsc{Vnd}(\pi, \sigma, \textsc{Decode}_d)$\;
 \label{sec:igvnd_safety}
 % ------------------------------------------------------------------------------
 
-The construct-and-improve procedure is run from several seeds, and the best
-result is kept.  The number of restarts is adaptive to instance size (8 for
-$R \le 10$, 4 for $R \le 20$, 3 otherwise): more restarts on the cheap
-small instances, fewer on the large ones that need their per-start time.
+The construct-and-improve procedure is restarted until the time budget is
+exhausted, and the best certified result is kept.  Each restart is capped at
+a time slice of $T/8$ ($R \le 10$), $T/4$ ($R \le 20$) or $T/3$ (larger) and
+ends early on its own stale counter, so small instances complete many
+independent restarts while large ones receive only a few --- with no
+instance-dependent tuning of the restart count.
 Because the search is time-limited and hence non-deterministic, a single
 run occasionally settles in a poor high-delay basin, and independent
 restarts make finding the good basin reliable.
