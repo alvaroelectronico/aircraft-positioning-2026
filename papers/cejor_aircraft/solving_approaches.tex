@@ -19,15 +19,11 @@ safe pipeline combines them.
 The driving observation behind this method is that assigning a heavy
 aircraft (large $D_r$) to a position with high outgoing blocking degree
 forces its long occupancy window to overlap with aircraft serviced behind
-it, triggering movements.  We formalise this through the
-\emph{blocking load} of a position:
-\[
-  \ell(p) = |\{q \in \calP : p \text{ reaches } q \text{ in } G\}|,
-\]
-i.e.\ the number of positions that lie downstream of $p$ in the
-blocking-arc graph.  The construction step penalises each candidate pair
-$(r, p)$ proportionally to $D_r \cdot \ell(p)$, steering heavy aircraft
-towards positions with low (ideally zero) blocking load.
+it, triggering movements.  We exploit the \emph{blocking load} $\ell(p)$ introduced in
+\S\ref{sec:problem} --- the number of positions that lie downstream of
+$p$ in the blocking-arc graph $G$.  The construction step penalises each
+candidate pair $(r, p)$ proportionally to $D_r \cdot \ell(p)$, steering
+heavy aircraft towards positions with low (ideally zero) blocking load.
 
 Given the cost function
 \[
@@ -151,10 +147,10 @@ Algorithm~\ref{alg:fas} summarises the procedure.  A multi-candidate
 extension allows a small set of positions $\kappa(r) \supseteq \{\pi(r)\}$
 for each aircraft, recovering a fraction of the full assignment problem
 while keeping the model tractable.  In that variant the candidate set is
-non-trivial only for the $K = 4$ aircraft with the highest score
+non-trivial only for the four aircraft with the highest score
 $\sigma(r) = v^D_r + 0.5 \cdot \mathbf{1}[f_r \approx m]$, and is built as
 the union of their primary position and the positions they occupy in
-$K = 10$ diverse topology assignments produced by 1-second GRASP runs.
+ten diverse topology assignments produced by 1-second GRASP runs.
 
 \begin{algorithm}[htbp]
 \DontPrintSemicolon
@@ -190,8 +186,7 @@ optionally extended with \texttt{fas\_2cand}.  Since each component
 already stores its solution in a shared cache, the pipeline performs no
 additional optimisation; its cost is a single comparison.
 
-\begin{proposition}
-The safe pipeline objective satisfies $z^* \le z_h$ for every
-$h \in \mathcal{H}$; in particular $z^* \le z_{\texttt{topology\_ms6}}$,
-so the pipeline never degrades the GRASP result.
-\end{proposition}
+By construction, the safe pipeline objective satisfies $z^* \le z_h$ for
+every $h \in \mathcal{H}$; in particular
+$z^* \le z_{\texttt{topology\_ms6}}$, so the pipeline never degrades the
+GRASP result.

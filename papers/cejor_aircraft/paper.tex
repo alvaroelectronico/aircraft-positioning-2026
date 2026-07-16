@@ -43,17 +43,6 @@
 \newcommand{\NZ}{\mathbb{Z}_{\geq 0}}  % non-negative integers
 \DeclareMathOperator*{\argmin}{arg\,min}
 
-%%%%%% Theorem environments per the Springer Nature template  %%%%%%
-\theoremstyle{thmstyleone}
-\newtheorem{theorem}{Theorem}
-\newtheorem{proposition}[theorem]{Proposition}
-
-\theoremstyle{thmstyletwo}
-\newtheorem{remark}{Remark}
-
-\theoremstyle{thmstylethree}
-\newtheorem{definition}{Definition}
-
 \raggedbottom
 
 % ============================================================================
@@ -68,7 +57,10 @@ Mixed-Integer Programming Model and Heuristic Solving Approaches}
 \affil*[1]{\orgname{Baobab Soluciones},
            \orgaddress{\city{Madrid}, \country{Spain}}}
 
-\abstract{We study the \emph{aircraft hangar positioning problem} (AHPP):
+\abstract{Aircraft maintenance hangars service a fleet under tight space
+constraints, yet the assignment of aircraft to maintenance positions is
+still largely governed by operational rules of thumb.  We study the
+\emph{aircraft hangar positioning problem} (AHPP):
 given a hangar with a set of maintenance positions connected by directed
 blocking arcs, a fleet of aircraft each with a known total maintenance
 duration, and time-window constraints on start and finish, assign every
@@ -84,13 +76,12 @@ together with two complementary heuristic approaches: a topology-aware
 GRASP that steers heavy aircraft away from high-load positions, and a
 fixed-assignment scheduler that re-optimises timing given a position
 assignment.  Combining these in a safe pipeline always yields a solution
-at least as good as any individual component.  Computational experiments
-on 120 benchmark instances covering six hangar topologies, three slack
-levels, and up to 30 aircraft show that the heuristic pipeline
-consistently outperforms the exact solver within a 60-second budget as
-soon as the fleet grows beyond the regime in which the exact solver is
-competitive, while the exact solver closes the gap on the smallest
-instances.}
+at least as good as its best component.  Experiments on 120 benchmark
+instances covering six hangar topologies, three slack levels, and up to
+30 aircraft show that, within a 60-second budget, the heuristic pipeline
+matches the exact solver on the smallest instances and outperforms it by
+more than three-fold at 20 aircraft, where the exact solver leaves large
+optimality gaps.}
 
 \keywords{Aircraft hangar scheduling,
           Mixed-integer linear programming,

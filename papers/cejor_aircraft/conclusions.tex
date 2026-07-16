@@ -37,13 +37,23 @@ the boundary of tractability, where FAS occasionally times out --- on
 \emph{Triangle $R{=}30$}, for instance, FAS lags Topo by about $0.7\,\%$ and
 the safe pipeline correctly falls back to the Topo solution.  The three
 weight profiles act as effective dials between the objectives: the
-default movement-priority profile returns \emph{zero} blocking
+default movement-priority profile returns essentially zero blocking
 movements on every configuration covered by the benchmark at the cost
 of a moderate makespan penalty; the delay-priority profile flattens
 mean delay onto a narrow band on the $R{=}10$ rows while injecting tens
 of movements; and the makespan-priority profile yields the lowest
 $\bar m$ throughout, again at the cost of intermediate values of delay
 and movements.
+
+Two caveats bound these conclusions.  The benchmark is synthetic and
+deliberately congested, and fixes the number of positions at $P=5$ with
+one geometry per topology, so the absolute magnitudes are indicative
+rather than operational forecasts; and the weight profiles, though
+motivated by maintenance practice, are exogenous inputs rather than
+learned from data.  Within these bounds, the experiments return to the
+motivating gap: where planners today rely on positioning rules of thumb,
+a fast solver portfolio delivers high-quality, movement-aware schedules
+in seconds.
 
 These results outline a natural agenda for future work.  A tighter MILP
 formulation that exploits the capacity-one structure of the positions
