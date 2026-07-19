@@ -108,26 +108,29 @@ The job start and finish times induce the aircraft start and finish
 times $s_r = s_{j^r_1}$ and $f_r = f_{j^r_{N_r}}$, and the per-aircraft
 delay $v^D_r = \max(0,\, f_r - L_r)$.
 
-The basic feasibility requirements are
-\begin{align}
-  & \textstyle\sum_{p \in \calP} \mathbf{1}[\pi(r) = p] = 1
-    && \forall r \in \calR, \label{eq:ps_assign} \\
-  & s_{j^r_{k+1}} \;\ge\; f_{j^r_k}
-    && \forall r \in \calR,\ k = 1, \ldots, N_r{-}1, \label{eq:ps_chain} \\
-  & s_r \;\ge\; E_r
-    && \forall r \in \calR, \label{eq:ps_earlystart} \\
-  & [s_r, f_r] \cap [s_{r'}, f_{r'}] = \emptyset \text{ and gap } \ge \varepsilon
-    && \forall r \ne r' \in \calR \text{ with } \pi(r) = \pi(r'). \label{eq:sameposseq}
-\end{align}
-Equation~\eqref{eq:ps_assign} enforces that every aircraft is assigned to
-exactly one position; \eqref{eq:ps_chain} chains each aircraft's jobs in
-the prescribed order; \eqref{eq:ps_earlystart} respects the earliest
-start; and \eqref{eq:sameposseq} forbids overlapping occupancies at
-the same position and leaves at least $\varepsilon$ time units
-between the finish of one aircraft and the start of the next.
+A feasible solution must satisfy four basic requirements: each aircraft is
+assigned to exactly one position; the jobs of an aircraft run in their
+prescribed order, each starting no earlier than its predecessor finishes;
+no aircraft starts before its earliest start $E_r$; and two aircraft that
+share a position are serviced sequentially, with disjoint occupancy
+intervals $[s_r, f_r]$ and $[s_{r'}, f_{r'}]$ separated by at least the tow
+time $\varepsilon$.
+
+% Original formal statement of the four basic feasibility requirements,
+% kept commented in case a more formal rendering is preferred:
+% \begin{align}
+%   & \textstyle\sum_{p \in \calP} \mathbf{1}[\pi(r) = p] = 1
+%     && \forall r \in \calR, \label{eq:ps_assign} \\
+%   & s_{j^r_{k+1}} \;\ge\; f_{j^r_k}
+%     && \forall r \in \calR,\ k = 1, \ldots, N_r{-}1, \label{eq:ps_chain} \\
+%   & s_r \;\ge\; E_r
+%     && \forall r \in \calR, \label{eq:ps_earlystart} \\
+%   & [s_r, f_r] \cap [s_{r'}, f_{r'}] = \emptyset \text{ and gap } \ge \varepsilon
+%     && \forall r \ne r' \in \calR \text{ with } \pi(r) = \pi(r'). \label{eq:sameposseq}
+% \end{align}
 
 % ------------------------------------------------------------------------------
-\subsection*{Access conditions on blocked positions}
+\subsubsection*{Access conditions on blocked positions}
 \label{subsec:access}
 % ------------------------------------------------------------------------------
 
@@ -135,72 +138,48 @@ Consider any arc $(p, p') \in \calA$ and an aircraft $r'$ assigned to
 the rear position $p' = \pi(r')$.  Its two access instants are the
 entry $\tau = s_{r'}$ and the exit $\tau = f_{r'}$.  Each of these
 instants must fall into exactly one of three modes, depending on the
-state of the front position $p$ at time $\tau$.
+state of the front position $p$ at time $\tau$:
+\begin{itemize}[leftmargin=2em, itemsep=4pt]
+  \item Mode~A --- the front position is vacant at $\tau$: no aircraft $r$
+        with $\pi(r) = p$ satisfies $s_r \le \tau \le f_r$, so the access
+        needs no manoeuvre and incurs no extra time and no movement count.
+  \item Mode~B --- the front aircraft is mid-stay and $\tau$ falls in an
+        inter-job gap: some aircraft $r$ with $\pi(r) = p$ has
+        $f_{j^r_k} \le \tau \le s_{j^r_{k+1}}$ between two consecutive jobs.
+        The front aircraft is towed out, $r'$ accesses $p'$, and it is
+        towed back; the gap must satisfy
+        $s_{j^r_{k+1}} - f_{j^r_k} \ge \mu$ whenever an access instant uses
+        it.  The event contributes $2$ to the movement count (tow-out plus
+        tow-back) and does not extend any job.
+  \item Mode~C --- the front aircraft is mid-job on an interruptible job:
+        some aircraft $r$ with $\pi(r) = p$ has
+        $s_{j^r_k} < \tau < f_{j^r_k}$ strictly inside a job $j^r_k$, and
+        the access is feasible only if $I_{j^r_k} = 1$.  The job is then
+        paused, the manoeuvre performed, and the job resumed; its counter
+        $\kappa_{j^r_k}$ in~\eqref{eq:job_finish} increases by $1$ and the
+        event contributes $2$ to the movement count.
+\end{itemize}
 
-\paragraph{Mode (A) — front position vacant at $\tau$.}
-If no aircraft is being serviced at $p$ at time $\tau$ --- formally,
-no aircraft $r$ with $\pi(r) = p$ satisfies $s_r \le \tau \le f_r$ ---
-the access requires no manoeuvre and incurs no extra time and no
-movement count.
-
-\paragraph{Mode (B) — front aircraft mid-stay, $\tau$ in an inter-job gap.}
-If there exists an aircraft $r$ with $\pi(r) = p$ such that $\tau$
-falls between two consecutive jobs $j^r_k$ and $j^r_{k+1}$ of $r$,
-i.e.
-\begin{equation}
-  f_{j^r_k} \;\le\; \tau \;\le\; s_{j^r_{k+1}},
-  \label{eq:mode_b_window}
-\end{equation}
-then $r$ is towed out, $r'$ accesses $p'$, and $r$ is towed back.  The
-gap must be wide enough to accommodate the manoeuvre:
-\begin{equation}
-  s_{j^r_{k+1}} \;-\; f_{j^r_k} \;\ge\; \mu
-    \quad\text{whenever any access instant uses this gap}.
-  \label{eq:mode_b_gap}
-\end{equation}
-The event contributes $2$ to the movement count (tow-out plus
-tow-back) and does not extend any job.
-
-\paragraph{Mode (C) — front aircraft mid-job, job interruptible.}
-If there exists an aircraft $r$ with $\pi(r) = p$ such that $\tau$
-falls strictly within the execution of some job $j^r_k$ of $r$, i.e.
-\begin{equation}
-  s_{j^r_k} \;<\; \tau \;<\; f_{j^r_k},
-  \label{eq:mode_c_window}
-\end{equation}
-the access is feasible only if $I_{j^r_k} = 1$.  In that case $j^r_k$
-is paused, the manoeuvre is performed, $j^r_k$ resumes, and the
-counter $\kappa_{j^r_k}$ of equation~\eqref{eq:job_finish} is
-incremented by $1$.  The event contributes $2$ to the movement count.
-
-\paragraph{Infeasibility.}
-If~\eqref{eq:mode_c_window} holds but $I_{j^r_k} = 0$, the access
-instant $\tau$ is infeasible: the schedule must either retime $r'$ so
-that $\tau$ falls into Mode~(A) or Mode~(B), or reassign $r'$ to a
-different position.
-
-\paragraph{Independence of entry and exit.}
-The mode of the entry $s_{r'}$ and the mode of the exit $f_{r'}$ are
-determined independently, against potentially different front aircraft
-and different jobs.  Each contributes its own movement count and, in
-Mode~(C), its own increment of $\kappa$.
+An access that meets the Mode~C timing on a \emph{non-interruptible} job
+($I_{j^r_k} = 0$) fits none of the three modes and is therefore infeasible:
+the schedule must retime $r'$ so that the instant falls into Mode~A or
+Mode~B, or reassign $r'$ to another position.  The entry $s_{r'}$ and the
+exit $f_{r'}$ are classified independently, against potentially different
+front aircraft and jobs, and each contributes its own movement count and,
+in Mode~C, its own increment of $\kappa$.
 
 % ------------------------------------------------------------------------------
-\subsection*{Objective}
+\subsubsection*{Objective}
 % ------------------------------------------------------------------------------
 
-Let $m = \max_{r \in \calR} f_r$ be the makespan and let $n$ be the
-total number of movements summed over all blocking arcs and aircraft
-pairs.  The objective is the weighted combination
-\begin{equation}
-  \label{eq:obj}
-  \min \;\; W^M \cdot m
-        \;+\; W^D \sum_{r \in \calR} v^D_r
-        \;+\; W^S \cdot n,
-\end{equation}
-where $W^M, W^D, W^S \ge 0$ are user-specified weights expressing the
-relative priority of throughput, on-time delivery, and ground-crew
-effort.
+Let $m = \max_{r \in \calR} f_r$ be the makespan and let $n$ be the total
+number of movements summed over all blocking arcs and aircraft pairs.  The
+objective is a weighted combination of three criteria --- the makespan $m$,
+the total delay $\sum_{r \in \calR} v^D_r$, and the movement count $n$ ---
+scalarised with user-specified weights $W^M, W^D, W^S \ge 0$ that express
+the relative priority of throughput, on-time delivery, and ground-crew
+effort; the resulting cost is minimised.  The formal objective is stated
+with the model as~\eqref{eq:milpobj}.
 
 The problem is $\mathcal{NP}$-hard: even without blocking arcs it
 contains the single-machine scheduling problem with arbitrary release

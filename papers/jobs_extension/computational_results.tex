@@ -120,7 +120,7 @@ Table~\ref{tab:gap_profile} reports the relative gap and
 Table~\ref{tab:components} the per-component differences.  We read them
 together, grouping the configurations by what the MILP can certify.
 
-\paragraph{Where the MILP is a proven optimum, IGVND matches it.}
+\paragraph{Instances the MILP solves to optimality.}
 On the configurations the MILP solves to optimality, IGVND is at or within
 a small fraction of a percent of that optimum.  It is \emph{exact} on the
 no-blocking baseline and on the five-aircraft instances --- $g = 0.00\%$ on
@@ -138,7 +138,7 @@ $\Delta m, \Delta D, \Delta n$ in Table~\ref{tab:components} are
 near-zero, confirming that these are genuine near-ties rather than
 denominator artefacts.
 
-\paragraph{The apparent delay-priority outliers are small-denominator artefacts.}
+\paragraph{Delay-priority outliers.}
 The most negative entry in Table~\ref{tab:gap_profile} is the
 loosely-constrained triangle under delay-priority ($-33\%$ mean, driven by
 one seed at $-277\%$).  Here the MILP drives the total delay to
@@ -155,7 +155,7 @@ optimum, which the tiny denominator turns into a double-digit relative
 gain.  Both are exactly the small-denominator inflation the per-component
 table is meant to expose.
 
-\paragraph{Where the MILP times out, IGVND wins decisively.}
+\paragraph{Instances the MILP cannot close within the budget.}
 On the configurations the MILP cannot close in 60\,s --- every $R{=}20$ and
 $R{=}30$ case, and the delay-/movement-priority profiles on the tight
 $R{=}10$ topologies --- IGVND returns a substantially better feasible
@@ -179,7 +179,7 @@ while it is still struggling to tighten its bound --- or to fit in memory.
 
 \input{tables/res_components}
 
-\paragraph{Movement-priority.}
+\paragraph{Movement-priority profile.}
 The movement-priority profile is the hardest for a heuristic.  Both methods
 almost always reach a zero-manoeuvre schedule ($\Delta n = 0$ throughout), so
 the heavily-weighted movement term contributes nothing and the objective

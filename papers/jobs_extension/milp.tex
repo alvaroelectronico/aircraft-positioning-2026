@@ -49,15 +49,15 @@ and is correctly rendered infeasible by the model.
     & tow-in / tow-out time; minimum separation between consecutive
       aircraft serviced at the same position \\
   $\mu$
-    & operational time absorbed by a single Mode-(B) manoeuvre inside
+    & operational time absorbed by a single Mode~B manoeuvre inside
       an inter-job gap (per-access, cumulative across all manoeuvres
       that share the same gap) \\
   $\delta$
     & additional working time added to an interruptible job each time
-      it is paused to allow a Mode-(C) manoeuvre \\
+      it is paused to allow a Mode~C manoeuvre \\
   $\eta$
     & time-granularity used to enforce strict inequalities on the
-      Mode-(C) job interior; equals the smallest time difference
+      Mode~C job interior; equals the smallest time difference
       meaningful in the instance (e.g.\ one day) \\
   $K^{\max}_j$
     & valid upper bound on the number of times job $j$ may be paused;
@@ -88,7 +88,7 @@ and is correctly rendered infeasible by the model.
     & start and finish time of job $j$;
       $\forall j \in \calJ$ \\
   $\kappa_j \in \{0, \ldots, K^{\max}_j\}$
-    & number of times job $j$ is paused (Mode-(C) interruption counter);
+    & number of times job $j$ is paused (Mode~C interruption counter);
       $\forall j \in \calJ$ \\
   $s_r, f_r$
     & aircraft start / finish shortcuts,
@@ -232,7 +232,7 @@ finish when $z^{+,a}_{rr'pp'} = 1$.  In both cases the front position is
 vacant at the access instant (Mode~A, no manoeuvre), and the big-$M$
 term deactivates the bound for the state that is not selected.
 
-\fmlgroup{Mode (B) --- inter-job gap}
+\fmlgroup{Mode B --- inter-job gap}
 For every $(\dagger)$ and every $k = 1, \ldots, N_r-1$:
 \begin{align}
   \tau^a_{r'} &\ge f_{j^r_k} - M\bigl(1 - b^{Ba}_{rr'pp'k}\bigr)
@@ -240,7 +240,7 @@ For every $(\dagger)$ and every $k = 1, \ldots, N_r-1$:
   \tau^a_{r'} &\le s_{j^r_{k+1}} + M\bigl(1 - b^{Ba}_{rr'pp'k}\bigr)
     && \label{eq:bb_ub}
 \end{align}
-Each Mode-(B) event consumes $\mu$ time units of the gap, so the gap
+Each Mode~B event consumes $\mu$ time units of the gap, so the gap
 must be wide enough to accommodate all events that use it:
 \begin{align}
   s_{j^r_{k+1}} - f_{j^r_k}
@@ -254,9 +254,9 @@ The bounds~\eqref{eq:bb_lb} and~\eqref{eq:bb_ub} are active when
 $b^{Ba}_{rr'pp'k} = 1$ and then confine the access to inter-job gap $k$
 of the front aircraft, between the finish of $j^r_k$ and the start of
 $j^r_{k+1}$; \eqref{eq:bb_gap} requires that gap to be wide enough to
-absorb $\mu$ time units for every Mode-(B) access routed through it.
+absorb $\mu$ time units for every Mode~B access routed through it.
 
-\fmlgroup{Mode (C) --- strictly inside an interruptible job}
+\fmlgroup{Mode C --- strictly inside an interruptible job}
 For every $(\dagger)$ and every $j \in \calJ_r$:
 \begin{align}
   \tau^a_{r'} &\ge s_j + \eta - M\bigl(1 - b^{Ca}_{rr'pp'j}\bigr)
@@ -275,7 +275,7 @@ extension that this specific access would itself generate, and so
 prevents the ``self-justifying interruption'' phenomenon in which an
 access could otherwise become feasible only because the very
 interruption it triggers extends the job past it.
-Constraint~\eqref{eq:bc_interr} forbids Mode~(C) on non-interruptible
+Constraint~\eqref{eq:bc_interr} forbids Mode~C on non-interruptible
 jobs ($I_j = 0$).
 
 \fmlgroup{Counters, delay and makespan}
@@ -297,10 +297,10 @@ jobs ($I_j = 0$).
   m &\ge f_r
     && \forall r \in \calR \label{eq:makespan}
 \end{align}
-Equation~\eqref{eq:kappa} aggregates the Mode-(C) indicators of job $j$
+Equation~\eqref{eq:kappa} aggregates the Mode~C indicators of job $j$
 into its interruption counter $\kappa_j$, closing the loop with the
 duration constraint~\eqref{eq:jobdur}.  Equation~\eqref{eq:movements}
-totals the manoeuvre count over all Mode-(B) and Mode-(C) events, each
+totals the manoeuvre count over all Mode~B and Mode~C events, each
 taken with the factor of two for the tow-out and tow-back displacement.
 Constraint~\eqref{eq:delay} linearises the positive delay
 $v^D_r = \max(0,\, f_r - L_r)$ --- the lower bound combined with the
