@@ -28,6 +28,22 @@ impossible.  These distinctions determine both the feasibility and the cost
 of every manoeuvre, so treating them faithfully is essential --- and it is
 what this paper sets out to do.
 
+The problem combines two classical strands of the scheduling literature.
+From machine scheduling with blocking~\citep{HallSriskandarajah1996,
+MascisPacciarelli2002} it inherits the defining trait that a scheduled
+entity can deny a resource to others even while no work is being performed
+on it; from resource-constrained project
+scheduling~\citep{Blazewicz1983} it takes the precedence-linked chain of
+jobs that each aircraft carries.  It differs, however, from the spatial
+scheduling formulations used for hangar planning, which couple geometric
+non-overlap --- No-Fit Polygons, safety distances, or taxi-route
+capacities --- to the start-time decisions~\citep{Qin2019, Pazhooh2025}:
+here the geometry is compiled once into a fixed directed blocking graph
+over positions, and the interference it induces is temporal and
+task-dependent --- it binds only at the two access instants of the rear
+aircraft, with a severity that depends on which job the front aircraft is
+running at those instants.
+
 We make two contributions.  First, we give an exact mixed-integer linear
 programming (MILP) formulation of the problem
 (\S\ref{sec:milp}).  Its central device is a partition constraint that

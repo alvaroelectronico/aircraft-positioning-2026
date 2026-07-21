@@ -84,9 +84,9 @@ $z^\star \leftarrow +\infty$;\quad $i \leftarrow 1$\;
   $(\pi, \sigma) \leftarrow \textsc{Construct}(\rho)$\;
   $(\pi, \sigma) \leftarrow \textsc{Search}(\pi, \sigma, \textsc{Decode}_0)$;
      \quad $z_{\mathrm{floor}} \leftarrow z_0(\pi, \sigma)$
-     \tcp*{zero-movement floor}
+     \tcp*{VND descent + IG destroy/rebuild (Alg.~\ref{alg:search}); the zero-movement floor}
   $(\pi', \sigma') \leftarrow \textsc{Search}(\pi, \sigma, \textsc{Decode}_1)$
-     \tcp*{manoeuvre-aware polish}
+     \tcp*{the same search re-run under $\textsc{Decode}_1$; the manoeuvre-aware polish}
   \eIf{$z_1(\pi', \sigma') < z_{\mathrm{floor}}$ \textbf{\emph{and}}
         $\textsc{Decode}_1(\pi', \sigma')$ passes the feasibility check}{
     $(\sigma^\circ, z^\circ) \leftarrow$ the polished schedule and its value\;
@@ -174,6 +174,16 @@ zero-movement placements remain candidates, this regime can only ever
 \emph{add} the manoeuvre option --- it never discards a feasible
 no-movement schedule.
 
+The cost of one manoeuvre-aware decode is polynomial.  Let
+$A \le 2(|\calR| - 1)$ bound the exposed access instants a front aircraft
+faces and $N_{\max}$ the longest job chain: each front prices
+$O(A\,N_{\max})$ candidate starts, and pricing one start is an
+$O(N_{\max} A^2)$ forward sweep (the $\kappa$ fixpoint scans the accesses
+once per widening step).  A full $\textsc{Decode}_1$ call over the fleet is
+therefore $O(|\calR|^4 N_{\max}^2)$ in the worst case; in practice $A$
+counts only the aircraft assigned to the rear endpoints of blocking arcs,
+so the effective cost is far below this bound.
+
 \begin{algorithm}[htbp]
 \DontPrintSemicolon
 \SetKwInput{KwData}{Input}
@@ -236,8 +246,11 @@ restart after the second draws its order from a single diversification
 mechanism: a \emph{rank-biased geometric shuffle} of whichever
 deterministic order scored better, in which the next aircraft is drawn
 from the remaining base order with $\Pr(\text{rank } k) \propto
-(1-\beta)^k$ (we use $\beta = 0.3$), so each restart explores a distinct
-but still rule-shaped insertion order
+(1-\beta)^k$.  The bias $\beta = 0.3$ was fixed a priori --- it places
+roughly two thirds of the probability mass on the first three ranks,
+keeping every shuffle close to the logic of its base rule --- and was not
+tuned; a sensitivity sweep over $\beta$ is left to future work.  Each
+restart thus explores a distinct but still rule-shaped insertion order
 (Algorithm~\ref{alg:construct}).  Combined with the open-ended restart
 loop of Algorithm~\ref{alg:igvnd}, this gives the search an unlimited
 supply of diverse seeds.  The cost of a tentative insertion is the value

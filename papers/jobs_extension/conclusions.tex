@@ -37,14 +37,23 @@ can, and the heuristic extends usable solution quality to the operational
 scale where exact optimisation times out --- or fails outright.
 
 Several directions remain open.  The MILP could be tightened with
-valid inequalities or a branch-and-cut treatment of the partition
-constraint to push the tractability frontier outward.  On the heuristic
+valid inequalities, pair-dependent big-$M$ constants derived from the
+projected time windows of each aircraft pair, or a branch-and-cut
+treatment of the partition constraint, to push the tractability frontier
+outward.  On the heuristic
 side, the remaining residuals --- two seeds of one configuration family and
 the gaps at scale --- are at the level of the time-limited search's
 run-to-run variance, so the next lever is search throughput (an
 incremental, prefix-reusing decoder) rather than new mechanisms.  Finally,
 the present study
-fixes a single 60\,s budget and three corner weight profiles; an anytime
-profile of solution quality versus time, and a sweep over intermediate
-weight combinations, would further characterise the operating envelope of
-each method.
+fixes a single 60\,s budget, three corner weight profiles and a handful of
+a-priori search parameters (such as the shuffle bias $\beta$); an anytime
+profile of solution quality versus time, a sweep over intermediate
+weight combinations, and a sensitivity analysis of those parameters would
+further characterise the operating envelope of each method.  Learning-based
+dispatching policies are an increasingly popular alternative for real-time
+scheduling~\citep{Bengio2021}; in the setting studied here, where a single
+misclassified access renders a schedule infeasible, we expect model-based
+search around an exact feasibility oracle to remain the safer backbone,
+with learned guidance --- for instance, steering the destruction step or
+the insertion order --- as a natural hybridisation to explore.

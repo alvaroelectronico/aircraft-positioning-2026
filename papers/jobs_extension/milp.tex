@@ -232,6 +232,15 @@ finish when $z^{+,a}_{rr'pp'} = 1$.  In both cases the front position is
 vacant at the access instant (Mode~A, no manoeuvre), and the big-$M$
 term deactivates the bound for the state that is not selected.
 
+A remark on $\eta$ is in order: it is an instance datum, not a solver
+tolerance.  On the benchmark of \S\ref{sec:experiments} it equals one full
+day --- the grid on which all durations and time windows are drawn --- so
+the strict-inequality margins it enforces sit many orders of magnitude
+above the solver's feasibility and integrality tolerances, and we observed
+no numerical sensitivity to it.  On instances with a finer time grid,
+$\eta$ should scale with that grid rather than be set to an arbitrarily
+small constant, which would indeed risk tolerance-level artefacts.
+
 \fmlgroup{Mode B --- inter-job gap}
 For every $(\dagger)$ and every $k = 1, \ldots, N_r-1$:
 \begin{align}
@@ -274,7 +283,14 @@ $\tau^a_{r'}$ below the job's \emph{active} finish, excluding the
 extension that this specific access would itself generate, and so
 prevents the ``self-justifying interruption'' phenomenon in which an
 access could otherwise become feasible only because the very
-interruption it triggers extends the job past it.
+interruption it triggers extends the job past it.  This correction
+deserves emphasis: the processing times of this model are
+\emph{endogenous} --- through $\kappa_j$ they depend on the very
+classification decisions the constraints govern --- and a bound written
+against the full extended finish would let an access bootstrap its own
+feasibility.  Excluding the access's own contribution from the bound is
+the guard that any formulation with decision-dependent durations needs
+at this point.
 Constraint~\eqref{eq:bc_interr} forbids Mode~C on non-interruptible
 jobs ($I_j = 0$).
 
@@ -307,6 +323,16 @@ $v^D_r = \max(0,\, f_r - L_r)$ --- the lower bound combined with the
 $v^D_r \ge 0$ domain and the minimisation direction --- and
 \eqref{eq:makespan} sets the makespan $m$ to the latest aircraft
 finish.
+
+All disjunctions share the single constant
+$M = H^{UB} + \max(\varepsilon, \mu, \delta, \eta)$.  This uniform choice
+is valid but not the tightest possible: pair-dependent constants
+$M_{rr'pp'}$, derived from the projected time windows of the two aircraft
+involved (their earliest starts, chain lengths and interruption bounds),
+would strengthen the linear relaxation at no modelling cost.  We retain
+the uniform constant for readability and have not explored this
+tightening; it is a natural refinement alongside the valid inequalities
+discussed in \S\ref{sec:conclusions}.
 
 \subsection*{Objective}
 \begin{equation}
