@@ -1,0 +1,113 @@
+% ==============================================================================
+\section{Related Work}
+\label{sec:related}
+% ==============================================================================
+
+The problem studied here sits at the intersection of four research
+streams: aircraft hangar maintenance scheduling with spatial layout,
+aircraft maintenance scheduling at the fleet or line level, airport
+ground operations and stand allocation, and the methodological toolkit
+of scheduling with blocking, disjunctive MILP formulations, and
+construct-and-improve metaheuristics.  We review each in turn and close
+by positioning our contribution.  We do not address long-term aircraft
+maintenance routing or check scheduling, which decide \emph{when}
+aircraft enter maintenance over a planning horizon; the present problem
+starts from a set of accepted maintenance requests and optimises their
+spatial-temporal placement inside a single hangar.
+
+The closest body of work is the line of MILP formulations for
+integrated hangar maintenance scheduling and layout.
+\citet{Qin2017} introduce the first MILP coupling maintenance
+scheduling with multi-period parking layout under non-overlapping
+constraints; \citet{Qin2018} develop a two-stage exact-heuristic
+procedure for parking stand allocation trading expected revenue against
+safety distance, extended by \citet{Qin2018b} with revised No-Fit
+Polygons and heuristic-based valid inequalities.  \citet{Qin2019}
+broaden the scope to joint maintenance scheduling and parking under
+time-varying capacity with blocking along taxi routes, solved by an
+event-based discrete-time MILP and a rolling-horizon heuristic, and
+\citet{Qin2020} integrate scheduling, layout, movement trajectories and
+multi-skill technician assignment through a two-stage decomposition.
+Most recently, \citet{Pazhooh2025} propose a continuous-time MILP for
+integrated hangar scheduling and layout with substantial computational
+gains over event-based formulations.  All these models share the
+assign-and-schedule structure, but they capture spatial interaction
+through geometric primitives --- non-overlap of footprints, safety
+distances, taxi-route capacities --- and, crucially for the present
+paper, they treat each aircraft's occupancy as one uninterrupted stay:
+whether a manoeuvre is possible never depends on \emph{which task} the
+obstructing aircraft is performing at that instant.  The
+interruptibility-driven access semantics studied here have, to the best
+of our knowledge, no counterpart in this line.
+
+At the fleet and network level, \citet{Shaukat2020} place line
+maintenance work in the layovers between scheduled flights through
+integrated exact and sequential heuristic approaches;
+\citet{Witteman2021} cast multi-year task allocation as a
+time-constrained bin-packing problem; and \citet{TorresSanchez2020}
+integrate fleet maintenance scheduling with tail assignment and
+workshop capacity.  These works handle rich temporal structures but
+pool the hangar into workshop capacities or maintenance slots, without
+within-hangar geometry.  In airport ground operations, the systematic
+review of \citet{Dahanayaka2026} surveys gate and stand allocation,
+turnaround scheduling and surface movement; among the relevant models,
+\citet{Guepet2015} solve stand allocation with an exact MILP and
+decomposition heuristics --- the closest methodological cousin, with
+tow movements as soft objective terms --- while \citet{Asadi2021} and
+\citet{Evler2021a, Evler2021b} recover gate assignments and ground
+operations under disruptions, and \citet{Yao2024} couple stand
+allocation with ground-support-vehicle scheduling.  All operate at the
+apron level with shared servicing resources rather than on a hangar
+with directed blocking between maintenance positions.
+
+On the methodological side, the phenomenon that a scheduled entity
+denies a resource to others while no work is performed on it is the
+hallmark of machine scheduling with blocking, surveyed by
+\citet{HallSriskandarajah1996} and formalised for the job shop through
+the alternative-graph model of \citet{MascisPacciarelli2002}.  In that
+literature a job blocks its machine \emph{after} completing, pending
+downstream availability; here, by contrast, the blocked resource is an
+\emph{access path}, the denial binds only at the two access instants of
+the rear aircraft, and its severity depends on the state of the front
+aircraft's running job --- a priced and bounded form of interruption
+that differs from the free preemption of classical scheduling
+theory~\citep{Pinedo2016}.  The modelling toolkit we build on ---
+disjunctive big-$M$ constraints over time windows and conflict
+indicators --- is well established in adjacent domains: multi-hoist
+cyclic scheduling with spatial collision avoidance~\citep{Mao2018},
+multi-satellite scheduling under visibility windows and conflict
+constraints~\citep{Chen2019, Lee2024}, and shared-capacity production
+facilities~\citep{Baya2022}.  Regarding time representation,
+\citet{MunozDiaz2025} compare discrete- and continuous-time MILP
+formulations of a single-station scheduling problem and report a
+consistent advantage for the continuous model, which supports the
+continuous-time design of our formulation (\S\ref{sec:milp}).
+
+Algorithmically, IGVND assembles proven components: the NEH insertion
+rule~\citep{Nawaz1983}, the destroy-and-reconstruct outer loop of
+Iterated Greedy~\citep{Ruiz2007}, and Variable Neighbourhood
+Descent~\citep{Mladenovic1997, Hansen2001}, with the rank-biased
+randomisation of greedy construction going back to GRASP and its biased
+variants~\citep{Feo1995, FestaResende2002, FestaResende2009,
+Ferone2018}.  The closest algorithmic cousin is the yard-crane
+scheduling method of \citet{Wang2024}, whose construction and
+local-search operators likewise couple a discrete assignment decision
+with timing.  Pairing an exact MILP with a heuristic that takes over
+where the exact solver becomes intractable is also standard practice in
+recent CEJOR contributions --- \citet{Toth2024} compare four MILP
+models of a patient transportation problem on real instances, and
+\citet{Baldouski2025} complement a truck-scheduling MILP with a
+rolling-horizon heuristic --- and our MILP-as-yardstick design
+(\S\ref{sec:experiments}) follows the same logic.
+
+Against this background, the contribution of this paper is a model in
+which the feasibility and cost of every hangar manoeuvre are
+\emph{endogenous to the job timing} of the obstructing aircraft: the
+hangar geometry is compiled once into a directed blocking graph, each
+access of a blocked aircraft is classified into one of three modes ---
+vacant front, inter-job gap, or interruptible job --- and accesses that
+would interrupt a non-interruptible job are infeasible outright.  Both
+solution methods are built around that classification: the MILP renders
+it exactly through a partition constraint (\S\ref{sec:milp}), and the
+IGVND heuristic prices it through a fast two-regime decoder under a
+checker-validated safety net (\S\ref{sec:heuristic}).
