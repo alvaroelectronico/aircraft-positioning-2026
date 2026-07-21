@@ -71,7 +71,16 @@ downstream availability; here, by contrast, the blocked resource is an
 the rear aircraft, and its severity depends on the state of the front
 aircraft's running job --- a priced and bounded form of interruption
 that differs from the free preemption of classical scheduling
-theory~\citep{Pinedo2016}.  The modelling toolkit we build on ---
+theory~\citep{Pinedo2016}.  The joint management of space and time is
+also studied as the \emph{spatial} resource-constrained project
+scheduling problem, which originated in shipbuilding --- where assembly
+blocks compete for workshop floor area~\citep{Lee1997} --- and has
+recently been formalised in three dimensions with an integer programming
+model and priority-rule heuristics~\citep{Zhang2024}.  In that family,
+space is a continuous two- or three-dimensional resource that activities
+\emph{consume}; here it is discretised into positions, and its effect is
+not a capacity limit but a task-dependent denial of access.  The
+modelling toolkit we build on ---
 disjunctive big-$M$ constraints over time windows and conflict
 indicators --- is well established in adjacent domains: multi-hoist
 cyclic scheduling with spatial collision avoidance~\citep{Mao2018},
