@@ -4,13 +4,15 @@
 % ==============================================================================
 
 We present a mixed-integer linear programming formulation of the
-problem of \S\ref{sec:problem}.  Where possible the notation follows
-the conventions used elsewhere in the literature for aircraft
-positioning problems with blocking arcs: parameters use upper-case
-Latin letters, decision variables use lower-case Latin letters, and
-Greek letters are reserved for fixed scalar constants ($\varepsilon$,
-$\mu$, $\delta$, the time-granularity $\eta$ and the big-$M$
-relaxation~$M$).  The key feature of the formulation is that every
+problem of \S\ref{sec:problem}. 
+% Where possible the notation follows
+% the conventions used elsewhere in the literature for aircraft
+% positioning problems with blocking arcs: parameters use upper-case
+% Latin letters, decision variables use lower-case Latin letters, and
+% Greek letters are reserved for fixed scalar constants ($\varepsilon$,
+% $\mu$, $\delta$, the time-granularity $\eta$ and the big-$M$
+% relaxation~$M$). 
+The key feature of the formulation is that every
 access of a blocked aircraft is explicitly \emph{classified}, by means
 of a partition constraint, into one of the four mutually exclusive
 states allowed by the problem: before the front aircraft's stay,
@@ -79,11 +81,11 @@ and is correctly rendered infeasible by the model.
 \begin{tabular}{@{}l@{\quad}p{0.78\textwidth}@{}}
   $x_{rp} \in \{0,1\}$
     & $1$ iff aircraft $r$ is assigned to position $p$;
-      $\forall r \in \calR,\ p \in \calP$ \\
+      $\forall r \in \calR,\ p \in \calP$, 0 otherwise \\
   $q_{rr'p} \in \{0,1\}$
     & $1$ iff aircraft $r$ precedes aircraft $r'$ at position $p$
       (both assigned to $p$);
-      $\forall r \ne r' \in \calR,\ p \in \calP$ \\
+      $\forall r \ne r' \in \calR,\ p \in \calP$, 0 otherwise\\
   $s_j, f_j \in [0, H^{UB}]$
     & start and finish time of job $j$;
       $\forall j \in \calJ$ \\
@@ -102,7 +104,7 @@ and is correctly rendered infeasible by the model.
   $y_{rr'pp'} \in \{0,1\}$
     & $1$ iff $r$ is the front aircraft at $p$ and $r'$ is the rear
       aircraft at $p'$;
-      $\forall r \ne r' \in \calR,\ (p, p') \in \calA$ \\
+      $\forall r \ne r' \in \calR,\ (p, p') \in \calA$, 0 otherwise \\
 \end{tabular}
 
 \fmlgroup{Access classification}
@@ -114,15 +116,15 @@ classification indicators:
 
 \begin{tabular}{@{}l@{\quad}p{0.78\textwidth}@{}}
   $z^{-,a}_{rr'pp'} \in \{0,1\}$
-    & $1$ iff access $\tau^a_{r'}$ falls strictly before $r$'s stay \\
+    & $1$ iff access $\tau^a_{r'}$ falls strictly before $r$'s stay, 0 otherwise \\
   $z^{+,a}_{rr'pp'} \in \{0,1\}$
-    & $1$ iff access $\tau^a_{r'}$ falls strictly after $r$'s stay \\
+    & $1$ iff access $\tau^a_{r'}$ falls strictly after $r$'s stay, 0 otherwise \\
   $b^{Ba}_{rr'pp'k} \in \{0,1\}$
     & $1$ iff access $\tau^a_{r'}$ falls in inter-job gap $k$ of $r$
-      (Mode B); $\forall k = 1, \ldots, N_r-1$ \\
+      (Mode B), 0 otherwise; $\forall k = 1, \ldots, N_r-1$ \\
   $b^{Ca}_{rr'pp'j} \in \{0,1\}$
     & $1$ iff access $\tau^a_{r'}$ falls strictly inside job $j$ of $r$
-      (Mode C); $\forall j \in \calJ_r$ \\
+      (Mode C), 0 otherwise; $\forall j \in \calJ_r$ \\
 \end{tabular}
 
 \fmlgroup{Objective auxiliaries}
@@ -240,6 +242,20 @@ above the solver's feasibility and integrality tolerances, and we observed
 no numerical sensitivity to it.  On instances with a finer time grid,
 $\eta$ should scale with that grid rather than be set to an arbitrarily
 small constant, which would indeed risk tolerance-level artefacts.
+
+The $\eta$-clearance also makes the model marginally \emph{conservative}
+with respect to the access semantics of \S\ref{sec:problem}.  The
+before/after states \eqref{eq:zminus}--\eqref{eq:zplus} require an access
+to clear the front aircraft's stay by a full $\eta$, whereas Mode~A only
+requires the front position to be vacant at the access instant: an access
+in the open band of width $\eta$ immediately outside the stay --- e.g.\
+half a day before the front starts, a placement the $\varepsilon = 0.5$
+grid makes natural --- is feasible for the problem, and accepted by the
+compliance checker, but admits none of the four states and is therefore
+excluded by the partition constraint~\eqref{eq:partition}.  The proven
+optima reported in \S\ref{sec:experiments} are consequently optima of
+this slightly restricted feasible set, and a heuristic that searches the
+full solution space can legitimately end below them.
 
 \fmlgroup{Mode B --- inter-job gap}
 For every $(\dagger)$ and every $k = 1, \ldots, N_r-1$:

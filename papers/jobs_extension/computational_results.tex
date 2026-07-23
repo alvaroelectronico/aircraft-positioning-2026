@@ -139,21 +139,28 @@ near-zero, confirming that these are genuine near-ties rather than
 denominator artefacts.
 
 \paragraph{Delay-priority outliers.}
-The most negative entry in Table~\ref{tab:gap_profile} is the
-loosely-constrained triangle under delay-priority ($-33\%$ mean, driven by
-one seed at $-277\%$).  Here the MILP drives the total delay to
-zero by spending a handful of manoeuvres, so the denominator
-$z_{\mathrm{MILP}}$ is tiny and any residual delay explodes the relative
-gap: on the extreme seed IGVND concedes about two delay units, and it
-attains the strictly better objective on half of the ten seeds.  The
-corresponding $\Delta D$ in Table~\ref{tab:components} is essentially zero
-($+0.15$ delay units on average):
-in absolute terms IGVND loses a negligible amount of delay, not a large
-one.  The loose \emph{Two rows} row under the same profile is the mirror
-image ($+11.1\%$): IGVND shaves a fraction of a delay unit off a near-zero
-optimum, which the tiny denominator turns into a double-digit relative
-gain.  Both are exactly the small-denominator inflation the per-component
-table is meant to expose.
+The two loose $R{=}10$ rows under delay-priority are the extremes of
+Table~\ref{tab:gap_profile} in both directions: $-33\%$ on \emph{Triangle}
+and $+11\%$ on \emph{Two rows}.  Neither reflects a large physical
+difference.  On these configurations the optimal delay is zero or near
+zero, so $z_{\mathrm{MILP}}$ reduces to the lightly weighted makespan and
+movement terms, and a difference of a few delay units --- weighted $100$
+--- swamps that baseline: the $-33\%$ mean is driven by a single seed at
+$-277\%$, on which IGVND concedes exactly two delay units, while IGVND
+ends strictly better on five of the ten seeds.  The per-component view
+confirms the scale: the mean $\Delta D$ in Table~\ref{tab:components} is
+$+0.15$ delay units on \emph{Triangle} and $-0.2$ on \emph{Two rows}.
+The positive side of these rows has a second ingredient: both
+configurations are solved to proven optimality by the MILP
+(Table~\ref{tab:milp_conv}), yet IGVND ends strictly below the reported
+optimum on several seeds.  This is the $\eta$-clearance conservatism
+discussed in \S\ref{sec:milp}: the model requires accesses to clear a
+front stay by a full $\eta$, while the problem semantics --- and the
+compliance checker --- accept accesses in the band immediately outside
+the stay, which the heuristic exploits.  A per-seed audit of the largest
+case (\emph{Two rows}, seed 8, a $47\%$ per-seed difference) confirms
+that the heuristic schedule is model-infeasible only through four such
+band accesses, each placed $\varepsilon$ away from a front stay.
 
 \paragraph{Instances the MILP cannot close within the budget.}
 On the configurations the MILP cannot close in 60\,s --- every $R{=}20$ and
@@ -197,9 +204,9 @@ by up to $-10\%$, are now near-ties or wins: $-0.6\%$ on the tight
 MILP incumbent, $82\%$ and $32\%$ optimality gaps), and $+0.4\%$ on the loose
 \emph{Triangle}, where the MILP \emph{does} prove optimality and IGVND now
 attains or beats the certified optimum on eight of ten seeds --- on several
-of them ending strictly below the MILP's reported objective, which is
-possible because the MILP grids time to integers while the continuous
-schedule admits finer starts.  Two ingredients closed these gaps: a
+of them ending strictly below the MILP's reported objective, again through
+the $\eta$-clearance conservatism of \S\ref{sec:milp}: the certified
+optimum is the optimum of the model's slightly restricted feasible set.  Two ingredients closed these gaps: a
 nest-stretch candidate that reproduces the optimum's stay-stretching
 mechanism over the actual blocking digraph (\S\ref{sec:igvnd_safety}), and
 the random half of the destruction step, which keeps the walk from anchoring

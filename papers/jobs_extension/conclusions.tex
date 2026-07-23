@@ -25,8 +25,9 @@ schedule shape outside the tight-packing decoder's reach --- was closed by
 folding the same mechanism into the heuristic as an explicit,
 checker-validated candidate over the blocking digraph; the heuristic now
 attains or beats the certified optimum on all but two seeds of that
-family, in several cases ending below the MILP's integer-gridded
-objective.  On the intractable end --- larger fleets and the profiles that
+family, in several cases ending below the MILP's reported optimum ---
+which is the optimum of the model's marginally conservative feasible set
+(\S\ref{sec:milp}).  On the intractable end --- larger fleets and the profiles that
 activate the manoeuvre machinery --- the MILP no longer converges within the
 budget, and IGVND returns markedly better feasible solutions in the same
 60\,s, by up to $+44\%$ and hundreds of objective units in absolute terms;
