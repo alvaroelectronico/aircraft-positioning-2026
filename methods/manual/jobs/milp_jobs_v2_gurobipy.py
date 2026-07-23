@@ -298,9 +298,19 @@ def build_model(data: dict) -> gp.Model:
                     zm = z_minus[r, rp, p_f, p_r, a]
                     zp = z_plus [r, rp, p_f, p_r, a]
 
-                    m.addConstr(tau <= s_r[r] - eta + M * (1 - zm),
+                    # Mode-A (before/after) clearance: the front position is
+                    # vacant at tau iff tau lies outside the front's stay
+                    # [s_r, f_r] — closed bounds, matching the checker's
+                    # semantics (which accepts accesses in the width-eta band
+                    # immediately outside the stay).  The previous formulation
+                    # required a full eta clearance (tau <= s_r - eta /
+                    # tau >= f_r + eta), which was strictly more conservative
+                    # than the problem statement and cut off feasible
+                    # schedules at +-epsilon of a front stay (audited
+                    # 2026-07-23: two_rows_loose seed8 wDLY, 4 band accesses).
+                    m.addConstr(tau <= s_r[r] + M * (1 - zm),
                                 name=f"zm_{r}_{rp}_{p_f}_{p_r}_{a}")
-                    m.addConstr(tau >= f_r[r] + eta - M * (1 - zp),
+                    m.addConstr(tau >= f_r[r] - M * (1 - zp),
                                 name=f"zp_{r}_{rp}_{p_f}_{p_r}_{a}")
 
                     # Mode B window
