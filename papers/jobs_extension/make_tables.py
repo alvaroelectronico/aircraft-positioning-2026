@@ -238,20 +238,8 @@ def comp_table(byinst, rows) -> str:
 
 
 def milp_gap_table(byinst, rows, gaps) -> str:
-    out = [r"\begin{table}[htbp]", r"  \centering",
-           r"  \caption{Mean optimality gap reported by Gurobi within the 60\,s "
-           r"budget, per configuration and weight profile (in \%, over 10 "
-           r"seeds). $0.0$ means a proven optimum on every seed; a larger value "
-           r"means Gurobi returns a feasible incumbent without closing the "
-           r"bound. A superscript $(k)$ marks the $k$ seeds on which Gurobi "
-           r"\emph{ran out of memory and returned no solution at all} -- the "
-           r"MILP could not solve the instance; the reported value averages the "
-           r"remaining seeds. \textsc{oom} marks a configuration the MILP could "
-           r"not solve on any seed.}",
-           r"  \label{tab:milp_conv}",
-           r"  \begin{tabular}{lll rrr}", r"    \toprule",
-           r"    Type & $R$ & Slack & $w^{\mathrm{MK}}$ & $w^{\mathrm{DLY}}$"
-           r" & $w^{\mathrm{MOV}}$ \\", r"    \midrule"]
+    body = []
+    any_oom = False
     prev = (None, None)
     for stem, topo, slack, R in rows:
         insts = [i for i in byinst if itype(i) == stem]
@@ -262,6 +250,8 @@ def milp_gap_table(byinst, rows, gaps) -> str:
             expected = [i for i in insts if hl in byinst[i]]
             solved = [gaps[(i, ml)] for i in expected if (i, ml) in gaps]
             n_oom = len(expected) - len(solved)
+            if n_oom:
+                any_oom = True
             if not solved:
                 cells.append(r"\textsc{oom}" if n_oom else "--")
             else:
@@ -269,7 +259,25 @@ def milp_gap_table(byinst, rows, gaps) -> str:
                 if n_oom:
                     txt += rf"$^{{({n_oom})}}$"
                 cells.append(txt)
-        out.append("    " + " & ".join(cells) + r" \\")
+        body.append("    " + " & ".join(cells) + r" \\")
+    caption = (r"Mean optimality gap reported by Gurobi within the 60\,s "
+               r"budget, per configuration and weight profile (in \%, over 10 "
+               r"seeds). $0.0$ means a proven optimum on every seed; a larger "
+               r"value means Gurobi returns a feasible incumbent without "
+               r"closing the bound.")
+    if any_oom:
+        caption += (r" A superscript $(k)$ marks the $k$ seeds on which Gurobi "
+                    r"\emph{ran out of memory and returned no solution at all} "
+                    r"-- the MILP could not solve the instance; the reported "
+                    r"value averages the remaining seeds. \textsc{oom} marks a "
+                    r"configuration the MILP could not solve on any seed.")
+    out = [r"\begin{table}[htbp]", r"  \centering",
+           rf"  \caption{{{caption}}}",
+           r"  \label{tab:milp_conv}",
+           r"  \begin{tabular}{lll rrr}", r"    \toprule",
+           r"    Type & $R$ & Slack & $w^{\mathrm{MK}}$ & $w^{\mathrm{DLY}}$"
+           r" & $w^{\mathrm{MOV}}$ \\", r"    \midrule"]
+    out += body
     out += [r"    \bottomrule", r"  \end{tabular}", r"\end{table}"]
     return "\n".join(out) + "\n"
 

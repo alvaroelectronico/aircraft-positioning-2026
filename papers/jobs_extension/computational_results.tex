@@ -72,9 +72,7 @@ undistorted per-component differences (IGVND $-$ MILP) for makespan, delay
 and movement count.  Both quantities are aggregated as the mean over the
 10 seeds of each configuration.  All IGVND solutions are validated by the
 independent feasibility checker before being scored; across the full
-$270 \times 3 = 810$ heuristic runs there were no feasibility failures ---
-in contrast to the MILP, which failed outright on the largest instances
-(\S\ref{sec:milp_conv}).
+$270 \times 3 = 810$ heuristic runs there were no feasibility failures.
 
 % ------------------------------------------------------------------------------
 \subsection{MILP convergence}
@@ -86,28 +84,24 @@ reports at the end of the budget, per configuration and profile.  The pattern
 frames the entire comparison.  The MILP is reliable as a \emph{proven optimum}
 (mean gap $0.0\%$) only on the small and loosely constrained cases: the
 five-aircraft instances and the no-blocking baseline close on all profiles in
-well under a second, as do the loosely-constrained $R{=}10$ instances.  As
+well under a second, as does the loosely-constrained $R{=}10$ \emph{Two rows}
+configuration; on the loose $R{=}10$ \emph{Triangle} only movement-priority
+still closes on every seed.  As
 soon as the fleet grows ($R \ge 20$) or the profile activates the manoeuvre
 machinery (\emph{delay-} and \emph{movement-priority} couple the timing and
 classification binaries far more tightly than makespan-priority), the gap blows
-up: it exceeds $60\%$ at $R{=}20$, climbs to around $75$--$80\%$ at $R{=}30$, and reaches
+up: it exceeds $60\%$ at $R{=}20$, climbs to around $78$--$84\%$ at $R{=}30$, and reaches
 essentially $100\%$ under the delay-priority profile, where Gurobi returns a
 feasible incumbent without closing the bound at all.  Makespan-priority is
 consistently the easiest profile for the exact solver (smallest gaps),
 delay-priority the hardest.
 
-At the largest scale the exact solver does not merely time out: on two of the
-$R{=}30$ makespan-priority instances (one \emph{Triangle}-loose, one
-\emph{Two rows}-tight, marked $^{(1)}$ in Table~\ref{tab:milp_conv}) Gurobi
-\emph{exhausted memory while building the search and returned no solution at
-all}.  These are recorded as the MILP being \textbf{unable to solve the
-instance} --- a stronger failure than a loose bound --- and are averaged out of
-the corresponding cell; the heuristic solved all of them within the 60\,s
-budget.  On every configuration with a non-zero gap, a positive $g$ in
-Table~\ref{tab:gap_profile} does not mean IGVND beats a proven optimum; it
-means IGVND finds a better feasible solution than the exact solver does in the
-same time --- or, on those two instances, that it finds a feasible solution at
-all where the exact solver cannot.
+Even where it cannot close the bound, the exact solver returned a feasible
+incumbent within the budget on every run of the benchmark.  On every
+configuration with a non-zero gap, a positive $g$ in
+Table~\ref{tab:gap_profile} therefore does not mean IGVND beats a proven
+optimum; it means IGVND finds a better feasible solution than the exact
+solver does in the same time.
 
 \input{tables/res_milp_conv}
 
@@ -121,66 +115,61 @@ Table~\ref{tab:components} the per-component differences.  We read them
 together, grouping the configurations by what the MILP can certify.
 
 \paragraph{Instances the MILP solves to optimality.}
-On the configurations the MILP solves to optimality, IGVND is at or within
-a small fraction of a percent of that optimum.  It is \emph{exact} on the
-no-blocking baseline and on the five-aircraft instances --- $g = 0.00\%$ on
-every $R{=}5$ configuration under the makespan- and movement-priority
-profiles, and within $0.3\%$ on average under delay-priority (a single
-seed at $-3\%$) --- and within roughly $\pm 2.5\%$ on the remaining
-converged $R{=}10$ cases, apart from the delay-priority column on the two
-loose $R{=}10$ configurations, whose near-zero delay denominator inflates
-the relative gap (discussed next).  The makespan-priority column, where the MILP
-converges on most $R{=}10$ topologies, shows IGVND tracking the optimum
-closely (\emph{None}, \emph{Triangle}, \emph{Two rows} all within $1\%$);
-the small negative entries on \emph{Chain} and \emph{Hub} are at the level
-of the search's run-to-run noise.  The corresponding
-$\Delta m, \Delta D, \Delta n$ in Table~\ref{tab:components} are
-near-zero, confirming that these are genuine near-ties rather than
-denominator artefacts.
+On the configurations the MILP solves to optimality, IGVND is exact or
+concedes only a few objective units.  It is \emph{exact} on the
+no-blocking baseline and on the loose and medium five-aircraft
+configurations --- $g = 0.00\%$ on every seed under all three profiles ---
+and near-exact on the tight ones, where it concedes a single extra
+manoeuvre or a couple of delay units on at most three of the ten seeds (mean gaps
+between $-0.6\%$ and $-2.0\%$ under the delay- and movement-priority
+profiles, $0.0\%$ under makespan-priority).  On the converged $R{=}10$
+cells --- \emph{Two rows}-loose under every profile, \emph{Triangle}-loose
+under movement-priority --- the concessions are equally small in absolute
+terms (mean $\Delta m \le +1.6$ and $\Delta D \le +2.3$ in
+Table~\ref{tab:components}), although the relative gap column can look
+large because of the small denominators discussed next.  Under
+makespan-priority, where the remaining $R{=}10$ topologies are only
+partially converged (Table~\ref{tab:milp_conv}), IGVND tracks the MILP
+reference within $-3.5\%$ everywhere.
 
 \paragraph{Delay-priority outliers.}
 The two loose $R{=}10$ rows under delay-priority are the extremes of
-Table~\ref{tab:gap_profile} in both directions: $-33\%$ on \emph{Triangle}
-and $+11\%$ on \emph{Two rows}.  Neither reflects a large physical
-difference.  On these configurations the optimal delay is zero or near
-zero, so $z_{\mathrm{MILP}}$ reduces to the lightly weighted makespan and
-movement terms, and a difference of a few delay units --- weighted $100$
---- swamps that baseline: the $-33\%$ mean is driven by a single seed at
-$-277\%$, on which IGVND concedes exactly two delay units, while IGVND
-ends strictly better on five of the ten seeds.  The per-component view
-confirms the scale: the mean $\Delta D$ in Table~\ref{tab:components} is
-$+0.15$ delay units on \emph{Triangle} and $-0.2$ on \emph{Two rows}.
-The positive side of these rows has a second ingredient: both
-configurations are solved to proven optimality by the MILP
-(Table~\ref{tab:milp_conv}), yet IGVND ends strictly below the reported
-optimum on several seeds.  This is the $\eta$-clearance conservatism
-discussed in \S\ref{sec:milp}: the model requires accesses to clear a
-front stay by a full $\eta$, while the problem semantics --- and the
-compliance checker --- accept accesses in the band immediately outside
-the stay, which the heuristic exploits.  A per-seed audit of the largest
-case (\emph{Two rows}, seed 8, a $47\%$ per-seed difference) confirms
-that the heuristic schedule is model-infeasible only through four such
-band accesses, each placed $\varepsilon$ away from a front stay.
+Table~\ref{tab:gap_profile}: $-14\%$ on \emph{Two rows} and $-129\%$ on
+\emph{Triangle}.  Neither reflects a large physical difference.  On these
+configurations the optimal delay is zero or near zero, so
+$z_{\mathrm{MILP}}$ reduces to the lightly weighted makespan and movement
+terms, and a difference of a few delay units --- weighted $100$ ---
+swamps that baseline.  On \emph{Triangle}, where the MILP proves
+optimality on nine of the ten seeds, IGVND concedes at most three delay
+units on any seed (mean $\Delta D = +1.0$ in
+Table~\ref{tab:components}), yet single seeds register relative gaps of
+$-280\%$ and $-397\%$; on \emph{Two rows} the mean $\Delta D$ is $+0.1$
+delay units and IGVND matches the certified optimum exactly on three
+seeds.  The per-component columns, not the relative gap, are the
+meaningful scale on these rows.
 
 \paragraph{Instances the MILP cannot close within the budget.}
-On the configurations the MILP cannot close in 60\,s --- every $R{=}20$ and
-$R{=}30$ case, and the delay-/movement-priority profiles on the tight
-$R{=}10$ topologies --- IGVND returns a substantially better feasible
-solution within the same budget.  The advantage grows monotonically with
-fleet size: the relative gap rises from roughly $+6\%$ to $+21\%$ at
-$R{=}20$ to $+18\%$ to $+44\%$ at $R{=}30$, across both the \emph{Two rows}
-and \emph{Triangle} families and all three slack levels, peaking under
-delay-priority (e.g.\ $+44\%$ on \emph{Triangle}-loose-$R{=}30$).  The
-per-component differences confirm a large absolute improvement and not a
-denominator effect: $\Delta D$ of several hundred to over a thousand delay
-units and $\Delta m$ of tens to over a hundred makespan units, both
-negative.  At the extreme, on the two $R{=}30$ instances where Gurobi ran out
-of memory the heuristic still returns a fully feasible, checker-validated
-schedule.  The mechanism is the architecture of
+On the configurations the MILP cannot close in 60\,s the comparison
+splits by scale.  At $R{=}10$ the timed-out incumbents remain
+competitive: IGVND beats them clearly under delay-priority on the
+blocking topologies (\emph{Chain} $+10.6\%$, winning all ten seeds;
+\emph{Hub} $+4.5\%$), while elsewhere the incumbent edges the heuristic
+by a few objective units (the movement-priority column is discussed
+below).  From $R{=}20$ the picture is uniform: IGVND returns the better
+feasible solution on \emph{every} configuration and profile, and the
+advantage grows monotonically with fleet size --- relative gaps of
+roughly $+13\%$ to $+32\%$ at $R{=}20$ and $+28\%$ to $+56\%$ at
+$R{=}30$, across both the \emph{Two rows} and \emph{Triangle} families
+and all three slack levels, peaking under delay-priority ($+55.5\%$ on
+\emph{Triangle}-loose-$R{=}30$, all ten seeds won).  The per-component
+differences confirm a large absolute improvement and not a denominator
+effect: mean $\Delta D$ from roughly $-80$ to $-2\,500$ delay units and
+$\Delta m$ from tens to over $250$ makespan units, negative throughout.
+The mechanism is the architecture of
 \S\ref{sec:igvnd_principle}: by searching over the compact combinatorial
 state and pricing it with a fast decoder, IGVND evaluates orders of magnitude
 more candidate schedules per second than the branch-and-bound search can
-while it is still struggling to tighten its bound --- or to fit in memory.
+while it is still struggling to tighten its bound.
 
 \input{tables/res_gap_profile}
 
@@ -194,25 +183,25 @@ collapses to makespan plus delay; the winner is then simply whichever packs
 the zero-movement schedule tightest.  Because that denominator is not small
 (it ranges from $\approx 36$ at $R{=}5$ to several thousand at $R{=}30$), the
 relative gaps here are genuine and not a small-denominator artefact --- unlike
-the delay-priority outlier of the previous paragraph.  IGVND matches the MILP
-\emph{exactly} on every five-aircraft configuration ($g = 0.00\%$, all seeds)
-and dominates at $R{=}20$ and $R{=}30$ ($+8\%$ to $+36\%$, with large negative
+the delay-priority outliers of the previous paragraph.  IGVND matches the MILP
+\emph{exactly} on every loose and medium five-aircraft configuration
+($g = 0.00\%$, all seeds)
+and dominates at $R{=}20$ and $R{=}30$ ($+14\%$ to $+54\%$, with large negative
 $\Delta m$ and $\Delta D$ --- hundreds of objective units in absolute terms).
-The $R{=}10$ blocking topologies, which earlier revisions of the method lost
-by up to $-10\%$, are now near-ties or wins: $-0.6\%$ on the tight
-\emph{Chain} and $-1.7\%$ on \emph{Hub} (both against an \emph{unconverged}
-MILP incumbent, $82\%$ and $32\%$ optimality gaps), and $+0.4\%$ on the loose
-\emph{Triangle}, where the MILP \emph{does} prove optimality and IGVND now
-attains or beats the certified optimum on eight of ten seeds --- on several
-of them ending strictly below the MILP's reported objective, again through
-the $\eta$-clearance conservatism of \S\ref{sec:milp}: the certified
-optimum is the optimum of the model's slightly restricted feasible set.  Two ingredients closed these gaps: a
+Its weakest cells are the $R{=}10$ blocking topologies.  On the loose
+\emph{Triangle}, which the MILP solves to proven optimality, IGVND
+concedes a few units of makespan or delay on nine of the ten seeds
+(mean $g = -5.7\%$; mean $\Delta m = +1.6$, $\Delta D = +2.3$); on the
+tight \emph{Chain} it concedes a mean $+32$ delay units to an incumbent
+the solver itself certifies only to a $79\%$ optimality gap
+($g = -18.9\%$; \emph{Hub}: $-1.9\%$ against a $51\%$ gap).  Two
+ingredients keep the converged cells at the few-units scale: a
 nest-stretch candidate that reproduces the optimum's stay-stretching
 mechanism over the actual blocking digraph (\S\ref{sec:igvnd_safety}), and
 the random half of the destruction step, which keeps the walk from anchoring
-in one basin.  The remaining concessions to a certified optimum are two
-loose-triangle seeds ($1.5$ and $8.5$ objective units), a residual of search
-variance rather than of representation.
+in one basin.  The larger concession on \emph{Chain} is concentrated in
+the delay term and is the clearest remaining headroom for the heuristic
+at this scale.
 
 % ------------------------------------------------------------------------------
 \subsection{Discussion}
@@ -223,8 +212,9 @@ The two methods are complementary rather than competing.  The MILP is the
 instrument of record on instances it can close: it certifies optimality on
 the small and loosely constrained cases, and it is the yardstick that lets
 us \emph{measure} the heuristic's quality there --- where IGVND is shown to
-be exact or near-exact.  IGVND is the instrument of choice at operational
-scale: on every configuration the MILP cannot close within the budget, the
+be exact or near-exact.  At $R{=}10$ its timed-out incumbents remain
+competitive on the blocking topologies.  IGVND is the instrument of choice
+at operational scale: on every configuration at $R{=}20$ and beyond, the
 heuristic delivers a markedly better feasible schedule in the same 60\,s,
 with a guaranteed-feasible zero-movement floor and a checker-validated
 manoeuvre-aware polish.  Read jointly, the MILP validates the heuristic on

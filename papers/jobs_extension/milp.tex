@@ -221,41 +221,25 @@ the assignment; this is what makes the model exact.
 \fmlgroup{Before / after the front stay}
 For every $(\dagger)$:
 \begin{align}
-  \tau^a_{r'} &\le s_r - \eta + M\bigl(1 - z^{-,a}_{rr'pp'}\bigr)
+  \tau^a_{r'} &\le s_r + M\bigl(1 - z^{-,a}_{rr'pp'}\bigr)
     && \label{eq:zminus}\\
-  \tau^a_{r'} &\ge f_r + \eta - M\bigl(1 - z^{+,a}_{rr'pp'}\bigr)
+  \tau^a_{r'} &\ge f_r - M\bigl(1 - z^{+,a}_{rr'pp'}\bigr)
     && \label{eq:zplus}
 \end{align}
 Constraint~\eqref{eq:zminus} is active only when
-$z^{-,a}_{rr'pp'} = 1$, where it places the access at least $\eta$
-before the front aircraft's start; symmetrically,
-\eqref{eq:zplus} places the access at least $\eta$ after the front's
-finish when $z^{+,a}_{rr'pp'} = 1$.  In both cases the front position is
-vacant at the access instant (Mode~A, no manoeuvre), and the big-$M$
-term deactivates the bound for the state that is not selected.
-
-A remark on $\eta$ is in order: it is an instance datum, not a solver
-tolerance.  On the benchmark of \S\ref{sec:experiments} it equals one full
-day --- the grid on which all durations and time windows are drawn --- so
-the strict-inequality margins it enforces sit many orders of magnitude
-above the solver's feasibility and integrality tolerances, and we observed
-no numerical sensitivity to it.  On instances with a finer time grid,
-$\eta$ should scale with that grid rather than be set to an arbitrarily
-small constant, which would indeed risk tolerance-level artefacts.
-
-The $\eta$-clearance also makes the model marginally \emph{conservative}
-with respect to the access semantics of \S\ref{sec:problem}.  The
-before/after states \eqref{eq:zminus}--\eqref{eq:zplus} require an access
-to clear the front aircraft's stay by a full $\eta$, whereas Mode~A only
-requires the front position to be vacant at the access instant: an access
-in the open band of width $\eta$ immediately outside the stay --- e.g.\
-half a day before the front starts, a placement the $\varepsilon = 0.5$
-grid makes natural --- is feasible for the problem, and accepted by the
-compliance checker, but admits none of the four states and is therefore
-excluded by the partition constraint~\eqref{eq:partition}.  The proven
-optima reported in \S\ref{sec:experiments} are consequently optima of
-this slightly restricted feasible set, and a heuristic that searches the
-full solution space can legitimately end below them.
+$z^{-,a}_{rr'pp'} = 1$, where it places the access no later than the
+front aircraft's start; symmetrically, \eqref{eq:zplus} places the
+access no earlier than the front's finish when $z^{+,a}_{rr'pp'} = 1$.
+In both cases the front position is vacant at the access instant
+(Mode~A, no manoeuvre), and the big-$M$ term deactivates the bound for
+the state that is not selected.  The bounds are deliberately
+\emph{closed}: Mode~A only requires the front position to be vacant at
+the access instant, so any access at or outside the stay endpoints
+$[s_r, f_r]$ --- including one exactly $\varepsilon$ away from a front
+stay, a placement the $\varepsilon = 0.5$ grid makes natural --- is
+admissible, exactly matching the access semantics of
+\S\ref{sec:problem} and the independent compliance checker used in
+\S\ref{sec:experiments}.
 
 \fmlgroup{Mode B --- inter-job gap}
 For every $(\dagger)$ and every $k = 1, \ldots, N_r-1$:
@@ -309,6 +293,16 @@ the guard that any formulation with decision-dependent durations needs
 at this point.
 Constraint~\eqref{eq:bc_interr} forbids Mode~C on non-interruptible
 jobs ($I_j = 0$).
+
+A remark on $\eta$ is in order: it is an instance datum, not a solver
+tolerance.  On the benchmark of \S\ref{sec:experiments} it equals one full
+day --- the grid on which all durations and time windows are drawn --- so
+the strict-inequality margins it enforces on the job interior sit many
+orders of magnitude above the solver's feasibility and integrality
+tolerances, and we observed no numerical sensitivity to it.  On instances
+with a finer time grid, $\eta$ should scale with that grid rather than be
+set to an arbitrarily small constant, which would indeed risk
+tolerance-level artefacts.
 
 \fmlgroup{Counters, delay and makespan}
 \begin{align}
