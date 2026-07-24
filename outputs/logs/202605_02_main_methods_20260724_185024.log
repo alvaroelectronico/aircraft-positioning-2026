@@ -1,0 +1,59 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (2 experiments)
+  Code state (git): 14cc776
+  Instance order  : by seed, then config (seed1 of all types first)
+==================================================================
+  Shared parameters:
+    weight_makespan=1             MIPGap=0.0
+    time_limit_s=60               NoRelHeurTime=0
+
+  Per-experiment parameters:
+  Label          Solver            weight_delay  weight_movements
+  ---------------------------------------------------------------
+  milp_job_wDLY  MILPJobsV2Solver  100           1               
+  milp_job_wMOV  MILPJobsV2Solver  1             100             
+==================================================================
+
+
+==================================================================
+  HEURISTIC vs MILP  —  relative gap per instance type
+  gap = (MILP_obj - heuristic_obj) / MILP_obj
+  gap > 0  =>  heuristic BETTER (lower objective);  < 0  => worse
+  heuristic: igvnd_wMK / igvnd_wDLY / igvnd_wMOV   (MILP rows from cache)
+==================================================================
+  -- Relative objective gap, by weight profile --
+  [wMK  (100/1/1  makespan-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wDLY  (1/100/1  delay-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wMOV  (1/1/100  movement-priority)]
+    (no paired MILP/heuristic results yet)
+
+  -- Relative objective gap, aggregated over all profiles --
+  [ALL profiles]
+    (no paired MILP/heuristic results yet)
+
+  -- Per-component mean Δ (heuristic − MILP); negative = heuristic better --
+  -- (relative gap is distorted when the optimum delay ≈ 0; read these too)
+  [wMK  (100/1/1  makespan-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wDLY  (1/100/1  delay-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wMOV  (1/1/100  movement-priority)]
+    (no paired MILP/heuristic results yet)
+
+==================================================================
+
+
+==================================================================
+  SUMMARY  —  2 ok  /  0 failed  /  2 total
+==================================================================
+  Instance                          Experiment     Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  -----------------------------------------------------------------------------------------------------------------------
+  scn_triangle_medium_P5_R10_seed3  milp_job_wDLY  maxTimeLim     5615.50      65.50      55.50     0    99.27%      60.5
+  scn_triangle_medium_P5_R10_seed3  milp_job_wMOV  maxTimeLim      120.00      64.50      55.50     0    34.17%      60.5
+==================================================================

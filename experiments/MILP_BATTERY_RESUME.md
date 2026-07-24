@@ -1,7 +1,19 @@
 # Reanudar la batería MILP (modelo relajado) — estado y runbook
 
-**Última actualización: 2026-07-24 12:25** (parada manual solicitada por el
-usuario a mitad de batería).
+**Última actualización: 2026-07-24 (tarde) — BATERÍA COMPLETADA.**
+Seeds 8–10 relanzados y terminados el 2026-07-24 (261/261 ok, log
+`outputs/logs/seed8$,_seed9$,_seed10$_202605_02_main_methods_20260724_155333.log`);
+limpieza de seed3 re-ejecutada (2/2 ok, log
+`outputs/logs/202605_02_main_methods_20260724_185024.log`).  Verificación:
+**870/870 pares** (87 × 10 seeds), 302 optimal / 568 maxTimeLim, **sin
+ningún OOM** (a diferencia de la batería del modelo viejo).  Tablas del
+paper regeneradas y prosa actualizada (pipeline post-batería ejecutado).
+El resto del documento se conserva como registro histórico del runbook.
+
+---
+
+**Estado anterior (2026-07-24 12:25** — parada manual solicitada por el
+usuario a mitad de batería**):**
 
 ## Contexto — por qué se está relanzando el MILP
 
