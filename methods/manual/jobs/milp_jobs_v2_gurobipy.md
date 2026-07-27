@@ -341,6 +341,7 @@ changes behaviour, invoke `/sync-method-doc
 methods/manual/jobs/milp_jobs_v2_gurobipy.py` with a brief hint
 describing what changed and (if relevant) `log: <battery-log-path>`
 for refreshing Part II.  The LaTeX formulation notes in
-[`docs/milp_formulation.tex`](docs/milp_formulation.tex) describe an
-earlier (paper-#1-style) variable set and are not authoritative for
-this file — see "Formulation" above for the code's actual model.*
+[`docs/milp_formulation.tex`](docs/milp_formulation.tex) were rewritten
+on 2026-07-27 to match the code's actual partition-based model
+(z−/z+/b^B/b^C, relaxed closed Mode-A bounds); the polished journal
+version lives in `papers/jobs_extension/milp.tex`.*

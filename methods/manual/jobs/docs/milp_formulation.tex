@@ -1,313 +1,225 @@
+% ============================================================================
+% Living spec of the MILP implemented in methods/manual/jobs/milp_jobs_v2_gurobipy.py
+% (partition-based, job-level blocking semantics).  Kept in sync with the code;
+% the polished journal version lives in papers/jobs_extension/milp.tex.
+%
+% Last synced: 2026-07-27, against the relaxed Mode-A model (commit 0fb58ea:
+% closed before/after bounds, no eta clearance).
+% ============================================================================
+
 \section{MILP}
+
+Every access of a blocked aircraft is explicitly \emph{classified}, by a
+partition constraint, into one of the four mutually exclusive states the
+problem allows: before the front aircraft's stay, after it, in an
+inter-job gap (Mode~B), or strictly inside an interruptible job
+(Mode~C).  An access that fits none of the four states --- an attempt to
+enter or leave a position whose blocker is mid-way through a
+non-interruptible job --- makes the partition constraint unsatisfiable
+and is therefore correctly infeasible.
 
 \subsection{Sets}
 
 \begin{tabular}{l c l}
-    $\mathcal{J}$ & : & Jobs \\
     $\mathcal{R}$ & : & Aircraft \\
     $\mathcal{P}$ & : & Positions \\
-    $\mathcal{C}$ & : & Clients \\
-    $\mathcal{E} \subseteq \mathcal{P} \times \mathcal{P}$ & : & Blocking arcs: if $(p,p') \in \mathcal{E}$ position $p$ blocks $p'$ \\
-    $\mathcal{PREC} \subseteq \mathcal{J} \times \mathcal{J}$ & : & Job precedences: if $(j,j') \in \mathcal{PREC}$ job $j$ precedes $j'$
+    $\mathcal{J}_r = (j^r_1, \ldots, j^r_{N_r})$ & : & Ordered job chain of aircraft $r$ (linearised from the precedence list) \\
+    $\mathcal{J} = \bigcup_{r} \mathcal{J}_r$ & : & Global job set \\
+    $\mathcal{A} \subseteq \mathcal{P} \times \mathcal{P}$ & : & Blocking arcs: if $(p,p') \in \mathcal{A}$, position $p$ (front) blocks $p'$ (rear)
 \end{tabular}
-
 
 \subsection{Parameters}
 
 \begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
-    $D_j$ & : & Duration of job $j$ \\
-    % $E^J_j$ & : & Earliest start time of job $j$ \\
-    % $L^J_j$ & : & Latest finish time of job $j$ \\
+    $D_j$ & : & Nominal duration of job $j$ \\
+    $I_j \in \{0,1\}$ & : & Interruptibility flag of job $j$ ($I_j = 1$ iff $j$ can be paused) \\
     $E_r$ & : & Earliest start time of aircraft $r$ \\
     $L_r$ & : & Target finish time (due date) of aircraft $r$ \\
-    $R_{jr}$ & : & 1 if job $j$ is associated with aircraft $r$, 0 otherwise \\
-    $C_{rc}$ & : & 1 if aircraft $r$ is associated with client $c$, 0 otherwise \\
-    $A_{jr}$ & : & 1 if job $j$ is the first job of aircraft $r$, 0 otherwise \\
-    $\Omega_{jr}$ & : & 1 if job $j$ is the last job of aircraft $r$, 0 otherwise \\
-    $\varepsilon$ & : & Minimum separation for movements \\
-    $M$ & : & A sufficiently large constant \\
-    $W^{M}$ & : & Weight for makespan \\
-    $W^{S}$ & : & Weight for movements \\
-    $W^{D}$ & : & Weight for delays \\
+    $\varepsilon$ & : & Tow time; minimum separation between consecutive aircraft at the same position \\
+    $\mu$ & : & Gap time consumed by one Mode~B manoeuvre (cumulative per gap) \\
+    $\delta$ & : & Working-time extension added to an interruptible job per Mode~C pause \\
+    $\eta$ & : & Time granularity enforcing the strict interior of Mode~C (one day on the benchmark) \\
+    $K^{\max}$ & : & Bound on interruptions per job; the code uses $K^{\max} = \max(2,\, 2(|\mathcal{R}| - 1))$ \\
+    $H^{UB}$ & : & Upper bound on every time variable (see below) \\
+    $M$ & : & Big-$M$ constant, $M = H^{UB} + \max(\varepsilon, \mu, \delta, \eta) + 1$ \\
+    $W^{M}, W^{D}, W^{S}$ & : & Weights for makespan, delays and movements \\
 \end{longtable}
 
-The binary parameters $R_{jr}$, $A_{jr}$ and $\Omega_{jr}$ are assumed to satisfy the following consistency conditions. Each job is associated with exactly one aircraft, i.e., $\sum_{r \in \mathcal{R}} R_{jr} = 1$ for all $j \in \mathcal{J}$. For each aircraft, exactly one job is identified as the first job and exactly one as the last job, i.e., $\sum_{j \in \mathcal{J}} A_{jr} = 1$ and $\sum_{j \in \mathcal{J}} \Omega_{jr} = 1$ for all $r \in \mathcal{R}$. Moreover, the jobs identified as first or last must belong to the corresponding aircraft, i.e., $A_{jr} \le R_{jr}$ and $\Omega_{jr} \le R_{jr}$ for all $j \in \mathcal{J}$ and $r \in \mathcal{R}$.
-
+The horizon bound implemented in \texttt{prepare\_data} is the
+worst-case sequential schedule plus the interruption-extension budget:
+\[
+  H^{UB} \;=\; \max_r E_r \;+\; \sum_{j \in \mathcal{J}} D_j
+  \;+\; \varepsilon \,\max(0,\, |\mathcal{R}| - 1)
+  \;+\; 2\delta\, |\mathcal{R}|
+  \;+\; 4 \max(\mu, \eta) \max(1,\, |\mathcal{A}|).
+\]
+Defaults when the instance carries no paper-\#2 fields:
+$\mu = 1$, $\delta = 2$, $\eta = 1$.
 
 \subsection{Variables}
 
-\paragraph{Scheduling and assignment}
+\paragraph{Assignment and timing}
 
 \begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
-    $t^{S}_j$ & : & Start time of job $j$ \\
-    $t^{F}_j$ & : & Finish time of job $j$ \\
-    $s_r$ & : & Start time of aircraft $r$ in its assigned position, i.e., start time of the first job of aircraft $r$ \\
-    $f_r$ & : & Finish time of aircraft $r$ in its assigned position, i.e., finish time of the last job of aircraft $r$ \\
-    $y_{jp}$ & : & 1 if job $j$ is assigned to position $p$, 0 otherwise \\
-    $x_{rp}$ & : & 1 if aircraft $r$ is assigned to position $p$, 0 otherwise \\
-    $w_{jj'p}$ & : & 1 if job $j$ precedes job $j'$ in position $p$, 0 otherwise \\
+    $x_{rp} \in \{0,1\}$ & : & 1 if aircraft $r$ is assigned to position $p$ \\
+    $q_{rr'p} \in \{0,1\}$ & : & 1 if aircraft $r$ precedes $r'$ at position $p$ (both assigned there) \\
+    $s_j,\, f_j \in [0, H^{UB}]$ & : & Start and finish time of job $j$ \\
+    $\kappa_j \in \{0, \ldots, K^{\max}\}$ & : & Interruption counter of job $j$ (integer; fixed to 0 if $I_j = 0$) \\
+    $s_r,\, f_r$ & : & Aircraft shortcuts: $s_r \equiv s_{j^r_1}$, $f_r \equiv f_{j^r_{N_r}}$ (aliases of the chain endpoints, not separate variables) \\
 \end{longtable}
 
 \paragraph{Blocking}
 
-\begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
-    $\alpha^{in}_{rr'pp'}$ & : & 1 if the entry time of aircraft $r'$ into position $p'$ is \emph{strictly greater than} the start time of aircraft $r$ in position $p$ (i.e.\ $r$ was already present when $r'$ arrived); 0 if $r'$ arrives simultaneously with or before $r$ \\
-    $\beta^{in}_{rr'pp'}$ & : & 1 if the entry time of aircraft $r'$ in position $p'$ is strictly less than the finish time of aircraft $r$ in position $p$, 0 otherwise \\
-    $u^{in}_{rr'pp'}$ & : & 1 if aircraft $r$ must be temporarily moved to allow the entry of aircraft $r'$ into position $p'$ while aircraft $r$ is present in blocking position $p$, 0 otherwise \\
-    $\alpha^{out}_{rr'pp'}$ & : & 1 if the exit time of aircraft $r'$ from position $p'$ is \emph{strictly greater than} the start time of aircraft $r$ in position $p$ (i.e.\ $r$ was already present when $r'$ departed); 0 if $r'$ departs simultaneously with or before $r$ arrives \\
-    $\beta^{out}_{rr'pp'}$ & : & 1 if the exit time of aircraft $r'$ from position $p'$ is strictly less than the finish time of aircraft $r$ in position $p$, 0 otherwise \\
-    $u^{out}_{rr'pp'}$ & : & 1 if aircraft $r$ must be temporarily moved to allow the exit of aircraft $r'$ from position $p'$ while aircraft $r$ is present in blocking position $p$, 0 otherwise \\
-    $n$ & : & Total number of aircraft movements induced by temporary relocations, assuming that each temporary relocation counts as two movements \\
+For every ordered aircraft pair $r \ne r'$, every arc
+$(p,p') \in \mathcal{A}$ and every access side
+$a \in \{\mathrm{in}, \mathrm{out}\}$, with the convention
+$\tau^a_{r'} = s_{r'}$ if $a = \mathrm{in}$ and $\tau^a_{r'} = f_{r'}$
+if $a = \mathrm{out}$:
+
+\begin{longtable}{>{\hspace{0pt}}l c p{10.4cm}}
+    $y_{rr'pp'} \in \{0,1\}$ & : & 1 iff $r$ is the front aircraft at $p$ and $r'$ the rear at $p'$ \\
+    $z^{-,a}_{rr'pp'} \in \{0,1\}$ & : & 1 iff access $\tau^a_{r'}$ falls at or before the front's start (Mode~A) \\
+    $z^{+,a}_{rr'pp'} \in \{0,1\}$ & : & 1 iff access $\tau^a_{r'}$ falls at or after the front's finish (Mode~A) \\
+    $b^{Ba}_{rr'pp'g} \in \{0,1\}$ & : & 1 iff the access falls in inter-job gap $g$ of $r$ (Mode~B), $g = 1, \ldots, N_r - 1$ \\
+    $b^{Ca}_{rr'pp'j} \in \{0,1\}$ & : & 1 iff the access falls strictly inside job $j$ of $r$ (Mode~C); fixed to 0 if $I_j = 0$ \\
 \end{longtable}
 
-\paragraph{Metrics and preferences}
+\paragraph{Metrics}
 
 \begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
-    % $v^{P}_{spr}$ & : & 1 if aircraft $r$ is present at position $p$ in slot $s$, 0 otherwise \\
-    % $v^{A}_{spr}$ & : & 1 if presence changes between slots $s-1$ and $s$, 0 otherwise \\
-    % $v^{S}_{sp}$ & : & 1 if there is a switch at position $p$ between slots, 0 otherwise \\
-    % $v^{J}_{spj}$ & : & 1 if job $j$ is active in slot $s$, 0 otherwise \\
-    % $v^{I}_{sr}$ & : & 1 if aircraft $r$ is idle in slot $s$, 0 otherwise \\
-    % $z_{cp}$ & : & 1 if client $c$ uses position $p$, 0 otherwise \\
-    % $u_c$ & : & Soft violation of client-position policy \\
-     $v^{D}_r$ & : & Aircraft delay of aircraft $r$\\
-    % $v^{C}_c$ & : & Client delay \\
-    $m$ & : & Makespan \\
+    $v^{D}_r \ge 0$ & : & Positive delay of aircraft $r$ past $L_r$ \\
+    $m \ge 0$ & : & Makespan \\
+    $n \ge 0$ & : & Total movement count (two per manoeuvre) \\
 \end{longtable}
-
 
 \subsection{Constraints}
 
-\paragraph{Assignment and timing}
+\paragraph{Assignment, duration, chain, earliest start}
 
 \begin{align}
-\sum_{p \in \mathcal{P}} x_{rp} &= 1 
+\sum_{p \in \mathcal{P}} x_{rp} &= 1
 && \forall r \in \mathcal{R} \\
 %
-y_{jp} &= x_{r p} 
-&& \forall j \in \mathcal{J}, \; p \in \mathcal{P}\; :\; R_{jr} = 1
-\end{align}
-
-
-\begin{equation}
-t^{F}_j = t^{S}_j + D_j
-\qquad \forall j \in \mathcal{J}
-\end{equation}
-
-% \begin{align}
-% t^{S}_j &\ge E^J_j && \forall j \in \mathcal{J} \\
-% t^{F}_j &\le L^J_j && \forall j \in \mathcal{J}
-% \end{align}
-
-\begin{align}
-t^S_j &\ge E_r 
-&& \forall j \in \mathcal{J}, \; r \in \mathcal{R} \; : \; A_{jr} = 1 
-% %
-% t^F_j &\le L_r 
-% && \forall j \in \mathcal{J}, \; r \in \mathcal{R} \; : \; \Omega_{jr} = 1
-\end{align}
-
-
-\begin{align}
-s_r & = \sum_{j \in \mathcal{J}} A_{jr}\, t^{S}_j
-&& \forall r \in \mathcal{R}
-\\
-f_r & = \sum_{j \in \mathcal{J}} \Omega_{jr}\, t^{F}_j
+f_j &= s_j + D_j + \delta\, \kappa_j
+&& \forall j \in \mathcal{J} \\
+%
+\kappa_j &= 0
+&& \forall j \in \mathcal{J} \;:\; I_j = 0 \\
+%
+s_{j^r_{g+1}} &\ge f_{j^r_g}
+&& \forall r \in \mathcal{R},\; g = 1, \ldots, N_r - 1 \\
+%
+s_r &\ge E_r
 && \forall r \in \mathcal{R}
 \end{align}
 
-\paragraph{Precedences}
+\paragraph{Same-position sequencing}
 
-\begin{equation}
-t^{S}_{j'} \ge t^{F}_j
-\qquad \forall (j,j') \in \mathcal{PREC}
-\end{equation}
-
-
-\paragraph{Non-overlap}
+For every unordered pair $r < r'$ and every $p \in \mathcal{P}$ the code
+creates both directed binaries and links them to the assignment:
 
 \begin{align}
-t^{S}_{j'} \ge t^{F}_j 
-- M \left( 1 - w_{jj'p} + (1-y_{jp}) + (1-y_{j'p}) \right)
-& \qquad \forall j, j' \in \mathcal{J}, \, p \in \mathcal{P}, \, j \neq j'
-\\
-t^{S}_{j} \ge t^{F}_{j'} 
-- M \left( w_{jj'p} + (1-y_{jp}) + (1-y_{j'p}) \right)
-& \qquad \forall j, j' \in \mathcal{J}, \, p \in \mathcal{P}, \, j \neq j' \\
-w_{jj'p} + w_{j'jp} \ge y_{jp} + y_{j'p} - 1
-& \qquad \forall j, j' \in \mathcal{J}, \, p \in \mathcal{P}, \, j \neq j' \\
-w_{jj'p} + w_{j'jp} \le 1
-& \qquad \forall j, j' \in \mathcal{J}, \, p \in \mathcal{P}, \, j \neq j'
+q_{rr'p} + q_{r'rp} &\ge x_{rp} + x_{r'p} - 1 \\
+q_{rr'p} + q_{r'rp} &\le 1 \\
+q_{rr'p} &\le x_{rp}, \quad q_{rr'p} \le x_{r'p}
+\qquad\text{(and symmetrically for } q_{r'rp}\text{)} \\
+%
+s_{r'} &\ge f_r + \varepsilon - M (1 - q_{rr'p}) \\
+s_{r} &\ge f_{r'} + \varepsilon - M (1 - q_{r'rp})
 \end{align}
 
-Avoiding aircraft to overlap.
+\paragraph{Placement compatibility}
+
+For every $r \ne r'$ and $(p,p') \in \mathcal{A}$, $y_{rr'pp'}$ is the
+conjunction of the two placements:
 
 \begin{align}
-\sum_{j \in \mathcal{J}} \sum_{j' \in \mathcal{J}} \left( \Omega_{jr} A_{j'r'} w_{jj'p} + \Omega_{j'r'} A_{jr} w_{j'jp} \right) \ge x_{rp} + x_{r'p} - 1
-&& \forall r,r' \in \mathcal{R},\; r < r',\; p \in \mathcal{P}
-\label{eq:non-overlap-aircraft}
+y_{rr'pp'} \le x_{rp}, \qquad
+y_{rr'pp'} \le x_{r'p'}, \qquad
+y_{rr'pp'} \ge x_{rp} + x_{r'p'} - 1
 \end{align}
 
-\paragraph{Blocking}
+\paragraph{Exhaustive partition of every access}
 
-% --- Entry Movements (Modificadas) ---
+For every $r \ne r'$, $(p,p') \in \mathcal{A}$,
+$a \in \{\mathrm{in}, \mathrm{out}\}$:
+
 \begin{align}
-s_{r'} &\ge s_r - M \left( 1 - \alpha^{in}_{rr'pp'} \right)
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-s_{r'} &\le s_r + M \alpha^{in}_{rr'pp'}
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-s_{r'} &\le f_r - \varepsilon + M \left( 1 - \beta^{in}_{rr'pp'} \right)
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-s_{r'} &\ge f_r - M \beta^{in}_{rr'pp'} - M(1-x_{rp}) - M(1-x_{r'p'})
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-u^{in}_{rr'pp'} &\le x_{rp}
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-u^{in}_{rr'pp'} &\le x_{r'p'}
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-u^{in}_{rr'pp'} &\le \alpha^{in}_{rr'pp'}
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-u^{in}_{rr'pp'} &\le \beta^{in}_{rr'pp'}
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-u^{in}_{rr'pp'} &\ge x_{rp} + x_{r'p'} + \alpha^{in}_{rr'pp'} + \beta^{in}_{rr'pp'} - 3
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r'
+z^{-,a}_{rr'pp'} + z^{+,a}_{rr'pp'}
+ + \sum_{g=1}^{N_r-1} b^{Ba}_{rr'pp'g}
+ + \sum_{j \in \mathcal{J}_r} b^{Ca}_{rr'pp'j}
+ \;=\; y_{rr'pp'}
+\label{eq:doc-partition}
 \end{align}
 
-% --- Exit Movements (Nuevas) ---
+When the blocking interaction is materialised ($y = 1$) the access must
+take exactly one of the four states; when it is not ($y = 0$) no
+indicator may fire.
+
+\paragraph{Mode A --- before / after the front stay}
+
 \begin{align}
-f_{r'} &\ge s_r - M \left( 1 - \alpha^{out}_{rr'pp'} \right)
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-f_{r'} &\le s_r + M \alpha^{out}_{rr'pp'}
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-f_{r'} &\le f_r - \varepsilon + M \left( 1 - \beta^{out}_{rr'pp'} \right)
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-f_{r'} &\ge f_r - M \beta^{out}_{rr'pp'} - M(1-x_{rp}) - M(1-x_{r'p'})
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-u^{out}_{rr'pp'} &\le x_{rp}
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-u^{out}_{rr'pp'} &\le x_{r'p'}
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-u^{out}_{rr'pp'} &\le \alpha^{out}_{rr'pp'}
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-u^{out}_{rr'pp'} &\le \beta^{out}_{rr'pp'}
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r' \\
-u^{out}_{rr'pp'} &\ge x_{rp} + x_{r'p'} + \alpha^{out}_{rr'pp'} + \beta^{out}_{rr'pp'} - 3
-&& \forall r,r' \in \mathcal{R},\; (p,p') \in E,\; r \neq r'
+\tau^a_{r'} &\le s_r + M\bigl(1 - z^{-,a}_{rr'pp'}\bigr)
+\label{eq:doc-zminus} \\
+\tau^a_{r'} &\ge f_r - M\bigl(1 - z^{+,a}_{rr'pp'}\bigr)
+\label{eq:doc-zplus}
 \end{align}
 
-% --- Total Movements ---
+\paragraph{Mode B --- inter-job gap}
+
+For every gap $g$ of the front aircraft $r$, with $j^r_g$ and
+$j^r_{g+1}$ the jobs around it:
+
 \begin{align}
-n &= 2 \sum_{(p,p')\in E}\;
-\sum_{\substack{r,r' \in \mathcal{R}\\ r \neq r'}}
-\left( u^{in}_{rr'pp'} + u^{out}_{rr'pp'} \right)
-&&
+\tau^a_{r'} &\ge f_{j^r_g} - M\bigl(1 - b^{Ba}_{rr'pp'g}\bigr) \\
+\tau^a_{r'} &\le s_{j^r_{g+1}} + M\bigl(1 - b^{Ba}_{rr'pp'g}\bigr)
 \end{align}
 
-% \paragraph{Blocking}
+Each Mode~B event consumes $\mu$ units of its gap, cumulatively over
+all rear neighbours and both access sides:
 
-% \textbf{Entry for $(p,p') \in \mathcal{E}$:}
-% \begin{align}
-% t^{F}_{j'} &\le t^{S}_j - \varepsilon^{I}
-% + M \left( 1 - b^{I}_{jj'pp'} + 2 - y_{jp} - y_{j'p'} \right)
-% \\
-% t^{S}_{j'} &\ge t^{S}_j + \varepsilon^{I}
-% - M \left( b^{I}_{jj'pp'} + 2 - y_{jp} - y_{j'p'} \right)
-% \end{align}
+\begin{align}
+s_{j^r_{g+1}} - f_{j^r_g} \;\ge\;
+\mu \!\!\sum_{\substack{r' \ne r \\ (p,p') \in \mathcal{A} \\ a}}\!\! b^{Ba}_{rr'pp'g}
+&& \forall r \in \mathcal{R},\; g = 1, \ldots, N_r - 1
+\end{align}
 
-% For each pair of positions $(p,p') \in E$, where position $p$ blocks access to position $p'$, these constraints enforce that the entry of a job into position $p$ is compatible with the occupation of position $p'$.
+\paragraph{Mode C --- strict interior of an interruptible job}
 
-% More precisely, when job $j$ is assigned to position $p$ and job $j'$ is assigned to position $p'$, i.e., $y_{jp} = y_{j'p'} = 1$, these constraints impose a disjunctive temporal ordering between the entry of $j$ into $p$ and the processing of $j'$ in $p'$. This is achieved through the binary variable $b^{I}_{jj'pp'}$, which selects one of the following alternatives:
+\begin{align}
+\tau^a_{r'} &\ge s_j + \eta - M\bigl(1 - b^{Ca}_{rr'pp'j}\bigr) \\
+\tau^a_{r'} &\le s_j + D_j + \delta\bigl(\kappa_j - b^{Ca}_{rr'pp'j}\bigr) - \eta
+              + M\bigl(1 - b^{Ca}_{rr'pp'j}\bigr)
+\label{eq:doc-bc-ub}
+\end{align}
 
-% \begin{itemize}
-%     \item Either job $j'$ finishes before job $j$ starts entering position $p$, i.e.,
-%     \[
-%     t^{F}_{j'} \le t^{S}_{j} - \varepsilon^{I},
-%     \]
-%     ensuring that the blocking position is free at the entry time.
-    
-%     \item Or job $j'$ starts sufficiently after the entry of job $j$, i.e.,
-%     \[
-%     t^{S}_{j'} \ge t^{S}_{j} + \varepsilon^{I},
-%     \]
-%     ensuring temporal separation between both operations.
-% \end{itemize}
+The upper bound~\eqref{eq:doc-bc-ub} excludes the access's own
+contribution ($-\delta\, b^{Ca}$) from the extended finish, preventing
+the self-justifying interruption in which an access becomes feasible
+only because the extension it itself triggers pushes the job past it.
 
-% The big-$M$ terms deactivate the constraints when at least one of the jobs is not assigned to the corresponding positions, i.e., when $y_{jp} = 0$ or $y_{j'p'} = 0$. 
+\paragraph{Interruption counter and movement count}
 
-% Overall, these constraints guarantee that an aircraft can only enter a position if the corresponding blocking positions are not occupied at that time, thus enforcing the geometric accessibility constraints of the hangar layout.
+\begin{align}
+\kappa_j &= \!\!\sum_{\substack{r' \ne r \\ (p,p') \in \mathcal{A} \\ a}}\!\! b^{Ca}_{rr'pp'j}
+&& \forall r \in \mathcal{R},\; j \in \mathcal{J}_r \\
+%
+n &= 2 \sum_{(p,p') \in \mathcal{A}}
+     \sum_{\substack{r,r' \in \mathcal{R} \\ r \neq r'}}
+     \sum_{a} \Bigl(
+       \sum_{g=1}^{N_r-1} b^{Ba}_{rr'pp'g}
+       + \sum_{j \in \mathcal{J}_r} b^{Ca}_{rr'pp'j}
+     \Bigr)
+\end{align}
 
-% \textbf{Exit for $(p,p') \in \mathcal{E}$:}
-% \begin{align}
-% t^{F}_{j'} &\le t^{F}_j - \varepsilon^{O}
-% + M \left( 1 - b^{O}_{jj'pp'} + 2 - y_{jp} - y_{j'p'} \right)
-% \\
-% t^{S}_{j'} &\ge t^{F}_j + \varepsilon^{O}
-% - M \left( b^{O}_{jj'pp'} + 2 - y_{jp} - y_{j'p'} \right)
-% \end{align}
+\paragraph{Delays and makespan}
 
-
-\begin{remark}
-The upper-bound constraints on $\alpha^{in}$ and $\alpha^{out}$ use $s_r$ (without the $-\varepsilon$ offset that appears in earlier formulations).
-In the original formulation, the upper bound read $s_{r'} \le s_r - \varepsilon + M\alpha^{in}$, which forced $\alpha^{in}=1$ whenever $s_{r'} \in (s_r-\varepsilon,\, s_r]$, including the case $s_{r'} = s_r$.
-This incorrectly counted a movement even when both aircraft enter their positions simultaneously, since in that case $r'$ can be positioned in $p'$ before $r$ occupies $p$ and no temporary relocation is needed.
-
-The corrected upper bound $s_{r'} \le s_r + M\alpha^{in}$ sets $\alpha^{in}=0$ as feasible whenever $s_{r'} \le s_r$, so simultaneous arrivals ($s_{r'} = s_r$) no longer trigger a blocking event.
-The same reasoning applies to $\alpha^{out}$: when $f_{r'} = s_r$ the exit of $r'$ and the arrival of $r$ coincide, so no movement is required, and the corrected bound $f_{r'} \le s_r + M\alpha^{out}$ allows $\alpha^{out}=0$ in that case.
-The minimum-separation parameter $\varepsilon$ is retained in the $\beta$ constraints, which govern the temporal window during which a relocation is operationally necessary.
-\end{remark}
-
-\begin{remark}
-The lower-bound constraints on $\beta^{in}$ and $\beta^{out}$ include the position-guard terms $-M(1-x_{rp})-M(1-x_{r'p'})$.
-
-Without these guards, the constraint
-\[
-  s_{r'} \ge f_r - M\beta^{in}_{rr'pp'}
-\]
-applies to \emph{all} aircraft pairs regardless of their actual position assignment.
-When $\beta^{in}=0$ it forces $s_{r'} \ge f_r$, and when $\beta^{in}=1$ the upper bound imposes $s_{r'} \le f_r - \varepsilon$.
-If $f_r - \varepsilon < s_{r'} < f_r$ (i.e.\ $r'$ starts within the separation window of $r$), neither value of $\beta^{in}$ is feasible—even when $r$ and $r'$ are assigned to completely different positions that share no blocking relationship.
-This spurious infeasibility prevents the solver from finding position assignments where one aircraft's start time falls within another aircraft's separation window, even when those aircraft are not at the blocking positions $(p,p')$.
-
-The position guards $-M(1-x_{rp})-M(1-x_{r'p'})$ relax the lower bound to $-\infty$ whenever $r$ is not at $p$ or $r'$ is not at $p'$, so the constraint is only binding when both aircraft are actually placed at the relevant blocking positions.
-The same correction applies to $\beta^{out}$.
-\end{remark}
-
-\paragraph{Delays}
-
-\begin{equation}
-v^{D}_r \ge
-\sum_{j \in \mathcal{J}} \Omega_{jr}(t^{F}_j - L_r)
-\qquad \forall r \in \mathcal{R}
-\end{equation}
-
-
-\paragraph{Makespan}
-
-\begin{equation}
-m \ge t^{F}_j
-\qquad \forall j \in \mathcal{J}
-\end{equation}
-
-\paragraph{Variable domains}
-
-\begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
-    $t^{S}_j \ge 0$ \\
-    $t^{F}_j \ge 0$ \\
-    $s_r \ge 0$ \\
-    $f_r \ge 0$ \\
-    $y_{jp} \in \{0,1\}$ \\
-    $x_{rp} \in \{0,1\}$ \\
-    $w_{jj'p} \in \{0,1\}$ \\
-    $\alpha^{in}_{rr'pp'} \in \{0,1\}$ \\
-    $\beta^{in}_{rr'pp'} \in \{0,1\}$ \\
-    $u^{in}_{rr'pp'} \in \{0,1\}$ \\
-    $\alpha^{out}_{rr'pp'} \in \{0,1\}$ \\
-    $\beta^{out}_{rr'pp'} \in \{0,1\}$ \\
-    $u^{out}_{rr'pp'} \in \{0,1\}$ \\
-    $v^{D}_r \ge 0$ \\
-    $m \ge 0$ \\
-    $n \ge 0$ \\
-\end{longtable}
-
+\begin{align}
+v^{D}_r &\ge f_r - L_r
+&& \forall r \in \mathcal{R} \\
+m &\ge f_r
+&& \forall r \in \mathcal{R}
+\end{align}
 
 \subsection{Objective Function}
 
@@ -315,74 +227,27 @@ m \ge t^{F}_j
 \min \quad W^{M} m + W^{D} \sum_{r \in \mathcal{R}} v^{D}_{r} + W^{S} n
 \end{align}
 
+\begin{remark}[Relaxed Mode-A bounds]
+The before/after constraints
+\eqref{eq:doc-zminus}--\eqref{eq:doc-zplus} use \emph{closed} bounds
+$\tau \le s_r$ / $\tau \ge f_r$: Mode~A only requires the front
+position to be vacant at the access instant, so any access at or
+outside the stay endpoints $[s_r, f_r]$ is admissible, matching the
+problem statement and the compliance checker
+(\texttt{problems/jobs/checker.py}).  An earlier version of the model
+required a full $\eta$ clearance ($\tau \le s_r - \eta$ /
+$\tau \ge f_r + \eta$), which was strictly more conservative than the
+declared problem and cut off feasible schedules at $\pm\varepsilon$ of
+a front stay; the forensic audit of 2026-07-23 (commit
+\texttt{96d2595}, e.g.\ \texttt{two\_rows\_loose} seed~8 under the
+delay-priority profile) exposed it and commit \texttt{0fb58ea} relaxed
+the bounds.  The MILP cache was invalidated and the full 870-run
+battery was re-executed on 2026-07-23/24 under the relaxed model.
+\end{remark}
 
-% \subsection{Variables for computing movements}
-
-% \begin{longtable}{>{\hspace{0pt}}l c p{11.2cm}}
-%     $u^{I}_{jj'pp'}$ & : & 1 if the aircraft occupying position $p$ is temporarily moved to allow the entry of job $j'$ into position $p'$, 0 otherwise \\
-%     $u^{O}_{jj'pp'}$ & : & 1 if the aircraft occupying position $p$ is temporarily moved to allow the exit of job $j'$ from position $p'$, 0 otherwise \\
-%     $n^{\mathrm{mov}}$ & : & Total number of aircraft movements induced by temporary relocations (each relocation may count as one or two movements depending on the chosen convention)
-% \end{longtable}
-
-% \subsection{Constraints for computing movements}
-
-% \paragraph{Input movements}
-
-% \begin{align}
-% t^{F}_{j'} &\le t^{S}_{j} - \varepsilon^{I}
-% + M\Bigl(1 - b^{I}_{jj'pp'} + u^{I}_{jj'pp'} + 2 - y_{jp} - y_{j'p'}\Bigr)
-% && \forall j,j' \in \mathcal{J},\; (p,p') \in E,\; j \neq j'
-% \\
-% %
-% t^{S}_{j'} &\ge t^{S}_{j} + \varepsilon^{I}
-% - M\Bigl(b^{I}_{jj'pp'} + u^{I}_{jj'pp'} + 2 - y_{jp} - y_{j'p'}\Bigr)
-% && \forall j,j' \in \mathcal{J},\; (p,p') \in E,\; j \neq j'
-% \end{align}
-
-% \paragraph{Output movements}
-
-% \begin{align}
-% t^{F}_{j'} &\le t^{F}_{j} - \varepsilon^{O}
-% + M\Bigl(1 - b^{O}_{jj'pp'} + u^{O}_{jj'pp'} + 2 - y_{jp} - y_{j'p'}\Bigr)
-% && \forall j,j' \in \mathcal{J},\; (p,p') \in E,\; j \neq j'
-% \\
-% %
-% t^{S}_{j'} &\ge t^{F}_{j} + \varepsilon^{O}
-% - M\Bigl(b^{O}_{jj'pp'} + u^{O}_{jj'pp'} + 2 - y_{jp} - y_{j'p'}\Bigr)
-% && \forall j,j' \in \mathcal{J},\; (p,p') \in E,\; j \neq j'
-% \end{align}
-
-% \paragraph{Additional valid inequalities}
-
-% \begin{align}
-% u^{I}_{jj'pp'} &\le y_{jp}
-% && \forall j,j' \in \mathcal{J},\; (p,p') \in E,\; j \neq j'
-% \\
-% u^{I}_{jj'pp'} &\le y_{j'p'}
-% && \forall j,j' \in \mathcal{J},\; (p,p') \in E,\; j \neq j'
-% \\
-% u^{O}_{jj'pp'} &\le y_{jp}
-% && \forall j,j' \in \mathcal{J},\; (p,p') \in E,\; j \neq j'
-% \\
-% u^{O}_{jj'pp'} &\le y_{j'p'}
-% && \forall j,j' \in \mathcal{J},\; (p,p') \in E,\; j \neq j'
-% \end{align}
-
-% \paragraph{Counting movements}
-
-% \begin{align}
-% n^{\mathrm{mov}} = 
-% 2 \sum_{(p,p')\in E}
-% \sum_{\substack{j,j'\in \mathcal{J}\\ j\neq j'}}
-% \left( u^{I}_{jj'pp'} + u^{O}_{jj'pp'} \right)
-% \end{align}
-
-% \subsection{Extended objective function}
-
-% \begin{align}
-% \min \quad
-% W^{M} m
-% + W^{D} \sum_{r \in \mathcal{R}} v^{D}_{r}
-% + W^{S} n^{\mathrm{mov}}
-% \end{align}
-
+\begin{remark}[Strict interior via $\eta$]
+$\eta$ is an instance datum (one day on the benchmark grid), not a
+solver tolerance; it appears only in the Mode~C interior bounds, whose
+margins therefore sit far above Gurobi's feasibility tolerances.  On
+finer time grids $\eta$ should scale with the grid.
+\end{remark}
