@@ -41,6 +41,7 @@ the **~19 delay-unit noise floor** described in
 | 8 | phase policy: v2/v3 split vs single decoder (4-arm ablation) | `exp/profile-budget` (`6952f14`) | `attempt8_phase_policy_20260714.txt` + `attempt8b_noise_resolution_20260714.txt` | **DROPPED** | two decoders earn their keep: v3-only regresses at R20 (+377/+1933 real); v2-only/split refuted (wMOV +20/+9.5 real) |
 | 9 | nest-stretch: dense-nest generalised to the real blocking DAG | `exp/nest-stretch` (`164519a`) | `attempt9_nest_stretch_20260714.txt` | **KEPT** | −120.5 net over 19 wMOV cells, 0 regressions; `t_loose_R10 s5` 74.5→63 (MILP 61.5), `full_R10` 258→235 / 294→235 (beats MILP), `chain_R10` −10.4 %→≈−1.3 % |
 | 10 | perturb-mix: 50/50 targeted/uniform-random IG destruction | `exp/perturb-mix` (`15082a0`) | `attempt10_perturb_mix_20260714.txt` | **KEPT** | −438 net; `t_loose_R10 s7` 77→**62.5** (< MILP 64.5), `s10` →**67 = MILP**; certified-loss family closed; +4 lines, 0 knobs |
+| 11 | Mode-A band alignment: η→0 in the decoder's vacant-front geometry | `exp/mode-a-band` | (pending) | **OPEN** | targets Triangle/blocking R=10 vs the relaxed MILP (0fb58ea) |
 
 *(Entries 4–6 backfilled from the living-spec Change log; entry 7 onward is
 opened here first, before coding. The 2026-07 campaign that motivates 7–8 is
@@ -455,3 +456,30 @@ split. So the direct fix moves first:
 
 The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
 "effective wS-dominant" from ŵᵢ·magnitude, to trigger the restart policy).
+
+## Attempt 11 — mode-a-band
+- **Date:** 2026-07-27
+- **Hypothesis:** After the MILP's Mode-A relaxation (`0fb58ea`), the exact
+  solver may place accesses in the width-η band immediately outside a front
+  stay (τ ∈ (s−η, s) ∪ (f, f+η)); its new R=10 optima use **3.6–4.6 band
+  accesses per solution** (audit 2026-07-27, triangle loose/medium R10).  The
+  heuristic's zero-movement decoder (`_forbidden`), the v3 zero-move
+  candidates and the nest-stretch wraps still enforce a FULL η clearance, so
+  the heuristic now searches a strictly smaller space than the problem — the
+  mirror image of the fixed MILP bug.  Aligning the vacant-front geometry
+  with the checker semantics (margin η→0; touching allowed, open interior
+  forbidden) should recover up to ~2(η−ε)=1 day per stacked blocking
+  interaction.  Targets: blocking R=10 cells, worst on Triangle (wMK −1.4%,
+  wMOV −4.7…−6.9%, wDLY loose −128.8% vs relaxed MILP); expect R≥20
+  unchanged-or-better (same engine, larger feasible space).  Mode-C interior
+  margins and same-position ε separation are true problem semantics and stay.
+- **Ref:** branch `exp/mode-a-band` (off `main` @ f6bab0c — dev is stale and
+  the relaxed-MILP reference rows only exist on main); baseline = code of the
+  2026-07-14 battery log (Attempts 7+9+10).
+- **How measured:** fresh candidate arm on the Triangle R=10 stratum
+  (3 slacks × 3 profiles × 10 seeds = 90 runs) vs the NEW cached MILP rows
+  (relaxed model, 2026-07-23/24) and the July-14 baseline heuristic log.
+- **Log:** (pending)
+- **Result vs baseline:** (pending)
+- **Noise check:** (pending)
+- **Decision:** (pending)

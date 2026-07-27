@@ -449,6 +449,14 @@ class IteratedGreedyVNDJobSolver:
     def _prepare(self, inst: dict) -> None:
         self.eta = float(inst.get("eta", 1.0))
         self.eps = float(inst.get("min_separation", 0.5))
+        # Mode-A (vacant-front) clearance used by the whole-stay geometry.
+        # The checker treats any instant OUTSIDE the front's stay [s, f] as
+        # vacant (touching allowed), so no eta margin applies there — eta is
+        # semantics only for the Mode-C job interior.  Attempt 11 aligned the
+        # decoder with this (previously a full eta clearance was enforced,
+        # conceding up to ~2*(eta-eps) per stacked blocking interaction to
+        # the relaxed MILP).
+        self.bandA = 0.0
         self.mu = float(inst.get("mu", 1.0))
         self.delta = float(inst.get("delta", 2.0))
 
@@ -532,7 +540,7 @@ class IteratedGreedyVNDJobSolver:
         aircraft wrap a shorter blocking-related one instead of serialising
         the two.
         """
-        eta, eps = self.eta, self.eps
+        band, eps = self.bandA, self.eps
         if p2 == p:
             # Same position: the two stays may not overlap, and must be
             # separated by the tow time eps.  Our stay [t, t+dur] clashes with
@@ -542,24 +550,26 @@ class IteratedGreedyVNDJobSolver:
         if (p2, p) in self._arcs:
             # We are the REAR aircraft (p2 holds the front).  To keep BOTH our
             # access instants (entry t, exit t+dur) in Mode A, our stay must be
-            # entirely before the front (t+dur <= s2-eta), entirely after it
-            # (t >= f2+eta), or *enclose* it (t <= s2-eta and t+dur >= f2+eta).
-            if dur >= (f2 - s2) + 2 * eta - 1e-9:
+            # entirely before the front (t+dur <= s2, touching allowed),
+            # entirely after it (t >= f2), or *enclose* it (t <= s2 and
+            # t+dur >= f2).  The forbidden intervals are open, so boundary
+            # placements land exactly on the checker's vacant-front edge.
+            if dur >= (f2 - s2) + 2 * band - 1e-9:
                 # Long enough to enclose: two forbidden bands, with the gap
                 # between them = the "enclosing" start window (the nesting hole).
-                return [(s2 - eta - dur, f2 + eta - dur), (s2 - eta, f2 + eta)]
+                return [(s2 - band - dur, f2 + band - dur), (s2 - band, f2 + band)]
             # Too short to enclose: only before/after survive, so one band.
-            return [(s2 - eta - dur, f2 + eta)]
+            return [(s2 - band - dur, f2 + band)]
         if (p, p2) in self._arcs:
             # We are the FRONT aircraft (p2 holds the rear).  Symmetric to the
             # rear case, but now it is the rear's fixed access instants (s2, f2)
             # that must stay in Mode A relative to OUR stay: the rear is before
             # us, after us, or its stay encloses ours.
-            if dur <= (f2 - s2) - 2 * eta + 1e-9:
+            if dur <= (f2 - s2) - 2 * band + 1e-9:
                 # The rear is long enough to enclose us: two forbidden bands
                 # with the enclosing window between them.
-                return [(s2 - dur - eta, s2 + eta), (f2 - dur - eta, f2 + eta)]
-            return [(s2 - dur - eta, f2 + eta)]
+                return [(s2 - dur - band, s2 + band), (f2 - dur - band, f2 + band)]
+            return [(s2 - dur - band, f2 + band)]
         return []  # p and p2 do not block each other: free to overlap freely
 
     # ==================================================================
@@ -723,7 +733,7 @@ class IteratedGreedyVNDJobSolver:
                         t = max(base[p], comp_anchor)
                         for q in occ:                             # rears wrapping p
                             if p in fronts_of[q] and q in s:
-                                t = max(t, s[q] + eta)
+                                t = max(t, s[q] + self.bandA)
                         s[p] = t
                     else:
                         s[p] = base[p]
@@ -734,7 +744,7 @@ class IteratedGreedyVNDJobSolver:
                     f_need = s[p] + self.T[occ[p]]
                     for f in fronts_of[p]:
                         if f in occ:
-                            f_need = max(f_need, fin[f] + eta)
+                            f_need = max(f_need, fin[f] + self.bandA)
                     fin[p] = f_need
                 for p, r in occ.items():
                     jobs, f_r = build_jobs(r, s[p], fin[p] - s[p])
@@ -1055,10 +1065,13 @@ class IteratedGreedyVNDJobSolver:
         # present, so the chosen start can never be worse than a Mode-A schedule.
         cands = {lower}
         for tau in rear_acc:
-            # Zero-movement options: place the whole stay before tau (finish at
-            # tau-eta), after tau (start at tau+eta), or nested so tau is the
-            # entry margin (start at tau-eta-T).  All keep tau in Mode A.
-            for c in (tau - eta - T, tau - eta, tau + eta):
+            # Zero-movement options: place the whole stay before tau (finish
+            # exactly at tau or eta before it), after tau (start at tau+eta),
+            # or nested (start at tau-eta-T).  All keep tau in Mode A; the
+            # band-tight candidate tau-T exploits the vacant-front semantics
+            # (touching allowed).  Start-exactly-at-tau is not proposed: the
+            # forward simulation's job-edge margin rejects it.
+            for c in (tau - T, tau - eta - T, tau - eta, tau + eta):
                 if c >= lower - 1e-9:
                     cands.add(round(c, 4))
             for (jid, D), pj in zip(chain, prefix):
