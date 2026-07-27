@@ -177,10 +177,17 @@ class IteratedGreedyVNDJobSolver:
             self.rng = random.Random(base_seed + i)
             start_dl = min(global_dl, time.perf_counter() + per_start)
             self._deadline = start_dl
+            # Alternate the Mode-A clearance per restart (Attempt 11, refined):
+            # even restarts search the checker-exact band geometry (margin 0,
+            # reaches the relaxed-MILP optima), odd restarts the conservative
+            # eta geometry (keeps the old landscape's basins reachable — the
+            # band-only landscape regressed chain R10 and wDLY at scale).
+            self.bandA = 0.0 if i % 2 == 0 else self.eta
             # Activate the zero-movement decoder for this restart's first phase.
             self._decode_fn = self._decode
-            # Tag the active decoder so the decode cache keys stay disjoint.
-            self._decoder_tag = "v2"
+            # Tag the active decoder so the decode cache keys stay disjoint
+            # (the tag must carry the active Mode-A clearance).
+            self._decoder_tag = "v2b" if self.bandA == 0.0 else "v2"
             # This restart's insertion order: deterministic for the first two
             # starts, rank-biased around the better deterministic base after.
             if i < len(det_seeds):
@@ -216,7 +223,9 @@ class IteratedGreedyVNDJobSolver:
         # dominates (the regime where concentric nesting pays off).
         if self._arcs and self.wS >= self.wM and self.wS >= self.wD:
             # Build the explicit concentric-nesting schedule; returns a full
-            # solution dict (movements = 0 by construction) or None.
+            # solution dict (movements = 0 by construction) or None.  Band
+            # wraps: checker-exact and tightest (improved every wMOV guard).
+            self.bandA = 0.0
             nest = self._dense_nest_solution()
             # Adopt it only if it exists, strictly improves the incumbent, and
             # _is_compliant (which runs the real paper-#2 checker -> bool) passes.
@@ -350,7 +359,7 @@ class IteratedGreedyVNDJobSolver:
         # The v2 floor is feasible by construction, so the incumbent returned
         # here is always a complete, valid schedule.
         self._decode_fn = self._decode
-        self._decoder_tag = "v2"
+        self._decoder_tag = "v2b" if self.bandA == 0.0 else "v2"
         dl1 = min(deadline, time.perf_counter() + (deadline - time.perf_counter()) *
                   (0.5 if self.use_v3 else 1.0))
         a1, o1 = self._search(dict(a0), list(o0), dl1)
@@ -451,11 +460,11 @@ class IteratedGreedyVNDJobSolver:
         self.eps = float(inst.get("min_separation", 0.5))
         # Mode-A (vacant-front) clearance used by the whole-stay geometry.
         # The checker treats any instant OUTSIDE the front's stay [s, f] as
-        # vacant (touching allowed), so no eta margin applies there — eta is
-        # semantics only for the Mode-C job interior.  Attempt 11 aligned the
-        # decoder with this (previously a full eta clearance was enforced,
-        # conceding up to ~2*(eta-eps) per stacked blocking interaction to
-        # the relaxed MILP).
+        # vacant (touching allowed), so no eta margin is required there — eta
+        # is semantics only for the Mode-C job interior.  Attempt 11: the
+        # restart loop ALTERNATES this between 0.0 (checker-exact band
+        # geometry, reaches the relaxed-MILP optima) and eta (conservative
+        # geometry, keeps the pre-Attempt-11 landscape's basins reachable).
         self.bandA = 0.0
         self.mu = float(inst.get("mu", 1.0))
         self.delta = float(inst.get("delta", 2.0))
