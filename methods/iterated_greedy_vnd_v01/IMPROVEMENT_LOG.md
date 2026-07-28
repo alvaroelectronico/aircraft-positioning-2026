@@ -41,7 +41,7 @@ the **~19 delay-unit noise floor** described in
 | 8 | phase policy: v2/v3 split vs single decoder (4-arm ablation) | `exp/profile-budget` (`6952f14`) | `attempt8_phase_policy_20260714.txt` + `attempt8b_noise_resolution_20260714.txt` | **DROPPED** | two decoders earn their keep: v3-only regresses at R20 (+377/+1933 real); v2-only/split refuted (wMOV +20/+9.5 real) |
 | 9 | nest-stretch: dense-nest generalised to the real blocking DAG | `exp/nest-stretch` (`164519a`) | `attempt9_nest_stretch_20260714.txt` | **KEPT** | −120.5 net over 19 wMOV cells, 0 regressions; `t_loose_R10 s5` 74.5→63 (MILP 61.5), `full_R10` 258→235 / 294→235 (beats MILP), `chain_R10` −10.4 %→≈−1.3 % |
 | 10 | perturb-mix: 50/50 targeted/uniform-random IG destruction | `exp/perturb-mix` (`15082a0`) | `attempt10_perturb_mix_20260714.txt` | **KEPT** | −438 net; `t_loose_R10 s7` 77→**62.5** (< MILP 64.5), `s10` →**67 = MILP**; certified-loss family closed; +4 lines, 0 knobs |
-| 11 | Mode-A band alignment: η→0 in the decoder's vacant-front geometry | `exp/mode-a-band` | (pending) | **OPEN** | targets Triangle/blocking R=10 vs the relaxed MILP (0fb58ea) |
+| 11 | Mode-A band alignment: η→0, refined to per-restart alternation | `exp/mode-a-band` (`1850f0a`) | `…_20260727_144353.log` + `…_20260727_175121.log` | **ON HOLD** | net −16k with triangle (target fixed, wMOV=MILP parity), chain R10 regresses (+108 wMK / +310 wDLY, 10 seeds); verdict deferred to the redefined benchmark (triangle likely removed, chain/hub grid extension pending) |
 
 *(Entries 4–6 backfilled from the living-spec Change log; entry 7 onward is
 opened here first, before coding. The 2026-07 campaign that motivates 7–8 is
@@ -483,3 +483,11 @@ The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
 - **Result vs baseline:** (pending)
 - **Noise check:** (pending)
 - **Decision:** (pending)
+- **Interim close (2026-07-28):** measured on the CURRENT grid, the alternated
+  variant is net −16k incl. Triangle (target stratum fixed; wMOV at MILP
+  parity; R20/R30 wDLY improved) with one consistent casualty: chain R10
+  (+107.8 wMK 0W/9L, +310.1 wDLY 2W/7L over 10 seeds — chain still beats the
+  MILP even so).  The user is redefining the benchmark (Triangle likely
+  removed as contrived; chain/hub/none to be extended across sizes/slacks),
+  so the KEPT/DROPPED verdict is DEFERRED to a two-arm measurement on the new
+  grid.  Baseline remains on `main`; this branch holds the candidate.
