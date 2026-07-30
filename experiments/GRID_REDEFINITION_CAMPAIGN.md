@@ -104,8 +104,19 @@ Cierre según veredicto (ver `IMPROVEMENT_LOG.md` §How to use):
 
 - [x] Grid generado y commiteado (`002a55a`): 220 instancias chain/hub.
 - [x] Script de veredicto: `experiments/attempt11_grid_verdict.py`.
-- [ ] Fase 1 (MILP nuevas)          — máquina B
-- [ ] Fase 2 (brazo baseline)       — máquina B
-- [ ] Fase 3 (brazo candidato)      — máquina B
-- [ ] Fase 4 (veredicto)            — cualquier máquina, tras push de 2+3
+- [x] Fase 1 (MILP nuevas)          — 2026-07-28, 660/660 ok, sin OOM
+      (`8306117`, log `..._20260728_134519.log`).
+- [x] Fase 2 (brazo baseline)       — 2026-07-29, 1110/1110 ok
+      (`5856376`, log `..._20260728_211746.log`).
+- [x] Fase 3 (brazo candidato)      — 2026-07-30, 450+660 ok en dos logs
+      (`895c5cc`, logs `..._20260729_155203.log` + `..._20260729_232650.log`).
+      Nota: la rama bifurcó antes de `002a55a`, así que el primer lanzamiento
+      solo vio el grid viejo (450 runs); se mergeó `main` en la rama
+      (`61a3909`) y se corrieron los 660 nuevos aparte — el script de
+      veredicto acepta logs partidos.
+- [x] Fase 4 (veredicto)            — **KEPT** (2026-07-30): NET −566,398
+      (chain −82k, hub −219k, two_rows −265k, none 0), cero regresiones
+      consistentes sobre el suelo de 19 unidades.  Cierre aplicado: merge
+      `--no-ff` (`62bae48`), tag `igvnd-v01-mode-a-band`, IMPROVEMENT_LOG
+      entrada 11 cerrada, `/sync-method-doc` pasado.
 - [ ] Fase 5 (registro + paper)     — con Claude en sesión

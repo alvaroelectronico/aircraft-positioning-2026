@@ -1058,6 +1058,7 @@ The returned dict matches `problems/jobs/checker.py`: `status`, `objective`,
 | Two-layer state | `assignment: dict[r→p]` + `order: list[r]` |
 | Zero-movement decoder (§3.1) | `_decode`; admissible-placement bands in `_forbidden` |
 | Manoeuvre-aware decoder (§3.2) | `_decode_v3`; per-front placement `_place_front`; forward simulation with Mode-B/C `_sim_front` |
+| Mode-A vacant-front clearance, alternated per restart (Attempt 11) | `self.bandA` — `_forbidden`'s admissible bands and the `_place_front` zero-movement candidates key off `self.bandA` instead of the fixed `self.eta`; the restart loop in `solve` sets `self.bandA = 0.0 if i % 2 == 0 else self.eta` (even restarts search the checker-exact touching-allowed geometry, odd restarts the older conservative-η geometry); `_dense_nest_solution` always pins `self.bandA = 0.0` before building. `_decoder_tag` carries the active band (`v2b` for band 0, `v2` for band η) so the decode cache stays disjoint between the two geometries. |
 | Cached decode (memoised eval) | `_eval` (keyed by decoder tag, order, positions-along-order; reset per solve) |
 | Concentric nest-stretch builder over the blocking DAG (§8; explicit starts, best-of) | `_dense_nest_solution` (called once in `solve` when `Wˢ`-dominant + arcs; Attempt 9 generalised its internals from complete-graph waves to the real arc structure) |
 | Risk diagnostics (Commit 5; observability) | `_diagnostics(best_sol, start_objs)` → `delay_risk` / `nesting_risk` / `search_risk`, attached to the solution + one log line |
@@ -1075,6 +1076,19 @@ The returned dict matches `problems/jobs/checker.py`: `status`, `objective`,
 - `_forbidden` emits, per already-placed neighbour, the infeasible
   start-time bands; for a blocking pair the *two* bands leave a feasible
   hole between them — that hole is the nesting option of §3.1.
+- **Mode-A clearance is a variable, not a constant (Attempt 11).** Before
+  Attempt 11, `_forbidden` and the zero-movement candidates in
+  `_place_front` used the fixed margin `self.eta` to keep a rear aircraft's
+  access instants clear of the front's stay. The problem statement's Mode A
+  ("no aircraft occupies `p` at `τ`") requires no margin at all — touching is
+  vacant — so the fixed-η version searched a strictly smaller space than the
+  problem allows. `self.bandA` replaces the fixed `eta` in both call sites;
+  the restart loop alternates it (band 0 on even restarts, band `eta` on odd
+  ones) because a band-0-only landscape regressed `chain` R10 and `wDLY` at
+  scale relative to the older, more conservative geometry — alternating
+  keeps both basins reachable across the multi-start portfolio.
+  `_dense_nest_solution` always builds at band 0 (the tightest, checker-exact
+  wrap).
 - `_sim_front` returns `(finish, sched, mov_events, feasible)`; `mov_events`
   folds Mode-B + Mode-C events and `movements = 2·mov_events`. It rejects a
   start (returns infeasible) on an access in an `η`-margin, a Mode-C on a
@@ -1137,6 +1151,7 @@ the code that produced it. Behaviour-affecting commits (newest last):
 | `6952f14` (branch `exp/profile-budget`) → **not merged** | **Attempt 8 (phase policy) — attempted & DROPPED.** 4-arm ablation {both, v2-only, v3-only, profile-split} on the timed-out R10+/R20 stratum to decide one-decoder-vs-two (user's simplification hypothesis). A `phase_mode` knob was built on the branch; no behaviour change ships to `main`. | `attempt8_phase_policy_20260714.txt` + K=3 noise resolution `attempt8b_…txt`: v2-only/split refuted (real wMOV regressions +20/+9.5; chain wMK +2023); v3-only wins some certified-loss seeds (`t_loose_R10 s7` 62.5, beats the MILP's integer-gridded 64.5) but has **real R20 regressions** (+377 wMK, +1933 wDLY — its costly decode leaves too little search per slice). **Two decoders earn their keep.** Side-finding: on the certified-loss cells the search, not the decoder, is the binding constraint — the stay-stretching gap stays the target. |
 | `164519a` (merged `5d6fcbc`, tag `igvnd-v01-nest-stretch-20260714`) | **Attempt 9 (nest-stretch) — KEPT.** `_dense_nest_solution` internals generalised from complete-graph waves to the **real blocking DAG**: concentric stay-stretching only along actual front→rear arcs (deepest rear = outermost; finish pass stretches rears around late-starting fronts), unconflicted positions tight/parallel, rounds serialised per component, 4-partition beam (long/short/E/rr). Same gate, same best-of + checker — net machinery 0. | Two-arm ablation (`attempt9_nest_stretch_20260714.txt`): **−120.5 net over 19 wMOV cells, 0 regressions**. `t_loose_R10 s5` 74.5→**63.0** (MILP optimum 61.5), `s7` −4; `full_R10` 258→**235** and 294→**235** (beats MILP 261/322); `chain_R10` 258→**235** (−10.4 %→≈−1.3 %). Part II battery refresh pending for the wMOV columns. |
 | `15082a0` (merged, tag `igvnd-v01-perturb-mix-20260714`) | **Attempt 10 (perturb-mix) — KEPT.** IG destruction is now a 50/50 mix of the targeted delay-weighted rule and **uniform-random removal** (+4 lines, 0 knobs): the targeted rule degenerates under wMK/wMOV (delay ≈ 0 ⇒ same longest k every kick), anchoring the walk. | Two-arm ablation (`attempt10_perturb_mix_20260714.txt`): **−438 net**. `t_loose_R10 s7` 77→**62.5** (below the MILP's integer-gridded 64.5 — the solution the Attempt-8 v3-only arm proved existed), `s10` →**67 = MILP**; the certified-loss family is closed (s5 63.0 vs 61.5 remains). Cons: +1.0 real on `two_rows_medium_R10 s2`; wDLY guard +1 delay unit (noise). Part II battery refresh covers Attempts 9+10 together. |
+| `62bae48` (merged `1850f0a`, tag `igvnd-v01-mode-a-band`) | **Attempt 11 (Mode-A band alignment) — KEPT.** `_forbidden` and the `_place_front` zero-movement candidates now key off `self.bandA` instead of the fixed `self.eta`: the checker's Mode A requires no clearance at all (touching is vacant), so the old fixed-η geometry searched a strictly smaller space than the relaxed MILP now reaches. The restart loop **alternates** `bandA` per start (even → band 0 = checker-exact; odd → band `eta` = the pre-Attempt-11 geometry) after a band-0-only variant regressed `chain` R10/`wDLY` at scale; `_dense_nest_solution` always builds at band 0; `_decoder_tag` (`v2b`/`v2`) keeps the decode cache disjoint between the two geometries. | Two-arm verdict on the no-Triangle grid (37 configs × 3 profiles × 10 seeds, logs `…20260728_211746` vs `…20260729_155203`+`…232650`): **NET −566,398** objective units (chain −82,022, hub −219,110, two_rows −265,265, none ±0); wMOV near-sweep on chain/two_rows, hub improves at every size; zero consistent regressions (≥7/10 seeds) above the 19-unit noise floor. Part II battery refresh pending (needs a full-battery run under this code state; the verdict above is the two-arm ablation, not the Part II format). |
 
 **Evaluation shortcut.** The MILP baseline is fixed, so re-running it is
 wasteful. To judge a heuristic change, run `ablation_subset.py` (heuristic
