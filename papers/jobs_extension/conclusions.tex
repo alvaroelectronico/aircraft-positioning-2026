@@ -13,23 +13,25 @@ separates the combinatorial assignment-and-ordering decision from the
 timing decision and prices the former with a two-regime decoder under an
 Iterated-Greedy / VND search with a checker-validated safety net.
 
-The experimental comparison on 270 instances delivers a clear and honest
+The experimental comparison on 370 instances delivers a clear and honest
 picture.  On the tractable end of the benchmark --- small fleets,
 no or loose blocking --- the MILP proves optimality and IGVND matches it,
-being exact on the no-blocking and the loose and medium five-aircraft
-instances and conceding only a few objective units on the remaining
-converged cases; the large relative gaps in that regime are
+exactly on the no-blocking baseline and on the large majority of
+five-aircraft seeds (all 90 of them under movement-priority), conceding
+only a few objective units elsewhere; the large relative gaps in that
+regime are
 small-denominator artefacts that vanish in the per-component view.  A
 structural gap identified against the certified optima --- the
 optimum stretches aircraft stays with inter-job idle to nest tighter, a
 schedule shape outside the tight-packing decoder's reach --- was narrowed by
 folding the same mechanism into the heuristic as an explicit,
 checker-validated candidate over the blocking digraph; the remaining
-concessions to certified optima are a few units of makespan or delay on
-scattered seeds.  On the intractable end --- larger fleets and the profiles that
+concessions to certified optima are a few makespan units on the
+\emph{Chain} topology at $R{=}10$ and a couple of delay units on
+scattered small-instance seeds.  On the intractable end --- larger fleets and the profiles that
 activate the manoeuvre machinery --- the MILP no longer converges within the
 budget, and IGVND returns markedly better feasible solutions in the same
-60\,s, by up to $+56\%$ and hundreds to thousands of objective units in
+60\,s, by up to $+44\%$ and hundreds to thousands of objective units in
 absolute terms.  The
 two methods are therefore complementary: the MILP certifies quality where it
 can, and the heuristic extends usable solution quality to the operational
@@ -41,8 +43,8 @@ projected time windows of each aircraft pair, or a branch-and-cut
 treatment of the partition constraint, to push the tractability frontier
 outward.  On the heuristic
 side, the remaining residuals --- a few conceded objective units on the
-converged small cells, and the delay-term concession on the tight
-\emph{Chain} topology under movement-priority --- point to search
+converged small cells, and the makespan-priority concession on
+\emph{Chain} at $R{=}10$ --- point to search
 throughput (an incremental, prefix-reusing decoder) as the next lever
 rather than new mechanisms.  Finally,
 the present study

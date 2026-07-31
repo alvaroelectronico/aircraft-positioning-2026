@@ -119,4 +119,12 @@ Cierre según veredicto (ver `IMPROVEMENT_LOG.md` §How to use):
       consistentes sobre el suelo de 19 unidades.  Cierre aplicado: merge
       `--no-ff` (`62bae48`), tag `igvnd-v01-mode-a-band`, IMPROVEMENT_LOG
       entrada 11 cerrada, `/sync-method-doc` pasado.
-- [ ] Fase 5 (registro + paper)     — con Claude en sesión
+- [x] Fase 5 (registro + paper)     — 2026-07-30/31, cerrada con el usuario:
+      batería de registro `..._20260730_103730.log` (1110/1110 ok, `ed5c1e7`);
+      `make_tables.py` apuntado al log nuevo y triangle excluido (37 configs);
+      paper: Triangle retirado (benchmark 4 topologías / 37 configs / 370
+      instancias, prosa re-verificada cifra a cifra, compila limpio);
+      `experiments/BATTERY.md` actualizado al benchmark definitivo;
+      Parte I del living spec alineada con Attempt 11 (autorizado).
+
+**CAMPAÑA CERRADA (2026-07-31).**

@@ -46,9 +46,10 @@ rear-position aircraft enters or leaves (its two **access instants**, entry
 and exit), the state of the front position at that instant determines a
 **mode**:
 
-- **Mode A** — the front position is vacant at that instant (the access
-  instant lies at least `η` before the front aircraft starts or at least `η`
-  after it finishes). No manoeuvre, no cost.
+- **Mode A** — the front position is **vacant at that instant**: the access
+  instant lies at or before the front aircraft's start, or at or after its
+  finish (closed bounds — touching the stay endpoints `[s_r, f_r]` is
+  vacant; no `η` margin is required by the problem). No manoeuvre, no cost.
 - **Mode B** — the front aircraft is mid-stay but the instant falls in an
   **inter-job gap** of the front aircraft. The front aircraft is towed out
   and back: **+2 movements**, and the gap must be wide enough to absorb the
@@ -92,12 +93,22 @@ The decoder is the heart of the method, and it comes in two regimes.
 This regime produces schedules that are **feasible by construction with no
 manoeuvres at all** (`n = 0`). The idea: for every blocking arc, keep each
 rear aircraft's two access instants in Mode A. Relative to a front aircraft,
-that leaves exactly three admissible placements of the rear aircraft's stay:
+that leaves exactly three admissible placements of the rear aircraft's stay
+(with `bandA` the solver's Mode-A clearance margin, see below):
 
-1. entirely **before** the front (rear exit `≤` front start `− η`),
-2. entirely **after** the front (rear entry `≥` front finish `+ η`), or
-3. **enclosing** the front (rear enters `≥ η` before the front starts and
-   leaves `≥ η` after it finishes).
+1. entirely **before** the front (rear exit `≤` front start `− bandA`),
+2. entirely **after** the front (rear entry `≥` front finish `+ bandA`), or
+3. **enclosing** the front (rear enters `≥ bandA` before the front starts
+   and leaves `≥ bandA` after it finishes).
+
+Since Attempt 11 (`igvnd-v01-mode-a-band`) the margin `bandA` is a
+**variable, not the constant `η`**: the problem's Mode A needs no margin
+at all (closed bounds), so the restart loop alternates the geometry —
+`bandA = 0` on even restarts (the exact problem semantics, touching
+allowed) and `bandA = η` on odd restarts (the conservative geometry,
+which empirically anchors a different, sometimes better search basin).
+Each restart's schedules are checker-validated either way, so both
+geometries are safe; they simply explore different regions.
 
 The third placement — **nesting** — is what makes the regime competitive:
 when one aircraft is long enough to wrap a shorter one, two
@@ -240,7 +251,8 @@ over *nested*, and packs jobs tight). So this candidate is written with
 *rounds* of one per position; within a round, **only the positions that
 actually block each other** get the concentric treatment — along every
 front→rear arc the rear's stay is stretched so it wraps the front's stay by
-η on both sides (deepest rear = outermost shell), while unconflicted
+`bandA` on both sides (deepest rear = outermost shell; since Attempt 11 the
+wrap margin follows the restart's Mode-A geometry — 0 or `η`), while unconflicted
 positions run tight and in parallel. Rounds are serialised within the
 blocking component and simply chained (`+ε`) per position elsewhere. A small
 beam of four round partitions (long-first / short-first / earliest-`E` /
@@ -368,7 +380,8 @@ PROCEDURE  DecodeZeroMov(π, σ):        # feasible by construction, 0 moves
         F ← forbidden start-intervals of r vs each already-placed neighbour:
             same position p           → must keep gap ≥ ε  (before/after)
             blocking pair (p,p′)       → keep both access instants Mode-A:
-                rear BEFORE front, or AFTER front, or ENCLOSING it (margin η)
+                rear BEFORE front, or AFTER front, or ENCLOSING it
+                (margin bandA: 0 on even restarts, η on odd — Attempt 11)
             (the “enclose’’ option leaves a feasible hole between two bands)
         sᵣ ← earliest t ≥ Eᵣ not inside any forbidden interval
         lay r’s jobs tight from sᵣ ;  κ = 0          # no extensions
@@ -1244,6 +1257,7 @@ the code that produced it. Behaviour-affecting commits (newest last):
 | `15082a0` (merged, tag `igvnd-v01-perturb-mix-20260714`) | **Attempt 10 (perturb-mix) — KEPT.** IG destruction is now a 50/50 mix of the targeted delay-weighted rule and **uniform-random removal** (+4 lines, 0 knobs): the targeted rule degenerates under wMK/wMOV (delay ≈ 0 ⇒ same longest k every kick), anchoring the walk. | Two-arm ablation (`attempt10_perturb_mix_20260714.txt`): **−438 net**. `t_loose_R10 s7` 77→**62.5** (below the MILP's integer-gridded 64.5 — the solution the Attempt-8 v3-only arm proved existed), `s10` →**67 = MILP**; the certified-loss family is closed (s5 63.0 vs 61.5 remains). Cons: +1.0 real on `two_rows_medium_R10 s2`; wDLY guard +1 delay unit (noise). Part II battery refresh covers Attempts 9+10 together. |
 | `62bae48` (merged `1850f0a`, tag `igvnd-v01-mode-a-band`) | **Attempt 11 (Mode-A band alignment) — KEPT.** `_forbidden` and the `_place_front` zero-movement candidates now key off `self.bandA` instead of the fixed `self.eta`: the checker's Mode A requires no clearance at all (touching is vacant), so the old fixed-η geometry searched a strictly smaller space than the relaxed MILP now reaches. The restart loop **alternates** `bandA` per start (even → band 0 = checker-exact; odd → band `eta` = the pre-Attempt-11 geometry) after a band-0-only variant regressed `chain` R10/`wDLY` at scale; `_dense_nest_solution` always builds at band 0; `_decoder_tag` (`v2b`/`v2`) keeps the decode cache disjoint between the two geometries. | Two-arm verdict on the no-Triangle grid (37 configs × 3 profiles × 10 seeds, logs `…20260728_211746` vs `…20260729_155203`+`…232650`): **NET −566,398** objective units (chain −82,022, hub −219,110, two_rows −265,265, none ±0); wMOV near-sweep on chain/two_rows, hub improves at every size; zero consistent regressions (≥7/10 seeds) above the 19-unit noise floor. Part II battery refresh pending (needs a full-battery run under this code state; the verdict above is the two-arm ablation, not the Part II format). |
 | `ed5c1e7` | **Merged to `main` — battery of record for Attempt 11 (closes the previous row's pending-refresh note).** No solver-code change (the merge commits, `d209ef6`/`ed5c1e7`, only close out the campaign log and sync this spec); solver behaviour is Attempt 11 as merged at `62bae48`. | Part II refreshed from the dedicated verdict grid — "no-Triangle" (`chain`/`hub`/`two_rows`/`none`, R5–R30, loose/medium/tight, 37 configs × 3 profiles × 10 seeds), log [`outputs/logs/202605_02_main_methods_20260730_103730.log`](../../../outputs/logs/202605_02_main_methods_20260730_103730.log), **1110/1110 runs, 0 failures**: R5 closed on every profile; R10 at-or-above the MILP on `wMK`/`wMOV` across all three topologies; R20/R30 win decisively against the unconverged 60 s MILP. Does not cover `triangle`/`full` (Caveat 3). |
+| (doc only) | **Part I aligned with Attempt 11 (user-authorised, 2026-07-31).** Mode A's definition corrected to the problem's true contract (front position vacant *at the access instant*, closed bounds — no `η` margin); the zero-movement regime, `DecodeZeroMov` pseudocode and the nest-stretch wrap description now name `bandA` (0 on even restarts / `η` on odd) instead of a fixed `η`. | no behaviour change (documentation) |
 
 **Evaluation shortcut.** The MILP baseline is fixed, so re-running it is
 wasteful. To judge a heuristic change, run `ablation_subset.py` (heuristic

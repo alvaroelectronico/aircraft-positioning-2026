@@ -1,15 +1,19 @@
 """Generate the LaTeX result tables for the job-level extension paper.
 
-Built on the **2026-07-13 full battery** (heuristic IGVND v01 at Attempt 7 /
-`cbf64c7` vs the cached MILP), **excluding the Full topology**.  Data sources
-(kept consistent with the experimentation, NOT a blanket results.csv read):
+Built on the **2026-07-30 battery of record** (heuristic IGVND v01 at the
+merged Attempt 11 / tag `igvnd-v01-mode-a-band` vs the cached relaxed MILP),
+on the definitive no-Triangle benchmark (**Full and Triangle excluded**).
+Data sources (kept consistent with the experimentation, NOT a blanket
+results.csv read):
 
-  * heuristic, ALL 29 configs : parsed from the single battery log
-    `202605_02_main_methods_20260714_174533.log` (870 runs / 0 failures;
+  * heuristic, ALL 37 configs : parsed from the single battery log
+    `202605_02_main_methods_20260730_103730.log` (1110 runs / 0 failures;
     results.csv 'latest' igvnd rows are not a reliable paper source — they
     get overwritten by ablation reruns);
   * MILP, all configs         : latest milp_job_* per (instance,label) in
-    results.csv, with the Gurobi optimality gap read from the solution JSONs.
+    results.csv (relaxed model: old configs from the 2026-07-23/24 battery,
+    the extended chain/hub grid from the 2026-07-28 battery, same machine),
+    with the Gurobi optimality gap read from the solution JSONs.
 
 Failed MILP runs (Gurobi ran **out of memory** on the largest R=30 instances)
 are recorded as the solver being **unable to solve** the instance: those seeds
@@ -34,7 +38,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CSV = ROOT / "outputs" / "solutions" / "results.csv"
-BATTERY_LOG = ROOT / "outputs" / "logs" / "202605_02_main_methods_20260714_174533.log"
+BATTERY_LOG = ROOT / "outputs" / "logs" / "202605_02_main_methods_20260730_103730.log"
 OUT = Path(__file__).resolve().parent / "tables"
 
 # (profile key, MILP label, heuristic label, display header)
@@ -47,10 +51,10 @@ MILP_LABELS = {ml for _, ml, _, _ in PROFILES}
 IGVND_LABELS = {hl for _, _, hl, _ in PROFILES}
 
 TYPE_LABEL = {"none": "None", "chain": "Chain", "hub": "Hub",
-              "two_rows": "Two rows", "triangle": "Triangle"}
-TYPE_ORDER = {"none": 0, "chain": 1, "hub": 2, "two_rows": 3, "triangle": 4}
+              "two_rows": "Two rows"}
+TYPE_ORDER = {"none": 0, "chain": 1, "hub": 2, "two_rows": 3}
 SLACK_ORDER = {"loose": 0, "medium": 1, "tight": 2}
-EXCLUDE_TOPO = {"full"}
+EXCLUDE_TOPO = {"full", "triangle"}
 
 
 def _num(v):
@@ -290,7 +294,8 @@ def main():
     (OUT / "res_gap_profile.tex").write_text(gap_table(byinst, rows), encoding="utf-8")
     (OUT / "res_components.tex").write_text(comp_table(byinst, rows), encoding="utf-8")
     (OUT / "res_milp_conv.tex").write_text(milp_gap_table(byinst, rows, gaps), encoding="utf-8")
-    print(f"wrote 3 tables for {len(rows)} configs (Full excluded)")
+    print(f"wrote 3 tables for {len(rows)} configs "
+          f"(excluded topologies: {', '.join(sorted(EXCLUDE_TOPO))})")
 
 
 if __name__ == "__main__":

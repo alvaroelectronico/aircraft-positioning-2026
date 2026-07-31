@@ -6,25 +6,35 @@ rather than embedding their own copy of the convention.
 
 ## Composition
 
-- **12 configurations × 10 seeds × 3 weight profiles = 360 runs.**
+**Definitive no-Triangle benchmark** (grid redefinition of 2026-07-28/30,
+see `experiments/GRID_REDEFINITION_CAMPAIGN.md`):
+
+- **37 configurations × 10 seeds × 3 weight profiles = 1110 runs.**
 - Instances at `data/instances_202605_02/<config>/<config>_seed{N}.json`.
 - Wall-clock per run: **60 s** (strictly enforced by every solver).
 
-The 12 configurations (each with seeds 1..10):
+The 37 configurations (each with seeds 1..10):
 
 ```
-scn_chain_tight_P5_R10        scn_triangle_loose_P5_R10
-scn_full_tight_P5_R10         scn_triangle_medium_P5_R10
-scn_full_tight_P5_R20         scn_triangle_tight_P5_R5
-scn_hub_tight_P5_R10          scn_triangle_tight_P5_R10
-scn_none_tight_P5_R10         scn_triangle_tight_P5_R20
-scn_two_rows_tight_P5_R10     scn_triangle_tight_P5_R30
+scn_none_tight_P5_R10                                      (1 config)
+scn_chain_{loose,medium,tight}_P5_R{5,10,20,30}            (12 configs)
+scn_hub_{loose,medium,tight}_P5_R{5,10,20,30}              (12 configs)
+scn_two_rows_{loose,medium,tight}_P5_R{5,10,20,30}         (12 configs)
 ```
 
-Topologies: complete blocking (`full`), chain, hub-and-spoke, no
-blocking (`none`), parallel rows, three triangle slack-levels
-(`loose`, `medium`, `tight`).  Sizes: R = number of aircraft
+Topologies: chain (single lane, nose-to-tail), hub-and-spoke (one
+aisle position blocks all others), parallel rows (`two_rows`), and the
+no-blocking control (`none`).  Sizes: R = number of aircraft
 (5, 10, 20, 30).  P = number of positions (5 everywhere here).
+Slack levels `loose / medium / tight` scale the time windows.
+
+Retired topologies: `triangle` (removed from the paper as contrived,
+2026-07-30) and `full` (excluded earlier); their instances remain on
+disk and in the ledger for reproducibility but are not part of any
+standard battery or paper table.
+
+Filter for `run_experiments.py`:
+`"scn_none,scn_chain,scn_hub,scn_two_rows"`.
 
 ## Weight profiles
 
@@ -48,8 +58,10 @@ doubt.
 The MILP baseline is **fixed reference data**.  Do not re-run it on
 every iteration — its rows are already in
 [`outputs/solutions/results.csv`](../outputs/solutions/results.csv)
-from prior batteries.  Re-running burns ~12 min × 3 profiles × 12
-configs per seed for no information.
+from prior batteries (relaxed model: 2026-07-23/24 battery for the
+original configs, 2026-07-28 battery for the extended chain/hub grid;
+same machine).  Re-running burns ~1 min × 3 profiles × 37 configs per
+seed for no information.
 
 Cached labels:
 
