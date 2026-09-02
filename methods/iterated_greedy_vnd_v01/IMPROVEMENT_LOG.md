@@ -42,6 +42,7 @@ the **~19 delay-unit noise floor** described in
 | 9 | nest-stretch: dense-nest generalised to the real blocking DAG | `exp/nest-stretch` (`164519a`) | `attempt9_nest_stretch_20260714.txt` | **KEPT** | −120.5 net over 19 wMOV cells, 0 regressions; `t_loose_R10 s5` 74.5→63 (MILP 61.5), `full_R10` 258→235 / 294→235 (beats MILP), `chain_R10` −10.4 %→≈−1.3 % |
 | 10 | perturb-mix: 50/50 targeted/uniform-random IG destruction | `exp/perturb-mix` (`15082a0`) | `attempt10_perturb_mix_20260714.txt` | **KEPT** | −438 net; `t_loose_R10 s7` 77→**62.5** (< MILP 64.5), `s10` →**67 = MILP**; certified-loss family closed; +4 lines, 0 knobs |
 | 11 | Mode-A band alignment: η→0, refined to per-restart alternation | `exp/mode-a-band` (`1850f0a`) / tag `igvnd-v01-mode-a-band` | base `…_20260728_211746.log`; cand `…_20260729_155203.log` + `…_20260729_232650.log` | **KEPT** | two-arm verdict on the no-Triangle grid (37 configs × 3 × 10): NET −566,398 (chain −82k, hub −219k, two_rows −265k, none 0); zero consistent regressions above the 19-unit floor; the interim chain-R10 casualty resolved by the per-restart alternation |
+| 12 | sim-boundaries: `_sim_front` aligned to the checker's closed boundaries; Mode-B gap at the nearest job end | `exp/sim-boundaries` | (open) | — | — |
 
 *(Entries 4–6 backfilled from the living-spec Change log; entry 7 onward is
 opened here first, before coding. The 2026-07 campaign that motivates 7–8 is
@@ -504,3 +505,85 @@ The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
   casualty (chain R10 +107.8 wMK 0W/9L, +310.1 wDLY 2W/7L); verdict was
   deferred to the two-arm measurement on the redefined grid, which resolved
   both the casualty and the decision above.
+
+## Attempt 12 — sim-boundaries
+- **Date:** 2026-09-02
+- **Diagnosis that motivates it (battery of record `…_20260730_103730.log`
+  vs cached relaxed MILP):** where the MILP proves optimality the heuristic
+  still loses on the blocking topologies — R5 tight wDLY (chain 0W/2T/8L,
+  hub 0/6/4; the MILP reaches delay 0 with 2 movements, IGVND ends with delay
+  1–3) and every R10 wMK/wDLY cell of chain/hub (e.g. chain loose wMK 0/0/10,
+  Δobj +376; hub loose wDLY 0/3/7, +244).  **Decoder expressiveness test**
+  (in-memory, read-only): feeding `_decode_v3` the MILP's OWN assignment and
+  start-order does not reproduce its schedule — 6889.5 vs 5666.5 on
+  `hub_tight_R10 s5` wMK, 640 vs 34 on `chain_tight_R5 s3` wDLY.  So the
+  decoder's image excludes the optimal structures; search is not the (only)
+  bottleneck.  Three concrete mismatches between `_sim_front` and
+  `problems/jobs/checker.py`:
+  1. an access exactly at the front's start (`τ == s_start`) is Mode A for
+     the checker (boundary rule, `checker.py:636-642`) but rejected by the
+     η-margin test (`t - 1e-9 < tau`);
+  2. an access exactly at an interior job end (`τ == f_j`) is Mode B through
+     the following gap for the checker (`fk - TOL <= tau`), but excluded from
+     the gap batch (`f_j + 1e-9 < acc[i]`) and then declared infeasible by
+     the final sweep;
+  3. the Mode-B gap is opened after the FIRST job whose next-job window
+     reaches τ (inclusive upper bound), i.e. at the earliest job end rather
+     than the nearest one: on `chain_tight_R5 s3` τ=16 is routed through a
+     7-unit gap after job 1 instead of the μ=1 gap after job 2 (which ends
+     exactly at 16), costing delay 6 instead of 0.
+- **Hypothesis:** aligning the simulation with the checker's closed
+  boundaries (start-equal → Mode A; gap-start inclusive; window open at the
+  next job's end so the gap opens at the nearest job end) and proposing the
+  start-exactly-at-τ candidate enlarges v3's image to the problem's real
+  feasible set.  Pure semantic alignment — the mirror of Attempt 11 for the
+  manoeuvre decoder — with no new mechanism, knob or rule.  Targets: R5
+  tight wDLY (chain/hub) to exact optimum; R10 wDLY/wMK cells of chain/hub
+  to shrink.  Expected neutral on `none`, on wMOV (deterministic floor 0)
+  and at R≥20 (same engine, larger feasible space).
+- **Simplicity ledger:** −2 boundary rejections, −1 comment documenting the
+  symptom (`start-exactly-at-tau is not proposed`), +1 candidate start; 0
+  knobs.  Net: retires.
+- **Ref:** branch `exp/sim-boundaries` off `main` @ 49e616a (tag
+  `igvnd-v01-mode-a-band` code); baseline = same.
+- **Pre-registered evidence (in-memory 60 s solves, seed 1, code identical
+  to the branch tip):** `chain_tight_R5 s3` wDLY 337.0 → **34.0 = MILP**;
+  `hub_tight_R5 s1` wDLY 330.0 → **32.0 = MILP**; `chain_loose_R10 s8` wDLY
+  1075.0 → 620.5 (MILP 266.5); `hub_loose_R10 s9` wDLY 626.5 → 538.5 (MILP
+  86.5); `hub_tight_R10 s5` wMK 6058.5 → 6058.5 (needs rear-side alignment,
+  Attempt 13); guard `chain_tight_R10 s6` wMOV 214.0 → 214.0.
+- **How measured:** (i) decoder-expressiveness test over ALL R5/R10 cells
+  with a proven MILP optimum (not only the cells that motivated the change) —
+  new `experiments/tests/test_igvnd_decoder_expressiveness.py`: feeds v3 the
+  MILP's own (assignment, start order), asserts checker compliance (hard)
+  and floors the exact-reproduction rate.  State on this branch: **163/439
+  exact, 0 non-compliant** (R5 wMK/wDLY 66/180; `none` 30/30).  The rate
+  under-states the solver (the search reaches many optima through other
+  structures — R5 wMOV is 90/90 in the battery) but it is the general,
+  non-hand-picked yardstick for how much of the optimal structure the
+  manoeuvre decoder can express; Attempt 13 is judged on raising it.
+  (ii) `ablation_subset.py` on the refreshed no-Triangle subset (18
+  instances: none control, R5 tight, R10 losses, wMOV guards, R20/R30 scale
+  guards); (iii) full-grid two-arm fresh battery, verdict via the grid script.
+- **Log (ablation):** `outputs/logs/attempt12_ablation_20260902.log` (18
+  instances × 3 profiles, branch tip) paired per run against the battery of
+  record `…_20260730_103730.log` (baseline code, same machine).
+- **Ablation result:** 24 wins / 26 ties / 4 losses over 54 paired runs.
+  R5 tight wDLY: `chain s3` 337 → **34 = MILP**, `chain s5` 38 → **34 =
+  MILP**, `hub s1` 330 → **32 = MILP**; wMK R5 −1…−3 (to the MILP optimum).
+  R10 chain/hub, all 15 non-tied cells improve, none regresses: chain_medium
+  wDLY −755.5 / −552.0 / −105.5, wMK −98 / −224 / −112; chain_loose s8 wDLY
+  −354.5, s5 wMK −290.5; chain_tight s6 wDLY −505.5, wMK −104.5; hub_tight
+  s5 wDLY −289; hub_loose s9 wDLY −88; chain_medium s2 wMOV 168 → **152 =
+  MILP**.  `none` identical (3/3); two_rows R10 identical (6/6); wMOV R5/R10
+  guards identical except the s2 improvement.  Scale guards mixed and
+  within their run-to-run band: chain_loose_R20 wMK −174.5 / wDLY +801.5;
+  hub_loose_R30 wMK +239.5; two_rows_loose_R30 wMK −79.5 / wDLY +8861
+  (this cell's own baseline re-run in this session gave 146,093 vs 128,511
+  in the record, i.e. ±7 % run-to-run — the +8861 sits inside that band).
+- **Decision (screening):** PASS → full-grid candidate arm; verdict pending
+  the two-arm grid comparison (R≥20 judged with the 10-seed paired test).
+- **Log (grid):** (open)
+- **Result vs baseline (grid):** (open)
+- **Noise check:** (open)
+- **Decision:** (open)
