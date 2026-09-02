@@ -587,3 +587,52 @@ The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
 - **Result vs baseline (grid):** (open)
 - **Noise check:** (open)
 - **Decision:** (open)
+
+## Probe (2026-09-02, no branch, NOT opened as an attempt) — rear-side alignment ("stretch")
+- **Observation:** in every R10 cell the heuristic loses with a proven MILP
+  optimum, the MILP delays or STRETCHES a rear aircraft (idle inserted before
+  its last job) so that its exit lands exactly on a boundary of the front it
+  blocks (front finish, or a job end that opens a Mode-B gap).  v3 places
+  rears at their earliest start and cannot express this.
+- **Probe 1 — decoder-internal alignment, priced by full re-decode:** given
+  the MILP's own (π, σ), iterating "try every boundary of the front for each
+  offending rear exit, keep the best by the TRUE objective" reproduces the
+  optimum on `hub_tight_R10 s5` wMK (6889.5 → **5666.5 = MILP**) and
+  `two_rows_loose_R10 s1` wDLY (1327.5 → **264.5 = MILP**), and cuts
+  `hub_loose_R10 s9` wDLY 1950.5 → 638.5 — but costs 16–54 decodes per
+  evaluation (unusable inside the search) and, applied to the (π, σ) the
+  search itself found, changes almost nothing (the search's structures are
+  zero-move-shaped).
+- **Probe 2 — decoder-internal alignment, priced locally (front's
+  `_place_front` cost + rear delay), 2 passes:** zero effect on all 8 cells at
+  3–6× decode cost — the sum-for-max makespan surrogate cannot see a benefit
+  that lands on the front's successor and on the makespan.
+- **Probe 3 — stretch as a SEARCH move** (γ per aircraft carried in the
+  genotype; 4th VND neighbourhood proposing γ = front boundary − natural
+  exit; 60 s solves, seed 1, on top of Attempt 12): vs Attempt 12 alone,
+  `two_rows_loose_R10 s1` wDLY 359.5 → 315.5, `chain_medium_R10 s1` wMK
+  6220.5 → 6240.5, `chain_medium_R10 s2` wMOV 152 → 168 (deterministic
+  stratum: real), all other 9 cells identical.  Net ≈ 0.
+- **Conclusion:** the lever is real but the SEARCH does not find the
+  coordinated (π, σ, γ) configurations within the v3 half-slice (~3.75 s per
+  restart at R10 with 1.2 ms decodes).  Adding a genotype field plus a
+  neighbourhood for ≈0 net effect fails the simplicity criterion and would
+  be tuning against the cells that motivated it.  NOT opened.  Revisit only
+  after the search-shape attempt (14) if the R10 cells are still open — the
+  general yardstick is the decoder-expressiveness rate (163/439), not these
+  cells.
+- **Headroom at R10 (Attempt-12 code, seed 1, 240 s):** `hub_tight_R10 s5`
+  wMK stays at **6058.5** with all 8 restarts within 0.1 % of each other
+  (phase=zero: the v3 phase, seeded from v2's local optimum, never leaves the
+  zero-movement basin — a landscape trap, not a budget problem);
+  `chain_loose_R10 s8` wDLY 720.5 → 424.5 (MILP 266.5) with an inter-restart
+  spread of 73 % — budget/variance-bound.  Both point at the search shape
+  (Attempt 14), not at the decoder.
+- **Probe 4 — seed the v3 phase from the construction (a0, o0) instead of
+  v2's local optimum (one-line change at `_one_start`):** escapes the hub
+  trap (`hub_tight_R10 s5` wMK 6058.5 → 5987.5, phase=manoeuvre) but throws
+  away v2's structures elsewhere: `chain_loose_R10 s8` wDLY 720.5 → 1835.5,
+  `chain_medium_R10 s10` wMK 6633.5 → 6732.5, `hub_loose_R10 s9` wDLY 538.5
+  → 626.5; wMOV guard and two_rows unchanged.  Net negative — NOT adopted.
+  Lesson for Attempt 14: the v3 phase needs its own diversification (or a
+  restart-level choice of seed), not a blanket change of seed.
