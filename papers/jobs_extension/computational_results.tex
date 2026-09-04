@@ -112,9 +112,35 @@ solver does in the same time.
 \label{sec:results}
 % ------------------------------------------------------------------------------
 
+% NOTE (2026-09-03, branch exp/sim-boundaries): the tables and the numbers
+% quoted in this section come from the 2026-07-30 battery of record
+% (make_tables.py BATTERY_LOG).  The decoder now applies the closed-boundary
+% sweep of Algorithm decode1 (Attempt 12); its full-grid battery is running.
+% When it completes: point make_tables.py at the new log, regenerate
+% tables/res_*.tex, and revise the R=5 / R=10 prose below ("77 of 90",
+% "3.7--4.0 makespan units", the Chain/Hub makespan-priority concessions)
+% and the matching sentences in conclusions.tex and the abstract.
 Table~\ref{tab:gap_profile} reports the relative gap and
 Table~\ref{tab:components} the per-component differences.  We read them
 together, grouping the configurations by what the MILP can certify.
+
+\paragraph{Decoder expressiveness check.}
+Before comparing objectives we verify that the manoeuvre-aware decoder can
+\emph{express} the exact solver's schedules, since no amount of search can
+reach a structure outside the decoder's image.  For every instance--profile
+pair the MILP closes at $R \le 10$ (439 pairs), we feed
+$\textsc{Decode}_1$ the MILP's own position assignment and start order.
+All 439 decodes pass the checker, and 163 reproduce the certified objective
+exactly; the remainder differ because the decoder lays each rear aircraft
+at its earliest feasible start, whereas the optimum sometimes delays or
+stretches a rear so that its access lands on a boundary of the front it
+blocks --- a structure the search reaches through other assignments, as
+the results below show.  This check is what fixed the closed-boundary
+semantics of Algorithm~\ref{alg:decode1}: an earlier version of the sweep
+rejected accesses lying exactly on a stay edge or a job end, which the
+problem statement (and the checker) admit, and opened Mode~B gaps after
+the earliest rather than the nearest job end.  The check is kept as a
+regression test of the implementation.
 
 \paragraph{Instances the MILP solves to optimality.}
 On the configurations the MILP solves to optimality, IGVND is exact or

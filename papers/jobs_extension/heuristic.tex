@@ -116,8 +116,11 @@ This regime produces schedules that are feasible by construction with
 aircraft's two access instants in Mode~A.  Relative to a front aircraft,
 this leaves exactly three admissible placements of a rear aircraft's stay:
 entirely \emph{before} the front, entirely \emph{after} it, or
-\emph{enclosing} it (the rear enters at least $\eta$ before the front
-starts and leaves at least $\eta$ after it finishes).  The third placement
+\emph{enclosing} it (the rear enters before the front starts and leaves
+after it finishes).  The clearance kept between an access and the front
+stay alternates between restarts: even restarts use the checker-exact
+geometry, in which touching a stay edge is allowed, and odd restarts keep
+a conservative margin of $\eta$, so both landscapes stay reachable.  The third placement
 --- \emph{nesting} --- is what makes the regime competitive: a long
 aircraft can wrap a shorter one so that two blocking-related aircraft
 overlap in time instead of being serialised.  Aircraft sharing a position
@@ -145,7 +148,8 @@ $\mathcal{Q} \leftarrow \emptyset$ \tcp*{aircraft already placed}
          $\varepsilon$ separation from $r'$}
     \ForEach{$(p, p') \in \calA$ \emph{with} $\{\pi(r), \pi(r')\} = \{p, p'\}$}{
       add to $\mathcal{F}$ the bands that would place an access of the rear
-         aircraft within $\eta$ of the front stay\;
+         aircraft strictly inside the front stay (within $\eta$ of it on
+         odd restarts)\;
       \tcp*[l]{the admissible residue is: before, after, or enclosing}
     }
   }
@@ -164,15 +168,22 @@ compressed further by \emph{spending} them.  The positions are processed
 deepest-rear first, so that when a front aircraft is laid out the access
 instants of all the rear aircraft it blocks are already fixed.  A front
 aircraft's start is then chosen to minimise its \emph{local} contribution
-to the objective over a candidate set that always contains the three
+to the objective over a candidate set that always contains the
 zero-movement placements as well as starts that align a job interior over
-an access (inviting a cheap Mode~C) or a job end just before an access
-(inviting a cheap Mode~B); the local cost of a start is evaluated by a
-forward sweep that classifies every exposed access and prices the
-resulting manoeuvres (Algorithm~\ref{alg:decode1}).  Because the
-zero-movement placements remain candidates, this regime can only ever
-\emph{add} the manoeuvre option --- it never discards a feasible
-no-movement schedule.
+an access (inviting a cheap Mode~C) or a job end on an access (inviting a
+cheap Mode~B); the local cost of a start is evaluated by a forward sweep
+that classifies every exposed access and prices the resulting manoeuvres
+(Algorithm~\ref{alg:decode1}).  The sweep applies the closed boundary
+semantics of the problem statement exactly as the checker does: an access
+that coincides with the front's start or finish is Mode~A (the front is
+just entering or leaving its slot), an access that coincides with a job
+end is Mode~B through the gap that follows that job, and a gap is opened
+after the job whose end is \emph{nearest} to the access --- never after an
+earlier one, which would waste idle time and extend the stay.  Only
+accesses strictly inside a job's $\eta$-margin, or inside a
+non-interruptible job, are rejected.  Because the zero-movement
+placements remain candidates, this regime can only ever \emph{add} the
+manoeuvre option --- it never discards a feasible no-movement schedule.
 
 The cost of one manoeuvre-aware decode is polynomial.  Let
 $A \le 2(|\calR| - 1)$ bound the exposed access instants a front aircraft
@@ -204,20 +215,22 @@ so the effective cost is far below this bound.
 \BlankLine
 \Fn{\FPlace{$r$, $\ell$, $A$}}{
   $\mathcal{S} \leftarrow \{\ell\}
-     \cup \{\, \tau - \eta - T_r,\ \tau - \eta,\ \tau + \eta : \tau \in A \,\}$
-     \tcp*{before / after / nest}
+     \cup \{\, \tau - T_r,\ \tau - \eta - T_r,\ \tau,\ \tau - \eta,\ \tau + \eta : \tau \in A \,\}$
+     \tcp*{before / after / nest (touching allowed)}
   $\mathcal{S} \leftarrow \mathcal{S}
      \cup \{\text{starts aligning a job interior over some } \tau \in A\}$
      \tcp*{invite Mode C}
   $\mathcal{S} \leftarrow \mathcal{S}
-     \cup \{\text{starts aligning a job end just before some } \tau \in A\}$
+     \cup \{\text{starts aligning a job end on some } \tau \in A\}$
      \tcp*{invite Mode B}
   $c^\star \leftarrow +\infty$\;
   \ForEach{$s \in \mathcal{S}$ \emph{with} $s \ge \ell$}{
     sweep the jobs of $r$ from $s$, classifying each $\tau \in A$ as
-       Mode~A, Mode~B (open a gap of width $\ge \mu$) or Mode~C
-       (extend the job by $\delta$); reject $s$ if any $\tau$ cannot be
-       classified or falls within $\eta$ of a job edge\;
+       Mode~A ($\tau$ outside the stay or exactly on its edges), Mode~B
+       (open a gap of width $\ge \mu$ after the job whose end is nearest
+       to $\tau$; $\tau$ may sit exactly on that end) or Mode~C (extend
+       the job by $\delta$); reject $s$ if any $\tau$ cannot be
+       classified or falls strictly inside a job's $\eta$-margin\;
     \If{$s$ \emph{is feasible}}{
       $c \leftarrow W^M f_r + W^D \max\{0, f_r - L_r\} + W^S \cdot 2\nu_s$
          \tcp*{$\nu_s$ = manoeuvres at $s$}

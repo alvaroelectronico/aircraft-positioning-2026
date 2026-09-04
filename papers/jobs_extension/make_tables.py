@@ -39,6 +39,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CSV = ROOT / "outputs" / "solutions" / "results.csv"
 BATTERY_LOG = ROOT / "outputs" / "logs" / "202605_02_main_methods_20260730_103730.log"
+# TODO(exp/sim-boundaries): switch to the Attempt-12 full-grid log
+# (outputs/logs/202605_02_main_methods_20260902_214555.log) once its 1110 runs
+# complete and the two-arm verdict is KEPT; then regenerate tables/res_*.tex.
 OUT = Path(__file__).resolve().parent / "tables"
 
 # (profile key, MILP label, heuristic label, display header)
