@@ -112,14 +112,12 @@ solver does in the same time.
 \label{sec:results}
 % ------------------------------------------------------------------------------
 
-% NOTE (2026-09-03, branch exp/sim-boundaries): the tables and the numbers
-% quoted in this section come from the 2026-07-30 battery of record
-% (make_tables.py BATTERY_LOG).  The decoder now applies the closed-boundary
-% sweep of Algorithm decode1 (Attempt 12); its full-grid battery is running.
-% When it completes: point make_tables.py at the new log, regenerate
-% tables/res_*.tex, and revise the R=5 / R=10 prose below ("77 of 90",
-% "3.7--4.0 makespan units", the Chain/Hub makespan-priority concessions)
-% and the matching sentences in conclusions.tex and the abstract.
+% NOTE (2026-09-04, branch exp/sim-boundaries): tables and numbers in this
+% section come from the Attempt-12 full-grid battery
+% (outputs/logs/202605_02_main_methods_20260902_214555.log, 1110/1110), the
+% code described in Section heuristic.  The branch verdict against a fresh
+% baseline arm is still pending; if the branch is dropped, revert
+% make_tables.py to the 2026-07-30 log and regenerate.
 Table~\ref{tab:gap_profile} reports the relative gap and
 Table~\ref{tab:components} the per-component differences.  We read them
 together, grouping the configurations by what the MILP can certify.
@@ -146,36 +144,38 @@ regression test of the implementation.
 On the configurations the MILP solves to optimality, IGVND is exact or
 concedes only a few objective units.  On the 90 five-aircraft
 instances it matches the certified optimum \emph{exactly} on every seed
-under movement-priority (90 of 90), on 83 of 90 under makespan-priority
-and on 77 of 90 under delay-priority; every remaining concession is a
-couple of delay units or a single extra manoeuvre, and the no-blocking
-baseline is exact under all three profiles.  On the converged $R{=}10$
+under movement-priority (90 of 90) and on 88 of 90 under both
+makespan- and delay-priority; the four remaining concessions are one or
+two objective units (four delay units traded against a saved manoeuvre)
+under makespan-priority and a single delay unit under delay-priority, and
+the no-blocking baseline is exact under all three profiles.  On the converged $R{=}10$
 cells --- \emph{Two rows}-loose under every profile, \emph{Hub}-loose
 under delay- and movement-priority --- the concessions are equally
-small in absolute terms (mean $\Delta m \le +0.5$ and
-$\Delta D \le +2.6$ in Table~\ref{tab:components}), although the
+small in absolute terms (mean $\Delta m \le +0.1$ and
+$\Delta D \le +2.2$ in Table~\ref{tab:components}), although the
 relative gap column can look large because of the small denominators
 discussed next.  The visible certified-optimum concessions sit in the
 makespan-priority column at $R{=}10$: on \emph{Chain}-loose and
 \emph{Chain}-medium the MILP proves optimality on every seed and IGVND
-ends a mean $3.7$--$4.0$ makespan units above it
-($g = -6.1\%$ and $-6.6\%$, worst seed $-10.3\%$), with the same
-pattern at smaller scale on \emph{Hub}-medium ($-2.7\%$,
-$\Delta m = +1.8$).  On the remaining $R{=}10$ makespan-priority cells,
-converged or not, IGVND tracks the reference within $-3.4\%$.
+ends a mean $3.1$--$3.2$ makespan units above it
+($g = -5.1\%$ and $-4.9\%$, worst seed $-6.8\%$), with the same
+pattern at smaller scale on \emph{Hub}-medium ($-2.5\%$,
+$\Delta m = +1.6$).  On the remaining $R{=}10$ makespan-priority cells,
+converged or not, IGVND tracks the reference within $-2.5\%$.
 
 \paragraph{Delay-priority outliers.}
-The delay-priority column contains four large negative cells --- the
-tight $R{=}5$ and loose $R{=}10$ rows of \emph{Chain} ($-260\%$,
-$-280\%$) and \emph{Hub} ($-146\%$, $-191\%$) --- that are artefacts of
-the gap's denominator, not large physical differences.  On these
+The delay-priority column contains two large negative cells --- the
+loose $R{=}10$ rows of \emph{Chain} ($-141\%$) and \emph{Hub}
+($-138\%$) --- and a smaller one on \emph{Chain}-tight at $R{=}5$
+($-25\%$), all artefacts of the gap's denominator, not large physical
+differences.  On these
 configurations the optimal delay is zero or near zero, so
 $z_{\mathrm{MILP}}$ reduces to the lightly weighted makespan and movement
 terms, and a difference of a few delay units --- weighted $100$ ---
-swamps that baseline: the mean $\Delta D$ behind those four cells is
-between $+0.7$ and $+4.4$ delay units (Table~\ref{tab:components}),
-with single seeds registering relative gaps beyond $-900\%$ while
-conceding three delay units.  The per-component columns, not the
+swamps that baseline: the mean $\Delta D$ behind those cells is
+between $+0.1$ and $+1.8$ delay units (Table~\ref{tab:components}),
+with single seeds registering relative gaps beyond $-600\%$ while
+conceding five delay units, or $-250\%$ for a single one.  The per-component columns, not the
 relative gap, are the meaningful scale on these rows.
 
 \paragraph{Instances the MILP cannot close within the budget.}
@@ -190,10 +190,10 @@ feasible solution on \emph{every} configuration and profile, and the
 advantage grows with fleet size --- relative gaps of
 roughly $+11\%$ to $+27\%$ at $R{=}20$ and $+12\%$ to $+44\%$ at
 $R{=}30$, across all three blocking topologies
-and all three slack levels, peaking under delay-priority ($+44.4\%$ on
+and all three slack levels, peaking under delay-priority ($+43.8\%$ on
 \emph{Two rows}-loose-$R{=}30$, all ten seeds won; \emph{Hub}, whose
 $R{=}30$ instances the exact solver bounds best, is the mildest
-family at $+12$--$23\%$).  The per-component
+family at $+12$--$22\%$).  The per-component
 differences confirm a large absolute improvement and not a denominator
 effect: mean $\Delta D$ from roughly $-70$ to $-1\,300$ delay units and
 $\Delta m$ from tens to over $130$ makespan units, negative throughout.
@@ -223,7 +223,7 @@ relative gaps here are genuine and not a small-denominator artefact --- unlike
 the delay-priority outliers of the previous paragraph.  IGVND matches the MILP
 \emph{exactly} on every five-aircraft seed of every topology and slack
 (90 of 90, $g = 0.00\%$), stays within $\pm 3\%$ of the reference on
-every $R{=}10$ cell (worst $-3.0\%$ on \emph{Chain}-medium; per-component
+every $R{=}10$ cell (worst $-1.0\%$ on \emph{Chain}-loose; per-component
 concessions within $\pm 4$ units), and dominates at $R{=}20$ and
 $R{=}30$ ($+15\%$ to $+37\%$, with large negative
 $\Delta m$ and $\Delta D$ --- hundreds of objective units in absolute terms).

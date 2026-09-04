@@ -38,10 +38,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CSV = ROOT / "outputs" / "solutions" / "results.csv"
-BATTERY_LOG = ROOT / "outputs" / "logs" / "202605_02_main_methods_20260730_103730.log"
-# TODO(exp/sim-boundaries): switch to the Attempt-12 full-grid log
-# (outputs/logs/202605_02_main_methods_20260902_214555.log) once its 1110 runs
-# complete and the two-arm verdict is KEPT; then regenerate tables/res_*.tex.
+# Attempt-12 (closed-boundary sweep) full-grid battery, 2026-09-02/04, 1110/1110.
+# The 2026-07-30 battery of record (pre-Attempt-12 code) is
+# 202605_02_main_methods_20260730_103730.log; the branch verdict is pending
+# the fresh baseline arm.
+BATTERY_LOG = ROOT / "outputs" / "logs" / "202605_02_main_methods_20260902_214555.log"
 OUT = Path(__file__).resolve().parent / "tables"
 
 # (profile key, MILP label, heuristic label, display header)
