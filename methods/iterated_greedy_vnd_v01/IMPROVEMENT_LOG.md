@@ -583,8 +583,26 @@ The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
   in the record, i.e. ±7 % run-to-run — the +8861 sits inside that band).
 - **Decision (screening):** PASS → full-grid candidate arm; verdict pending
   the two-arm grid comparison (R≥20 judged with the 10-seed paired test).
-- **Log (grid):** (open)
-- **Result vs baseline (grid):** (open)
+- **Log (grid, candidate arm):** `outputs/logs/202605_02_main_methods_20260902_214555.log`
+  (1110/1110, 0 failures, launched 2026-09-02 21:45, finished 2026-09-04;
+  code 3bc423c).
+- **Result vs the battery of record (interim, baseline = 2026-07-30 log):**
+  R5/R10 improve systematically and never regress — e.g. hub_tight_R5 wDLY
+  −59.2 (3W/0L), hub_medium_R10 wDLY −167.1 (6W/0L), hub_tight_R10 wDLY
+  −145.3 (8W/0L), hub_loose_R10 wDLY −86.9, two_rows_loose_R10 wMK −9.8,
+  chain R10 wDLY/wMK all W; `none` ±0; two_rows R5 identical (9 cells).
+  R20 mixed within noise.  **R30 regresses consistently in all three
+  topologies**: 8 cells ≥7/10 seeds above the floor (chain_loose wMK +430
+  2W/8L, chain_medium wDLY +3884 2W/8L, chain_tight wDLY +1642 1W/7L,
+  hub_loose wMK +165 3W/7L, hub_medium wMOV +34 0W/7L, hub_tight wMOV +25
+  0W/8L, two_rows_medium wMK +89 2W/8L, two_rows_tight wMK +335 0W/8L).
+  NET global +102,236 (chain +39.7k, hub +30.3k, two_rows +32.2k), all of
+  it at R≥20.  Pattern = neutral where the search converges, worse where it
+  is budget-bound → two candidate causes: (a) a real throughput cost of the
+  fifth zero-move candidate in `_place_front` at R30 (v3 decode is the
+  bottleneck there), (b) the record arm is 5 weeks old — machine drift.
+  Disambiguation: direct throughput measurement main vs branch on R30
+  cells, and the fresh baseline arm the protocol requires.
 - **Noise check:** (open)
 - **Decision:** (open)
 
