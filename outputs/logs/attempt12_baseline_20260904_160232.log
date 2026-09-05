@@ -1,0 +1,84 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (3 experiments)
+  Code state (git): 49e616a
+  Instance order  : by seed, then config (seed1 of all types first)
+==================================================================
+  Shared parameters:
+    time_limit_s=60               NoRelHeurTime=0
+    MIPGap=0.0                    seed=1
+
+  Per-experiment parameters:
+  Label       Solver                      weight_makespan  weight_delay  weight_movements
+  ---------------------------------------------------------------------------------------
+  igvnd_wMK   IteratedGreedyVNDJobSolver  100              1             1               
+  igvnd_wDLY  IteratedGreedyVNDJobSolver  1                100           1               
+  igvnd_wMOV  IteratedGreedyVNDJobSolver  1                1             100             
+==================================================================
+
+
+  (gap summary unavailable: No module named 'gap_summary')
+
+
+==================================================================
+  SUMMARY  —  57 ok  /  0 failed  /  57 total
+==================================================================
+  Instance                          Experiment  Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  --------------------------------------------------------------------------------------------------------------------
+  scn_two_rows_loose_P5_R10_seed2   igvnd_wMK   heuristic_     6854.50      68.50       4.50     0         -      60.0
+  scn_two_rows_loose_P5_R10_seed2   igvnd_wDLY  heuristic_       70.50      70.50       0.00     0         -      60.0
+  scn_two_rows_loose_P5_R10_seed2   igvnd_wMOV  heuristic_       70.50      70.50       0.00     0         -      60.0
+  scn_two_rows_loose_P5_R20_seed2   igvnd_wMK   heuristic_    12584.50     122.50     334.50     0         -      60.1
+  scn_two_rows_loose_P5_R20_seed2   igvnd_wDLY  heuristic_    29925.50     125.50     298.00     0         -      60.2
+  scn_two_rows_loose_P5_R20_seed2   igvnd_wMOV  heuristic_      443.50     128.50     315.00     0         -      60.0
+  scn_two_rows_loose_P5_R30_seed2   igvnd_wMK   heuristic_    22696.00     213.00    1396.00     0         -      60.1
+  scn_two_rows_loose_P5_R30_seed2   igvnd_wDLY  heuristic_   134120.50     220.50    1339.00     0         -      60.1
+  scn_two_rows_loose_P5_R30_seed2   igvnd_wMOV  heuristic_     1497.50     211.50    1286.00     0         -      60.1
+  scn_two_rows_loose_P5_R5_seed2    igvnd_wMK   heuristic_     3700.00      37.00       0.00     0         -      60.0
+  scn_two_rows_loose_P5_R5_seed2    igvnd_wDLY  heuristic_       37.00      37.00       0.00     0         -      60.0
+  scn_two_rows_loose_P5_R5_seed2    igvnd_wMOV  heuristic_       37.00      37.00       0.00     0         -      60.0
+  scn_two_rows_medium_P5_R10_seed2  igvnd_wMK   heuristic_     6826.00      67.50      68.00     8         -      60.0
+  scn_two_rows_medium_P5_R10_seed2  igvnd_wDLY  heuristic_     6018.50      68.50      59.50     0         -      60.0
+  scn_two_rows_medium_P5_R10_seed2  igvnd_wMOV  heuristic_      128.00      68.50      59.50     0         -      60.0
+  scn_two_rows_medium_P5_R20_seed2  igvnd_wMK   heuristic_    12861.00     123.50     511.00     0         -      60.1
+  scn_two_rows_medium_P5_R20_seed2  igvnd_wDLY  heuristic_    48272.50     122.50     481.50     0         -      60.1
+  scn_two_rows_medium_P5_R20_seed2  igvnd_wMOV  heuristic_      613.00     121.50     491.50     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed2  igvnd_wMK   heuristic_    23064.00     214.50    1614.00     0         -      60.2
+  scn_two_rows_medium_P5_R30_seed2  igvnd_wDLY  heuristic_   159969.00     219.00    1597.50     0         -      60.1
+  scn_two_rows_medium_P5_R30_seed2  igvnd_wMOV  heuristic_     1790.50     217.50    1573.00     0         -      60.1
+  scn_two_rows_medium_P5_R5_seed2   igvnd_wMK   heuristic_     3700.00      37.00       0.00     0         -      60.0
+  scn_two_rows_medium_P5_R5_seed2   igvnd_wDLY  heuristic_       37.00      37.00       0.00     0         -      60.1
+  scn_two_rows_medium_P5_R5_seed2   igvnd_wMOV  heuristic_       37.00      37.00       0.00     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed2   igvnd_wMK   heuristic_     6961.50      68.50     111.50     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed2   igvnd_wDLY  heuristic_    11218.50      68.50     111.50     0         -      60.2
+  scn_two_rows_tight_P5_R10_seed2   igvnd_wMOV  heuristic_      180.00      68.50     111.50     0         -      60.0
+  scn_two_rows_tight_P5_R20_seed2   igvnd_wMK   heuristic_    13045.00     123.50     695.00     0         -      60.0
+  scn_two_rows_tight_P5_R20_seed2   igvnd_wDLY  heuristic_    62528.50     128.50     624.00     0         -      60.0
+  scn_two_rows_tight_P5_R20_seed2   igvnd_wMOV  heuristic_      741.50     123.50     618.00     0         -      60.6
+  scn_two_rows_tight_P5_R30_seed2   igvnd_wMK   heuristic_    22819.50     206.50    2169.50     0         -      60.1
+  scn_two_rows_tight_P5_R30_seed2   igvnd_wDLY  heuristic_   198423.50     223.50    1982.00     0         -      60.2
+  scn_two_rows_tight_P5_R30_seed2   igvnd_wMOV  heuristic_     2047.00     209.50    1837.50     0         -      60.2
+  scn_two_rows_tight_P5_R5_seed2    igvnd_wMK   heuristic_     3700.00      37.00       0.00     0         -      60.0
+  scn_two_rows_tight_P5_R5_seed2    igvnd_wDLY  heuristic_       37.00      37.00       0.00     0         -      60.0
+  scn_two_rows_tight_P5_R5_seed2    igvnd_wMOV  heuristic_       37.00      37.00       0.00     0         -      60.0
+  scn_chain_loose_P5_R10_seed3      igvnd_wMK   heuristic_     6691.50      66.50      27.50    14         -      60.0
+  scn_chain_loose_P5_R10_seed3      igvnd_wDLY  heuristic_     1083.50      67.50      10.00    16         -      60.1
+  scn_chain_loose_P5_R10_seed3      igvnd_wMOV  heuristic_       74.50      65.50       9.00     0         -      60.0
+  scn_chain_loose_P5_R20_seed3      igvnd_wMK   heuristic_    14919.50     143.00     571.50    48         -      60.1
+  scn_chain_loose_P5_R20_seed3      igvnd_wDLY  heuristic_    48297.50     151.50     481.00    46         -      60.1
+  scn_chain_loose_P5_R20_seed3      igvnd_wMOV  heuristic_      650.00     163.00     487.00     0         -      60.1
+  scn_chain_loose_P5_R30_seed3      igvnd_wMK   heuristic_    25928.00     238.00    2072.00    56         -      60.2
+  scn_chain_loose_P5_R30_seed3      igvnd_wDLY  heuristic_   167380.50     252.50    1670.50    78         -      60.2
+  scn_chain_loose_P5_R30_seed3      igvnd_wMOV  heuristic_     2014.00     233.00    1781.00     0         -      60.2
+  scn_chain_loose_P5_R5_seed3       igvnd_wMK   heuristic_     3100.00      31.00       0.00     0         -      60.0
+  scn_chain_loose_P5_R5_seed3       igvnd_wDLY  heuristic_       31.00      31.00       0.00     0         -      60.0
+  scn_chain_loose_P5_R5_seed3       igvnd_wMOV  heuristic_       31.00      31.00       0.00     0         -      60.0
+  scn_chain_medium_P5_R10_seed3     igvnd_wMK   heuristic_     6782.00      67.00      68.00    14         -      60.0
+  scn_chain_medium_P5_R10_seed3     igvnd_wDLY  heuristic_     6886.00      70.00      68.00    16         -      60.0
+  scn_chain_medium_P5_R10_seed3     igvnd_wMOV  heuristic_      142.00      65.50      76.50     0         -      60.0
+  scn_chain_medium_P5_R20_seed3     igvnd_wMK   heuristic_    14989.00     142.00     743.00    46         -      60.1
+  scn_chain_medium_P5_R20_seed3     igvnd_wDLY  heuristic_    69437.50     143.50     692.50    44         -      60.1
+  scn_chain_medium_P5_R20_seed3     igvnd_wMOV  heuristic_      900.00     159.50     740.50     0         -      60.1
+  scn_chain_medium_P5_R30_seed3     igvnd_wMK   heuristic_    27031.00     243.50    2609.00    72         -      60.3
+  scn_chain_medium_P5_R30_seed3     igvnd_wDLY  heuristic_   198452.50     228.50    1981.50    74         -      60.3
+  scn_chain_medium_P5_R30_seed3     igvnd_wMOV  heuristic_     2394.00     233.00    2161.00     0         -      60.6
+==================================================================

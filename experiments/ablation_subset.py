@@ -11,12 +11,12 @@ we only need to:
 
 The subset is chosen to span the diagnosed failure modes and the controls:
 
-  - control / easy        : none_R10                (must stay ≈ 0 %)
-  - main                  : triangle_tight R10
-  - small failure         : triangle_tight R5 seed10 (wDLY/wMOV miss)
-  - delay-priority failure: triangle_loose R10       (optimum delay ≈ 0)
-  - movement-priority     : full / hub / chain / two_rows R10 (dense packing)
-  - scaling (budget now enforced): triangle R20, full R20
+  - control / easy        : none_R10                 (must stay ≈ 0 %)
+  - R5 tight wDLY         : chain / hub R5 cells the MILP closes with delay 0
+  - R10 wMK / wDLY losses : chain / hub / two_rows R10 cells with a proven optimum
+  - wMOV guards           : chain R10 (deterministic stratum, floor 0)
+  - scale guards          : chain R20, hub R30, two_rows R30 (no MILP reference)
+  (refreshed 2026-09-02 for the no-Triangle benchmark; triangle/full retired)
 
 Usage:
     py -3 experiments/ablation_subset.py            # run heuristic + report
@@ -38,17 +38,23 @@ sys.path.insert(0, str(_ROOT / "experiments"))
 # re-run finishes in tens of minutes, not hours.
 SUBSET: list[str] = [
     "scn_none_tight_P5_R10_seed1",        # control: must stay ~0 %
-    "scn_triangle_tight_P5_R10_seed1",    # main
-    "scn_triangle_tight_P5_R10_seed5",
-    "scn_triangle_tight_P5_R5_seed10",    # small wDLY/wMOV failure
-    "scn_triangle_loose_P5_R10_seed10",   # delay-priority catastrophe
-    "scn_triangle_loose_P5_R10_seed2",
-    "scn_full_tight_P5_R10_seed1",        # dense → wMOV packing failure
-    "scn_hub_tight_P5_R10_seed1",
-    "scn_chain_tight_P5_R10_seed1",
-    "scn_two_rows_tight_P5_R10_seed1",
-    "scn_triangle_tight_P5_R20_seed1",    # scaling (60 s budget now enforced)
-    "scn_full_tight_P5_R20_seed1",
+    "scn_chain_tight_P5_R5_seed3",        # R5 tight wDLY: MILP delay 0 with 2 moves
+    "scn_chain_tight_P5_R5_seed5",
+    "scn_hub_tight_P5_R5_seed1",
+    "scn_chain_loose_P5_R10_seed5",       # R10 wMK/wDLY losses (MILP optimal)
+    "scn_chain_loose_P5_R10_seed8",
+    "scn_chain_medium_P5_R10_seed1",
+    "scn_chain_medium_P5_R10_seed10",
+    "scn_hub_tight_P5_R10_seed5",
+    "scn_hub_loose_P5_R10_seed7",
+    "scn_hub_loose_P5_R10_seed9",
+    "scn_two_rows_loose_P5_R10_seed1",
+    "scn_two_rows_loose_P5_R10_seed7",
+    "scn_chain_tight_P5_R10_seed6",       # wMOV guards (deterministic stratum)
+    "scn_chain_medium_P5_R10_seed2",
+    "scn_chain_loose_P5_R20_seed1",       # scale guards (no MILP reference)
+    "scn_hub_loose_P5_R30_seed1",
+    "scn_two_rows_loose_P5_R30_seed1",
 ]
 
 HEUR_LABELS = "igvnd_wMK,igvnd_wDLY,igvnd_wMOV"

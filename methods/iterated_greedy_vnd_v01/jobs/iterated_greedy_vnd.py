@@ -1075,12 +1075,11 @@ class IteratedGreedyVNDJobSolver:
         cands = {lower}
         for tau in rear_acc:
             # Zero-movement options: place the whole stay before tau (finish
-            # exactly at tau or eta before it), after tau (start at tau+eta),
-            # or nested (start at tau-eta-T).  All keep tau in Mode A; the
-            # band-tight candidate tau-T exploits the vacant-front semantics
-            # (touching allowed).  Start-exactly-at-tau is not proposed: the
-            # forward simulation's job-edge margin rejects it.
-            for c in (tau - T, tau - eta - T, tau - eta, tau + eta):
+            # exactly at tau or eta before it), after tau (start exactly at
+            # tau or eta after it), or nested (start at tau-eta-T).  All keep
+            # tau in Mode A; the band-tight candidates tau-T and tau exploit
+            # the vacant-front semantics (touching allowed at both edges).
+            for c in (tau - T, tau - eta - T, tau - eta, tau, tau + eta):
                 if c >= lower - 1e-9:
                     cands.add(round(c, 4))
             for (jid, D), pj in zip(chain, prefix):
@@ -1139,11 +1138,18 @@ class IteratedGreedyVNDJobSolver:
         number of Mode-B + Mode-C access events (movements = 2 * mov_events).
         Infeasible if an access lands in a non-interruptible job interior, in
         a job's eta-margin, or cannot be classified.
+
+        Boundaries follow the checker's closed semantics: an access exactly at
+        the stay start or finish is Mode A, an access exactly at a job end is
+        Mode B through the gap that follows it, and a gap is opened at the
+        job end nearest to the access (never at an earlier one).
         """
         eta, delta, mu = self.eta, self.delta, self.mu
         chain = self.chain[r]
         acc = sorted(rear_acc)        # the rear access instants to classify
-        used = [False] * len(acc)     # which accesses have been accounted for
+        # An access exactly at the stay start is Mode A (the front is just
+        # entering its slot; checker boundary rule), so it needs no routing.
+        used = [abs(tau - s_start) <= 1e-9 for tau in acc]  # accounted-for accesses
         sched = []                    # (job_id, start, finish, kappa) per job
         mov_events = 0                # Mode-B + Mode-C access events so far
         t = s_start                   # running cursor = start of the next job
@@ -1201,8 +1207,13 @@ class IteratedGreedyVNDJobSolver:
             if j < n - 1:
                 next_interruptible = self.interruptible[chain[j + 1][0]]
                 window = chain[j + 1][1] if not next_interruptible else delta
+                # The gap is closed at its start (an access exactly at f_j is
+                # Mode B through this gap), and the window is open at its end:
+                # an access that coincides with the NEXT job's end is not
+                # inside that job, so it is routed at the next boundary with a
+                # minimal gap (or is Mode A if that job is the last one).
                 batch = [i for i in range(len(acc))
-                         if not used[i] and f_j + 1e-9 < acc[i] <= f_j + window + 1e-9]
+                         if not used[i] and f_j - 1e-9 <= acc[i] < f_j + window - 1e-9]
                 if batch:
                     # The gap must end past the last routed access AND be wide
                     # enough to absorb mu per access routed through it.
@@ -1213,7 +1224,7 @@ class IteratedGreedyVNDJobSolver:
                     while True:
                         extra = [i for i in range(len(acc))
                                  if not used[i] and i not in batch
-                                 and f_j + 1e-9 < acc[i] <= s_next + 1e-9]
+                                 and f_j - 1e-9 <= acc[i] <= s_next + 1e-9]
                         if not extra:
                             break
                         batch += extra
