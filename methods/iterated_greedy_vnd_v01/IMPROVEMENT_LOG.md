@@ -43,6 +43,7 @@ the **~19 delay-unit noise floor** described in
 | 10 | perturb-mix: 50/50 targeted/uniform-random IG destruction | `exp/perturb-mix` (`15082a0`) | `attempt10_perturb_mix_20260714.txt` | **KEPT** | −438 net; `t_loose_R10 s7` 77→**62.5** (< MILP 64.5), `s10` →**67 = MILP**; certified-loss family closed; +4 lines, 0 knobs |
 | 11 | Mode-A band alignment: η→0, refined to per-restart alternation | `exp/mode-a-band` (`1850f0a`) / tag `igvnd-v01-mode-a-band` | base `…_20260728_211746.log`; cand `…_20260729_155203.log` + `…_20260729_232650.log` | **KEPT** | two-arm verdict on the no-Triangle grid (37 configs × 3 × 10): NET −566,398 (chain −82k, hub −219k, two_rows −265k, none 0); zero consistent regressions above the 19-unit floor; the interim chain-R10 casualty resolved by the per-restart alternation |
 | 12 | sim-boundaries: `_sim_front` aligned to the checker's closed boundaries; Mode-B gap at the nearest job end; `tau` start candidate | `exp/sim-boundaries` (`3bc423c`) / tag `igvnd-v01-sim-boundaries` | cand `…_20260902_214555.log`; base `attempt12_baseline_20260904_*.log` (4 segments) | **KEPT** | two fresh arms: NET −205,368 (chain −162k, hub −24k, two_rows −19k, none 0); R5 tight wDLY and R10 chain/hub wDLY/wMK close most of the gap to the proven optima; zero consistent regressions |
+| 14 | ils-at-scale: exact-filtered local search (pusher tree, order-slot classes, relocate) + two ILS trajectories at R>10, dead rules retired | `exp/ils-at-scale` | (open) | — | — |
 
 *(Entries 4–6 backfilled from the living-spec Change log; entry 7 onward is
 opened here first, before coding. The 2026-07 campaign that motivates 7–8 is
@@ -680,3 +681,60 @@ The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
   → 626.5; wMOV guard and two_rows unchanged.  Net negative — NOT adopted.
   Lesson for Attempt 14: the v3 phase needs its own diversification (or a
   restart-level choice of seed), not a blanket change of seed.
+
+## Attempt 14 — ils-at-scale
+- **Date:** 2026-09-05
+- **Diagnosis (battery of record `…_20260902_214555.log` + measurements):**
+  at R≥20 the search barely acts: R20 runs do 4 restarts (~145k decodes),
+  R30 runs 3 restarts (~77k); the final best comes from restart 0 in 22–31 %
+  of the runs and never from a restart ≥4; the mean improvement over the
+  initial NEH construction is 3–11 %.  Per-eval cost is 0.19 / 0.40 ms at
+  R20 / R30 of which only 0.12 / 0.24 ms is the decode (the rest is cache-key
+  and copy overhead), so a decode-only speed-up is capped at ~1.6× — which is
+  why v02's prefix-incremental decode gave +14–17 % iterations and nothing
+  measurable.  One VND confirm pass costs ~420 / 900 evals (R20 / R30) and
+  the B-VND resets to N1 after every improvement in fixed id order; the v3
+  half-slice at R20 (7.5 s at 4.4 ms/decode ≈ 1600 evals) ends before its
+  first descent (3645 evals) completes.  Headroom test (60 s vs 240 s, code
+  of tag `igvnd-v01-mode-a-band`): chain_loose_R30 wMK 25,619 vs 25,701 (no
+  gain: stuck), two_rows_loose_R30 wDLY 146,093 vs 130,116 (−11 %: starved).
+- **Two exact facts that allow pruning without loss:** (1) under `_decode_v3`
+  the global order only matters within a position (`pos_members` filter),
+  so any order move between aircraft on different positions is a
+  byte-identical decode the cache does not catch (~80 % of N3 in the v3
+  phase at R20); (2) under `_decode` (v2) a move touching only aircraft that
+  push nobody, have zero delay and do not set the makespan cannot improve
+  the objective — the improving moves live on the pusher tree rooted at the
+  makespan and delayed aircraft.
+- **Hypothesis:** replacing the three exhaustive exchange sweeps and the
+  B-VND reset with an exact-filtered local search (candidates = pusher tree
+  under v2 / all under v3; moves = reassign, relocate to one representative
+  slot per distinct-decode class, swap only with conflicting positions;
+  randomised scan) halves the cost of a descent and of an IG rebuild
+  without changing the set of local optima it can reach (14b); giving R>10
+  two long ILS trajectories (one per Mode-A band) instead of 3–4 lottery
+  restarts, and retiring the dead re-centre rule, lets the cheaper kicks
+  accumulate (14a).  Target: candidate@60 s ≥ baseline@240 s on the scale
+  cells; R≤10 unchanged (guards: `none`, wMOV R5/R10 floor-0 stratum).
+- **Simplicity ledger (planned):** 14b −3 neighbourhood functions, −1 reset
+  scheme, −1 fixed scan order, −1 blind slot scan; +1 exact candidate rule,
+  +1 exact slot rule (shared by search and perturbation) — lines ≈ neutral,
+  mechanisms −4 +2.  14a: −1 slice-table entry, −1 rule (re-centre) and its
+  constant, −1 redundant eval per kick; +0.  No new knobs.
+- **Ref:** branch `exp/ils-at-scale` off `main` @ bde119a (tag
+  `igvnd-v01-sim-boundaries`).
+- **How measured (pre-registered):** (i) D0 — baseline vs `use_v3=False` at
+  60 s, K=2 (solver seeds 1, 2) on chain_loose_R30 s1, chain_tight_R30 s1,
+  hub_medium_R20 s1, two_rows_tight_R20 s1 × 3 profiles: fixes the v3-share
+  clause of 14a and measures the R20/R30 run-to-run band; (ii) H0 — baseline
+  at 240 s on the same cells: if 240 s is not better than 60 s beyond the
+  K=2 band, the landscape is stuck and threshold acceptance (14c) enters;
+  (iii) 14b then 14a as separate in-memory arms on the same cells + guards;
+  14b kept only if its local optima admit no improving move of the old
+  N1/N2/N3 on a brute-force check (exactness) and A2 ≤ A0 on ≥ 9/12 scale
+  cells without regression beyond the band, kicks/run ≥ 3×, guards exact;
+  (iv) full-grid two-arm fresh battery, verdict via the grid script.
+- **Log:** (open)
+- **Result vs baseline:** (open)
+- **Noise check:** (open)
+- **Decision:** (open)
