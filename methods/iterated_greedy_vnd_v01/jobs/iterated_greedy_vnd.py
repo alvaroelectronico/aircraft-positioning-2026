@@ -134,12 +134,13 @@ class IteratedGreedyVNDJobSolver:
         self.max_no_improve = int(cfg.get("max_no_improve", 400))
         self.use_v3 = bool(cfg.get("use_v3", True))
         base_seed = int(cfg.get("seed", 1) or 1)
-        # Per-start time slice, adaptive to instance size (large instances need
-        # their per-start time; small ones end each start early on the stale
-        # counter anyway).  The slice is a CAP, not a schedule: restarts keep
-        # looping until the deadline, so no budget is left idle (Attempt 7 —
-        # the old fixed n_starts cap left ~97 % of the 60 s unused on R5).
-        slice_div = 8 if R <= 10 else 4 if R <= 20 else 3
+        # Per-start time slice.  Small instances (R <= 10) converge in a few
+        # seconds, so many short restarts add diversity (Attempt 7 — restarts
+        # keep looping until the deadline).  Larger instances never converge
+        # inside a slice: there two long trajectories — one per Mode-A band —
+        # beat 3–4 lottery restarts whose best never came from a restart >= 4
+        # (Attempt 14).  The slice is a CAP, not a schedule.
+        slice_div = 8 if R <= 10 else 2
         # Optional hard cap on restarts (testing/ablation only; None = until
         # the deadline).
         max_starts = cfg.get("n_starts")
@@ -402,19 +403,20 @@ class IteratedGreedyVNDJobSolver:
         assignment, order = self._local_search(assignment, order)
         best_assign, best_order = dict(assignment), list(order)
         best_obj = self._objective(self._eval(best_assign, best_order))
-        cur_assign, cur_order = dict(best_assign), list(best_order)
+        cur_assign, cur_order, cur_obj = dict(best_assign), list(best_order), best_obj
         no_improve = 0
         while time.perf_counter() < deadline and no_improve < self.max_no_improve:
             # Iterated-Greedy kick: destroy k aircraft and greedily rebuild,
-            # then re-descend to a local optimum with the VND.
+            # then re-descend to a local optimum with the local search.
             a2, o2 = self._perturb(cur_assign, cur_order, self.k_destroy)
             a2, o2 = self._local_search(a2, o2)
             obj2 = self._objective(self._eval(a2, o2))
-            cur_obj = self._objective(self._eval(cur_assign, cur_order))
             # Acceptance: walk to the new state if it does not worsen the
-            # current one (a "better-or-equal" random-walk acceptance).
+            # current one (a "better-or-equal" random-walk acceptance).  Under
+            # this rule cur never leaves the best plateau (cur_obj == best_obj
+            # always holds), so no re-centring on the best is ever needed.
             if obj2 <= cur_obj + 1e-9:
-                cur_assign, cur_order = a2, o2
+                cur_assign, cur_order, cur_obj = a2, o2, obj2
             # Track the global best separately, and reset the stale counter
             # only on a strict global improvement.
             if obj2 < best_obj - 1e-9:
@@ -423,10 +425,6 @@ class IteratedGreedyVNDJobSolver:
                 no_improve = 0
             else:
                 no_improve += 1
-            # Periodic intensification: after a streak of non-improving kicks,
-            # restart the walk from the global best so it does not drift away.
-            if no_improve > 0 and no_improve % 50 == 0:
-                cur_assign, cur_order = dict(best_assign), list(best_order)
         return best_assign, best_order
 
     @staticmethod

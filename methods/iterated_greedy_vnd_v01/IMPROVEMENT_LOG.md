@@ -734,6 +734,61 @@ The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
   N1/N2/N3 on a brute-force check (exactness) and A2 ≤ A0 on ≥ 9/12 scale
   cells without regression beyond the band, kicks/run ≥ 3×, guards exact;
   (iv) full-grid two-arm fresh battery, verdict via the grid script.
+- **D0/H0 (2026-09-05, `outputs/logs/attempt14_diag_20260905.txt`, solver
+  of `main` @ bde119a, 60 runs):** K=2 run-to-run band median 1.8 %, max
+  6.5 % (chain_loose_R30 wDLY).  D0: `use_v3=False` is clearly WORSE on
+  chain R30 (wDLY +20.9 % / +6.4 %, wMK +3.7 % / +5.2 %) and mildly better on
+  hub_medium_R20 and two_rows_tight_R20 (−0.3 … −3.7 %) → the v3 phase
+  stays at 50 %; no v3-share clause.  H0: 240 s beats 60 s by −4.3 … −8.7 %
+  on chain R30 and −3.0 … −3.7 % on hub_R20 (beyond the band) → the
+  search is budget-starved, not stuck; 14c (threshold acceptance) is NOT
+  triggered.  Kick counts confirm it: A0 completes 4–10 IG kicks per 60 s
+  run at R30 (29–48 at 240 s), 33–83 at R20.
+- **14b exactness check (2026-09-05, 3 instances × 3 profiles × 2 decoders,
+  descent from NEH to a 14b local optimum, then brute force of the OLD
+  N1/N2/N3 at that optimum):** N1 and N2 find 0 improving moves in all 18
+  cases (the pusher-tree filter is exact, as derived); N3 (swap two order
+  slots) finds 1–2 improving moves in 3 of 18 cases, all at R20 — a genuine
+  small leak (a swap moves two aircraft at once; relocate moves one).
+  Accepted for now; judged through the arms.  Side measurement: a v3
+  descent from NEH at R20 costs 17–21 s (≈9 ms/decode, 2100–2200 evals),
+  i.e. more than twice the whole v3 half-slice.
+- **Arms on the 12 scale cells (2026-09-05, `outputs/logs/attempt14_arms_20260905.txt`,
+  60 s, solver seeds 1–2, mean of both seeds vs A0; WIN/LOSS = beyond the
+  cell's K=2 band):**
+  * **B = 14b alone** (exact-filtered local search): 3 WIN / 1 LOSS / 8 ~;
+    mean −1.5 %; kicks per run ×1.5–3 (chain_tight_R30: 4 → 16;
+    two_rows_R20 wDLY: 49 → 144) at an unchanged decode count — the descent
+    is cheaper, the per-decode cost (v3 phase, 1–9 ms at R20/R30) is the
+    ceiling.  Beats-or-matches A0@240 s on 3/12.
+  * **A = 14a alone** (two trajectories at R>10, dead rule retired): 1 WIN /
+    1 LOSS / 10 ~ — neutral by itself.
+  * **AB = 14a + 14b**: **6 WIN / 1 LOSS / 5 ~**; mean −1.7 %; chain_tight_R30
+    wDLY −9.7 % (244,889 → 221,053, below A0@240 s = 224,692), chain_loose_R30
+    wMK −4.3 %, wMOV −3.6 %, chain_tight_R30 wMK −1.6 %, two_rows_R20 wDLY
+    −1.1 % and wMK −1.4 % (both below A0@240 s); the loss is hub_medium_R20
+    wDLY +4.0 % (band 2.1 %, K=2 → re-measured with seeds 3–4 below).
+    Beats-or-matches A0@240 s on 4/12.  The two changes are complementary:
+    the longer trajectories only pay once the descents are cheap enough to
+    fit many kicks in them.
+  * **Re-measure of the AB loss, hub_medium_R20 wDLY, seeds 1–4:** A0 mean
+    54,077.9 vs AB 54,144.6 (+0.1 %) — the K=2 "loss" was noise.
+  * **Guards R≤10 (AB, seed 1, vs the battery of record):** `none` ×3
+    identical; floor-0 wMOV cells identical (hub_tight_R10 s1 168, two_rows
+    R5 s10 35, chain_medium_R10 s2 152); chain_tight_R5 s3 wDLY 34 = MILP;
+    hub_tight_R10 s5 wMK 6058.5 unchanged; **chain_loose_R10 s8 wDLY 620.5 →
+    424.5** (MILP 266.5); chain_tight_R10 s1 wMK 6164.5 → 6325.0 (+160.5 on
+    the cell whose run-to-run spread is ~72; re-measured with seeds 2–4).
+  * **Re-measure chain_tight_R10 s1 wMK, seeds 1–4:** A0 6164.5 / 6267.0 /
+    6280.5 / 6302.5 (mean 6253.6) vs AB 6325.0 / 6063.5 / 6225.5 / 6172.0
+    (mean 6196.5): AB −57 on average — the +160.5 was one draw of the
+    noisiest cell.  No confirmed regression anywhere in the arms.
+- **Status 2026-09-05:** arms and guards complete; pre-registered bar
+  (≥9/12 wins) not met (6/12 clear wins, 11/12 not worse, 0 regressions,
+  ledger negative) — decision on proceeding to the full grid and on
+  reusing the Attempt-12 candidate arm (`…_20260902_214555.log`, code =
+  current `main`, same machine, 2 days old) as the baseline arm handed to
+  the user.
 - **Log:** (open)
 - **Result vs baseline:** (open)
 - **Noise check:** (open)
