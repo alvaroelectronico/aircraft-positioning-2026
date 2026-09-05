@@ -789,6 +789,10 @@ The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
   reusing the Attempt-12 candidate arm (`…_20260902_214555.log`, code =
   current `main`, same machine, 2 days old) as the baseline arm handed to
   the user.
+- **User decision (2026-09-05, "adelante"):** proceed to the full grid
+  despite the unmet 9/12 bar (0 confirmed regressions, negative ledger),
+  and reuse the Attempt-12 candidate arm as the baseline arm.  Candidate
+  arm launched 2026-09-05 20:33 on `exp/ils-at-scale` @ 1269c32.
 - **Log:** (open)
 - **Result vs baseline:** (open)
 - **Noise check:** (open)
