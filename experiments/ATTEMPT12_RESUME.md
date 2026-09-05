@@ -1,5 +1,10 @@
 # Attempt 12 (`exp/sim-boundaries`) — how to resume the experimentation
 
+> **CLOSED 2026-09-05 — KEPT.** Baseline arm completed 1110/1110 in four segments
+> (`outputs/logs/attempt12_baseline_20260904_*.log`); two-arm fresh verdict NET −205,368,
+> zero consistent regressions. Merged to `main`, tag `igvnd-v01-sim-boundaries`.
+> Kept as the reference procedure for resuming an interrupted arm.
+
 State written 2026-09-04 16:59, just before a machine reboot.  Everything
 below is reproducible from the repo plus the worktree named here.
 

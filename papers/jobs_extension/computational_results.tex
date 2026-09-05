@@ -112,12 +112,10 @@ solver does in the same time.
 \label{sec:results}
 % ------------------------------------------------------------------------------
 
-% NOTE (2026-09-04, branch exp/sim-boundaries): tables and numbers in this
-% section come from the Attempt-12 full-grid battery
-% (outputs/logs/202605_02_main_methods_20260902_214555.log, 1110/1110), the
-% code described in Section heuristic.  The branch verdict against a fresh
-% baseline arm is still pending; if the branch is dropped, revert
-% make_tables.py to the 2026-07-30 log and regenerate.
+% NOTE (2026-09-05): tables and numbers in this section come from the
+% battery of record outputs/logs/202605_02_main_methods_20260902_214555.log
+% (1110/1110, code of tag igvnd-v01-sim-boundaries = Attempt 12, KEPT after a
+% two-arm fresh verdict: NET -205k, zero consistent regressions).
 Table~\ref{tab:gap_profile} reports the relative gap and
 Table~\ref{tab:components} the per-component differences.  We read them
 together, grouping the configurations by what the MILP can certify.
