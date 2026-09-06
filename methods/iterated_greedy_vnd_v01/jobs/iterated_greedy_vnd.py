@@ -134,12 +134,13 @@ class IteratedGreedyVNDJobSolver:
         self.max_no_improve = int(cfg.get("max_no_improve", 400))
         self.use_v3 = bool(cfg.get("use_v3", True))
         base_seed = int(cfg.get("seed", 1) or 1)
-        # Per-start time slice, adaptive to instance size (large instances need
-        # their per-start time; small ones end each start early on the stale
-        # counter anyway).  The slice is a CAP, not a schedule: restarts keep
-        # looping until the deadline, so no budget is left idle (Attempt 7 —
-        # the old fixed n_starts cap left ~97 % of the 60 s unused on R5).
-        slice_div = 8 if R <= 10 else 4 if R <= 20 else 3
+        # Per-start time slice.  Small instances (R <= 10) converge in a few
+        # seconds, so many short restarts add diversity (Attempt 7 — restarts
+        # keep looping until the deadline).  Larger instances never converge
+        # inside a slice: there two long trajectories — one per Mode-A band —
+        # beat 3–4 lottery restarts whose best never came from a restart >= 4
+        # (Attempt 14).  The slice is a CAP, not a schedule.
+        slice_div = 8 if R <= 10 else 2
         # Optional hard cap on restarts (testing/ablation only; None = until
         # the deadline).
         max_starts = cfg.get("n_starts")
@@ -399,22 +400,23 @@ class IteratedGreedyVNDJobSolver:
         """
         self._deadline = deadline
         # Take the seed to a local optimum before the perturbation loop starts.
-        assignment, order = self._vnd(assignment, order)
+        assignment, order = self._local_search(assignment, order)
         best_assign, best_order = dict(assignment), list(order)
         best_obj = self._objective(self._eval(best_assign, best_order))
-        cur_assign, cur_order = dict(best_assign), list(best_order)
+        cur_assign, cur_order, cur_obj = dict(best_assign), list(best_order), best_obj
         no_improve = 0
         while time.perf_counter() < deadline and no_improve < self.max_no_improve:
             # Iterated-Greedy kick: destroy k aircraft and greedily rebuild,
-            # then re-descend to a local optimum with the VND.
+            # then re-descend to a local optimum with the local search.
             a2, o2 = self._perturb(cur_assign, cur_order, self.k_destroy)
-            a2, o2 = self._vnd(a2, o2)
+            a2, o2 = self._local_search(a2, o2)
             obj2 = self._objective(self._eval(a2, o2))
-            cur_obj = self._objective(self._eval(cur_assign, cur_order))
             # Acceptance: walk to the new state if it does not worsen the
-            # current one (a "better-or-equal" random-walk acceptance).
+            # current one (a "better-or-equal" random-walk acceptance).  Under
+            # this rule cur never leaves the best plateau (cur_obj == best_obj
+            # always holds), so no re-centring on the best is ever needed.
             if obj2 <= cur_obj + 1e-9:
-                cur_assign, cur_order = a2, o2
+                cur_assign, cur_order, cur_obj = a2, o2, obj2
             # Track the global best separately, and reset the stale counter
             # only on a strict global improvement.
             if obj2 < best_obj - 1e-9:
@@ -423,15 +425,12 @@ class IteratedGreedyVNDJobSolver:
                 no_improve = 0
             else:
                 no_improve += 1
-            # Periodic intensification: after a streak of non-improving kicks,
-            # restart the walk from the global best so it does not drift away.
-            if no_improve > 0 and no_improve % 50 == 0:
-                cur_assign, cur_order = dict(best_assign), list(best_order)
         return best_assign, best_order
 
     @staticmethod
     def _finalize(sol: dict) -> dict:
         sol["status"] = "heuristic_ok"
+        sol.pop("_pushers", None)   # search-only annotation, never serialised
         return sol
 
     def _time_up(self) -> bool:
@@ -591,17 +590,23 @@ class IteratedGreedyVNDJobSolver:
         # (manoeuvre-free) against everything already placed.  Because every
         # placement keeps all access instants in Mode A, the result has
         # movements = 0 and is feasible by construction — the guaranteed floor.
-        eta, eps = self.eta, self.eps
         placed: dict[str, tuple[float, float]] = {}  # r -> (start, finish)
+        # pushers[r] = aircraft whose forbidden band moved r's start during the
+        # scan.  r's start depends on nothing else, so an improving move must
+        # touch the pusher tree rooted at the makespan / delayed aircraft — the
+        # exact candidate filter used by the local search (Attempt 14).
+        pushers: dict[str, set] = {}
 
         for r in order:
             p = assignment[r]
             dur = self.T[r]
             # Collect the forbidden start-time bands induced by every neighbour
-            # already placed (same-position separation and blocking geometry).
-            forbidden: list[tuple[float, float]] = []
+            # already placed (same-position separation and blocking geometry),
+            # each tagged with the aircraft that owns it.
+            forbidden: list[tuple[float, float, str]] = []
             for r2, (s2, f2) in placed.items():
-                forbidden.extend(self._forbidden(p, dur, assignment[r2], s2, f2))
+                for lo, hi in self._forbidden(p, dur, assignment[r2], s2, f2):
+                    forbidden.append((lo, hi, r2))
             forbidden.sort()
             # Earliest-fit scan: start at the earliest start E[r] and, whenever
             # t falls inside a forbidden band, jump to that band's end.  Repeat
@@ -610,14 +615,17 @@ class IteratedGreedyVNDJobSolver:
             # nesting hole left between a pair of bands when enclosing is the
             # only feasible option.
             t = self.E[r]
+            pushed_by: set = set()
             moved = True
             while moved:
                 moved = False
-                for lo, hi in forbidden:
+                for lo, hi, owner in forbidden:
                     if lo + 1e-7 < t < hi - 1e-7:
                         t = hi
+                        pushed_by.add(owner)
                         moved = True
             placed[r] = (t, t + dur)
+            pushers[r] = pushed_by
 
         # Build the solution dict (tight job chains, kappa = 0).
         aircraft_out = []
@@ -654,6 +662,7 @@ class IteratedGreedyVNDJobSolver:
                 "movements": 0,
             },
             "aircraft": aircraft_out,
+            "_pushers": {r: sorted(v) for r, v in pushers.items()},  # search-only, stripped by _finalize
         }
 
     def _dense_nest_solution(self):
@@ -858,71 +867,105 @@ class IteratedGreedyVNDJobSolver:
     # VND  (sequential, B-VND reset over three neighbourhoods)
     # ==================================================================
 
-    def _vnd(self, assignment: dict, order: list[str]) -> tuple[dict, list[str]]:
-        """Sequential B-VND: descend through the three neighbourhoods, and on
-        any improvement reset to the first one; stop when no neighbourhood can
-        improve (a local optimum w.r.t. all three) or the budget runs out."""
+    def _local_search(self, assignment: dict, order: list[str]) -> tuple[dict, list[str]]:
+        """Exact-filtered first-improvement local search (Attempt 14).
+
+        Candidates are the aircraft whose move can change the objective: under
+        the zero-movement decoder, the pusher tree rooted at the makespan and
+        delayed aircraft (a move touching only aircraft outside it can never
+        improve — their bands never bound anyone and their delay is zero);
+        under the manoeuvre decoder, every aircraft.  Each candidate tries
+        three moves — reassign to another position, relocate to one
+        representative order slot per distinct-decode class, swap positions
+        with another aircraft — in a randomised scan; the first improving move
+        is applied and the candidate set recomputed.  Stops at a local optimum
+        w.r.t. all three moves or when the budget runs out.
+        """
         assignment = dict(assignment)
         order = list(order)
         cur = self._objective(self._eval(assignment, order))
-        k = 0
-        neighbourhoods = (self._n_reassign, self._n_swap_pos, self._n_reorder)
-        while k < len(neighbourhoods):
-            if self._time_up():
+        while not self._time_up():
+            cands = self._critical(self._eval(assignment, order))
+            self.rng.shuffle(cands)
+            improved = False
+            for r in cands:
+                if self._time_up():
+                    break
+                improved, assignment, order, cur = self._try_moves(r, assignment, order, cur)
+                if improved:
+                    break
+            if not improved:
                 break
-            # Each call applies the first improving move it finds in N_k (first
-            # improvement) and reports whether it improved the objective.
-            improved, assignment, order, cur = neighbourhoods[k](assignment, order, cur)
-            if improved:
-                k = 0  # B-VND reset: go back to the first neighbourhood
-            else:
-                k += 1  # no improvement in N_k: try the next neighbourhood
         return assignment, order
 
-    def _n_reassign(self, assignment, order, cur):
-        """N1 — move one aircraft to a different position (first improvement)."""
-        for r in self.aircraft_ids:
-            if self._time_up():
-                return False, assignment, order, cur
-            p0 = assignment[r]
-            for p in self.positions:
-                if p == p0:
-                    continue
-                assignment[r] = p
-                o = self._objective(self._eval(assignment, order))
-                if o < cur - 1e-9:
-                    return True, assignment, order, o
-                assignment[r] = p0
-        return False, assignment, order, cur
+    def _critical(self, sol: dict) -> list[str]:
+        """Aircraft whose move can lower the objective of ``sol``: the makespan
+        and delayed aircraft plus everything that pushed them (transitively).
+        Without pusher information (manoeuvre decoder) every aircraft qualifies."""
+        pushers = sol.get("_pushers")
+        if pushers is None:
+            return list(self.aircraft_ids)
+        finish = {a["id"]: a["finish"] for a in sol["aircraft"]}
+        mk = max(finish.values())
+        roots = [a["id"] for a in sol["aircraft"] if a["delay"] > 1e-9 or finish[a["id"]] >= mk - 1e-9]
+        seen, stack = set(roots), list(roots)
+        while stack:
+            for q in pushers.get(stack.pop(), ()):
+                if q not in seen:
+                    seen.add(q)
+                    stack.append(q)
+        return [r for r in self.aircraft_ids if r in seen]
 
-    def _n_swap_pos(self, assignment, order, cur):
-        """N2 — swap the positions of two aircraft (first improvement)."""
-        ids = self.aircraft_ids
-        for i in range(len(ids)):
-            if self._time_up():
-                return False, assignment, order, cur
-            for j in range(i + 1, len(ids)):
-                ri, rj = ids[i], ids[j]
-                if assignment[ri] == assignment[rj]:
-                    continue
-                assignment[ri], assignment[rj] = assignment[rj], assignment[ri]
-                o = self._objective(self._eval(assignment, order))
-                if o < cur - 1e-9:
-                    return True, assignment, order, o
-                assignment[ri], assignment[rj] = assignment[rj], assignment[ri]
-        return False, assignment, order, cur
+    def _order_slots(self, r: str, order: list[str], assignment: dict) -> list[int]:
+        """Insertion slots for ``r`` (absent from ``order``) that yield distinct
+        decodes: one per class delimited by the aircraft ``r`` interacts with
+        (same position, or a blocking arc); the manoeuvre decoder only sequences
+        within a position, so there only same-position aircraft delimit.
+        Exact — two slots in the same class decode identically."""
+        p = assignment[r]
+        v3 = self._decoder_tag == "v3"
+        slots: list[int] = []
+        for i, q in enumerate(order):
+            pq = assignment[q]
+            if (pq == p) if v3 else (pq == p or (p, pq) in self._conflict):
+                if not slots:
+                    slots.append(i)          # before the first delimiter
+                slots.append(i + 1)          # right after this delimiter
+        if not slots:
+            slots.append(len(order))         # r interacts with nobody: any slot
+        return slots
 
-    def _n_reorder(self, assignment, order, cur):
-        """N3 — swap two aircraft in the priority order (first improvement)."""
-        for i in range(len(order)):
-            if self._time_up():
-                return False, assignment, order, cur
-            for j in range(i + 1, len(order)):
-                order[i], order[j] = order[j], order[i]
-                o = self._objective(self._eval(assignment, order))
-                if o < cur - 1e-9:
-                    return True, assignment, order, o
-                order[i], order[j] = order[j], order[i]
+    def _try_moves(self, r: str, assignment: dict, order: list[str], cur: float):
+        """Apply the first improving move of ``r``: reassign, relocate, swap."""
+        p0 = assignment[r]
+        # (1) reassign r to another position
+        for p in self.positions:
+            if p == p0:
+                continue
+            assignment[r] = p
+            o = self._objective(self._eval(assignment, order))
+            if o < cur - 1e-9:
+                return True, assignment, order, o
+        assignment[r] = p0
+        # (2) relocate r in the order, one slot per distinct-decode class
+        i0 = order.index(r)
+        rest = order[:i0] + order[i0 + 1:]
+        for slot in self._order_slots(r, rest, assignment):
+            if slot == i0:
+                continue
+            trial = rest[:slot] + [r] + rest[slot:]
+            o = self._objective(self._eval(assignment, trial))
+            if o < cur - 1e-9:
+                return True, assignment, trial, o
+        # (3) swap positions with another aircraft
+        for q in self.aircraft_ids:
+            if q == r or assignment[q] == p0:
+                continue
+            assignment[r], assignment[q] = assignment[q], p0
+            o = self._objective(self._eval(assignment, order))
+            if o < cur - 1e-9:
+                return True, assignment, order, o
+            assignment[q], assignment[r] = assignment[r], p0
         return False, assignment, order, cur
 
     # ==================================================================
@@ -964,10 +1007,11 @@ class IteratedGreedyVNDJobSolver:
                 kept_order.append(r)
                 continue
             best = None  # (obj, position, slot)
-            for slot in range(len(kept_order) + 1):
-                trial_order = kept_order[:slot] + [r] + kept_order[slot:]
-                for p in self.positions:
-                    a2[r] = p
+            for p in self.positions:
+                a2[r] = p
+                # Only one slot per distinct-decode class (exact pruning).
+                for slot in self._order_slots(r, kept_order, a2):
+                    trial_order = kept_order[:slot] + [r] + kept_order[slot:]
                     o = self._objective(self._eval(a2, trial_order))
                     if best is None or o < best[0]:
                         best = (o, p, slot)

@@ -43,6 +43,7 @@ the **~19 delay-unit noise floor** described in
 | 10 | perturb-mix: 50/50 targeted/uniform-random IG destruction | `exp/perturb-mix` (`15082a0`) | `attempt10_perturb_mix_20260714.txt` | **KEPT** | −438 net; `t_loose_R10 s7` 77→**62.5** (< MILP 64.5), `s10` →**67 = MILP**; certified-loss family closed; +4 lines, 0 knobs |
 | 11 | Mode-A band alignment: η→0, refined to per-restart alternation | `exp/mode-a-band` (`1850f0a`) / tag `igvnd-v01-mode-a-band` | base `…_20260728_211746.log`; cand `…_20260729_155203.log` + `…_20260729_232650.log` | **KEPT** | two-arm verdict on the no-Triangle grid (37 configs × 3 × 10): NET −566,398 (chain −82k, hub −219k, two_rows −265k, none 0); zero consistent regressions above the 19-unit floor; the interim chain-R10 casualty resolved by the per-restart alternation |
 | 12 | sim-boundaries: `_sim_front` aligned to the checker's closed boundaries; Mode-B gap at the nearest job end; `tau` start candidate | `exp/sim-boundaries` (`3bc423c`) / tag `igvnd-v01-sim-boundaries` | cand `…_20260902_214555.log`; base `attempt12_baseline_20260904_*.log` (4 segments) | **KEPT** | two fresh arms: NET −205,368 (chain −162k, hub −24k, two_rows −19k, none 0); R5 tight wDLY and R10 chain/hub wDLY/wMK close most of the gap to the proven optima; zero consistent regressions |
+| 14 | ils-at-scale: exact-filtered local search (pusher tree, order-slot classes, relocate) + two ILS trajectories at R>10, dead rules retired | `exp/ils-at-scale` (`1269c32`) / tag `igvnd-v01-ils-at-scale` | cand `…_20260905_203305.log`; base `…_20260902_214555.log` | **KEPT** | NET −403,270 (chain −259k, hub −97k, two_rows −47k, none 0); R20 −0.9 %, R30 −1.7 % mean, 23 consistent wins vs 5 small consistent losses (≤1.3 %); R5 identical |
 
 *(Entries 4–6 backfilled from the living-spec Change log; entry 7 onward is
 opened here first, before coding. The 2026-07 campaign that motivates 7–8 is
@@ -680,3 +681,152 @@ The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
   → 626.5; wMOV guard and two_rows unchanged.  Net negative — NOT adopted.
   Lesson for Attempt 14: the v3 phase needs its own diversification (or a
   restart-level choice of seed), not a blanket change of seed.
+
+## Attempt 14 — ils-at-scale
+- **Date:** 2026-09-05
+- **Diagnosis (battery of record `…_20260902_214555.log` + measurements):**
+  at R≥20 the search barely acts: R20 runs do 4 restarts (~145k decodes),
+  R30 runs 3 restarts (~77k); the final best comes from restart 0 in 22–31 %
+  of the runs and never from a restart ≥4; the mean improvement over the
+  initial NEH construction is 3–11 %.  Per-eval cost is 0.19 / 0.40 ms at
+  R20 / R30 of which only 0.12 / 0.24 ms is the decode (the rest is cache-key
+  and copy overhead), so a decode-only speed-up is capped at ~1.6× — which is
+  why v02's prefix-incremental decode gave +14–17 % iterations and nothing
+  measurable.  One VND confirm pass costs ~420 / 900 evals (R20 / R30) and
+  the B-VND resets to N1 after every improvement in fixed id order; the v3
+  half-slice at R20 (7.5 s at 4.4 ms/decode ≈ 1600 evals) ends before its
+  first descent (3645 evals) completes.  Headroom test (60 s vs 240 s, code
+  of tag `igvnd-v01-mode-a-band`): chain_loose_R30 wMK 25,619 vs 25,701 (no
+  gain: stuck), two_rows_loose_R30 wDLY 146,093 vs 130,116 (−11 %: starved).
+- **Two exact facts that allow pruning without loss:** (1) under `_decode_v3`
+  the global order only matters within a position (`pos_members` filter),
+  so any order move between aircraft on different positions is a
+  byte-identical decode the cache does not catch (~80 % of N3 in the v3
+  phase at R20); (2) under `_decode` (v2) a move touching only aircraft that
+  push nobody, have zero delay and do not set the makespan cannot improve
+  the objective — the improving moves live on the pusher tree rooted at the
+  makespan and delayed aircraft.
+- **Hypothesis:** replacing the three exhaustive exchange sweeps and the
+  B-VND reset with an exact-filtered local search (candidates = pusher tree
+  under v2 / all under v3; moves = reassign, relocate to one representative
+  slot per distinct-decode class, swap only with conflicting positions;
+  randomised scan) halves the cost of a descent and of an IG rebuild
+  without changing the set of local optima it can reach (14b); giving R>10
+  two long ILS trajectories (one per Mode-A band) instead of 3–4 lottery
+  restarts, and retiring the dead re-centre rule, lets the cheaper kicks
+  accumulate (14a).  Target: candidate@60 s ≥ baseline@240 s on the scale
+  cells; R≤10 unchanged (guards: `none`, wMOV R5/R10 floor-0 stratum).
+- **Simplicity ledger (planned):** 14b −3 neighbourhood functions, −1 reset
+  scheme, −1 fixed scan order, −1 blind slot scan; +1 exact candidate rule,
+  +1 exact slot rule (shared by search and perturbation) — lines ≈ neutral,
+  mechanisms −4 +2.  14a: −1 slice-table entry, −1 rule (re-centre) and its
+  constant, −1 redundant eval per kick; +0.  No new knobs.
+- **Ref:** branch `exp/ils-at-scale` off `main` @ bde119a (tag
+  `igvnd-v01-sim-boundaries`).
+- **How measured (pre-registered):** (i) D0 — baseline vs `use_v3=False` at
+  60 s, K=2 (solver seeds 1, 2) on chain_loose_R30 s1, chain_tight_R30 s1,
+  hub_medium_R20 s1, two_rows_tight_R20 s1 × 3 profiles: fixes the v3-share
+  clause of 14a and measures the R20/R30 run-to-run band; (ii) H0 — baseline
+  at 240 s on the same cells: if 240 s is not better than 60 s beyond the
+  K=2 band, the landscape is stuck and threshold acceptance (14c) enters;
+  (iii) 14b then 14a as separate in-memory arms on the same cells + guards;
+  14b kept only if its local optima admit no improving move of the old
+  N1/N2/N3 on a brute-force check (exactness) and A2 ≤ A0 on ≥ 9/12 scale
+  cells without regression beyond the band, kicks/run ≥ 3×, guards exact;
+  (iv) full-grid two-arm fresh battery, verdict via the grid script.
+- **D0/H0 (2026-09-05, `outputs/logs/attempt14_diag_20260905.txt`, solver
+  of `main` @ bde119a, 60 runs):** K=2 run-to-run band median 1.8 %, max
+  6.5 % (chain_loose_R30 wDLY).  D0: `use_v3=False` is clearly WORSE on
+  chain R30 (wDLY +20.9 % / +6.4 %, wMK +3.7 % / +5.2 %) and mildly better on
+  hub_medium_R20 and two_rows_tight_R20 (−0.3 … −3.7 %) → the v3 phase
+  stays at 50 %; no v3-share clause.  H0: 240 s beats 60 s by −4.3 … −8.7 %
+  on chain R30 and −3.0 … −3.7 % on hub_R20 (beyond the band) → the
+  search is budget-starved, not stuck; 14c (threshold acceptance) is NOT
+  triggered.  Kick counts confirm it: A0 completes 4–10 IG kicks per 60 s
+  run at R30 (29–48 at 240 s), 33–83 at R20.
+- **14b exactness check (2026-09-05, 3 instances × 3 profiles × 2 decoders,
+  descent from NEH to a 14b local optimum, then brute force of the OLD
+  N1/N2/N3 at that optimum):** N1 and N2 find 0 improving moves in all 18
+  cases (the pusher-tree filter is exact, as derived); N3 (swap two order
+  slots) finds 1–2 improving moves in 3 of 18 cases, all at R20 — a genuine
+  small leak (a swap moves two aircraft at once; relocate moves one).
+  Accepted for now; judged through the arms.  Side measurement: a v3
+  descent from NEH at R20 costs 17–21 s (≈9 ms/decode, 2100–2200 evals),
+  i.e. more than twice the whole v3 half-slice.
+- **Arms on the 12 scale cells (2026-09-05, `outputs/logs/attempt14_arms_20260905.txt`,
+  60 s, solver seeds 1–2, mean of both seeds vs A0; WIN/LOSS = beyond the
+  cell's K=2 band):**
+  * **B = 14b alone** (exact-filtered local search): 3 WIN / 1 LOSS / 8 ~;
+    mean −1.5 %; kicks per run ×1.5–3 (chain_tight_R30: 4 → 16;
+    two_rows_R20 wDLY: 49 → 144) at an unchanged decode count — the descent
+    is cheaper, the per-decode cost (v3 phase, 1–9 ms at R20/R30) is the
+    ceiling.  Beats-or-matches A0@240 s on 3/12.
+  * **A = 14a alone** (two trajectories at R>10, dead rule retired): 1 WIN /
+    1 LOSS / 10 ~ — neutral by itself.
+  * **AB = 14a + 14b**: **6 WIN / 1 LOSS / 5 ~**; mean −1.7 %; chain_tight_R30
+    wDLY −9.7 % (244,889 → 221,053, below A0@240 s = 224,692), chain_loose_R30
+    wMK −4.3 %, wMOV −3.6 %, chain_tight_R30 wMK −1.6 %, two_rows_R20 wDLY
+    −1.1 % and wMK −1.4 % (both below A0@240 s); the loss is hub_medium_R20
+    wDLY +4.0 % (band 2.1 %, K=2 → re-measured with seeds 3–4 below).
+    Beats-or-matches A0@240 s on 4/12.  The two changes are complementary:
+    the longer trajectories only pay once the descents are cheap enough to
+    fit many kicks in them.
+  * **Re-measure of the AB loss, hub_medium_R20 wDLY, seeds 1–4:** A0 mean
+    54,077.9 vs AB 54,144.6 (+0.1 %) — the K=2 "loss" was noise.
+  * **Guards R≤10 (AB, seed 1, vs the battery of record):** `none` ×3
+    identical; floor-0 wMOV cells identical (hub_tight_R10 s1 168, two_rows
+    R5 s10 35, chain_medium_R10 s2 152); chain_tight_R5 s3 wDLY 34 = MILP;
+    hub_tight_R10 s5 wMK 6058.5 unchanged; **chain_loose_R10 s8 wDLY 620.5 →
+    424.5** (MILP 266.5); chain_tight_R10 s1 wMK 6164.5 → 6325.0 (+160.5 on
+    the cell whose run-to-run spread is ~72; re-measured with seeds 2–4).
+  * **Re-measure chain_tight_R10 s1 wMK, seeds 1–4:** A0 6164.5 / 6267.0 /
+    6280.5 / 6302.5 (mean 6253.6) vs AB 6325.0 / 6063.5 / 6225.5 / 6172.0
+    (mean 6196.5): AB −57 on average — the +160.5 was one draw of the
+    noisiest cell.  No confirmed regression anywhere in the arms.
+- **Status 2026-09-05:** arms and guards complete; pre-registered bar
+  (≥9/12 wins) not met (6/12 clear wins, 11/12 not worse, 0 regressions,
+  ledger negative) — decision on proceeding to the full grid and on
+  reusing the Attempt-12 candidate arm (`…_20260902_214555.log`, code =
+  current `main`, same machine, 2 days old) as the baseline arm handed to
+  the user.
+- **User decision (2026-09-05, "adelante"):** proceed to the full grid
+  despite the unmet 9/12 bar (0 confirmed regressions, negative ledger),
+  and reuse the Attempt-12 candidate arm as the baseline arm.  Candidate
+  arm launched 2026-09-05 20:33 on `exp/ils-at-scale` @ 1269c32.
+- **Log (grid, candidate arm):** `outputs/logs/202605_02_main_methods_20260905_203305.log`
+  (1110/1110, 0 failures, code `exp/ils-at-scale` @ 1269c32); baseline arm =
+  the Attempt-12 candidate log `…_20260902_214555.log` (code = `main`, same
+  machine, 3 days earlier; user-approved reuse).
+- **Result vs baseline (grid):** **NET −403,270.5** (chain −258,996, hub
+  −97,318, two_rows −46,957, none ±0).  R5: all 27 cells identical (0.0).
+  R10: NET −204, 1 consistent win, 0 consistent losses (chain_tight wMK
+  −49.6 7W/3L; chain_medium wDLY −94.2).  R20: mean −0.88 %, 8 consistent
+  wins / 4 consistent losses.  R30: mean −1.66 %, 14 consistent wins / 1
+  consistent loss.  Largest cell gains: chain_loose_R20 wMK −7.8 % (9W/1L),
+  chain_tight_R20 wMK −6.1 % (10W/0L), chain_medium_R30 wMK −4.9 % (10W/0L),
+  chain_medium_R20 wMK −4.9 %, hub_loose/medium/tight_R30 wMK −4.9 / −4.7 /
+  −4.0 %, chain_loose_R30 wMK −3.8 %.  Overall 23 consistent wins vs 5
+  consistent losses; 50 cells better / 22 worse / 39 identical.
+- **Noise check:** five cells regress consistently (≥7/10) above the 19-unit
+  R10 floor, all small: hub_loose/medium/tight_R20 wMK +0.36 / +0.73 /
+  +0.52 % (+46 / +96 / +69 on ~13,000; the K=2 band on hub_medium_R20 wMK is
+  5.9 %), hub_tight_R20 wMOV +0.70 % (+5.6 on 798), two_rows_loose_R30 wMOV
+  +1.29 % (+20 on 1552).  The hub-R20-wMK pattern across all three slacks
+  suggests a small real cost of the R20 slice change (2 × 30 s instead of
+  4 × 15 s); being checked with an AB variant that keeps 4 slices at R20
+  (K=3 on the three hub R20 wMK cells): AB (2 slices) vs AB-s4 (4 slices)
+  means 12,941 vs 13,102 (loose), 12,965 vs 12,920 (medium), 13,102 vs
+  13,165 (tight) — no systematic difference, so the R20 slice change is NOT
+  the cause; the +0.4–0.7 % is either chance (5 losing cells at ≥7/10 among
+  111 is within the ~6 expected by chance, against 23 winning ones) or a
+  tiny cost of the randomised descent on hub wMK.  Strictly the house rule
+  ("zero consistent regressions") is not met; the decision is the user's.
+- **Decision:** **KEPT** (2026-09-06, user: the large gaps in the MILP's
+  favour shrank without adding machinery and the residual regressions are
+  small).  Merged `--no-ff` into `main`, tagged `igvnd-v01-ils-at-scale`;
+  living spec synced via `/sync-method-doc`; battery of record becomes
+  `…_20260905_203305.log`; the five small consistent regressions (hub R20
+  wMK/wMOV, two_rows_loose_R30 wMOV, +0.4…+1.3 %) stay documented as the
+  residual.  Simplicity ledger honoured: −3 neighbourhood functions, −1
+  B-VND reset, −1 re-centre rule and constant, −1 slice-table entry, −1
+  redundant eval; +4 smaller functions (exact filters); 0 knobs.
