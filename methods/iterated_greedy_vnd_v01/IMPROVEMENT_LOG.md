@@ -814,6 +814,11 @@ The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
   +1.29 % (+20 on 1552).  The hub-R20-wMK pattern across all three slacks
   suggests a small real cost of the R20 slice change (2 × 30 s instead of
   4 × 15 s); being checked with an AB variant that keeps 4 slices at R20
-  (K=3 on the three hub R20 wMK cells).  Strictly the house rule ("zero
-  consistent regressions") is not met; the decision is the user's.
+  (K=3 on the three hub R20 wMK cells): AB (2 slices) vs AB-s4 (4 slices)
+  means 12,941 vs 13,102 (loose), 12,965 vs 12,920 (medium), 13,102 vs
+  13,165 (tight) — no systematic difference, so the R20 slice change is NOT
+  the cause; the +0.4–0.7 % is either chance (5 losing cells at ≥7/10 among
+  111 is within the ~6 expected by chance, against 23 winning ones) or a
+  tiny cost of the randomised descent on hub wMK.  Strictly the house rule
+  ("zero consistent regressions") is not met; the decision is the user's.
 - **Decision:** (open)
