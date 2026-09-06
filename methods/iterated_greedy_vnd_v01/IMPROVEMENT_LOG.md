@@ -793,7 +793,27 @@ The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
   despite the unmet 9/12 bar (0 confirmed regressions, negative ledger),
   and reuse the Attempt-12 candidate arm as the baseline arm.  Candidate
   arm launched 2026-09-05 20:33 on `exp/ils-at-scale` @ 1269c32.
-- **Log:** (open)
-- **Result vs baseline:** (open)
-- **Noise check:** (open)
+- **Log (grid, candidate arm):** `outputs/logs/202605_02_main_methods_20260905_203305.log`
+  (1110/1110, 0 failures, code `exp/ils-at-scale` @ 1269c32); baseline arm =
+  the Attempt-12 candidate log `…_20260902_214555.log` (code = `main`, same
+  machine, 3 days earlier; user-approved reuse).
+- **Result vs baseline (grid):** **NET −403,270.5** (chain −258,996, hub
+  −97,318, two_rows −46,957, none ±0).  R5: all 27 cells identical (0.0).
+  R10: NET −204, 1 consistent win, 0 consistent losses (chain_tight wMK
+  −49.6 7W/3L; chain_medium wDLY −94.2).  R20: mean −0.88 %, 8 consistent
+  wins / 4 consistent losses.  R30: mean −1.66 %, 14 consistent wins / 1
+  consistent loss.  Largest cell gains: chain_loose_R20 wMK −7.8 % (9W/1L),
+  chain_tight_R20 wMK −6.1 % (10W/0L), chain_medium_R30 wMK −4.9 % (10W/0L),
+  chain_medium_R20 wMK −4.9 %, hub_loose/medium/tight_R30 wMK −4.9 / −4.7 /
+  −4.0 %, chain_loose_R30 wMK −3.8 %.  Overall 23 consistent wins vs 5
+  consistent losses; 50 cells better / 22 worse / 39 identical.
+- **Noise check:** five cells regress consistently (≥7/10) above the 19-unit
+  R10 floor, all small: hub_loose/medium/tight_R20 wMK +0.36 / +0.73 /
+  +0.52 % (+46 / +96 / +69 on ~13,000; the K=2 band on hub_medium_R20 wMK is
+  5.9 %), hub_tight_R20 wMOV +0.70 % (+5.6 on 798), two_rows_loose_R30 wMOV
+  +1.29 % (+20 on 1552).  The hub-R20-wMK pattern across all three slacks
+  suggests a small real cost of the R20 slice change (2 × 30 s instead of
+  4 × 15 s); being checked with an AB variant that keeps 4 slices at R20
+  (K=3 on the three hub R20 wMK cells).  Strictly the house rule ("zero
+  consistent regressions") is not met; the decision is the user's.
 - **Decision:** (open)
