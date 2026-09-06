@@ -43,7 +43,7 @@ the **~19 delay-unit noise floor** described in
 | 10 | perturb-mix: 50/50 targeted/uniform-random IG destruction | `exp/perturb-mix` (`15082a0`) | `attempt10_perturb_mix_20260714.txt` | **KEPT** | −438 net; `t_loose_R10 s7` 77→**62.5** (< MILP 64.5), `s10` →**67 = MILP**; certified-loss family closed; +4 lines, 0 knobs |
 | 11 | Mode-A band alignment: η→0, refined to per-restart alternation | `exp/mode-a-band` (`1850f0a`) / tag `igvnd-v01-mode-a-band` | base `…_20260728_211746.log`; cand `…_20260729_155203.log` + `…_20260729_232650.log` | **KEPT** | two-arm verdict on the no-Triangle grid (37 configs × 3 × 10): NET −566,398 (chain −82k, hub −219k, two_rows −265k, none 0); zero consistent regressions above the 19-unit floor; the interim chain-R10 casualty resolved by the per-restart alternation |
 | 12 | sim-boundaries: `_sim_front` aligned to the checker's closed boundaries; Mode-B gap at the nearest job end; `tau` start candidate | `exp/sim-boundaries` (`3bc423c`) / tag `igvnd-v01-sim-boundaries` | cand `…_20260902_214555.log`; base `attempt12_baseline_20260904_*.log` (4 segments) | **KEPT** | two fresh arms: NET −205,368 (chain −162k, hub −24k, two_rows −19k, none 0); R5 tight wDLY and R10 chain/hub wDLY/wMK close most of the gap to the proven optima; zero consistent regressions |
-| 14 | ils-at-scale: exact-filtered local search (pusher tree, order-slot classes, relocate) + two ILS trajectories at R>10, dead rules retired | `exp/ils-at-scale` | (open) | — | — |
+| 14 | ils-at-scale: exact-filtered local search (pusher tree, order-slot classes, relocate) + two ILS trajectories at R>10, dead rules retired | `exp/ils-at-scale` (`1269c32`) / tag `igvnd-v01-ils-at-scale` | cand `…_20260905_203305.log`; base `…_20260902_214555.log` | **KEPT** | NET −403,270 (chain −259k, hub −97k, two_rows −47k, none 0); R20 −0.9 %, R30 −1.7 % mean, 23 consistent wins vs 5 small consistent losses (≤1.3 %); R5 identical |
 
 *(Entries 4–6 backfilled from the living-spec Change log; entry 7 onward is
 opened here first, before coding. The 2026-07 campaign that motivates 7–8 is
@@ -821,4 +821,12 @@ The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
   111 is within the ~6 expected by chance, against 23 winning ones) or a
   tiny cost of the randomised descent on hub wMK.  Strictly the house rule
   ("zero consistent regressions") is not met; the decision is the user's.
-- **Decision:** (open)
+- **Decision:** **KEPT** (2026-09-06, user: the large gaps in the MILP's
+  favour shrank without adding machinery and the residual regressions are
+  small).  Merged `--no-ff` into `main`, tagged `igvnd-v01-ils-at-scale`;
+  living spec synced via `/sync-method-doc`; battery of record becomes
+  `…_20260905_203305.log`; the five small consistent regressions (hub R20
+  wMK/wMOV, two_rows_loose_R30 wMOV, +0.4…+1.3 %) stay documented as the
+  residual.  Simplicity ledger honoured: −3 neighbourhood functions, −1
+  B-VND reset, −1 re-centre rule and constant, −1 slice-table entry, −1
+  redundant eval; +4 smaller functions (exact filters); 0 knobs.
