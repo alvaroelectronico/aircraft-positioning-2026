@@ -372,10 +372,16 @@ class IteratedGreedyVNDJobSolver:
         # v2 is the guaranteed floor; the v3 candidate is taken only if the
         # real checker certifies it AND it strictly improves — so a timed-out
         # or invalid manoeuvre-aware search can never worsen the incumbent.
+        # Seed: even restarts (checker-exact band) polish the zero-movement
+        # optimum; odd restarts (conservative band) start the manoeuvre search
+        # from the construction instead, so the manoeuvre landscape is entered
+        # from a basin the zero-movement descent has not already shaped
+        # (Attempt 15 — the zero-movement optimum traps the polish on hub).
         if self.use_v3:
             self._decode_fn = self._decode_v3
             self._decoder_tag = "v3"
-            a3, o3 = self._search(dict(a1), list(o1), deadline)
+            a_seed, o_seed = (a1, o1) if self.bandA == 0.0 else (a0, o0)
+            a3, o3 = self._search(dict(a_seed), list(o_seed), deadline)
             sol_v3 = self._finalize(self._decode_v3(a3, o3))
             if (sol_v3["objective"] < best_obj - 1e-9
                     and self._is_compliant(sol_v3, instance_data)):

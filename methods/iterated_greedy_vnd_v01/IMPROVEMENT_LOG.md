@@ -44,6 +44,7 @@ the **~19 delay-unit noise floor** described in
 | 11 | Mode-A band alignment: η→0, refined to per-restart alternation | `exp/mode-a-band` (`1850f0a`) / tag `igvnd-v01-mode-a-band` | base `…_20260728_211746.log`; cand `…_20260729_155203.log` + `…_20260729_232650.log` | **KEPT** | two-arm verdict on the no-Triangle grid (37 configs × 3 × 10): NET −566,398 (chain −82k, hub −219k, two_rows −265k, none 0); zero consistent regressions above the 19-unit floor; the interim chain-R10 casualty resolved by the per-restart alternation |
 | 12 | sim-boundaries: `_sim_front` aligned to the checker's closed boundaries; Mode-B gap at the nearest job end; `tau` start candidate | `exp/sim-boundaries` (`3bc423c`) / tag `igvnd-v01-sim-boundaries` | cand `…_20260902_214555.log`; base `attempt12_baseline_20260904_*.log` (4 segments) | **KEPT** | two fresh arms: NET −205,368 (chain −162k, hub −24k, two_rows −19k, none 0); R5 tight wDLY and R10 chain/hub wDLY/wMK close most of the gap to the proven optima; zero consistent regressions |
 | 14 | ils-at-scale: exact-filtered local search (pusher tree, order-slot classes, relocate) + two ILS trajectories at R>10, dead rules retired | `exp/ils-at-scale` (`1269c32`) / tag `igvnd-v01-ils-at-scale` | cand `…_20260905_203305.log`; base `…_20260902_214555.log` | **KEPT** | NET −403,270 (chain −259k, hub −97k, two_rows −47k, none 0); R20 −0.9 %, R30 −1.7 % mean, 23 consistent wins vs 5 small consistent losses (≤1.3 %); R5 identical |
+| 15 | v3-seed-alternation: odd restarts start the manoeuvre polish from the construction seed instead of the zero-movement optimum | `exp/v3-seed-alternation` | (open) | — | — |
 
 *(Entries 4–6 backfilled from the living-spec Change log; entry 7 onward is
 opened here first, before coding. The 2026-07 campaign that motivates 7–8 is
@@ -842,3 +843,44 @@ The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
   better-or-equal acceptance), §7 (per-start slice budget/8 for R≤10 and
   budget/2 for R>10; two trajectories, one per Mode-A band), and the IG
   rebuild (representative slots only).  Pseudocode must follow.
+
+## Attempt 15 — v3-seed-alternation
+- **Date:** 2026-09-07
+- **Diagnosis (battery of record `…_20260905_203305.log`):** the loose R10
+  cells are the worst-looking rows of the gap table.  Per seed: on
+  hub_loose_R10 wDLY/wMK the heuristic ends in `phase=zero` on 4–6 seeds
+  (0 movements, delay 4.5–5.5) while the MILP spends 2–16 movements to reach
+  delay 0–3 — the manoeuvre polish, seeded from the zero-movement local
+  optimum, never leaves that basin; on chain_loose_R10 wDLY it loses all 10
+  seeds while manoeuvring worse than the MILP (more movements AND more
+  delay).  Probe 4 (2026-09-02) had shown that seeding v3 from the
+  construction on EVERY restart rescues hub but throws away good chain
+  structures — a blanket change is wrong, a split is the natural fix.
+- **Hypothesis:** alternate the seed of the manoeuvre polish with the
+  restart parity that already alternates the Mode-A band: even restarts
+  polish the zero-movement optimum (as today), odd restarts start the
+  manoeuvre search from the construction seed.  Both basins are then
+  explored in every run with no new mechanism, knob or rule.  Expected:
+  hub/chain loose R10 wDLY/wMK improve, everything else unchanged
+  (R≤10 cells that are already exact keep their even-restart path; at
+  R>10 the odd trajectory simply explores a different basin).
+- **Simplicity ledger:** +1 conditional expression on an existing
+  alternation; 0 knobs, 0 functions.
+- **Pre-registered evidence (probe, 60 s, seed 1, 14 cells vs the record):**
+  6 better / 8 same / 0 worse — chain_loose_R10 wDLY s3 433.5 → 371.5,
+  s10 431.5 → 229.5; hub_loose_R10 wDLY s2 520.5 → 285.5, s9 538.5 → 496.5;
+  two_rows_loose_R10 wDLY s1 359.5 → 315.5; chain_medium_R10 s2 wMOV
+  168 → 152 (= MILP); guards (chain_tight_R5 s3 wDLY 34, hub_tight_R10 s1
+  wMOV 168) identical.  The alternative probed alongside — exit-stretch as
+  a search move — gave 7/6/1 with one real loss and adds a genotype field;
+  rejected on the simplicity criterion.
+- **Ref:** branch `exp/v3-seed-alternation` off `main` @ 5f58bbc (tag
+  `igvnd-v01-ils-at-scale`); baseline arm = battery of record
+  `…_20260905_203305.log` (same code as `main`, same machine, 2 days old).
+- **How measured:** ablation subset (18 instances × 3) vs the record, then
+  the full grid, verdict via the grid script; guards `none`, wMOV floor-0
+  stratum, R5.
+- **Log:** (open)
+- **Result vs baseline:** (open)
+- **Noise check:** (open)
+- **Decision:** (open)
