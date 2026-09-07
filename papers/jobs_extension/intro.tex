@@ -53,8 +53,9 @@ inter-job gap (Mode~B), or strictly inside an interruptible job (Mode~C)
 --- so that an access which cannot be classified, because its blocker is
 mid-way through a non-interruptible job, is correctly rendered infeasible.
 Second, we develop a metaheuristic, \textsc{IGVND} (\S\ref{sec:heuristic}),
-that couples an Iterated-Greedy outer loop with a Variable-Neighbourhood-%
-Descent local search around a problem-specific decoder, separating the
+that couples an Iterated-Greedy outer loop with a first-improvement
+neighbourhood-descent local search around a problem-specific decoder,
+separating the
 combinatorial assignment-and-ordering decision from the timing decision and
 pricing the former with a fast deterministic schedule builder.
 

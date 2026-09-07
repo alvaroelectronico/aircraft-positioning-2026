@@ -1,5 +1,5 @@
 % ==============================================================================
-\section{An Iterated-Greedy / VND Heuristic}
+\section{An Iterated-Greedy Heuristic with Neighbourhood Descent}
 \label{sec:heuristic}
 % ==============================================================================
 
@@ -9,7 +9,7 @@ $O\!\left(|\calR|^2 \cdot |\calA| \cdot (N_{\max}+1)\right)$ binaries, so
 proving optimality becomes intractable well before the fleet sizes of
 operational interest (\S\ref{sec:experiments}).  We therefore develop a
 metaheuristic, \textsc{IGVND}, that couples an Iterated-Greedy outer loop
-with a Variable-Neighbourhood-Descent (VND) local search around a
+with a first-improvement local search over three neighbourhoods around a
 problem-specific decoder.  The design draws on the NEH constructive
 heuristic, Iterated Greedy, and Variable Neighbourhood
 Search~\citep{Nawaz1983,Ruiz2007,Hansen2001,Mladenovic1997}.
@@ -42,7 +42,7 @@ The method is built from five blocks, each detailed in a subsection below:
         built on two deterministic priority rules plus a rank-biased
         randomised shuffle that gives every further restart a distinct
         seed;
-  \item a \textbf{Variable Neighbourhood Descent}
+  \item an exact-filtered \textbf{local-search descent}
         (\S\ref{sec:igvnd_vnd}) that refines a state to a local optimum;
   \item an \textbf{Iterated-Greedy} loop (\S\ref{sec:igvnd_ig}) that
         perturbs and re-optimises around the incumbent; and
@@ -61,8 +61,10 @@ feasibility check certifies it and it improves the floor.  A
 single nest-stretch candidate is added when the weights reward it.  The
 best certified schedule over all restarts is returned.  Because every
 restart ends early once its own search stalls, small instances perform
-hundreds of independent restarts within the budget while large ones
-naturally receive few, without any instance-dependent tuning.
+hundreds of independent restarts within the budget, while larger ones run
+two long trajectories --- one per clearance geometry of the zero-movement
+decoder --- so that the cheaper descents accumulate into many kicks
+instead of being split over restarts that never converge.
 
 \begin{algorithm}[htbp]
 \DontPrintSemicolon
@@ -72,8 +74,8 @@ naturally receive few, without any instance-dependent tuning.
 \KwResult{a feasible schedule.}
 preprocess $I$; let $\rho_{\mathrm{NEH}}, \rho_{\mathrm{SLACK}}$ be the two
    deterministic priority rules (\S\ref{sec:igvnd_construction})\;
-set the per-restart time cap $\tau = T/8$ if $R \le 10$, $\;T/4$ if
-   $R \le 20$, $\;T/3$ otherwise\;
+set the per-restart time cap $\tau = T/8$ if $R \le 10$, $\;T/2$
+   otherwise\;
 $z^\star \leftarrow +\infty$;\quad $i \leftarrow 1$\;
 \While{time remains}{
   allot $\min(\tau,\ \text{remaining time})$ to restart $i$\;
@@ -84,7 +86,7 @@ $z^\star \leftarrow +\infty$;\quad $i \leftarrow 1$\;
   $(\pi, \sigma) \leftarrow \textsc{Construct}(\rho)$\;
   $(\pi, \sigma) \leftarrow \textsc{Search}(\pi, \sigma, \textsc{Decode}_0)$;
      \quad $z_{\mathrm{floor}} \leftarrow z_0(\pi, \sigma)$
-     \tcp*{VND descent + IG destroy/rebuild (Alg.~\ref{alg:search}); the zero-movement floor}
+     \tcp*{local-search descent + IG destroy/rebuild (Alg.~\ref{alg:search}); the zero-movement floor}
   $(\pi', \sigma') \leftarrow \textsc{Search}(\pi, \sigma, \textsc{Decode}_1)$
      \tcp*{the same search re-run under $\textsc{Decode}_1$; the manoeuvre-aware polish}
   \eIf{$z_1(\pi', \sigma') < z_{\mathrm{floor}}$ \textbf{\emph{and}}
@@ -303,20 +305,31 @@ so far.
 \end{algorithm}
 
 % ------------------------------------------------------------------------------
-\subsection{Variable Neighbourhood Descent}
+\subsection{Local search}
 \label{sec:igvnd_vnd}
 % ------------------------------------------------------------------------------
 
-A seed is refined to a local optimum by a sequential VND with the basic
-reset rule: the neighbourhoods are explored in a fixed sequence and, on any
-improving move, the search returns to the first neighbourhood
-(Algorithm~\ref{alg:vnd}).  Three neighbourhoods act on the combinatorial
-state and delegate all timing to the decoder: $N_1$ \emph{reassign} (move
-one aircraft to a different position), $N_2$ \emph{swap} (exchange the
-positions of two aircraft), and $N_3$ \emph{reorder} (swap two aircraft in
-the priority order $\sigma$).  Each neighbourhood is explored
-first-improvement, so the first strictly improving move is taken
-immediately.
+A seed is refined to a local optimum by a first-improvement descent over
+three neighbourhoods that act on the combinatorial state and delegate all
+timing to the decoder (Algorithm~\ref{alg:vnd}): $N_1$ \emph{reassign}
+(move one aircraft to a different position), $N_2$ \emph{relocate} (move
+one aircraft to another slot of the priority order $\sigma$), and $N_3$
+\emph{swap} (exchange the positions of two aircraft).  Two exact filters
+keep the descent cheap without changing the set of local optima it can
+reach.  First, under the zero-movement decoder only the aircraft on the
+\emph{pusher tree} can improve the objective: the decoder records, for
+every aircraft, which already-placed aircraft pushed its start forward,
+and a move that touches only aircraft outside the tree rooted at the
+makespan and the delayed aircraft leaves every binding start unchanged
+(their bands never bound anyone and their delay is zero), so it can only
+add constraints.  Under the manoeuvre-aware decoder every aircraft is a
+candidate.  Second, relocating an aircraft changes the decode only when its
+order relative to an aircraft it interacts with (same position, or a
+blocking arc; same position only under $\textsc{Decode}_1$, which
+sequences within positions) changes, so $N_2$ visits one representative
+slot per such class instead of every slot.  Candidates are scanned in a
+random order; the first strictly improving move is applied and the
+candidate set is recomputed, until no move improves.
 
 \begin{algorithm}[htbp]
 \DontPrintSemicolon
@@ -324,18 +337,18 @@ immediately.
 \SetKwInput{KwResult}{Output}
 \KwData{state $(\pi, \sigma)$; decoder $\textsc{Decode}_d$.}
 \KwResult{a state that is locally optimal for $N_1, N_2, N_3$.}
-$k \leftarrow 1$\;
-\While{$k \le 3$}{
-  scan the moves of $N_k$ and apply the first one that strictly lowers
-     $z_d(\pi, \sigma)$\;
-  \eIf{an improving move was applied}{
-    $k \leftarrow 1$ \tcp*{reset to the first neighbourhood}
-  }{
-    $k \leftarrow k + 1$ \tcp*{advance to the next neighbourhood}
+\Repeat{no candidate has an improving move}{
+  $\mathcal{C} \leftarrow$ pusher tree of $\textsc{Decode}_d(\pi, \sigma)$
+     if $d = 0$, else $\calR$; shuffle $\mathcal{C}$\;
+  \ForEach{$r \in \mathcal{C}$}{
+    try, in this order, the $N_1$ moves of $r$, the $N_2$ moves of $r$
+       (one slot per distinct-decode class) and the $N_3$ moves of $r$;
+       apply the first that strictly lowers $z_d(\pi, \sigma)$ and
+       \textbf{break}\;
   }
 }
 \Return $(\pi, \sigma)$\;
-\caption{\textsc{Vnd} --- sequential variable neighbourhood descent.}
+\caption{\textsc{LocalSearch} --- exact-filtered first-improvement descent.}
 \label{alg:vnd}
 \end{algorithm}
 
@@ -344,16 +357,16 @@ $k \leftarrow 1$\;
 \label{sec:igvnd_ig}
 % ------------------------------------------------------------------------------
 
-Around the VND runs an Iterated-Greedy loop (Algorithm~\ref{alg:search}).
+Around the local search runs an Iterated-Greedy loop (Algorithm~\ref{alg:search}).
 Each iteration \emph{perturbs} the current state by removing $k$ aircraft
 --- with equal probability either uniformly at random or by a delay-weighted
 contribution score (lightly randomised), the two together keeping the walk
 from anchoring on the same removals --- and \emph{reconstructs} the state by
 reinserting each removed aircraft at the position and order-slot that
-minimises the decoded objective.  The perturbed state is re-optimised by the VND and accepted as
-the new current state when it does not worsen the walk; the best state is
-tracked separately, and the walk is restarted from it after a streak of
-non-improving iterations.  The procedure is decoder-agnostic: the master
+minimises the decoded objective (again one slot per distinct-decode
+class).  The perturbed state is re-optimised by the local search and
+accepted as the new current state when it does not worsen the walk; the
+best state is tracked separately.  The procedure is decoder-agnostic: the master
 procedure calls it once with $\textsc{Decode}_0$ for the floor and once
 with $\textsc{Decode}_1$ for the polish.
 
@@ -365,19 +378,17 @@ with $\textsc{Decode}_1$ for the polish.
 \SetKwFunction{FPert}{Perturb}
 \KwData{seed $(\pi, \sigma)$; decoder $\textsc{Decode}_d$; deadline.}
 \KwResult{the best state found.}
-$(\pi, \sigma) \leftarrow \textsc{Vnd}(\pi, \sigma, \textsc{Decode}_d)$\;
+$(\pi, \sigma) \leftarrow \textsc{LocalSearch}(\pi, \sigma, \textsc{Decode}_d)$\;
 \emph{best} $\leftarrow$ \emph{cur} $\leftarrow (\pi, \sigma)$;\quad
    $t \leftarrow 0$ \tcp*{$t$ = non-improving streak}
 \Repeat{the deadline is reached \emph{or} $t \ge t_{\max}$}{
-  \emph{cand} $\leftarrow \textsc{Vnd}\big(\FPert{\emph{cur}},
+  \emph{cand} $\leftarrow \textsc{LocalSearch}\big(\FPert{\emph{cur}},
      \textsc{Decode}_d\big)$\;
   \lIf{$z_d(\emph{cand}) \le z_d(\emph{cur})$}{\emph{cur} $\leftarrow$ \emph{cand}}
   \eIf{$z_d(\emph{cand}) < z_d(\emph{best})$}{
     \emph{best} $\leftarrow$ \emph{cand};\quad $t \leftarrow 0$\;
   }{
-    $t \leftarrow t + 1$;\quad
-    \textbf{if} $t$ is a multiple of the restart period \textbf{then}
-       \emph{cur} $\leftarrow$ \emph{best}\;
+        $t \leftarrow t + 1$\;
   }
 }
 \Return \emph{best}\;
@@ -387,12 +398,12 @@ $(\pi, \sigma) \leftarrow \textsc{Vnd}(\pi, \sigma, \textsc{Decode}_d)$\;
   otherwise: remove the $k$ aircraft of largest score
      $W^D v^D_r + \omega\, T_r$ (lightly randomised)\;
   \ForEach{removed aircraft $r$}{
-    reinsert $r$ at the $(\text{position}, \text{slot in } \sigma)$
-       minimising the decoded objective\;
+        reinsert $r$ at the $(\text{position}, \text{slot in } \sigma)$
+       minimising the decoded objective, one slot per distinct-decode class\;
   }
   \Return the rebuilt state\;
 }
-\caption{\textsc{Search} --- Iterated-Greedy loop around the VND.}
+\caption{\textsc{Search} --- Iterated-Greedy loop around the local search.}
 \label{alg:search}
 \end{algorithm}
 
@@ -403,9 +414,10 @@ $(\pi, \sigma) \leftarrow \textsc{Vnd}(\pi, \sigma, \textsc{Decode}_d)$\;
 
 The construct-and-improve procedure is restarted until the time budget is
 exhausted, and the best certified result is kept.  Each restart is capped at
-a time slice of $T/8$ ($R \le 10$), $T/4$ ($R \le 20$) or $T/3$ (larger) and
-ends early on its own stale counter, so small instances complete many
-independent restarts while large ones receive only a few --- with no
+a time slice of $T/8$ ($R \le 10$) or $T/2$ (larger) and ends early on its
+own stale counter, so small instances complete many independent restarts
+while larger ones run exactly two long trajectories, one under each
+clearance geometry of the zero-movement decoder --- with no
 instance-dependent tuning of the restart count.
 Because the search is time-limited and hence non-deterministic, a single
 run occasionally settles in a poor high-delay basin, and independent

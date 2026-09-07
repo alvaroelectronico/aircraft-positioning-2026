@@ -830,3 +830,15 @@ The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
   residual.  Simplicity ledger honoured: −3 neighbourhood functions, −1
   B-VND reset, −1 re-centre rule and constant, −1 slice-table entry, −1
   redundant eval; +4 smaller functions (exact filters); 0 knobs.
+- **Part I rewrite AUTHORISED by the user (2026-09-06)** for the
+  `/sync-method-doc` agent: align Part I §5 (local search: the 3-neighbourhood
+  sequential VND with reset is replaced by the exact-filtered first-improvement
+  local search `_local_search`/`_critical`/`_order_slots`/`_try_moves` —
+  candidates = pusher tree under the zero-movement decoder, all aircraft under
+  the manoeuvre decoder; randomised scan; moves reassign / relocate to one
+  representative slot per distinct-decode class / swap positions; first
+  improving move applied, candidates recomputed), §6 (remove the "restart the
+  walk from the global best after a streak" acceptance rule — dead under
+  better-or-equal acceptance), §7 (per-start slice budget/8 for R≤10 and
+  budget/2 for R>10; two trajectories, one per Mode-A band), and the IG
+  rebuild (representative slots only).  Pseudocode must follow.

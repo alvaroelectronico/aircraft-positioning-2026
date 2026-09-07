@@ -112,10 +112,10 @@ solver does in the same time.
 \label{sec:results}
 % ------------------------------------------------------------------------------
 
-% NOTE (2026-09-05): tables and numbers in this section come from the
-% battery of record outputs/logs/202605_02_main_methods_20260902_214555.log
-% (1110/1110, code of tag igvnd-v01-sim-boundaries = Attempt 12, KEPT after a
-% two-arm fresh verdict: NET -205k, zero consistent regressions).
+% NOTE (2026-09-06): tables and numbers in this section come from the
+% battery of record outputs/logs/202605_02_main_methods_20260905_203305.log
+% (1110/1110, code of tag igvnd-v01-ils-at-scale = Attempts 12 + 14, both
+% KEPT after two-arm verdicts: NET -205k and -403k).
 Table~\ref{tab:gap_profile} reports the relative gap and
 Table~\ref{tab:components} the per-component differences.  We read them
 together, grouping the configurations by what the MILP can certify.
@@ -149,29 +149,29 @@ under makespan-priority and a single delay unit under delay-priority, and
 the no-blocking baseline is exact under all three profiles.  On the converged $R{=}10$
 cells --- \emph{Two rows}-loose under every profile, \emph{Hub}-loose
 under delay- and movement-priority --- the concessions are equally
-small in absolute terms (mean $\Delta m \le +0.1$ and
-$\Delta D \le +2.2$ in Table~\ref{tab:components}), although the
+small in absolute terms (mean $\Delta m \le +0.5$ and
+$\Delta D \le +1.9$ in Table~\ref{tab:components}), although the
 relative gap column can look large because of the small denominators
 discussed next.  The visible certified-optimum concessions sit in the
 makespan-priority column at $R{=}10$: on \emph{Chain}-loose and
 \emph{Chain}-medium the MILP proves optimality on every seed and IGVND
-ends a mean $3.1$--$3.2$ makespan units above it
-($g = -5.1\%$ and $-4.9\%$, worst seed $-6.8\%$), with the same
+ends a mean $2.5$--$2.8$ makespan units above it
+($g = -4.4\%$ and $-4.1\%$, worst seed $-8.0\%$), with the same
 pattern at smaller scale on \emph{Hub}-medium ($-2.5\%$,
 $\Delta m = +1.6$).  On the remaining $R{=}10$ makespan-priority cells,
 converged or not, IGVND tracks the reference within $-2.5\%$.
 
 \paragraph{Delay-priority outliers.}
 The delay-priority column contains two large negative cells --- the
-loose $R{=}10$ rows of \emph{Chain} ($-141\%$) and \emph{Hub}
-($-138\%$) --- and a smaller one on \emph{Chain}-tight at $R{=}5$
+loose $R{=}10$ rows of \emph{Chain} ($-111\%$) and \emph{Hub}
+($-148\%$) --- and a smaller one on \emph{Chain}-tight at $R{=}5$
 ($-25\%$), all artefacts of the gap's denominator, not large physical
 differences.  On these
 configurations the optimal delay is zero or near zero, so
 $z_{\mathrm{MILP}}$ reduces to the lightly weighted makespan and movement
 terms, and a difference of a few delay units --- weighted $100$ ---
 swamps that baseline: the mean $\Delta D$ behind those cells is
-between $+0.1$ and $+1.8$ delay units (Table~\ref{tab:components}),
+between $+0.1$ and $+1.9$ delay units (Table~\ref{tab:components}),
 with single seeds registering relative gaps beyond $-600\%$ while
 conceding five delay units, or $-250\%$ for a single one.  The per-component columns, not the
 relative gap, are the meaningful scale on these rows.
@@ -186,18 +186,18 @@ by a few objective units.  From $R{=}20$ the picture is uniform: IGVND
 returns the better
 feasible solution on \emph{every} configuration and profile, and the
 advantage grows with fleet size --- relative gaps of
-roughly $+11\%$ to $+27\%$ at $R{=}20$ and $+12\%$ to $+44\%$ at
+roughly $+12\%$ to $+32\%$ at $R{=}20$ and $+14\%$ to $+44\%$ at
 $R{=}30$, across all three blocking topologies
-and all three slack levels, peaking under delay-priority ($+43.8\%$ on
+and all three slack levels, peaking under delay-priority ($+43.5\%$ on
 \emph{Two rows}-loose-$R{=}30$, all ten seeds won; \emph{Hub}, whose
 $R{=}30$ instances the exact solver bounds best, is the mildest
-family at $+12$--$22\%$).  The per-component
+family at $+14$--$23\%$).  The per-component
 differences confirm a large absolute improvement and not a denominator
 effect: mean $\Delta D$ from roughly $-70$ to $-1\,300$ delay units and
 $\Delta m$ from tens to over $130$ makespan units, negative throughout.
 A detail worth noting on \emph{Chain} at scale: under the makespan- and
 delay-priority profiles IGVND spends \emph{more} manoeuvres than the
-incumbent (mean $\Delta n$ up to $+73$ movements at $R{=}30$) and still
+incumbent (mean $\Delta n$ up to $+70$ movements at $R{=}30$) and still
 wins by hundreds of delay units --- the manoeuvre machinery being used
 as intended, buying schedule compression at the single-lane
 bottleneck.  The mechanism is the architecture of
@@ -220,8 +220,8 @@ the zero-movement schedule tightest.  Because that denominator is not small
 relative gaps here are genuine and not a small-denominator artefact --- unlike
 the delay-priority outliers of the previous paragraph.  IGVND matches the MILP
 \emph{exactly} on every five-aircraft seed of every topology and slack
-(90 of 90, $g = 0.00\%$), stays within $\pm 3\%$ of the reference on
-every $R{=}10$ cell (worst $-1.0\%$ on \emph{Chain}-loose; per-component
+(90 of 90, $g = 0.00\%$), stays within $\pm 5\%$ of the reference on
+every $R{=}10$ cell (worst $-4.4\%$ on \emph{Chain}-loose; per-component
 concessions within $\pm 4$ units), and dominates at $R{=}20$ and
 $R{=}30$ ($+15\%$ to $+37\%$, with large negative
 $\Delta m$ and $\Delta D$ --- hundreds of objective units in absolute terms).
