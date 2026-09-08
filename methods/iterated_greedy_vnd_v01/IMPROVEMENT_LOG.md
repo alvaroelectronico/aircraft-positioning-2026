@@ -44,7 +44,7 @@ the **~19 delay-unit noise floor** described in
 | 11 | Mode-A band alignment: η→0, refined to per-restart alternation | `exp/mode-a-band` (`1850f0a`) / tag `igvnd-v01-mode-a-band` | base `…_20260728_211746.log`; cand `…_20260729_155203.log` + `…_20260729_232650.log` | **KEPT** | two-arm verdict on the no-Triangle grid (37 configs × 3 × 10): NET −566,398 (chain −82k, hub −219k, two_rows −265k, none 0); zero consistent regressions above the 19-unit floor; the interim chain-R10 casualty resolved by the per-restart alternation |
 | 12 | sim-boundaries: `_sim_front` aligned to the checker's closed boundaries; Mode-B gap at the nearest job end; `tau` start candidate | `exp/sim-boundaries` (`3bc423c`) / tag `igvnd-v01-sim-boundaries` | cand `…_20260902_214555.log`; base `attempt12_baseline_20260904_*.log` (4 segments) | **KEPT** | two fresh arms: NET −205,368 (chain −162k, hub −24k, two_rows −19k, none 0); R5 tight wDLY and R10 chain/hub wDLY/wMK close most of the gap to the proven optima; zero consistent regressions |
 | 14 | ils-at-scale: exact-filtered local search (pusher tree, order-slot classes, relocate) + two ILS trajectories at R>10, dead rules retired | `exp/ils-at-scale` (`1269c32`) / tag `igvnd-v01-ils-at-scale` | cand `…_20260905_203305.log`; base `…_20260902_214555.log` | **KEPT** | NET −403,270 (chain −259k, hub −97k, two_rows −47k, none 0); R20 −0.9 %, R30 −1.7 % mean, 23 consistent wins vs 5 small consistent losses (≤1.3 %); R5 identical |
-| 15 | v3-seed-alternation: odd restarts start the manoeuvre polish from the construction seed instead of the zero-movement optimum | `exp/v3-seed-alternation` | (open) | — | — |
+| 15 | v3-seed-alternation: odd restarts start the manoeuvre polish from the construction seed instead of the zero-movement optimum | `exp/v3-seed-alternation` (`HEAD`) | `attempt15_ablation_20260907.log` | **DROPPED** | subset NET −48 (7W/38T/9L): loose-R10 targets improve but chain_medium/tight R10 and hub_tight_R10 wDLY regress above the floor; zero-sum re-shuffle, not a gain |
 
 *(Entries 4–6 backfilled from the living-spec Change log; entry 7 onward is
 opened here first, before coding. The 2026-07 campaign that motivates 7–8 is
@@ -880,7 +880,25 @@ The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
 - **How measured:** ablation subset (18 instances × 3) vs the record, then
   the full grid, verdict via the grid script; guards `none`, wMOV floor-0
   stratum, R5.
-- **Log:** (open)
-- **Result vs baseline:** (open)
-- **Noise check:** (open)
-- **Decision:** (open)
+- **Log (ablation):** `outputs/logs/attempt15_ablation_20260907.log` (18
+  instances × 3 profiles, seed 1) paired per run against the battery of
+  record `…_20260905_203305.log`.
+- **Result vs baseline:** NET −48.0 over 54 runs; 7 wins / 38 ties / 9
+  losses.  Targets improve — chain_loose_R10 s5 wDLY 130.5 → 82.0 (MILP
+  66.5), s5 wMK −118.5, two_rows_loose_R10 s1 wDLY 359.5 → 315.5,
+  chain_medium_R10 s2 wDLY −254, chain_loose_R20 wDLY −348 — but the odd
+  restarts no longer polish the zero-movement optimum, and cells where that
+  polish mattered pay: chain_medium_R10 s1 wDLY +207.0, s2 wMK +101.0,
+  chain_tight_R10 s6 wMK +117.0, hub_tight_R10 s5 wDLY +107.0, chain_loose
+  s8 wMK +89.5, hub_loose_R30 wMK +220.
+- **Noise check:** the losses exceed the ~72-unit R10 wMK floor as often as
+  the wins do; net effect indistinguishable from zero on the subset.
+- **Decision:** **DROPPED** (2026-09-07).  Trading half of the "polish the
+  zero-movement optimum" restarts for "polish the construction" restarts
+  moves the loss from one set of R10 cells to another; not worth a grid.
+  Branch `exp/v3-seed-alternation` retained; Change-log "attempted &
+  DROPPED" row added to the living spec.  Lesson: the loose-R10 wDLY
+  residual (mean ΔD ≈ +1.9 delay units, ×100 in the objective) is the
+  rear-stretch representation ceiling documented in the Attempt-13 probes,
+  not a seeding problem; closing it needs the stretch degree of freedom,
+  which the simplicity criterion currently rules out.
