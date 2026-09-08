@@ -1,0 +1,203 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (3 experiments)
+  Code state (git): 04fb071
+  Instance order  : by seed, then config (seed1 of all types first)
+==================================================================
+  Shared parameters:
+    time_limit_s=60               NoRelHeurTime=0
+    MIPGap=0.0                    seed=1
+
+  Per-experiment parameters:
+  Label       Solver                      weight_makespan  weight_delay  weight_movements
+  ---------------------------------------------------------------------------------------
+  igvnd_wMK   IteratedGreedyVNDJobSolver  100              1             1               
+  igvnd_wDLY  IteratedGreedyVNDJobSolver  1                100           1               
+  igvnd_wMOV  IteratedGreedyVNDJobSolver  1                1             100             
+==================================================================
+
+
+==================================================================
+  HEURISTIC vs MILP  —  relative gap per instance type
+  gap = (MILP_obj - heuristic_obj) / MILP_obj
+  gap > 0  =>  heuristic BETTER (lower objective);  < 0  => worse
+  heuristic: igvnd_wMK / igvnd_wDLY / igvnd_wMOV   (MILP rows from cache)
+==================================================================
+  -- Relative objective gap, by weight profile --
+  [wMK  (100/1/1  makespan-priority)]
+    Type                         N      Mean       Min       Max
+    ----------------------------------------------------------
+    scn_chain_loose_P5_R10       2    -4.06%    -4.65%    -3.47%
+    scn_chain_loose_P5_R20       1   +28.72%   +28.72%   +28.72%
+    scn_chain_medium_P5_R10      3    -5.43%    -6.43%    -4.33%
+    scn_chain_tight_P5_R10       1    +3.27%    +3.27%    +3.27%
+    scn_chain_tight_P5_R5        2    +0.00%    +0.00%    +0.00%
+    scn_hub_loose_P5_R10         2    -5.49%    -8.02%    -2.96%
+    scn_hub_loose_P5_R30         1   +16.02%   +16.02%   +16.02%
+    scn_hub_tight_P5_R10         1    -6.92%    -6.92%    -6.92%
+    scn_hub_tight_P5_R5          1    +0.00%    +0.00%    +0.00%
+    scn_none_tight_P5_R10        1    +0.00%    +0.00%    +0.00%
+    scn_two_rows_loose_P5_R10    2    -0.81%    -1.56%    -0.05%
+    scn_two_rows_loose_P5_R30    1   +18.73%   +18.73%   +18.73%
+
+  [wDLY  (1/100/1  delay-priority)]
+    Type                         N      Mean       Min       Max
+    ----------------------------------------------------------
+    scn_chain_loose_P5_R10       2   -68.88%  -114.45%   -23.31%
+    scn_chain_loose_P5_R20       1   +27.99%   +27.99%   +27.99%
+    scn_chain_medium_P5_R10      3    +0.52%    -3.21%    +4.81%
+    scn_chain_tight_P5_R10       1   +26.86%   +26.86%   +26.86%
+    scn_chain_tight_P5_R5        2    +0.00%    +0.00%    +0.00%
+    scn_hub_loose_P5_R10         2  -261.27%  -522.54%    +0.00%
+    scn_hub_loose_P5_R30         1   +26.27%   +26.27%   +26.27%
+    scn_hub_tight_P5_R10         1    +4.58%    +4.58%    +4.58%
+    scn_hub_tight_P5_R5          1    +0.00%    +0.00%    +0.00%
+    scn_none_tight_P5_R10        1    +0.00%    +0.00%    +0.00%
+    scn_two_rows_loose_P5_R10    2    -9.64%   -19.28%    +0.00%
+    scn_two_rows_loose_P5_R30    1   +48.65%   +48.65%   +48.65%
+
+  [wMOV  (1/1/100  movement-priority)]
+    Type                         N      Mean       Min       Max
+    ----------------------------------------------------------
+    scn_chain_loose_P5_R10       2    -1.11%    -2.22%    +0.00%
+    scn_chain_loose_P5_R20       1   +25.03%   +25.03%   +25.03%
+    scn_chain_medium_P5_R10      3    -4.20%   -10.53%    +0.00%
+    scn_chain_tight_P5_R10       1   -10.31%   -10.31%   -10.31%
+    scn_chain_tight_P5_R5        2    +0.00%    +0.00%    +0.00%
+    scn_hub_loose_P5_R10         2    +0.00%    +0.00%    +0.00%
+    scn_hub_loose_P5_R30         1   +27.49%   +27.49%   +27.49%
+    scn_hub_tight_P5_R10         1    +0.00%    +0.00%    +0.00%
+    scn_hub_tight_P5_R5          1    +0.00%    +0.00%    +0.00%
+    scn_none_tight_P5_R10        1    +0.00%    +0.00%    +0.00%
+    scn_two_rows_loose_P5_R10    2    +0.00%    +0.00%    +0.00%
+    scn_two_rows_loose_P5_R30    1   +41.50%   +41.50%   +41.50%
+
+  -- Relative objective gap, aggregated over all profiles --
+  [ALL profiles]
+    Type                         N      Mean       Min       Max
+    ----------------------------------------------------------
+    scn_chain_loose_P5_R10       6   -24.68%  -114.45%    +0.00%
+    scn_chain_loose_P5_R20       3   +27.25%   +25.03%   +28.72%
+    scn_chain_medium_P5_R10      9    -3.04%   -10.53%    +4.81%
+    scn_chain_tight_P5_R10       3    +6.61%   -10.31%   +26.86%
+    scn_chain_tight_P5_R5        6    +0.00%    +0.00%    +0.00%
+    scn_hub_loose_P5_R10         6   -88.92%  -522.54%    +0.00%
+    scn_hub_loose_P5_R30         3   +23.26%   +16.02%   +27.49%
+    scn_hub_tight_P5_R10         3    -0.78%    -6.92%    +4.58%
+    scn_hub_tight_P5_R5          3    +0.00%    +0.00%    +0.00%
+    scn_none_tight_P5_R10        3    +0.00%    +0.00%    +0.00%
+    scn_two_rows_loose_P5_R10    6    -3.48%   -19.28%    +0.00%
+    scn_two_rows_loose_P5_R30    3   +36.29%   +18.73%   +48.65%
+
+  -- Per-component mean Δ (heuristic − MILP); negative = heuristic better --
+  -- (relative gap is distorted when the optimum delay ≈ 0; read these too)
+  [wMK  (100/1/1  makespan-priority)]
+    Type                         N   Δmakespan      Δdelay      Δmov
+    --------------------------------------------------------------
+    scn_chain_loose_P5_R10       2       +2.50      -10.50     -1.00
+    scn_chain_loose_P5_R20       1      -50.00     -338.00    +22.00
+    scn_chain_medium_P5_R10      3       +3.33       +6.67     +1.33
+    scn_chain_tight_P5_R10       1       -2.00      -32.00     +2.00
+    scn_chain_tight_P5_R5        2       +0.00       +0.00     +0.00
+    scn_hub_loose_P5_R10         2       +3.50       +4.75     -5.00
+    scn_hub_loose_P5_R30         1      -42.00     -386.50     +0.00
+    scn_hub_tight_P5_R10         1       +4.00       +4.00    -12.00
+    scn_hub_tight_P5_R5          1       +0.00       +0.00     +0.00
+    scn_none_tight_P5_R10        1       +0.00       +0.00     +0.00
+    scn_two_rows_loose_P5_R10    2       +0.50       +0.00     -1.00
+    scn_two_rows_loose_P5_R30    1      -50.00     -346.00     -2.00
+
+  [wDLY  (1/100/1  delay-priority)]
+    Type                         N   Δmakespan      Δdelay      Δmov
+    --------------------------------------------------------------
+    scn_chain_loose_P5_R10       2       +3.25       +1.50     +7.00
+    scn_chain_loose_P5_R20       1      -24.00     -150.00     -4.00
+    scn_chain_medium_P5_R10      3       +0.00       -0.33     +1.33
+    scn_chain_tight_P5_R10       1      -22.50      -41.50     -6.00
+    scn_chain_tight_P5_R5        2       +0.00       +0.00     +0.00
+    scn_hub_loose_P5_R10         2       +0.00       +2.25     +1.00
+    scn_hub_loose_P5_R30         1      -57.00     -508.50     +0.00
+    scn_hub_tight_P5_R10         1       +2.50       -5.00     +6.00
+    scn_hub_tight_P5_R5          1       +0.00       +0.00     +0.00
+    scn_none_tight_P5_R10        1       +0.00       +0.00     +0.00
+    scn_two_rows_loose_P5_R10    2       -0.50       +0.25     +1.00
+    scn_two_rows_loose_P5_R30    1     -133.00    -1278.50     +0.00
+
+  [wMOV  (1/1/100  movement-priority)]
+    Type                         N   Δmakespan      Δdelay      Δmov
+    --------------------------------------------------------------
+    scn_chain_loose_P5_R10       2       +0.25       +0.50     +0.00
+    scn_chain_loose_P5_R20       1      -33.50     -169.50     +0.00
+    scn_chain_medium_P5_R10      3       +1.00       +5.33     +0.00
+    scn_chain_tight_P5_R10       1       +2.50      +17.50     +0.00
+    scn_chain_tight_P5_R5        2       +0.00       +0.00     +0.00
+    scn_hub_loose_P5_R10         2       +0.00       +0.00     +0.00
+    scn_hub_loose_P5_R30         1      -65.00     -541.50     +0.00
+    scn_hub_tight_P5_R10         1       +0.00       +0.00     +0.00
+    scn_hub_tight_P5_R5          1       +0.00       +0.00     +0.00
+    scn_none_tight_P5_R10        1       +0.00       +0.00     +0.00
+    scn_two_rows_loose_P5_R10    2       +0.00       +0.00     +0.00
+    scn_two_rows_loose_P5_R30    1      -92.50     -998.00     +0.00
+
+==================================================================
+
+
+==================================================================
+  SUMMARY  —  54 ok  /  0 failed  /  54 total
+==================================================================
+  Instance                         Experiment  Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  -------------------------------------------------------------------------------------------------------------------
+  scn_chain_loose_P5_R20_seed1     igvnd_wMK   heuristic_    13191.50     127.50     405.50    36         -      60.2
+  scn_chain_loose_P5_R20_seed1     igvnd_wDLY  heuristic_    38658.50     134.50     385.00    24         -      60.1
+  scn_chain_loose_P5_R20_seed1     igvnd_wMOV  heuristic_      608.00     141.00     467.00     0         -      60.2
+  scn_chain_medium_P5_R10_seed1    igvnd_wMK   heuristic_     6249.50      61.50      81.50    18         -      60.0
+  scn_chain_medium_P5_R10_seed1    igvnd_wDLY  heuristic_     6628.50      64.50      65.50    14         -      60.0
+  scn_chain_medium_P5_R10_seed1    igvnd_wMOV  heuristic_      131.00      62.50      68.50     0         -      60.0
+  scn_hub_loose_P5_R30_seed1       igvnd_wMK   heuristic_    24049.00     223.50    1699.00     0         -      61.6
+  scn_hub_loose_P5_R30_seed1       igvnd_wDLY  heuristic_   142866.50     216.50    1426.50     0         -      60.4
+  scn_hub_loose_P5_R30_seed1       igvnd_wMOV  heuristic_     1600.00     218.50    1381.50     0         -      61.0
+  scn_hub_tight_P5_R5_seed1        igvnd_wMK   heuristic_     3002.00      30.00       0.00     2         -      60.0
+  scn_hub_tight_P5_R5_seed1        igvnd_wDLY  heuristic_       32.00      30.00       0.00     2         -      60.0
+  scn_hub_tight_P5_R5_seed1        igvnd_wMOV  heuristic_       33.00      30.00       3.00     0         -      60.0
+  scn_none_tight_P5_R10_seed1      igvnd_wMK   heuristic_     5844.50      57.50      94.50     0         -      60.0
+  scn_none_tight_P5_R10_seed1      igvnd_wDLY  heuristic_     9408.50      58.50      93.50     0         -      60.0
+  scn_none_tight_P5_R10_seed1      igvnd_wMOV  heuristic_      152.00      58.50      93.50     0         -      60.0
+  scn_two_rows_loose_P5_R10_seed1  igvnd_wMK   heuristic_     5764.00      57.50       8.00     6         -      60.0
+  scn_two_rows_loose_P5_R10_seed1  igvnd_wDLY  heuristic_      315.50      59.50       2.50     6         -      60.0
+  scn_two_rows_loose_P5_R10_seed1  igvnd_wMOV  heuristic_       62.50      59.50       3.00     0         -      60.0
+  scn_two_rows_loose_P5_R30_seed1  igvnd_wMK   heuristic_    23210.50     217.50    1460.50     0         -      60.2
+  scn_two_rows_loose_P5_R30_seed1  igvnd_wDLY  heuristic_   135068.50     218.50    1348.50     0         -      61.4
+  scn_two_rows_loose_P5_R30_seed1  igvnd_wMOV  heuristic_     1537.00     224.50    1312.50     0         -      60.5
+  scn_chain_medium_P5_R10_seed2    igvnd_wMK   heuristic_     7134.50      70.50      74.50    10         -      60.0
+  scn_chain_medium_P5_R10_seed2    igvnd_wDLY  heuristic_     6840.50      74.50      67.50    16         -      60.0
+  scn_chain_medium_P5_R10_seed2    igvnd_wMOV  heuristic_      168.00      74.50      93.50     0         -      60.1
+  scn_chain_tight_P5_R5_seed3      igvnd_wMK   heuristic_     3104.00      31.00       2.00     2         -      60.0
+  scn_chain_tight_P5_R5_seed3      igvnd_wDLY  heuristic_       34.00      32.00       0.00     2         -      60.0
+  scn_chain_tight_P5_R5_seed3      igvnd_wMOV  heuristic_       37.00      31.00       6.00     0         -      60.0
+  scn_chain_loose_P5_R10_seed5     igvnd_wMK   heuristic_     5790.50      57.50      26.50    14         -      60.0
+  scn_chain_loose_P5_R10_seed5     igvnd_wDLY  heuristic_       82.00      68.00       0.00    14         -      60.0
+  scn_chain_loose_P5_R10_seed5     igvnd_wMOV  heuristic_       69.00      63.00       6.00     0         -      60.0
+  scn_chain_tight_P5_R5_seed5      igvnd_wMK   heuristic_     3202.00      32.00       0.00     2         -      60.0
+  scn_chain_tight_P5_R5_seed5      igvnd_wDLY  heuristic_       34.00      32.00       0.00     2         -      60.0
+  scn_chain_tight_P5_R5_seed5      igvnd_wMOV  heuristic_       37.00      32.00       5.00     0         -      60.0
+  scn_hub_tight_P5_R10_seed5       igvnd_wMK   heuristic_     6058.50      59.50     108.50     0         -      60.0
+  scn_hub_tight_P5_R10_seed5       igvnd_wDLY  heuristic_    10228.50      64.50     101.50    14         -      60.0
+  scn_hub_tight_P5_R10_seed5       igvnd_wMOV  heuristic_      164.00      60.50     103.50     0         -      60.0
+  scn_chain_tight_P5_R10_seed6     igvnd_wMK   heuristic_     6795.50      66.50     133.50    12         -      60.0
+  scn_chain_tight_P5_R10_seed6     igvnd_wDLY  heuristic_    11378.50      66.50     113.00    12         -      60.1
+  scn_chain_tight_P5_R10_seed6     igvnd_wMOV  heuristic_      214.00      70.00     144.00     0         -      60.0
+  scn_hub_loose_P5_R10_seed7       igvnd_wMK   heuristic_     6677.50      66.50      23.50     4         -      60.0
+  scn_hub_loose_P5_R10_seed7       igvnd_wDLY  heuristic_       67.50      67.50       0.00     0         -      60.0
+  scn_hub_loose_P5_R10_seed7       igvnd_wMOV  heuristic_       67.50      67.50       0.00     0         -      60.0
+  scn_two_rows_loose_P5_R10_seed7  igvnd_wMK   heuristic_     6176.50      61.50      26.50     0         -      60.0
+  scn_two_rows_loose_P5_R10_seed7  igvnd_wDLY  heuristic_       62.50      62.50       0.00     0         -      60.0
+  scn_two_rows_loose_P5_R10_seed7  igvnd_wMOV  heuristic_       62.50      62.50       0.00     0         -      60.0
+  scn_chain_loose_P5_R10_seed8     igvnd_wMK   heuristic_     6366.50      63.50       6.50    10         -      60.1
+  scn_chain_loose_P5_R10_seed8     igvnd_wDLY  heuristic_      571.50      63.50       5.00     8         -      60.0
+  scn_chain_loose_P5_R10_seed8     igvnd_wMOV  heuristic_       70.00      63.50       6.50     0         -      60.0
+  scn_hub_loose_P5_R10_seed9       igvnd_wMK   heuristic_     7071.50      70.50      21.50     0         -      60.0
+  scn_hub_loose_P5_R10_seed9       igvnd_wDLY  heuristic_      538.50      76.50       4.50    12         -      60.0
+  scn_hub_loose_P5_R10_seed9       igvnd_wMOV  heuristic_       79.50      71.50       8.00     0         -      60.0
+  scn_chain_medium_P5_R10_seed10   igvnd_wMK   heuristic_     6625.50      65.50      65.50    10         -      60.0
+  scn_chain_medium_P5_R10_seed10   igvnd_wDLY  heuristic_     6030.50      70.50      59.50    10         -      60.1
+  scn_chain_medium_P5_R10_seed10   igvnd_wMOV  heuristic_      147.00      70.50      76.50     0         -      60.1
+==================================================================
