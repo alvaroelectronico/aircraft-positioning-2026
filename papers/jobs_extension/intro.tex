@@ -3,70 +3,12 @@
 \label{sec:intro}
 % ==============================================================================
 
-Keeping a commercial aircraft fleet airworthy requires a continual
-programme of scheduled maintenance, most of which is carried out in hangars
-whose parking capacity is limited and costly.  A hangar's parking positions
-are therefore a scarce and tightly constrained resource, and their physical
-layout adds a further complication: an aircraft parked at a \emph{front}
-position physically blocks the access path of any aircraft parked at the
-\emph{rear} positions behind it, so servicing the rear aircraft may require
-temporarily towing the front one out of the way and returning it once the
-manoeuvre is complete.  Each such manoeuvre occupies the ground crew,
-interrupts ongoing service, and carries a non-negligible risk of damage, so
-an operator wants to schedule the fleet to finish on time while keeping
-makespan and the number of manoeuvres low.
+Keeping a commercial aircraft fleet airworthy requires a continual programme of scheduled maintenance \citep{ahmadi2010aircraft}, with the more extensive scheduled maintenance checks being carried out in hangars whose capacity is limited and costly \citep{Qin2020,WEIDE2022105667}. Thus, a hangar's parking positions become a scarce and tightly constrained resource \citep{aerospace8040113}. In addition, it is a resource whose physical layout adds a further complication: an aircraft parked at a \emph{front} position physically blocks the access path of any aircraft parked at the \emph{rear} positions behind it, so servicing the rear aircraft may require temporarily towing the front one out of the way and returning it once the manoeuvre is complete. Each such manoeuvre occupies the ground crew, interrupts ongoing service, and carries a non-negligible risk of damage, so an operator wants to schedule the fleet to finish on time while keeping not only makespan but also the number of manoeuvres low.
 
-The work performed on an aircraft is not monolithic: it is a \emph{chain of
-jobs} with individual durations, and some of those jobs can be paused
-briefly to clear the way for a neighbouring movement while others cannot.
-Whether a rear aircraft can be accessed while a front aircraft is being
-serviced therefore depends precisely on \emph{which job} the front aircraft
-is running at that instant: an access that falls in an inter-job gap is
-cheap, one that falls inside an interruptible job costs a bounded
-extension, and one that falls inside a non-interruptible job is simply
-impossible.  These distinctions determine both the feasibility and the cost
-of every manoeuvre, so treating them faithfully is essential --- and it is
-what this paper sets out to do.
+In practice, the maintenance work to be scheduled is not monolithic at the aircraft level: it is a \emph{chain of jobs} with individual durations, possible precedence constraints, and specific characteristics for each of those jobs \citep{junqueira2020procedure,Ohman2021}. In particular, with regard to hangar access, some of them can be paused briefly to clear the way for a neighbouring movement, while others cannot. Whether a rear aircraft can be accessed while a front aircraft is being serviced therefore depends precisely on \emph{which job} the front aircraft is running at that instant. In this regard, three scenarios arise: (i) an access that falls in an inter-job gap is cheap, (ii) one that falls inside an interruptible job costs a bounded extension, and (iii) one that falls inside a non-interruptible job is simply impossible. These distinctions determine both the feasibility and the cost of every manoeuvre, so treating them faithfully is essential.
 
-The problem combines two classical strands of the scheduling literature.
-From machine scheduling with blocking~\citep{HallSriskandarajah1996,
-MascisPacciarelli2002} it inherits the defining trait that a scheduled
-entity can deny a resource to others even while no work is being performed
-on it; from resource-constrained project
-scheduling~\citep{Blazewicz1983} it takes the precedence-linked chain of
-jobs that each aircraft carries.  It differs, however, from the spatial
-scheduling formulations used for hangar planning, which couple geometric
-non-overlap --- No-Fit Polygons, safety distances, or taxi-route
-capacities --- to the start-time decisions~\citep{Qin2019, Pazhooh2025}:
-here the geometry is compiled once into a fixed directed blocking graph
-over positions, and the interference it induces is temporal and
-task-dependent --- it binds only at the two access instants of the rear
-aircraft, with a severity that depends on which job the front aircraft is
-running at those instants.
+This work presents the first aircraft hangar maintenance scheduling problem that combines sufficient granularity in the individual jobs to be performed with an accurate model of the hangar layout that captures the complexity of accessing jobs on blocked aircraft. This problem combines two classical strands of the scheduling literature. On the one hand, from machine scheduling with blocking \citep{HallSriskandarajah1996,MascisPacciarelli2002} it inherits the defining trait that a scheduled entity can deny a resource to others even while no work is being performed on it. Here, the blocked resource is an \emph{access path}, and blocking can occur only at the two moments when the rear aircraft must be accessed: at the beginning and at the end of maintenance. This blocking, as explained above, depends on the task being performed on the front aircraft, establishing a priced and bounded form of interruption that differs from the free preemption of classical scheduling theory \citep{Pinedo2016}. On the other hand, from resource-constrained project scheduling it takes not only the precedence-linked chain of jobs that each aircraft carries \citep{Blazewicz1983}, but also the joint management of space and time \citep{Lee1997}. In our model, rather than a continuous two- or three-dimensional resource that activities \emph{consume} \citep{Zhang2024}, space is discretised into positions, and its effect is not only a capacity limit, but also a task-dependent denial of access.
 
-We make two contributions.  First, we give an exact mixed-integer linear
-programming (MILP) formulation of the problem
-(\S\ref{sec:milp}).  Its central device is a partition constraint that
-classifies every access of a blocked aircraft into exactly one of four
-mutually exclusive states --- before the front stay, after it, in an
-inter-job gap (Mode~B), or strictly inside an interruptible job (Mode~C)
---- so that an access which cannot be classified, because its blocker is
-mid-way through a non-interruptible job, is correctly rendered infeasible.
-Second, we develop a metaheuristic, \textsc{IGVND} (\S\ref{sec:heuristic}),
-that couples an Iterated-Greedy outer loop with a first-improvement
-neighbourhood-descent local search around a problem-specific decoder,
-separating the
-combinatorial assignment-and-ordering decision from the timing decision and
-pricing the former with a fast deterministic schedule builder.
+To solve the problem presented, we propose two complementary approaches. First, we give an exact mixed-integer linear programming (MILP) formulation of the problem. This formulation is built on disjunctive big-$M$ constraints over time windows and conflict indicators ---widely used in adjacent domains \citep{Mao2018, Chen2019, Lee2024, Baya2022}---, and a continuous-time design ---reported to offer advantages over discrete-time design in similar MILP formulations \citep{MunozDiaz2025}. Its central device is a partition constraint that classifies every access of a rear aircraft whose path is blocked by a front aircraft into exactly one of four mutually exclusive states ---before the front aircraft enters its position, after it leaves, in an inter-job gap of the front aircraft, or strictly inside one of its interruptible jobs--- so that an access which cannot be classified, because the front aircraft is mid-way through a non-interruptible job, is correctly rendered infeasible. Second, we develop a metaheuristic, \textsc{IGVND}, that couples an Iterated-Greedy outer loop with a first-improvement neighbourhood-descent local search around a problem-specific decoder, separating the combinatorial assignment-and-ordering decision from the timing decision and pricing the former with a fast deterministic schedule builder.
 
-We then compare the two methods on a controlled 370-instance benchmark that
-spans four blocking topologies, four fleet sizes and three slack levels,
-under three weight profiles that each isolate one objective term
-(\S\ref{sec:experiments}).  The exact solver plays a dual role: it is the
-\emph{yardstick} that certifies the heuristic's quality on the instances it
-can solve to optimality, and the \emph{baseline} it competes against on the
-instances it cannot.  The comparison shows that IGVND is exact or
-near-exact wherever the MILP proves optimality, and that it delivers
-substantially better feasible solutions in the same time budget on every
-configuration beyond the exact solver's tractability frontier --- which is
-the regime an operator faces at realistic scale.
+The remainder of the paper is organized as follows: Section \ref{sec:lit_review} reviews the aircraft maintenance scheduling literature, establishing the novelty of the proposed problem. Section \ref{sec:problem} provides a detailed description of the problem addressed in this paper. Sections \ref{sec:milp} and \ref{sec:heuristic} describe the exact and approximate methods, respectively. Section \ref{sec:experiments} reports and discusses the computational results. Finally, Section \ref{sec:conclusions} summarizes the conclusions of the work.
