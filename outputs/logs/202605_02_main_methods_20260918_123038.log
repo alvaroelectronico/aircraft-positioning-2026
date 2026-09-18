@@ -1,0 +1,82 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (4 experiments)
+  Code state (git): f45da16+dirty
+  Instance order  : by seed, then config (seed1 of all types first)
+==================================================================
+  Shared parameters:
+    weight_makespan=0.1           time_limit_s=60
+    weight_delay=1.0              MIPGap=0.0
+    weight_movements=10           NoRelHeurTime=0
+
+  Per-experiment parameters:
+  Label          Solver                            alpha  weight_topology  n_starts  seed
+  ---------------------------------------------------------------------------------------
+  topology_ms6   TopologyHeuristicAircraft         0.3    1                6         1   
+  fas_on_topo    FixedAssignmentSchedulerAircraft  —      —                —         —   
+  fas_2cand      FixedAssignmentSchedulerAircraft  —      —                —         —   
+  safe_pipeline  FixedAssignmentSchedulerAircraft  —      —                —         —   
+==================================================================
+
+
+==================================================================
+  HEURISTIC vs MILP  —  relative gap per instance type
+  gap = (MILP_obj - heuristic_obj) / MILP_obj
+  gap > 0  =>  heuristic BETTER (lower objective);  < 0  => worse
+  heuristic: igvnd_wMK / igvnd_wDLY / igvnd_wMOV   (MILP rows from cache)
+==================================================================
+  -- Relative objective gap, by weight profile --
+  [wMK  (100/1/1  makespan-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wDLY  (1/100/1  delay-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wMOV  (1/1/100  movement-priority)]
+    (no paired MILP/heuristic results yet)
+
+  -- Relative objective gap, aggregated over all profiles --
+  [ALL profiles]
+    (no paired MILP/heuristic results yet)
+
+  -- Per-component mean Δ (heuristic − MILP); negative = heuristic better --
+  -- (relative gap is distorted when the optimum delay ≈ 0; read these too)
+  [wMK  (100/1/1  makespan-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wDLY  (1/100/1  delay-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wMOV  (1/1/100  movement-priority)]
+    (no paired MILP/heuristic results yet)
+
+==================================================================
+
+
+==================================================================
+  SUMMARY  —  15 ok  /  5 failed  /  20 total
+==================================================================
+  Instance                         Experiment     Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  ----------------------------------------------------------------------------------------------------------------------
+  scn_triangle_loose_P5_R10_seed3  topology_ms6   topology (       21.45      69.50      14.50     0         -      60.0
+  scn_triangle_loose_P5_R10_seed3  fas_on_topo    optimal          21.45      69.50      14.50     0     0.00%       0.4
+  scn_triangle_loose_P5_R10_seed3  safe_pipeline  topology (       21.45      69.50      14.50     0         -       0.0
+  scn_triangle_loose_P5_R10_seed5  topology_ms6   topology (       16.50      75.00       9.00     0         -      60.0
+  scn_triangle_loose_P5_R10_seed5  fas_on_topo    optimal          16.50      75.00       9.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R10_seed5  safe_pipeline  topology (       16.50      75.00       9.00     0         -       0.0
+  scn_triangle_tight_P5_R5_seed5   topology_ms6   topology (        4.20      32.00       1.00     0         -      60.0
+  scn_triangle_tight_P5_R5_seed5   fas_on_topo    optimal           4.20      32.00       1.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed5   safe_pipeline  topology (        4.20      32.00       1.00     0         -       0.0
+  scn_triangle_loose_P5_R10_seed6  topology_ms6   topology (       45.60      76.00      38.00     0         -      60.0
+  scn_triangle_loose_P5_R10_seed6  fas_on_topo    optimal          45.60      76.00      38.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R10_seed6  safe_pipeline  topology (       45.60      76.00      38.00     0         -       0.0
+  scn_triangle_loose_P5_R10_seed9  topology_ms6   topology (       10.15      76.50       2.50     0         -      60.0
+  scn_triangle_loose_P5_R10_seed9  fas_on_topo    optimal          10.15      76.50       2.50     0     0.00%       0.1
+  scn_triangle_loose_P5_R10_seed9  safe_pipeline  topology (       10.15      76.50       2.50     0         -       0.0
+
+  Failed runs:
+    x scn_triangle_loose_P5_R10_seed3  ·  fas_2cand  ->  No module named 'solvers'
+    x scn_triangle_loose_P5_R10_seed5  ·  fas_2cand  ->  No module named 'solvers'
+    x scn_triangle_tight_P5_R5_seed5  ·  fas_2cand  ->  No module named 'solvers'
+    x scn_triangle_loose_P5_R10_seed6  ·  fas_2cand  ->  No module named 'solvers'
+    x scn_triangle_loose_P5_R10_seed9  ·  fas_2cand  ->  No module named 'solvers'
+==================================================================

@@ -1,0 +1,542 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (4 experiments)
+  Code state (git): 721f9b5
+  Instance order  : by seed, then config (seed1 of all types first)
+==================================================================
+  Shared parameters:
+    weight_makespan=0.1           time_limit_s=60
+    weight_delay=1.0              MIPGap=0.0
+    weight_movements=10           NoRelHeurTime=0
+
+  Per-experiment parameters:
+  Label          Solver                            alpha  weight_topology  n_starts  seed
+  ---------------------------------------------------------------------------------------
+  topology_ms6   TopologyHeuristicAircraft         0.3    1                6         1   
+  fas_on_topo    FixedAssignmentSchedulerAircraft  —      —                —         —   
+  fas_2cand      FixedAssignmentSchedulerAircraft  —      —                —         —   
+  safe_pipeline  FixedAssignmentSchedulerAircraft  —      —                —         —   
+==================================================================
+
+
+==================================================================
+  HEURISTIC vs MILP  —  relative gap per instance type
+  gap = (MILP_obj - heuristic_obj) / MILP_obj
+  gap > 0  =>  heuristic BETTER (lower objective);  < 0  => worse
+  heuristic: igvnd_wMK / igvnd_wDLY / igvnd_wMOV   (MILP rows from cache)
+==================================================================
+  -- Relative objective gap, by weight profile --
+  [wMK  (100/1/1  makespan-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wDLY  (1/100/1  delay-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wMOV  (1/1/100  movement-priority)]
+    (no paired MILP/heuristic results yet)
+
+  -- Relative objective gap, aggregated over all profiles --
+  [ALL profiles]
+    (no paired MILP/heuristic results yet)
+
+  -- Per-component mean Δ (heuristic − MILP); negative = heuristic better --
+  -- (relative gap is distorted when the optimum delay ≈ 0; read these too)
+  [wMK  (100/1/1  makespan-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wDLY  (1/100/1  delay-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wMOV  (1/1/100  movement-priority)]
+    (no paired MILP/heuristic results yet)
+
+==================================================================
+
+
+==================================================================
+  SUMMARY  —  434 ok  /  46 failed  /  480 total
+==================================================================
+  Instance                           Experiment     Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  ------------------------------------------------------------------------------------------------------------------------
+  scn_chain_tight_P5_R10_seed1       topology_ms6   topology (      155.45      84.50     147.00     0         -      60.0
+  scn_chain_tight_P5_R10_seed1       fas_on_topo    optimal         155.45      84.50     147.00     0     0.00%       0.1
+  scn_chain_tight_P5_R10_seed1       fas_2cand      optimal         168.10      86.00     159.50     0     0.00%       1.0
+  scn_chain_tight_P5_R10_seed1       safe_pipeline  topology (      155.45      84.50     147.00     0         -       0.0
+  scn_full_tight_P5_R10_seed1        topology_ms6   topology (      138.85      63.50     132.50     0         -      60.0
+  scn_full_tight_P5_R10_seed1        fas_on_topo    optimal         138.85      63.50     132.50     0     0.00%       0.2
+  scn_full_tight_P5_R10_seed1        safe_pipeline  topology (      138.85      63.50     132.50     0         -       0.0
+  scn_full_tight_P5_R20_seed1        topology_ms6   topology (      907.85     138.50     894.00     0         -      60.0
+  scn_full_tight_P5_R20_seed1        safe_pipeline  topology (      907.85     138.50     894.00     0         -       0.0
+  scn_hub_tight_P5_R10_seed1         topology_ms6   topology (      117.75      62.50     111.50     0         -      60.0
+  scn_hub_tight_P5_R10_seed1         fas_on_topo    optimal         117.75      62.50     111.50     0     0.00%       0.1
+  scn_hub_tight_P5_R10_seed1         fas_2cand      optimal         117.55      60.50     111.50     0     0.00%       2.1
+  scn_hub_tight_P5_R10_seed1         safe_pipeline  optimal         117.55      60.50     111.50     0         -       0.0
+  scn_none_tight_P5_R10_seed1        topology_ms6   topology (       99.35      58.50      93.50     0         -      60.0
+  scn_none_tight_P5_R10_seed1        fas_on_topo    optimal          99.35      58.50      93.50     0     0.00%       0.0
+  scn_none_tight_P5_R10_seed1        fas_2cand      optimal          99.35      58.50      93.50     0     0.00%       0.2
+  scn_none_tight_P5_R10_seed1        safe_pipeline  topology (       99.35      58.50      93.50     0         -       0.0
+  scn_triangle_loose_P5_R10_seed1    topology_ms6   topology (       10.45      59.50       4.50     0         -      60.0
+  scn_triangle_loose_P5_R10_seed1    fas_on_topo    optimal          10.45      59.50       4.50     0     0.00%       0.0
+  scn_triangle_loose_P5_R10_seed1    fas_2cand      optimal          34.10      66.00      27.50     0     0.00%       0.2
+  scn_triangle_loose_P5_R10_seed1    safe_pipeline  topology (       10.45      59.50       4.50     0         -       0.0
+  scn_triangle_medium_P5_R10_seed1   topology_ms6   topology (       61.35      58.50      55.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed1   fas_on_topo    optimal          61.35      58.50      55.50     0     0.00%       0.0
+  scn_triangle_medium_P5_R10_seed1   fas_2cand      optimal          81.75      62.50      75.50     0     0.00%       0.9
+  scn_triangle_medium_P5_R10_seed1   safe_pipeline  topology (       61.35      58.50      55.50     0         -       0.0
+  scn_triangle_tight_P5_R10_seed1    topology_ms6   topology (      102.35      58.50      96.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed1    fas_on_topo    optimal         102.35      58.50      96.50     0     0.00%       0.0
+  scn_triangle_tight_P5_R10_seed1    fas_2cand      optimal         128.75      62.50     122.50     0     0.00%       0.9
+  scn_triangle_tight_P5_R10_seed1    safe_pipeline  topology (      102.35      58.50      96.50     0         -       0.0
+  scn_triangle_tight_P5_R20_seed1    topology_ms6   topology (      640.35     133.50     627.00     0         -      60.0
+  scn_triangle_tight_P5_R20_seed1    fas_on_topo    optimal         640.35     133.50     627.00     0     0.00%      10.2
+  scn_triangle_tight_P5_R20_seed1    safe_pipeline  topology (      640.35     133.50     627.00     0         -       0.0
+  scn_triangle_tight_P5_R30_seed1    topology_ms6   topology (     2136.75     252.50    2111.50     0         -      60.0
+  scn_triangle_tight_P5_R30_seed1    fas_on_topo    maxTimeLim     2205.40     234.00    2042.00    14    35.66%      60.2
+  scn_triangle_tight_P5_R30_seed1    safe_pipeline  topology (     2136.75     252.50    2111.50     0         -       0.0
+  scn_triangle_tight_P5_R5_seed1     topology_ms6   topology (        3.00      30.00       0.00     0         -      60.0
+  scn_triangle_tight_P5_R5_seed1     fas_on_topo    optimal           3.00      30.00       0.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed1     fas_2cand      optimal           5.00      30.00       2.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed1     safe_pipeline  topology (        3.00      30.00       0.00     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed1    topology_ms6   topology (      101.35      58.50      95.50     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed1    fas_on_topo    optimal         101.35      58.50      95.50     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed1    fas_2cand      optimal         130.75      62.50     124.50     0     0.00%       0.5
+  scn_two_rows_tight_P5_R10_seed1    safe_pipeline  topology (      101.35      58.50      95.50     0         -       0.0
+  scn_chain_tight_P5_R10_seed2       topology_ms6   topology (      168.95     104.50     158.50     0         -      60.0
+  scn_chain_tight_P5_R10_seed2       fas_on_topo    optimal         168.95     104.50     158.50     0     0.00%       0.1
+  scn_chain_tight_P5_R10_seed2       fas_2cand      optimal         349.10     171.00     332.00     0     0.00%       2.5
+  scn_chain_tight_P5_R10_seed2       safe_pipeline  topology (      168.95     104.50     158.50     0         -       0.0
+  scn_full_tight_P5_R10_seed2        topology_ms6   topology (      148.95      74.50     141.50     0         -      60.0
+  scn_full_tight_P5_R10_seed2        fas_on_topo    optimal         148.95      74.50     141.50     0     0.00%       0.1
+  scn_full_tight_P5_R10_seed2        safe_pipeline  topology (      148.95      74.50     141.50     0         -       0.0
+  scn_full_tight_P5_R20_seed2        topology_ms6   topology (      839.65     161.50     823.50     0         -      60.0
+  scn_full_tight_P5_R20_seed2        safe_pipeline  topology (      839.65     161.50     823.50     0         -       0.0
+  scn_hub_tight_P5_R10_seed2         topology_ms6   topology (      132.55      70.50     125.50     0         -      60.0
+  scn_hub_tight_P5_R10_seed2         fas_on_topo    optimal         132.55      70.50     125.50     0     0.00%       0.0
+  scn_hub_tight_P5_R10_seed2         fas_2cand      optimal         132.55      70.50     125.50     0     0.00%       1.3
+  scn_hub_tight_P5_R10_seed2         safe_pipeline  topology (      132.55      70.50     125.50     0         -       0.0
+  scn_none_tight_P5_R10_seed2        topology_ms6   topology (      115.25      67.50     108.50     0         -      60.0
+  scn_none_tight_P5_R10_seed2        fas_on_topo    optimal         115.25      67.50     108.50     0     0.00%       0.0
+  scn_none_tight_P5_R10_seed2        fas_2cand      optimal         115.25      67.50     108.50     0     0.00%       0.1
+  scn_none_tight_P5_R10_seed2        safe_pipeline  topology (      115.25      67.50     108.50     0         -       0.0
+  scn_triangle_loose_P5_R10_seed2    topology_ms6   topology (        7.15      71.50       0.00     0         -      60.0
+  scn_triangle_loose_P5_R10_seed2    fas_on_topo    optimal           7.15      71.50       0.00     0     0.00%       0.0
+  scn_triangle_loose_P5_R10_seed2    fas_2cand      optimal           7.65      71.50       0.50     0     0.00%       0.1
+  scn_triangle_loose_P5_R10_seed2    safe_pipeline  topology (        7.15      71.50       0.00     0         -       0.0
+  scn_triangle_medium_P5_R10_seed2   topology_ms6   topology (       68.65      71.50      61.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed2   fas_on_topo    optimal          68.65      71.50      61.50     0     0.00%       0.0
+  scn_triangle_medium_P5_R10_seed2   fas_2cand      optimal          80.20      72.00      73.00     0     0.00%       0.3
+  scn_triangle_medium_P5_R10_seed2   safe_pipeline  topology (       68.65      71.50      61.50     0         -       0.0
+  scn_triangle_tight_P5_R10_seed2    topology_ms6   topology (      120.65      71.50     113.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed2    fas_on_topo    optimal         120.65      71.50     113.50     0     0.00%       0.0
+  scn_triangle_tight_P5_R10_seed2    fas_2cand      optimal         146.20      72.00     119.00     2     0.00%       0.4
+  scn_triangle_tight_P5_R10_seed2    safe_pipeline  topology (      120.65      71.50     113.50     0         -       0.0
+  scn_triangle_tight_P5_R20_seed2    topology_ms6   topology (      680.75     127.50     648.00     2         -      60.0
+  scn_triangle_tight_P5_R20_seed2    fas_on_topo    optimal         680.75     127.50     648.00     2     0.00%      49.8
+  scn_triangle_tight_P5_R20_seed2    safe_pipeline  topology (      680.75     127.50     648.00     2         -       0.0
+  scn_triangle_tight_P5_R30_seed2    topology_ms6   topology (     2089.50     245.00    2065.00     0         -      60.0
+  scn_triangle_tight_P5_R30_seed2    fas_on_topo    maxTimeLim     2354.90     269.00    2148.00    18    39.72%      60.2
+  scn_triangle_tight_P5_R30_seed2    safe_pipeline  topology (     2089.50     245.00    2065.00     0         -       0.0
+  scn_triangle_tight_P5_R5_seed2     topology_ms6   topology (        3.70      37.00       0.00     0         -      60.0
+  scn_triangle_tight_P5_R5_seed2     fas_on_topo    optimal           3.70      37.00       0.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed2     fas_2cand      optimal           3.70      37.00       0.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed2     safe_pipeline  topology (        3.70      37.00       0.00     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed2    topology_ms6   topology (      118.65      71.50     111.50     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed2    fas_on_topo    optimal         118.65      71.50     111.50     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed2    fas_2cand      optimal         166.00     105.00     155.50     0     0.00%       0.3
+  scn_two_rows_tight_P5_R10_seed2    safe_pipeline  topology (      118.65      71.50     111.50     0         -       0.0
+  scn_chain_tight_P5_R10_seed3       topology_ms6   topology (      159.35      73.50     152.00     0         -      60.0
+  scn_chain_tight_P5_R10_seed3       fas_on_topo    optimal         159.35      73.50     152.00     0     0.00%       0.1
+  scn_chain_tight_P5_R10_seed3       fas_2cand      optimal         313.75     142.50     299.50     0     0.00%       5.0
+  scn_chain_tight_P5_R10_seed3       safe_pipeline  topology (      159.35      73.50     152.00     0         -       0.0
+  scn_full_tight_P5_R10_seed3        topology_ms6   topology (      143.05      65.50     136.50     0         -      60.0
+  scn_full_tight_P5_R10_seed3        fas_on_topo    optimal         143.05      65.50     136.50     0     0.00%       0.1
+  scn_full_tight_P5_R10_seed3        safe_pipeline  topology (      143.05      65.50     136.50     0         -       0.0
+  scn_full_tight_P5_R20_seed3        topology_ms6   topology (      952.60     176.00     935.00     0         -      60.0
+  scn_full_tight_P5_R20_seed3        safe_pipeline  topology (      952.60     176.00     935.00     0         -       0.0
+  scn_hub_tight_P5_R10_seed3         topology_ms6   topology (      139.15      66.50     132.50     0         -      60.0
+  scn_hub_tight_P5_R10_seed3         fas_on_topo    optimal         139.15      66.50     132.50     0     0.00%       0.1
+  scn_hub_tight_P5_R10_seed3         fas_2cand      optimal         139.15      66.50     132.50     0     0.00%       1.2
+  scn_hub_tight_P5_R10_seed3         safe_pipeline  topology (      139.15      66.50     132.50     0         -       0.0
+  scn_none_tight_P5_R10_seed3        topology_ms6   topology (      103.75      62.50      97.50     0         -      60.0
+  scn_none_tight_P5_R10_seed3        fas_on_topo    optimal         103.75      62.50      97.50     0     0.00%       0.0
+  scn_none_tight_P5_R10_seed3        fas_2cand      optimal         103.75      62.50      97.50     0     0.00%       0.2
+  scn_none_tight_P5_R10_seed3        safe_pipeline  topology (      103.75      62.50      97.50     0         -       0.0
+  scn_triangle_loose_P5_R10_seed3    topology_ms6   topology (        9.55      65.50       3.00     0         -      60.0
+  scn_triangle_loose_P5_R10_seed3    fas_on_topo    optimal           9.55      65.50       3.00     0     0.00%       0.0
+  scn_triangle_loose_P5_R10_seed3    fas_2cand      optimal           9.55      65.50       3.00     0     0.00%       0.0
+  scn_triangle_loose_P5_R10_seed3    safe_pipeline  topology (        9.55      65.50       3.00     0         -       0.0
+  scn_triangle_medium_P5_R10_seed3   topology_ms6   topology (       61.95      64.50      55.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed3   fas_on_topo    optimal          61.95      64.50      55.50     0     0.00%       0.0
+  scn_triangle_medium_P5_R10_seed3   fas_2cand      optimal         126.15      96.50      96.50     2     0.00%       0.7
+  scn_triangle_medium_P5_R10_seed3   safe_pipeline  topology (       61.95      64.50      55.50     0         -       0.0
+  scn_triangle_tight_P5_R10_seed3    topology_ms6   topology (      109.95      64.50     103.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed3    fas_on_topo    optimal         109.95      64.50     103.50     0     0.00%       0.0
+  scn_triangle_tight_P5_R10_seed3    fas_2cand      optimal         174.15      96.50     144.50     2     0.00%       0.5
+  scn_triangle_tight_P5_R10_seed3    safe_pipeline  topology (      109.95      64.50     103.50     0         -       0.0
+  scn_triangle_tight_P5_R20_seed3    topology_ms6   topology (      733.55     140.50     719.50     0         -      60.0
+  scn_triangle_tight_P5_R20_seed3    fas_on_topo    optimal         733.55     140.50     719.50     0     0.00%      29.1
+  scn_triangle_tight_P5_R20_seed3    fas_2cand      maxTimeLim      811.45     174.50     794.00     0    37.32%      60.2
+  scn_triangle_tight_P5_R20_seed3    safe_pipeline  topology (      733.55     140.50     719.50     0         -       0.0
+  scn_triangle_tight_P5_R30_seed3    topology_ms6   topology (     2110.80     233.00    2027.50     6         -      60.0
+  scn_triangle_tight_P5_R30_seed3    fas_on_topo    maxTimeLim     2192.00     230.00    2049.00    12    27.50%      60.2
+  scn_triangle_tight_P5_R30_seed3    safe_pipeline  topology (     2110.80     233.00    2027.50     6         -       0.0
+  scn_triangle_tight_P5_R5_seed3     topology_ms6   topology (        3.10      31.00       0.00     0         -      60.0
+  scn_triangle_tight_P5_R5_seed3     fas_on_topo    optimal           3.10      31.00       0.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed3     fas_2cand      optimal           3.10      31.00       0.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed3     safe_pipeline  topology (        3.10      31.00       0.00     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed3    topology_ms6   topology (      105.75      62.50      99.50     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed3    fas_on_topo    optimal         105.75      62.50      99.50     0     0.00%       0.3
+  scn_two_rows_tight_P5_R10_seed3    fas_2cand      optimal         186.10      96.00     156.50     2     0.00%       0.8
+  scn_two_rows_tight_P5_R10_seed3    safe_pipeline  topology (      105.75      62.50      99.50     0         -       0.0
+  scn_chain_tight_P5_R10_seed4       topology_ms6   topology (      174.20      92.00     165.00     0         -      60.0
+  scn_chain_tight_P5_R10_seed4       fas_on_topo    optimal         174.20      92.00     165.00     0     0.00%       0.2
+  scn_chain_tight_P5_R10_seed4       fas_2cand      optimal         276.85     133.50     223.50     4     0.00%       3.1
+  scn_chain_tight_P5_R10_seed4       safe_pipeline  topology (      174.20      92.00     165.00     0         -       0.0
+  scn_full_tight_P5_R10_seed4        topology_ms6   topology (      155.95      84.50     147.50     0         -      60.0
+  scn_full_tight_P5_R10_seed4        fas_on_topo    optimal         155.95      84.50     147.50     0     0.00%       0.2
+  scn_full_tight_P5_R10_seed4        safe_pipeline  topology (      155.95      84.50     147.50     0         -       0.0
+  scn_full_tight_P5_R20_seed4        topology_ms6   topology (     1021.45     189.50    1002.50     0         -      60.0
+  scn_full_tight_P5_R20_seed4        safe_pipeline  topology (     1021.45     189.50    1002.50     0         -       0.0
+  scn_hub_tight_P5_R10_seed4         topology_ms6   topology (      132.15      76.50     124.50     0         -      60.0
+  scn_hub_tight_P5_R10_seed4         fas_on_topo    optimal         132.15      76.50     124.50     0     0.00%       0.0
+  scn_hub_tight_P5_R10_seed4         fas_2cand      optimal         132.15      76.50     124.50     0     0.00%       1.7
+  scn_hub_tight_P5_R10_seed4         safe_pipeline  topology (      132.15      76.50     124.50     0         -       0.0
+  scn_none_tight_P5_R10_seed4        topology_ms6   topology (      122.75      72.50     115.50     0         -      60.0
+  scn_none_tight_P5_R10_seed4        fas_on_topo    optimal         122.75      72.50     115.50     0     0.00%       0.0
+  scn_none_tight_P5_R10_seed4        fas_2cand      optimal         122.75      72.50     115.50     0     0.00%       0.2
+  scn_none_tight_P5_R10_seed4        safe_pipeline  topology (      122.75      72.50     115.50     0         -       0.0
+  scn_triangle_loose_P5_R10_seed4    topology_ms6   topology (        8.65      81.50       0.50     0         -      60.0
+  scn_triangle_loose_P5_R10_seed4    fas_on_topo    optimal           8.65      81.50       0.50     0     0.00%       0.0
+  scn_triangle_loose_P5_R10_seed4    fas_2cand      optimal          35.60      81.00       7.50     2     0.00%       0.2
+  scn_triangle_loose_P5_R10_seed4    safe_pipeline  topology (        8.65      81.50       0.50     0         -       0.0
+  scn_triangle_medium_P5_R10_seed4   topology_ms6   topology (       76.15      76.50      68.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed4   fas_on_topo    optimal          76.15      76.50      68.50     0     0.00%       0.0
+  scn_triangle_medium_P5_R10_seed4   fas_2cand      optimal         129.65     111.50     118.50     0     0.00%       0.6
+  scn_triangle_medium_P5_R10_seed4   safe_pipeline  topology (       76.15      76.50      68.50     0         -       0.0
+  scn_triangle_tight_P5_R10_seed4    topology_ms6   topology (      127.15      76.50     119.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed4    fas_on_topo    optimal         127.15      76.50     119.50     0     0.00%       0.0
+  scn_triangle_tight_P5_R10_seed4    fas_2cand      optimal         157.15      76.50     129.50     2     0.00%       0.7
+  scn_triangle_tight_P5_R10_seed4    safe_pipeline  topology (      127.15      76.50     119.50     0         -       0.0
+  scn_triangle_tight_P5_R20_seed4    topology_ms6   topology (      725.15     136.50     711.50     0         -      60.0
+  scn_triangle_tight_P5_R20_seed4    fas_on_topo    optimal         725.15     136.50     711.50     0     0.00%      50.1
+  scn_triangle_tight_P5_R20_seed4    fas_2cand      maxTimeLim      833.35     183.50     775.00     4    37.13%      60.2
+  scn_triangle_tight_P5_R20_seed4    safe_pipeline  topology (      725.15     136.50     711.50     0         -       0.0
+  scn_triangle_tight_P5_R30_seed4    topology_ms6   topology (     2181.35     223.50    2159.00     0         -      60.0
+  scn_triangle_tight_P5_R30_seed4    fas_on_topo    maxTimeLim     2333.35     223.50    2151.00    16    28.48%      60.2
+  scn_triangle_tight_P5_R30_seed4    safe_pipeline  topology (     2181.35     223.50    2159.00     0         -       0.0
+  scn_triangle_tight_P5_R5_seed4     topology_ms6   topology (        4.40      44.00       0.00     0         -      60.0
+  scn_triangle_tight_P5_R5_seed4     fas_on_topo    optimal           4.40      44.00       0.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed4     fas_2cand      optimal           4.40      44.00       0.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed4     safe_pipeline  topology (        4.40      44.00       0.00     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed4    topology_ms6   topology (      122.75      72.50     115.50     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed4    fas_on_topo    optimal         122.75      72.50     115.50     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed4    fas_2cand      optimal         141.10      81.00     133.00     0     0.00%       0.5
+  scn_two_rows_tight_P5_R10_seed4    safe_pipeline  topology (      122.75      72.50     115.50     0         -       0.0
+  scn_chain_tight_P5_R10_seed5       topology_ms6   topology (      129.90      79.00     122.00     0         -      60.0
+  scn_chain_tight_P5_R10_seed5       fas_on_topo    optimal         129.90      79.00     122.00     0     0.00%       0.1
+  scn_chain_tight_P5_R10_seed5       fas_2cand      optimal         243.55      95.50     214.00     2     0.00%       1.8
+  scn_chain_tight_P5_R10_seed5       safe_pipeline  topology (      129.90      79.00     122.00     0         -       0.0
+  scn_full_tight_P5_R10_seed5        topology_ms6   topology (      152.25      67.50     145.50     0         -      60.0
+  scn_full_tight_P5_R10_seed5        fas_on_topo    optimal         136.25      67.50     129.50     0     0.00%       0.1
+  scn_full_tight_P5_R10_seed5        safe_pipeline  optimal         136.25      67.50     129.50     0         -       0.0
+  scn_full_tight_P5_R20_seed5        topology_ms6   topology (     1053.60     171.00    1016.50     2         -      60.0
+  scn_full_tight_P5_R20_seed5        safe_pipeline  topology (     1053.60     171.00    1016.50     2         -       0.0
+  scn_hub_tight_P5_R10_seed5         topology_ms6   topology (      109.65      61.50     103.50     0         -      60.0
+  scn_hub_tight_P5_R10_seed5         fas_on_topo    optimal         109.65      61.50     103.50     0     0.00%       0.0
+  scn_hub_tight_P5_R10_seed5         fas_2cand      optimal         109.55      60.50     103.50     0     0.00%       1.0
+  scn_hub_tight_P5_R10_seed5         safe_pipeline  optimal         109.55      60.50     103.50     0         -       0.0
+  scn_none_tight_P5_R10_seed5        topology_ms6   topology (       91.05      55.50      85.50     0         -      60.0
+  scn_none_tight_P5_R10_seed5        fas_on_topo    optimal          91.05      55.50      85.50     0     0.00%       0.0
+  scn_none_tight_P5_R10_seed5        fas_2cand      optimal          91.05      55.50      85.50     0     0.00%       0.2
+  scn_none_tight_P5_R10_seed5        safe_pipeline  topology (       91.05      55.50      85.50     0         -       0.0
+  scn_triangle_loose_P5_R10_seed5    topology_ms6   topology (        5.95      59.50       0.00     0         -      60.0
+  scn_triangle_loose_P5_R10_seed5    fas_on_topo    optimal           5.95      59.50       0.00     0     0.00%       0.0
+  scn_triangle_loose_P5_R10_seed5    fas_2cand      optimal           7.75      62.50       1.50     0     0.00%       0.1
+  scn_triangle_loose_P5_R10_seed5    safe_pipeline  topology (        5.95      59.50       0.00     0         -       0.0
+  scn_triangle_medium_P5_R10_seed5   topology_ms6   topology (       50.35      58.50      44.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed5   fas_on_topo    optimal          50.35      58.50      44.50     0     0.00%       0.0
+  scn_triangle_medium_P5_R10_seed5   fas_2cand      optimal          50.35      58.50      44.50     0     0.00%       0.1
+  scn_triangle_medium_P5_R10_seed5   safe_pipeline  topology (       50.35      58.50      44.50     0         -       0.0
+  scn_triangle_tight_P5_R10_seed5    topology_ms6   topology (       94.25      57.50      88.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed5    fas_on_topo    optimal          94.25      57.50      88.50     0     0.00%       0.0
+  scn_triangle_tight_P5_R10_seed5    fas_2cand      optimal         163.75      92.50     154.50     0     0.00%       0.7
+  scn_triangle_tight_P5_R10_seed5    safe_pipeline  topology (       94.25      57.50      88.50     0         -       0.0
+  scn_triangle_tight_P5_R20_seed5    topology_ms6   topology (      706.40     134.00     693.00     0         -      60.0
+  scn_triangle_tight_P5_R20_seed5    fas_on_topo    maxTimeLim      684.45     134.50     651.00     2     7.26%      60.1
+  scn_triangle_tight_P5_R20_seed5    safe_pipeline  maxTimeLim      684.45     134.50     651.00     2         -       0.0
+  scn_triangle_tight_P5_R30_seed5    topology_ms6   topology (     2120.45     234.50    2097.00     0         -      60.0
+  scn_triangle_tight_P5_R30_seed5    fas_on_topo    maxTimeLim     2218.20     242.00    2114.00     8    22.84%      60.2
+  scn_triangle_tight_P5_R30_seed5    safe_pipeline  topology (     2120.45     234.50    2097.00     0         -       0.0
+  scn_triangle_tight_P5_R5_seed5     topology_ms6   topology (        3.20      32.00       0.00     0         -      60.0
+  scn_triangle_tight_P5_R5_seed5     fas_on_topo    optimal           3.20      32.00       0.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed5     fas_2cand      optimal           3.20      32.00       0.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed5     safe_pipeline  topology (        3.20      32.00       0.00     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed5    topology_ms6   topology (       94.15      56.50      88.50     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed5    fas_on_topo    optimal          94.15      56.50      88.50     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed5    fas_2cand      optimal         152.45      89.50     123.50     2     0.00%       0.5
+  scn_two_rows_tight_P5_R10_seed5    safe_pipeline  topology (       94.15      56.50      88.50     0         -       0.0
+  scn_chain_tight_P5_R10_seed6       topology_ms6   topology (      170.20      92.00     161.00     0         -      60.0
+  scn_chain_tight_P5_R10_seed6       fas_on_topo    optimal         170.20      92.00     161.00     0     0.00%       0.1
+  scn_chain_tight_P5_R10_seed6       fas_2cand      optimal         203.20      92.00     194.00     0     0.00%       1.2
+  scn_chain_tight_P5_R10_seed6       safe_pipeline  topology (      170.20      92.00     161.00     0         -       0.0
+  scn_full_tight_P5_R10_seed6        topology_ms6   topology (      148.45      69.50     141.50     0         -      60.0
+  scn_full_tight_P5_R10_seed6        fas_on_topo    optimal         148.45      69.50     141.50     0     0.00%       0.2
+  scn_full_tight_P5_R10_seed6        safe_pipeline  topology (      148.45      69.50     141.50     0         -       0.0
+  scn_full_tight_P5_R20_seed6        topology_ms6   topology (      972.70     182.00     954.50     0         -      60.0
+  scn_full_tight_P5_R20_seed6        safe_pipeline  topology (      972.70     182.00     954.50     0         -       0.0
+  scn_hub_tight_P5_R10_seed6         topology_ms6   topology (      125.95      64.50     119.50     0         -      60.0
+  scn_hub_tight_P5_R10_seed6         fas_on_topo    optimal         125.95      64.50     119.50     0     0.00%       0.0
+  scn_hub_tight_P5_R10_seed6         fas_2cand      optimal         125.95      64.50     119.50     0     0.00%       0.6
+  scn_hub_tight_P5_R10_seed6         safe_pipeline  topology (      125.95      64.50     119.50     0         -       0.0
+  scn_none_tight_P5_R10_seed6        topology_ms6   topology (      109.95      64.50     103.50     0         -      60.0
+  scn_none_tight_P5_R10_seed6        fas_on_topo    optimal         109.95      64.50     103.50     0     0.00%       0.0
+  scn_none_tight_P5_R10_seed6        fas_2cand      optimal         109.95      64.50     103.50     0     0.00%       0.1
+  scn_none_tight_P5_R10_seed6        safe_pipeline  topology (      109.95      64.50     103.50     0         -       0.0
+  scn_triangle_loose_P5_R10_seed6    topology_ms6   topology (        7.25      67.50       0.50     0         -      60.0
+  scn_triangle_loose_P5_R10_seed6    fas_on_topo    optimal           7.25      67.50       0.50     0     0.00%       0.1
+  scn_triangle_loose_P5_R10_seed6    fas_2cand      optimal          14.75      67.50       8.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R10_seed6    safe_pipeline  topology (        7.25      67.50       0.50     0         -       0.0
+  scn_triangle_medium_P5_R10_seed6   topology_ms6   topology (       69.95      64.50      63.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed6   fas_on_topo    optimal          69.95      64.50      63.50     0     0.00%       0.1
+  scn_triangle_medium_P5_R10_seed6   fas_2cand      optimal          99.45      69.50      92.50     0     0.00%       0.4
+  scn_triangle_medium_P5_R10_seed6   safe_pipeline  topology (       69.95      64.50      63.50     0         -       0.0
+  scn_triangle_tight_P5_R10_seed6    topology_ms6   topology (      113.95      64.50     107.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed6    fas_on_topo    optimal         113.95      64.50     107.50     0     0.00%       0.0
+  scn_triangle_tight_P5_R10_seed6    fas_2cand      optimal         117.95      64.50     111.50     0     0.00%       0.5
+  scn_triangle_tight_P5_R10_seed6    safe_pipeline  topology (      113.95      64.50     107.50     0         -       0.0
+  scn_triangle_tight_P5_R20_seed6    topology_ms6   topology (      651.45     124.50     639.00     0         -      60.0
+  scn_triangle_tight_P5_R20_seed6    fas_on_topo    optimal         635.05     120.50     623.00     0     0.00%      16.1
+  scn_triangle_tight_P5_R20_seed6    safe_pipeline  optimal         635.05     120.50     623.00     0         -       0.0
+  scn_triangle_tight_P5_R30_seed6    topology_ms6   topology (     2325.70     247.00    2301.00     0         -      60.0
+  scn_triangle_tight_P5_R30_seed6    fas_on_topo    maxTimeLim     2387.20     247.00    2302.50     6    23.91%      60.2
+  scn_triangle_tight_P5_R30_seed6    safe_pipeline  topology (     2325.70     247.00    2301.00     0         -       0.0
+  scn_triangle_tight_P5_R5_seed6     topology_ms6   topology (        3.90      39.00       0.00     0         -      60.0
+  scn_triangle_tight_P5_R5_seed6     fas_on_topo    optimal           3.90      39.00       0.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed6     fas_2cand      optimal          23.90      39.00       0.00     2     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed6     safe_pipeline  topology (        3.90      39.00       0.00     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed6    topology_ms6   topology (      112.95      64.50     106.50     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed6    fas_on_topo    optimal         112.95      64.50     106.50     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed6    fas_2cand      optimal         165.75      92.50     136.50     2     0.00%       0.6
+  scn_two_rows_tight_P5_R10_seed6    safe_pipeline  topology (      112.95      64.50     106.50     0         -       0.0
+  scn_chain_tight_P5_R10_seed7       topology_ms6   topology (      152.85      88.50     144.00     0         -      60.0
+  scn_chain_tight_P5_R10_seed7       fas_on_topo    optimal         152.85      88.50     144.00     0     0.00%       0.1
+  scn_chain_tight_P5_R10_seed7       fas_2cand      optimal         359.60     156.00     324.00     2     0.00%       8.8
+  scn_chain_tight_P5_R10_seed7       safe_pipeline  topology (      152.85      88.50     144.00     0         -       0.0
+  scn_full_tight_P5_R10_seed7        topology_ms6   topology (      146.50     105.00     136.00     0         -      60.0
+  scn_full_tight_P5_R10_seed7        fas_on_topo    optimal         111.65      71.50     104.50     0     0.00%       0.2
+  scn_full_tight_P5_R10_seed7        safe_pipeline  optimal         111.65      71.50     104.50     0         -       0.0
+  scn_full_tight_P5_R20_seed7        topology_ms6   topology (      988.65     176.50     971.00     0         -      60.0
+  scn_full_tight_P5_R20_seed7        safe_pipeline  topology (      988.65     176.50     971.00     0         -       0.0
+  scn_hub_tight_P5_R10_seed7         topology_ms6   topology (      101.25      67.50      94.50     0         -      60.0
+  scn_hub_tight_P5_R10_seed7         fas_on_topo    optimal         101.25      67.50      94.50     0     0.00%       0.0
+  scn_hub_tight_P5_R10_seed7         fas_2cand      optimal         101.25      67.50      94.50     0     0.00%       0.5
+  scn_hub_tight_P5_R10_seed7         safe_pipeline  topology (      101.25      67.50      94.50     0         -       0.0
+  scn_none_tight_P5_R10_seed7        topology_ms6   topology (       91.75      62.50      85.50     0         -      60.0
+  scn_none_tight_P5_R10_seed7        fas_on_topo    optimal          91.75      62.50      85.50     0     0.00%       0.0
+  scn_none_tight_P5_R10_seed7        fas_2cand      optimal          91.75      62.50      85.50     0     0.00%       0.2
+  scn_none_tight_P5_R10_seed7        safe_pipeline  topology (       91.75      62.50      85.50     0         -       0.0
+  scn_triangle_loose_P5_R10_seed7    topology_ms6   topology (        6.75      67.50       0.00     0         -      60.0
+  scn_triangle_loose_P5_R10_seed7    fas_on_topo    optimal           6.75      67.50       0.00     0     0.00%       0.0
+  scn_triangle_loose_P5_R10_seed7    fas_2cand      optimal          36.90      79.00       9.00     2     0.00%       0.2
+  scn_triangle_loose_P5_R10_seed7    safe_pipeline  topology (        6.75      67.50       0.00     0         -       0.0
+  scn_triangle_medium_P5_R10_seed7   topology_ms6   topology (       46.75      62.50      40.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed7   fas_on_topo    optimal          46.75      62.50      40.50     0     0.00%       0.0
+  scn_triangle_medium_P5_R10_seed7   fas_2cand      optimal         105.10      96.00      75.50     2     0.00%       0.2
+  scn_triangle_medium_P5_R10_seed7   safe_pipeline  topology (       46.75      62.50      40.50     0         -       0.0
+  scn_triangle_tight_P5_R10_seed7    topology_ms6   topology (       96.75      62.50      90.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed7    fas_on_topo    optimal          96.75      62.50      90.50     0     0.00%       0.0
+  scn_triangle_tight_P5_R10_seed7    fas_2cand      optimal         147.70     102.00     137.50     0     0.00%       0.5
+  scn_triangle_tight_P5_R10_seed7    safe_pipeline  topology (       96.75      62.50      90.50     0         -       0.0
+  scn_triangle_tight_P5_R20_seed7    topology_ms6   topology (      701.50     150.00     686.50     0         -      60.0
+  scn_triangle_tight_P5_R20_seed7    fas_on_topo    optimal         701.50     150.00     686.50     0     0.00%       8.7
+  scn_triangle_tight_P5_R20_seed7    safe_pipeline  topology (      701.50     150.00     686.50     0         -       0.0
+  scn_triangle_tight_P5_R30_seed7    topology_ms6   topology (     2091.80     248.00    2067.00     0         -      60.0
+  scn_triangle_tight_P5_R30_seed7    fas_on_topo    maxTimeLim     2272.30     248.00    2087.50    16    36.07%      60.3
+  scn_triangle_tight_P5_R30_seed7    safe_pipeline  topology (     2091.80     248.00    2067.00     0         -       0.0
+  scn_triangle_tight_P5_R5_seed7     topology_ms6   topology (        3.90      39.00       0.00     0         -      60.0
+  scn_triangle_tight_P5_R5_seed7     fas_on_topo    optimal           3.90      39.00       0.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed7     fas_2cand      optimal           4.90      39.00       1.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed7     safe_pipeline  topology (        3.90      39.00       0.00     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed7    topology_ms6   topology (       92.75      62.50      86.50     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed7    fas_on_topo    optimal          92.75      62.50      86.50     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed7    fas_2cand      optimal         150.20     102.00     140.00     0     0.00%       0.4
+  scn_two_rows_tight_P5_R10_seed7    safe_pipeline  topology (       92.75      62.50      86.50     0         -       0.0
+  scn_chain_tight_P5_R10_seed8       topology_ms6   topology (      146.90      89.00     138.00     0         -      60.0
+  scn_chain_tight_P5_R10_seed8       fas_on_topo    optimal         146.90      89.00     138.00     0     0.00%       0.1
+  scn_chain_tight_P5_R10_seed8       fas_2cand      optimal         292.15     126.50     239.50     4     0.00%       3.0
+  scn_chain_tight_P5_R10_seed8       safe_pipeline  topology (      146.90      89.00     138.00     0         -       0.0
+  scn_full_tight_P5_R10_seed8        topology_ms6   topology (      139.85      63.50     113.50     2         -      60.0
+  scn_full_tight_P5_R10_seed8        fas_on_topo    optimal         139.85      63.50     113.50     2     0.00%       0.1
+  scn_full_tight_P5_R10_seed8        safe_pipeline  topology (      139.85      63.50     113.50     2         -       0.0
+  scn_full_tight_P5_R20_seed8        topology_ms6   topology (      895.10     156.00     879.50     0         -      60.0
+  scn_full_tight_P5_R20_seed8        safe_pipeline  topology (      895.10     156.00     879.50     0         -       0.0
+  scn_hub_tight_P5_R10_seed8         topology_ms6   topology (      113.55      60.50     107.50     0         -      60.0
+  scn_hub_tight_P5_R10_seed8         fas_on_topo    optimal         113.55      60.50     107.50     0     0.00%       0.0
+  scn_hub_tight_P5_R10_seed8         fas_2cand      optimal         113.55      60.50     107.50     0     0.00%       0.8
+  scn_hub_tight_P5_R10_seed8         safe_pipeline  topology (      113.55      60.50     107.50     0         -       0.0
+  scn_none_tight_P5_R10_seed8        topology_ms6   topology (      106.45      59.50     100.50     0         -      60.0
+  scn_none_tight_P5_R10_seed8        fas_on_topo    optimal         106.45      59.50     100.50     0     0.00%       0.0
+  scn_none_tight_P5_R10_seed8        fas_2cand      optimal         106.45      59.50     100.50     0     0.00%       0.1
+  scn_none_tight_P5_R10_seed8        safe_pipeline  topology (      106.45      59.50     100.50     0         -       0.0
+  scn_triangle_loose_P5_R10_seed8    topology_ms6   topology (        6.65      61.50       0.50     0         -      60.0
+  scn_triangle_loose_P5_R10_seed8    fas_on_topo    optimal           6.65      61.50       0.50     0     0.00%       0.0
+  scn_triangle_loose_P5_R10_seed8    fas_2cand      optimal          21.45      64.50      15.00     0     0.00%       0.2
+  scn_triangle_loose_P5_R10_seed8    safe_pipeline  topology (        6.65      61.50       0.50     0         -       0.0
+  scn_triangle_medium_P5_R10_seed8   topology_ms6   topology (       65.65      61.50      59.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed8   fas_on_topo    optimal          65.65      61.50      59.50     0     0.00%       0.0
+  scn_triangle_medium_P5_R10_seed8   fas_2cand      optimal         104.70      92.00      95.50     0     0.00%       0.4
+  scn_triangle_medium_P5_R10_seed8   safe_pipeline  topology (       65.65      61.50      59.50     0         -       0.0
+  scn_triangle_tight_P5_R10_seed8    topology_ms6   topology (      109.65      61.50     103.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed8    fas_on_topo    optimal         109.65      61.50     103.50     0     0.00%       0.0
+  scn_triangle_tight_P5_R10_seed8    fas_2cand      optimal         148.70      92.00     139.50     0     0.00%       1.0
+  scn_triangle_tight_P5_R10_seed8    safe_pipeline  topology (      109.65      61.50     103.50     0         -       0.0
+  scn_triangle_tight_P5_R20_seed8    topology_ms6   topology (      730.05     130.50     717.00     0         -      60.0
+  scn_triangle_tight_P5_R20_seed8    fas_on_topo    optimal         730.05     130.50     717.00     0     0.00%      26.3
+  scn_triangle_tight_P5_R20_seed8    safe_pipeline  topology (      730.05     130.50     717.00     0         -       0.0
+  scn_triangle_tight_P5_R30_seed8    topology_ms6   topology (     2008.65     256.50    1983.00     0         -      60.0
+  scn_triangle_tight_P5_R30_seed8    fas_on_topo    maxTimeLim     2375.50     255.00    2210.00    14    38.25%      60.2
+  scn_triangle_tight_P5_R30_seed8    safe_pipeline  topology (     2008.65     256.50    1983.00     0         -       0.0
+  scn_triangle_tight_P5_R5_seed8     topology_ms6   topology (        2.80      28.00       0.00     0         -      60.0
+  scn_triangle_tight_P5_R5_seed8     fas_on_topo    optimal           2.80      28.00       0.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed8     fas_2cand      optimal          22.80      28.00       0.00     2     0.00%       0.1
+  scn_triangle_tight_P5_R5_seed8     safe_pipeline  topology (        2.80      28.00       0.00     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed8    topology_ms6   topology (      108.55      60.50     102.50     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed8    fas_on_topo    optimal         108.55      60.50     102.50     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed8    fas_2cand      optimal         149.20      92.00     140.00     0     0.00%       0.5
+  scn_two_rows_tight_P5_R10_seed8    safe_pipeline  topology (      108.55      60.50     102.50     0         -       0.0
+  scn_chain_tight_P5_R10_seed9       topology_ms6   topology (      171.15      76.50     143.50     2         -      60.0
+  scn_chain_tight_P5_R10_seed9       fas_on_topo    optimal         171.15      76.50     143.50     2     0.00%       0.2
+  scn_chain_tight_P5_R10_seed9       fas_2cand      optimal         273.65     131.50     220.50     4     0.00%       3.0
+  scn_chain_tight_P5_R10_seed9       safe_pipeline  topology (      171.15      76.50     143.50     2         -       0.0
+  scn_full_tight_P5_R10_seed9        topology_ms6   topology (      167.55      80.50     159.50     0         -      60.0
+  scn_full_tight_P5_R10_seed9        fas_on_topo    optimal         167.55      80.50     159.50     0     0.00%       0.6
+  scn_full_tight_P5_R10_seed9        safe_pipeline  topology (      167.55      80.50     159.50     0         -       0.0
+  scn_full_tight_P5_R20_seed9        topology_ms6   topology (      910.55     160.50     874.50     2         -      60.0
+  scn_full_tight_P5_R20_seed9        safe_pipeline  topology (      910.55     160.50     874.50     2         -       0.0
+  scn_hub_tight_P5_R10_seed9         topology_ms6   topology (      156.40      84.00     148.00     0         -      60.0
+  scn_hub_tight_P5_R10_seed9         fas_on_topo    optimal         156.40      84.00     148.00     0     0.00%       0.0
+  scn_hub_tight_P5_R10_seed9         fas_2cand      optimal         184.30      88.00     175.50     0     0.00%       2.4
+  scn_hub_tight_P5_R10_seed9         safe_pipeline  topology (      156.40      84.00     148.00     0         -       0.0
+  scn_none_tight_P5_R10_seed9        topology_ms6   topology (       99.35      68.50      92.50     0         -      60.0
+  scn_none_tight_P5_R10_seed9        fas_on_topo    optimal          99.35      68.50      92.50     0     0.00%       0.0
+  scn_none_tight_P5_R10_seed9        fas_2cand      optimal          99.35      68.50      92.50     0     0.00%       0.1
+  scn_none_tight_P5_R10_seed9        safe_pipeline  topology (       99.35      68.50      92.50     0         -       0.0
+  scn_triangle_loose_P5_R10_seed9    topology_ms6   topology (       10.15      76.50       2.50     0         -      60.0
+  scn_triangle_loose_P5_R10_seed9    fas_on_topo    optimal          10.15      76.50       2.50     0     0.00%       0.1
+  scn_triangle_loose_P5_R10_seed9    fas_2cand      optimal          15.60      76.00       8.00     0     0.00%       0.1
+  scn_triangle_loose_P5_R10_seed9    safe_pipeline  topology (       10.15      76.50       2.50     0         -       0.0
+  scn_triangle_medium_P5_R10_seed9   topology_ms6   topology (       60.65      71.50      53.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed9   fas_on_topo    optimal          60.65      71.50      53.50     0     0.00%       0.0
+  scn_triangle_medium_P5_R10_seed9   fas_2cand      optimal          75.65      71.50      68.50     0     0.00%       0.4
+  scn_triangle_medium_P5_R10_seed9   safe_pipeline  topology (       60.65      71.50      53.50     0         -       0.0
+  scn_triangle_tight_P5_R10_seed9    topology_ms6   topology (      110.65      71.50     103.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed9    fas_on_topo    optimal         110.65      71.50     103.50     0     0.00%       0.0
+  scn_triangle_tight_P5_R10_seed9    fas_2cand      optimal         170.20     107.00     159.50     0     0.00%       1.1
+  scn_triangle_tight_P5_R10_seed9    safe_pipeline  topology (      110.65      71.50     103.50     0         -       0.0
+  scn_triangle_tight_P5_R20_seed9    topology_ms6   topology (      626.35     128.50     613.50     0         -      60.0
+  scn_triangle_tight_P5_R20_seed9    fas_on_topo    optimal         626.35     128.50     613.50     0     0.00%      17.2
+  scn_triangle_tight_P5_R20_seed9    fas_2cand      maxTimeLim      627.70     132.00     614.50     0    27.17%      60.1
+  scn_triangle_tight_P5_R20_seed9    safe_pipeline  topology (      626.35     128.50     613.50     0         -       0.0
+  scn_triangle_tight_P5_R30_seed9    topology_ms6   topology (     2126.00     240.00    2102.00     0         -      60.0
+  scn_triangle_tight_P5_R30_seed9    fas_on_topo    maxTimeLim     2378.15     256.50    2332.50     2    28.85%      60.2
+  scn_triangle_tight_P5_R30_seed9    safe_pipeline  topology (     2126.00     240.00    2102.00     0         -       0.0
+  scn_triangle_tight_P5_R5_seed9     topology_ms6   topology (        4.30      43.00       0.00     0         -      60.0
+  scn_triangle_tight_P5_R5_seed9     fas_on_topo    optimal           4.30      43.00       0.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed9     fas_2cand      optimal           5.30      43.00       1.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed9     safe_pipeline  topology (        4.30      43.00       0.00     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed9    topology_ms6   topology (      100.35      68.50      93.50     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed9    fas_on_topo    optimal         100.35      68.50      93.50     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed9    fas_2cand      optimal         158.60      76.00     131.00     2     0.00%       0.5
+  scn_two_rows_tight_P5_R10_seed9    safe_pipeline  topology (      100.35      68.50      93.50     0         -       0.0
+  scn_chain_tight_P5_R10_seed10      topology_ms6   topology (      157.60      76.00     130.00     2         -      60.0
+  scn_chain_tight_P5_R10_seed10      fas_on_topo    optimal         157.60      76.00     130.00     2     0.00%       0.0
+  scn_chain_tight_P5_R10_seed10      fas_2cand      optimal         277.45     129.50     224.50     4     0.00%       1.5
+  scn_chain_tight_P5_R10_seed10      safe_pipeline  topology (      157.60      76.00     130.00     2         -       0.0
+  scn_full_tight_P5_R10_seed10       topology_ms6   topology (      142.55      70.50     135.50     0         -      60.0
+  scn_full_tight_P5_R10_seed10       fas_on_topo    optimal         142.55      70.50     135.50     0     0.00%       0.3
+  scn_full_tight_P5_R10_seed10       safe_pipeline  topology (      142.55      70.50     135.50     0         -       0.0
+  scn_full_tight_P5_R20_seed10       topology_ms6   topology (     1032.60     161.00    1016.50     0         -      60.0
+  scn_full_tight_P5_R20_seed10       safe_pipeline  topology (     1032.60     161.00    1016.50     0         -       0.0
+  scn_hub_tight_P5_R10_seed10        topology_ms6   topology (      110.85      63.50     104.50     0         -      60.0
+  scn_hub_tight_P5_R10_seed10        fas_on_topo    optimal         110.85      63.50     104.50     0     0.00%       0.0
+  scn_hub_tight_P5_R10_seed10        fas_2cand      optimal         110.85      63.50     104.50     0     0.00%       1.0
+  scn_hub_tight_P5_R10_seed10        safe_pipeline  topology (      110.85      63.50     104.50     0         -       0.0
+  scn_none_tight_P5_R10_seed10       topology_ms6   topology (      101.65      61.50      95.50     0         -      60.0
+  scn_none_tight_P5_R10_seed10       fas_on_topo    optimal         101.65      61.50      95.50     0     0.00%       0.0
+  scn_none_tight_P5_R10_seed10       fas_2cand      optimal         101.65      61.50      95.50     0     0.00%       0.1
+  scn_none_tight_P5_R10_seed10       safe_pipeline  topology (      101.65      61.50      95.50     0         -       0.0
+  scn_triangle_loose_P5_R10_seed10   topology_ms6   topology (        6.55      65.50       0.00     0         -      60.0
+  scn_triangle_loose_P5_R10_seed10   fas_on_topo    optimal           6.55      65.50       0.00     0     0.00%       0.0
+  scn_triangle_loose_P5_R10_seed10   fas_2cand      optimal          37.45      69.50      10.50     2     0.00%       0.3
+  scn_triangle_loose_P5_R10_seed10   safe_pipeline  topology (        6.55      65.50       0.00     0         -       0.0
+  scn_triangle_medium_P5_R10_seed10  topology_ms6   topology (       56.75      62.50      50.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed10  fas_on_topo    optimal          56.75      62.50      50.50     0     0.00%       0.1
+  scn_triangle_medium_P5_R10_seed10  fas_2cand      optimal         132.05      95.50     102.50     2     0.00%       0.8
+  scn_triangle_medium_P5_R10_seed10  safe_pipeline  topology (       56.75      62.50      50.50     0         -       0.0
+  scn_triangle_tight_P5_R10_seed10   topology_ms6   topology (      101.65      61.50      95.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed10   fas_on_topo    optimal         101.65      61.50      95.50     0     0.00%       0.0
+  scn_triangle_tight_P5_R10_seed10   fas_2cand      optimal         126.35      88.50     117.50     0     0.00%       0.5
+  scn_triangle_tight_P5_R10_seed10   safe_pipeline  topology (      101.65      61.50      95.50     0         -       0.0
+  scn_triangle_tight_P5_R20_seed10   topology_ms6   topology (      691.95     129.50     679.00     0         -      60.0
+  scn_triangle_tight_P5_R20_seed10   fas_on_topo    optimal         691.95     129.50     679.00     0     0.00%      40.5
+  scn_triangle_tight_P5_R20_seed10   fas_2cand      maxTimeLim      761.10     161.00     725.00     2    36.33%      60.3
+  scn_triangle_tight_P5_R20_seed10   safe_pipeline  topology (      691.95     129.50     679.00     0         -       0.0
+  scn_triangle_tight_P5_R30_seed10   topology_ms6   topology (     2114.35     233.50    2091.00     0         -      60.1
+  scn_triangle_tight_P5_R30_seed10   fas_on_topo    maxTimeLim     2223.60     241.00    2159.50     4    30.27%      60.3
+  scn_triangle_tight_P5_R30_seed10   safe_pipeline  topology (     2114.35     233.50    2091.00     0         -       0.0
+  scn_triangle_tight_P5_R5_seed10    topology_ms6   topology (        3.50      35.00       0.00     0         -      60.0
+  scn_triangle_tight_P5_R5_seed10    fas_on_topo    optimal           3.50      35.00       0.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed10    fas_2cand      optimal           4.50      35.00       1.00     0     0.00%       0.0
+  scn_triangle_tight_P5_R5_seed10    safe_pipeline  topology (        3.50      35.00       0.00     0         -       0.0
+  scn_two_rows_tight_P5_R10_seed10   topology_ms6   topology (      104.85      63.50      98.50     0         -      60.0
+  scn_two_rows_tight_P5_R10_seed10   fas_on_topo    optimal         104.85      63.50      98.50     0     0.00%       0.0
+  scn_two_rows_tight_P5_R10_seed10   fas_2cand      optimal         159.90      99.00     150.00     0     0.00%       2.0
+  scn_two_rows_tight_P5_R10_seed10   safe_pipeline  topology (      104.85      63.50      98.50     0         -       0.0
+
+  Failed runs:
+    x scn_full_tight_P5_R10_seed1  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed1  ·  fas_on_topo  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed1  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_triangle_tight_P5_R20_seed1  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_triangle_tight_P5_R30_seed1  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R10_seed2  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed2  ·  fas_on_topo  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed2  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_triangle_tight_P5_R20_seed2  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_triangle_tight_P5_R30_seed2  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R10_seed3  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed3  ·  fas_on_topo  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed3  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_triangle_tight_P5_R30_seed3  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R10_seed4  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed4  ·  fas_on_topo  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed4  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_triangle_tight_P5_R30_seed4  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R10_seed5  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed5  ·  fas_on_topo  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed5  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_triangle_tight_P5_R20_seed5  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_triangle_tight_P5_R30_seed5  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R10_seed6  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed6  ·  fas_on_topo  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed6  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_triangle_tight_P5_R20_seed6  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_triangle_tight_P5_R30_seed6  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R10_seed7  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed7  ·  fas_on_topo  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed7  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_triangle_tight_P5_R20_seed7  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_triangle_tight_P5_R30_seed7  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R10_seed8  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed8  ·  fas_on_topo  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed8  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_triangle_tight_P5_R20_seed8  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_triangle_tight_P5_R30_seed8  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R10_seed9  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed9  ·  fas_on_topo  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed9  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_triangle_tight_P5_R30_seed9  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R10_seed10  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed10  ·  fas_on_topo  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_full_tight_P5_R20_seed10  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+    x scn_triangle_tight_P5_R30_seed10  ·  fas_2cand  ->  Model too large for size-limited license; visit https://gurobi.com/unrestricted for more information
+==================================================================

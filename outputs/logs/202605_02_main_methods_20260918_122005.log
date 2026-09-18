@@ -1,0 +1,62 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (1 experiments)
+  Code state (git): 77e0999
+  Instance order  : by seed, then config (seed1 of all types first)
+==================================================================
+  Shared parameters:
+    weight_makespan=0.1           NoRelHeurTime=0
+    weight_delay=1.0              alpha=0.3
+    weight_movements=10           weight_topology=1.0
+    time_limit_s=60               n_starts=6
+    MIPGap=0.0                    seed=1
+
+  Per-experiment parameters:
+  Label         Solver                   
+  ---------------------------------------
+  topology_ms6  TopologyHeuristicAircraft
+==================================================================
+
+
+==================================================================
+  HEURISTIC vs MILP  —  relative gap per instance type
+  gap = (MILP_obj - heuristic_obj) / MILP_obj
+  gap > 0  =>  heuristic BETTER (lower objective);  < 0  => worse
+  heuristic: igvnd_wMK / igvnd_wDLY / igvnd_wMOV   (MILP rows from cache)
+==================================================================
+  -- Relative objective gap, by weight profile --
+  [wMK  (100/1/1  makespan-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wDLY  (1/100/1  delay-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wMOV  (1/1/100  movement-priority)]
+    (no paired MILP/heuristic results yet)
+
+  -- Relative objective gap, aggregated over all profiles --
+  [ALL profiles]
+    (no paired MILP/heuristic results yet)
+
+  -- Per-component mean Δ (heuristic − MILP); negative = heuristic better --
+  -- (relative gap is distorted when the optimum delay ≈ 0; read these too)
+  [wMK  (100/1/1  makespan-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wDLY  (1/100/1  delay-priority)]
+    (no paired MILP/heuristic results yet)
+
+  [wMOV  (1/1/100  movement-priority)]
+    (no paired MILP/heuristic results yet)
+
+==================================================================
+
+
+==================================================================
+  SUMMARY  —  3 ok  /  0 failed  /  3 total
+==================================================================
+  Instance                         Experiment    Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  ---------------------------------------------------------------------------------------------------------------------
+  scn_triangle_loose_P5_R10_seed1  topology_ms6  topology (       11.65      61.50       5.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed1  topology_ms6  topology (      103.75      62.50      97.50     0         -      60.0
+  scn_triangle_tight_P5_R5_seed1   topology_ms6  topology (        3.00      30.00       0.00     0         -      60.0
+==================================================================
