@@ -1201,8 +1201,13 @@ if __name__ == "__main__":
     # substring would inadvertently pull "_heur"/"_wB"/"_wC" siblings).
     _all_experiments = EXPERIMENTS + SEED_EXPERIMENTS + MULTISTART_EXPERIMENTS
     # Drop entries whose solver class is unavailable (guarded import returned
-    # None because its retired/discarded method dir was removed).
-    _all_experiments = [e for e in _all_experiments if e.get("solver_class") is not None]
+    # None because its retired/discarded method dir was removed).  Entries
+    # that carry NO solver_class key are pipeline-driven (fas_from /
+    # safe_from / fas_2cand) and are executed by the runner itself, so they
+    # must survive this filter -- treating a missing key as "unavailable"
+    # made fas_on_topo, fas_2cand and safe_pipeline impossible to run.
+    _all_experiments = [e for e in _all_experiments
+                        if "solver_class" not in e or e["solver_class"] is not None]
     if exp_filter:
         _wanted = {e.strip() for e in exp_filter.split(",")}
         _missing = _wanted - {e["label"] for e in _all_experiments}
