@@ -756,7 +756,9 @@ def run_experiments(
                 # ---- fas_2cand: FAS with multi-candidate positions from generate_assignments ----
                 if exp.get("fas_2cand"):
                     from instance_io import load_json as _load_json
-                    from solvers.topology_heuristic_aircraft import TopologyHeuristicAircraft
+                    # (pre-restructure path 'solvers.' -- the module is on sys.path
+                    #  directly since methods/manual/aircraft is inserted above)
+                    from topology_heuristic_aircraft import TopologyHeuristicAircraft
                     fas_from2 = exp.get("fas_from")
                     fas_sol2 = _warm_cache.get((inst_path.stem, fas_from2))
                     if fas_sol2 is None:
