@@ -68,6 +68,7 @@ class TopologyHeuristicAircraft:
         "alpha":            0.3,   # GRASP geometric decay: P(rank i) ∝ (1-alpha)^i
         "seed":             None,
         "n_starts":         1,     # multi-start: divide budget into n_starts slices
+        "op_order":         "random",  # LS driver: "random" (RVND) or "fixed" cascade
         "log_enabled":      False,
     }
 
@@ -334,7 +335,8 @@ def _solve_single(
 
         max_passes = max(5, n_ac)
         sol = _light_local_search(sol, instance_data, params, max_passes, rng,
-                                  deadline=deadline, ls_mode=ls_mode)
+                                  deadline=deadline, ls_mode=ls_mode,
+                                  op_order=params.get("op_order", "random"))
         obj = _objective(sol, params)
         iters += 1
 
@@ -606,6 +608,222 @@ def _build_topology_solution_warm(
                     "total_delay": round(total_delay, 4)},
         "aircraft": ac_solutions,
     }
+# =============================================================================
+#  Local search — state, neighbourhoods, and the descent driver
+# =============================================================================
+
+class _LSState:
+    """The search trajectory point.
+
+    Invariant: ``_rebuild(assignments, instance, params, order=order)``
+    reproduces ``sol`` -- and therefore ``obj`` -- exactly.  Every operator
+    goes through :func:`_accept`, so the invariant cannot drift.
+    """
+
+    __slots__ = ("assignments", "order", "sol", "obj")
+
+    def __init__(self, solution: dict, params: dict) -> None:
+        self.assignments = [{"id": a["id"], "position": a["position"]}
+                            for a in solution["aircraft"]]
+        # The constructor schedules in its own aircraft order; handing that
+        # order to _rebuild reproduces the incoming objective exactly.
+        self.order = [a["id"] for a in solution["aircraft"]]
+        self.sol   = solution
+        self.obj   = _objective(solution, params)
+
+
+def _accept(st: _LSState, ctx: dict, assignments: list[dict],
+            order: list[str]) -> bool:
+    """Evaluate a candidate; adopt it only if it strictly improves."""
+    sol = _rebuild(assignments, ctx["instance"], ctx["params"], order=order)
+    obj = _objective(sol, ctx["params"])
+    if obj >= st.obj - 1e-6:
+        return False
+    st.obj         = obj
+    st.sol         = sol
+    st.assignments = [{"id": a["id"], "position": a["position"]}
+                      for a in sol["aircraft"]]
+    st.order       = list(order)
+    return True
+
+
+def _splice(block_order: list[str], block_ids: set[str],
+            base_order: list[str]) -> list[str]:
+    """Substitute *block_order* into the slots *block_ids* occupy in *base_order*."""
+    it = iter(block_order)
+    return [next(it) if aid in block_ids else aid for aid in base_order]
+
+
+def _blocks(st: _LSState, ctx: dict,
+            min_size: int = 2) -> list[tuple[list[str], set[str]]]:
+    """Per-position aircraft blocks in current order, with a shuffled scan order."""
+    pos_of = {a["id"]: a["position"] for a in st.assignments}
+    out = []
+    for pos in ctx["positions"]:
+        aids = [aid for aid in st.order if pos_of[aid] == pos]
+        if len(aids) >= min_size:
+            out.append((aids, set(aids)))
+    ctx["rng"].shuffle(out)
+    return out
+
+
+def _expired(ctx: dict) -> bool:
+    return time.perf_counter() >= ctx["deadline"]
+
+
+# --- N1 ----------------------------------------------------------------------
+def _op_single_move(st: _LSState, ctx: dict) -> bool:
+    """Move one aircraft to a different position."""
+    rng = ctx["rng"]
+    indices = list(range(len(st.assignments)))
+    rng.shuffle(indices)
+    for i in indices:
+        if _expired(ctx):
+            return False
+        aid     = st.assignments[i]["id"]
+        cur_pos = st.assignments[i]["position"]
+        cands   = [p for p in ctx["positions"] if p != cur_pos]
+        rng.shuffle(cands)
+        for new_pos in cands:
+            trial = [a if a["id"] != aid else {"id": aid, "position": new_pos}
+                     for a in st.assignments]
+            if _accept(st, ctx, trial, st.order):
+                return True
+    return False
+
+
+# --- N2 ----------------------------------------------------------------------
+def _op_two_opt(st: _LSState, ctx: dict) -> bool:
+    """Swap the positions of two aircraft that sit in different positions."""
+    n = len(st.assignments)
+    pairs = [(i, j) for i in range(n) for j in range(i + 1, n)
+             if st.assignments[i]["position"] != st.assignments[j]["position"]]
+    ctx["rng"].shuffle(pairs)
+    for i, j in pairs:
+        if _expired(ctx):
+            return False
+        pos_i = st.assignments[i]["position"]
+        pos_j = st.assignments[j]["position"]
+        trial = [{"id": a["id"],
+                  "position": pos_j if k == i else (pos_i if k == j else a["position"])}
+                 for k, a in enumerate(st.assignments)]
+        if _accept(st, ctx, trial, st.order):
+            return True
+    return False
+
+
+# --- N3 ----------------------------------------------------------------------
+def _op_intra_adjacent_swap(st: _LSState, ctx: dict) -> bool:
+    """Swap a consecutive pair within one position's block."""
+    for aids, ids in _blocks(st, ctx):
+        if _expired(ctx):
+            return False
+        slots = list(range(len(aids) - 1))
+        ctx["rng"].shuffle(slots)
+        for k in slots:
+            swapped = aids[:]
+            swapped[k], swapped[k + 1] = swapped[k + 1], swapped[k]
+            if _accept(st, ctx, st.assignments, _splice(swapped, ids, st.order)):
+                return True
+    return False
+
+
+# --- N4 ----------------------------------------------------------------------
+def _op_intra_insert(st: _LSState, ctx: dict) -> bool:
+    """Move one aircraft to a different slot inside its own position block."""
+    for aids, ids in _blocks(st, ctx):
+        if _expired(ctx):
+            return False
+        moves = [(s, d) for s in range(len(aids)) for d in range(len(aids)) if s != d]
+        ctx["rng"].shuffle(moves)
+        for src, dst in moves:
+            reordered = aids[:]
+            reordered.insert(dst, reordered.pop(src))
+            if _accept(st, ctx, st.assignments, _splice(reordered, ids, st.order)):
+                return True
+    return False
+
+
+# --- N5 ----------------------------------------------------------------------
+def _op_intra_swap(st: _LSState, ctx: dict) -> bool:
+    """Swap two non-adjacent aircraft inside one position block (N3 covers pairs)."""
+    for aids, ids in _blocks(st, ctx, min_size=3):
+        if _expired(ctx):
+            return False
+        pairs = [(i, j) for i in range(len(aids)) for j in range(i + 2, len(aids))]
+        ctx["rng"].shuffle(pairs)
+        for i, j in pairs:
+            swapped = aids[:]
+            swapped[i], swapped[j] = swapped[j], swapped[i]
+            if _accept(st, ctx, st.assignments, _splice(swapped, ids, st.order)):
+                return True
+    return False
+
+
+# --- N6 ----------------------------------------------------------------------
+def _op_edd_repair(st: _LSState, ctx: dict) -> bool:
+    """Reorder a whole position block by EDD / slack / delay-ratio."""
+    meta     = ctx["ac_meta"]
+    dur_of   = ctx["dur_of"]
+    delay_of = {a["id"]: a.get("delay", 0.0) for a in st.sol["aircraft"]}
+    for aids, ids in _blocks(st, ctx):
+        if _expired(ctx):
+            return False
+        orderings = [
+            sorted(aids, key=lambda a: meta[a]["target_finish"]),
+            sorted(aids, key=lambda a: (meta[a]["target_finish"]
+                                        - meta[a]["earliest_start"])),
+            sorted(aids, key=lambda a: -(delay_of.get(a, 0.0) / dur_of.get(a, 1.0))),
+        ]
+        ctx["rng"].shuffle(orderings)
+        for reordered in orderings:
+            if reordered == aids:
+                continue
+            if _accept(st, ctx, st.assignments, _splice(reordered, ids, st.order)):
+                return True
+    return False
+
+
+# --- N7 ----------------------------------------------------------------------
+def _op_delay_block(st: _LSState, ctx: dict) -> bool:
+    """Relocate the K highest-delay aircraft: every intra slot AND every position."""
+    rng    = ctx["rng"]
+    k      = max(2, len(st.assignments) // 10)
+    ranked = sorted(st.sol["aircraft"], key=lambda a: -a.get("delay", 0.0))[:k]
+    pos_of = {a["id"]: a["position"] for a in st.assignments}
+
+    for ac in ranked:
+        if _expired(ctx):
+            return False
+        aid     = ac["id"]
+        cur_pos = pos_of[aid]
+        aids    = [x for x in st.order if pos_of[x] == cur_pos]
+        ids     = set(aids)
+
+        # intra-position: every insertion slot
+        src   = aids.index(aid)
+        slots = [d for d in range(len(aids)) if d != src]
+        rng.shuffle(slots)
+        for dst in slots:
+            reordered = aids[:]
+            reordered.pop(src)
+            reordered.insert(dst, aid)
+            if _accept(st, ctx, st.assignments, _splice(reordered, ids, st.order)):
+                return True
+
+        # cross-position
+        cands = [p for p in ctx["positions"] if p != cur_pos]
+        rng.shuffle(cands)
+        for new_pos in cands:
+            trial = [a if a["id"] != aid else {"id": aid, "position": new_pos}
+                     for a in st.assignments]
+            if _accept(st, ctx, trial, st.order):
+                return True
+    return False
+
+
+_OPS_CHEAP = (_op_single_move, _op_two_opt, _op_intra_adjacent_swap)
+_OPS_FULL  = (_op_intra_insert, _op_intra_swap, _op_edd_repair, _op_delay_block)
 
 
 def _light_local_search(
@@ -616,322 +834,74 @@ def _light_local_search(
     rng: random.Random,
     deadline: float = float("inf"),
     ls_mode: str = "full",
+    op_order: str = "random",
 ) -> dict:
-    """Bounded local search with seven operators in priority order.
+    """First-improvement descent over seven neighbourhoods.
 
-    Operators (first-improvement, restart from Op 1 on any improvement):
-      1. Single-move:            move one aircraft to a different position
-      2. 2-opt swap:             swap positions of two aircraft
-      3. Adjacent intra-swap:    swap consecutive pair within a position
-      4. Intra-position insert:  move aircraft to another slot in same position
-      5. Non-adjacent intra-swap: swap any two aircraft within a position
-      6. EDD repair:             reorder whole position block by EDD/slack/ratio
-      7. Delay-block insert:     relocate highest-delay aircraft more aggressively
+    Neighbourhoods
+      N1. Single-move             move one aircraft to a different position
+      N2. 2-opt swap              swap the positions of two aircraft
+      N3. Adjacent intra-swap     swap a consecutive pair within a position
+      N4. Intra-position insert   move an aircraft to another slot, same position
+      N5. Non-adjacent intra-swap swap two aircraft within a position
+      N6. EDD repair              reorder a position block by EDD/slack/ratio
+      N7. Delay-block insert      relocate the highest-delay aircraft
 
-    The deadline parameter stops the search early if a time limit is active.
-    max_passes bounds total outer restarts when no operator finds improvement.
+    ``ls_mode="fast"`` exposes only the three cheap neighbourhoods (N1-N3);
+    ``"full"`` exposes all seven.
+
+    ``op_order`` selects the driver:
+
+    - ``"random"`` -- RVND.  Neighbourhoods are drawn in a fresh random
+      order; an improvement re-arms the whole set, a failure retires that
+      one, and the descent ends once every neighbourhood has failed in a
+      row.  The scan order *inside* each neighbourhood is shuffled too, so
+      a descent is not biased towards low-numbered positions or slots.
+    - ``"fixed"`` -- the historical cascade: try N1, then N2, ... and
+      restart from N1 on any improvement.
+
+    Both drivers stop at ``deadline``; ``max_passes`` bounds improving
+    rounds.  The natural stop is the local optimum.
     """
-    positions   = instance["hangar"]["positions"]
-    assignments = [{"id": a["id"], "position": a["position"]}
-                   for a in solution["aircraft"]]
-    # Scheduling order of the incoming solution.  ``_rebuild`` reproduces the
-    # incoming objective EXACTLY when handed this order, so the search starts
-    # on the schedule the constructor actually produced.  Previously every
-    # operator rebuilt with the earliest_start fallback order instead, which
-    # desynchronised the trajectory from ``best_obj``: trials were scored on a
-    # different schedule than the incumbent they had to beat.
-    cur_order = [a["id"] for a in solution["aircraft"]]
-    best_sol = solution
-    best_obj = _objective(solution, params)
-
-    # Pre-build aircraft info for EDD/slack ordering (target_finish, slack)
-    ac_meta: dict[str, dict] = {}
+    st  = _LSState(solution, params)
+    ctx = {
+        "instance":  instance,
+        "params":    params,
+        "positions": instance["hangar"]["positions"],
+        "rng":       rng,
+        "deadline":  deadline,
+        "ac_meta":   {ac["id"]: {"earliest_start": ac.get("earliest_start", 0.0),
+                                 "target_finish":  ac.get("target_finish", float("inf"))}
+                      for ac in instance["aircrafts"]},
+    }
+    dur_of: dict[str, float] = {}
     for ac in instance["aircrafts"]:
-        ac_meta[ac["id"]] = {
-            "earliest_start": ac.get("earliest_start", 0.0),
-            "target_finish":  ac.get("target_finish", float("inf")),
-        }
-    for ac in instance.get("jobs", []):
-        pass  # jobs don't carry target_finish directly
+        total = sum(j["duration"] for j in instance["jobs"]
+                    if j["aircraft_id"] == ac["id"])
+        dur_of[ac["id"]] = total if total > 0 else 1.0
+    ctx["dur_of"] = dur_of
 
-    for _ in range(max_passes):
-        if time.perf_counter() >= deadline:
-            break
-        improved = False
+    ops = list(_OPS_CHEAP) + (list(_OPS_FULL) if ls_mode == "full" else [])
 
-        # ---- Op 1: single-move ------------------------------------------
-        indices = list(range(len(assignments)))
-        rng.shuffle(indices)
-        for i in indices:
-            if time.perf_counter() >= deadline:
+    if op_order == "random":
+        pending = ops[:]
+        rng.shuffle(pending)
+        rounds = 0
+        while pending and rounds < max_passes and not _expired(ctx):
+            if pending[-1](st, ctx):
+                rounds += 1
+                pending = ops[:]          # re-arm every neighbourhood
+                rng.shuffle(pending)
+            else:
+                pending.pop()             # retire this neighbourhood
+    else:
+        for _ in range(max_passes):
+            if _expired(ctx):
                 break
-            aid     = assignments[i]["id"]
-            cur_pos = assignments[i]["position"]
-            pos_candidates = [p for p in positions if p != cur_pos]
-            rng.shuffle(pos_candidates)
-            for new_pos in pos_candidates:
-                trial = [a if a["id"] != aid
-                         else {"id": aid, "position": new_pos}
-                         for a in assignments]
-                trial_sol = _rebuild(trial, instance, params, order=cur_order)
-                trial_obj = _objective(trial_sol, params)
-                if trial_obj < best_obj - 1e-6:
-                    best_obj    = trial_obj
-                    best_sol    = trial_sol
-                    assignments = [{"id": a["id"], "position": a["position"]}
-                                   for a in trial_sol["aircraft"]]
-                    improved    = True
-                    break
-            if improved:
+            if not any(op(st, ctx) for op in ops):
                 break
 
-        if not improved:
-            # ---- Op 2: 2-opt swap ----------------------------------------
-            pairs = [(i, j) for i in range(len(assignments))
-                     for j in range(i + 1, len(assignments))
-                     if assignments[i]["position"] != assignments[j]["position"]]
-            rng.shuffle(pairs)
-            for i, j in pairs:
-                if time.perf_counter() >= deadline:
-                    break
-                pos_i = assignments[i]["position"]
-                pos_j = assignments[j]["position"]
-                trial = [
-                    {"id": a["id"],
-                     "position": pos_j if ki == i else (pos_i if ki == j else a["position"])}
-                    for ki, a in enumerate(assignments)
-                ]
-                trial_sol = _rebuild(trial, instance, params, order=cur_order)
-                trial_obj = _objective(trial_sol, params)
-                if trial_obj < best_obj - 1e-6:
-                    best_obj    = trial_obj
-                    best_sol    = trial_sol
-                    assignments = [{"id": a["id"], "position": a["position"]}
-                                   for a in trial_sol["aircraft"]]
-                    improved    = True
-                    break
-
-        if not improved:
-            # ---- Op 3: adjacent intra-position swap ----------------------
-            default_order = cur_order
-            pos_of = {a["id"]: a["position"] for a in assignments}
-            for pos in positions:
-                if time.perf_counter() >= deadline:
-                    break
-                pos_aids = [aid for aid in default_order if pos_of[aid] == pos]
-                if len(pos_aids) < 2:
-                    continue
-                pos_aids_set = set(pos_aids)
-                for swap_i in range(len(pos_aids) - 1):
-                    swapped = pos_aids[:]
-                    swapped[swap_i], swapped[swap_i + 1] = (
-                        swapped[swap_i + 1], swapped[swap_i]
-                    )
-                    swap_iter    = iter(swapped)
-                    custom_order = [next(swap_iter) if aid in pos_aids_set else aid
-                                    for aid in default_order]
-                    trial_sol = _rebuild(assignments, instance, params,
-                                         order=custom_order)
-                    trial_obj = _objective(trial_sol, params)
-                    if trial_obj < best_obj - 1e-6:
-                        best_obj    = trial_obj
-                        best_sol    = trial_sol
-                        assignments = [{"id": a["id"], "position": a["position"]}
-                                       for a in trial_sol["aircraft"]]
-                        cur_order   = custom_order
-                        improved    = True
-                        break
-                if improved:
-                    break
-
-        if not improved and ls_mode == "full":
-            # ---- Op 4: intra-position insertion --------------------------
-            # Move one aircraft to a different slot index within the same position.
-            default_order = cur_order
-            pos_of = {a["id"]: a["position"] for a in assignments}
-            for pos in positions:
-                if time.perf_counter() >= deadline:
-                    break
-                pos_aids = [aid for aid in default_order if pos_of[aid] == pos]
-                if len(pos_aids) < 2:
-                    continue
-                pos_aids_set = set(pos_aids)
-                for src in range(len(pos_aids)):
-                    for dst in range(len(pos_aids)):
-                        if src == dst:
-                            continue
-                        reordered = pos_aids[:]
-                        item = reordered.pop(src)
-                        reordered.insert(dst, item)
-                        ins_iter     = iter(reordered)
-                        custom_order = [next(ins_iter) if aid in pos_aids_set else aid
-                                        for aid in default_order]
-                        trial_sol = _rebuild(assignments, instance, params,
-                                              order=custom_order)
-                        trial_obj = _objective(trial_sol, params)
-                        if trial_obj < best_obj - 1e-6:
-                            best_obj    = trial_obj
-                            best_sol    = trial_sol
-                            assignments = [{"id": a["id"], "position": a["position"]}
-                                           for a in trial_sol["aircraft"]]
-                            cur_order   = custom_order
-                            improved    = True
-                            break
-                    if improved:
-                        break
-                if improved:
-                    break
-
-        if not improved and ls_mode == "full":
-            # ---- Op 5: non-adjacent intra-position swap ------------------
-            default_order = cur_order
-            pos_of = {a["id"]: a["position"] for a in assignments}
-            for pos in positions:
-                if time.perf_counter() >= deadline:
-                    break
-                pos_aids = [aid for aid in default_order if pos_of[aid] == pos]
-                if len(pos_aids) < 3:
-                    continue  # adjacent swap (Op 3) already covers pairs
-                pos_aids_set = set(pos_aids)
-                for i in range(len(pos_aids)):
-                    for j in range(i + 2, len(pos_aids)):  # skip adjacent (Op 3)
-                        swapped = pos_aids[:]
-                        swapped[i], swapped[j] = swapped[j], swapped[i]
-                        sw_iter      = iter(swapped)
-                        custom_order = [next(sw_iter) if aid in pos_aids_set else aid
-                                        for aid in default_order]
-                        trial_sol = _rebuild(assignments, instance, params,
-                                              order=custom_order)
-                        trial_obj = _objective(trial_sol, params)
-                        if trial_obj < best_obj - 1e-6:
-                            best_obj    = trial_obj
-                            best_sol    = trial_sol
-                            assignments = [{"id": a["id"], "position": a["position"]}
-                                           for a in trial_sol["aircraft"]]
-                            cur_order   = custom_order
-                            improved    = True
-                            break
-                    if improved:
-                        break
-                if improved:
-                    break
-
-        if not improved and ls_mode == "full":
-            # ---- Op 6: EDD repair per position ---------------------------
-            # Try three full reorderings of each position block:
-            # EDD (target_finish ASC), slack ASC, delay_ratio DESC.
-            default_order = cur_order
-            pos_of = {a["id"]: a["position"] for a in assignments}
-            # Gather per-aircraft delay from current best solution
-            delay_of = {a["id"]: a.get("delay", 0.0) for a in best_sol["aircraft"]}
-            dur_of   = {}
-            for ac in instance["aircrafts"]:
-                total_dur = sum(j["duration"] for j in instance["jobs"]
-                                if j["aircraft_id"] == ac["id"])
-                dur_of[ac["id"]] = total_dur if total_dur > 0 else 1.0
-
-            for pos in positions:
-                if time.perf_counter() >= deadline:
-                    break
-                pos_aids = [aid for aid in default_order if pos_of[aid] == pos]
-                if len(pos_aids) < 2:
-                    continue
-                pos_aids_set = set(pos_aids)
-
-                orderings = [
-                    sorted(pos_aids, key=lambda aid: ac_meta[aid]["target_finish"]),
-                    sorted(pos_aids, key=lambda aid:
-                           ac_meta[aid]["target_finish"] - ac_meta[aid]["earliest_start"]),
-                    sorted(pos_aids, key=lambda aid:
-                           -(delay_of.get(aid, 0.0) / dur_of.get(aid, 1.0))),
-                ]
-                for reordered in orderings:
-                    if reordered == pos_aids:
-                        continue
-                    edd_iter     = iter(reordered)
-                    custom_order = [next(edd_iter) if aid in pos_aids_set else aid
-                                    for aid in default_order]
-                    trial_sol = _rebuild(assignments, instance, params,
-                                          order=custom_order)
-                    trial_obj = _objective(trial_sol, params)
-                    if trial_obj < best_obj - 1e-6:
-                        best_obj    = trial_obj
-                        best_sol    = trial_sol
-                        assignments = [{"id": a["id"], "position": a["position"]}
-                                       for a in trial_sol["aircraft"]]
-                        cur_order   = custom_order
-                        improved    = True
-                        break
-                if improved:
-                    break
-
-        if not improved and ls_mode == "full":
-            # ---- Op 7: delay-block insertion -----------------------------
-            # Take K highest-delay aircraft; for each, try all positions in
-            # its own block AND all single-move targets (cross-position).
-            # More aggressive than Op 1 because it combines intra + inter.
-            n_ac = len(assignments)
-            k    = max(2, n_ac // 10)
-            delay_ranked = sorted(best_sol["aircraft"],
-                                  key=lambda a: -a.get("delay", 0.0))
-            target_ids   = {a["id"] for a in delay_ranked[:k]}
-
-            default_order = cur_order
-            pos_of = {a["id"]: a["position"] for a in assignments}
-
-            for aid in [a["id"] for a in delay_ranked[:k]]:
-                if time.perf_counter() >= deadline:
-                    break
-                cur_pos  = pos_of[aid]
-                pos_aids = [x for x in default_order if pos_of[x] == cur_pos]
-                pos_aids_set = set(pos_aids)
-
-                # Intra-position: try all insertion slots
-                src_idx = pos_aids.index(aid)
-                for dst in range(len(pos_aids)):
-                    if dst == src_idx:
-                        continue
-                    reordered = pos_aids[:]
-                    reordered.pop(src_idx)
-                    reordered.insert(dst, aid)
-                    ins_iter     = iter(reordered)
-                    custom_order = [next(ins_iter) if x in pos_aids_set else x
-                                    for x in default_order]
-                    trial_sol = _rebuild(assignments, instance, params,
-                                          order=custom_order)
-                    trial_obj = _objective(trial_sol, params)
-                    if trial_obj < best_obj - 1e-6:
-                        best_obj    = trial_obj
-                        best_sol    = trial_sol
-                        assignments = [{"id": a["id"], "position": a["position"]}
-                                       for a in trial_sol["aircraft"]]
-                        cur_order   = custom_order
-                        improved    = True
-                        break
-
-                if not improved:
-                    # Cross-position: try moving to a different position entirely
-                    for new_pos in [p for p in positions if p != cur_pos]:
-                        trial = [a if a["id"] != aid
-                                 else {"id": aid, "position": new_pos}
-                                 for a in assignments]
-                        trial_sol = _rebuild(trial, instance, params, order=cur_order)
-                        trial_obj = _objective(trial_sol, params)
-                        if trial_obj < best_obj - 1e-6:
-                            best_obj    = trial_obj
-                            best_sol    = trial_sol
-                            assignments = [{"id": a["id"], "position": a["position"]}
-                                           for a in trial_sol["aircraft"]]
-                            improved    = True
-                            break
-
-                if improved:
-                    break
-
-        if not improved:
-            break
-
-    return best_sol
+    return st.sol
 
 
 def _prepare_ac_earliest(instance: dict, aid: str) -> float:
