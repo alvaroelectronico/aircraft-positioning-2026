@@ -30,13 +30,14 @@ papers/**/*.toc
 papers/**/*.log
 papers/**/*.pdf
 
-# per-run scratch output (results.csv and cached MILP JSONs stay tracked)
+# per-run scratch output.  Two things stay tracked on purpose:
+#   - outputs/solutions/results.csv  (the ledger; the cached-MILP rule in
+#     experiments/BATTERY.md reads its rows)
+#   - the cached MILP solution JSONs  (fixed reference data, never re-run)
+# Everything else under outputs/solutions/ is a per-run artefact: one JSON per
+# (instance, label, timestamp), ~10 kB each, thousands per battery.  This
+# replaces the per-method deny-list that had to grow with every new method.
 data/logs_heuristic/
 outputs/logs_heuristic/
-outputs/solutions/*__igvnd_*.json
-outputs/solutions/*__constructive*.json
-outputs/solutions/*__ta_*.json
-outputs/solutions/*__ta2_*.json
-outputs/solutions/*__ar_*.json
-outputs/solutions/*__v02_*.json
-outputs/solutions/*__brkga*.json
+outputs/solutions/*.json
+!outputs/solutions/*__milp_*.json
