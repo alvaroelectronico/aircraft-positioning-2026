@@ -634,6 +634,13 @@ def _light_local_search(
     positions   = instance["hangar"]["positions"]
     assignments = [{"id": a["id"], "position": a["position"]}
                    for a in solution["aircraft"]]
+    # Scheduling order of the incoming solution.  ``_rebuild`` reproduces the
+    # incoming objective EXACTLY when handed this order, so the search starts
+    # on the schedule the constructor actually produced.  Previously every
+    # operator rebuilt with the earliest_start fallback order instead, which
+    # desynchronised the trajectory from ``best_obj``: trials were scored on a
+    # different schedule than the incumbent they had to beat.
+    cur_order = [a["id"] for a in solution["aircraft"]]
     best_sol = solution
     best_obj = _objective(solution, params)
 
@@ -646,10 +653,6 @@ def _light_local_search(
         }
     for ac in instance.get("jobs", []):
         pass  # jobs don't carry target_finish directly
-
-    def _get_order(assgn: list[dict]) -> list[str]:
-        return sorted([a["id"] for a in assgn],
-                      key=lambda aid: ac_meta[aid]["earliest_start"])
 
     for _ in range(max_passes):
         if time.perf_counter() >= deadline:
@@ -670,7 +673,7 @@ def _light_local_search(
                 trial = [a if a["id"] != aid
                          else {"id": aid, "position": new_pos}
                          for a in assignments]
-                trial_sol = _rebuild(trial, instance, params)
+                trial_sol = _rebuild(trial, instance, params, order=cur_order)
                 trial_obj = _objective(trial_sol, params)
                 if trial_obj < best_obj - 1e-6:
                     best_obj    = trial_obj
@@ -698,7 +701,7 @@ def _light_local_search(
                      "position": pos_j if ki == i else (pos_i if ki == j else a["position"])}
                     for ki, a in enumerate(assignments)
                 ]
-                trial_sol = _rebuild(trial, instance, params)
+                trial_sol = _rebuild(trial, instance, params, order=cur_order)
                 trial_obj = _objective(trial_sol, params)
                 if trial_obj < best_obj - 1e-6:
                     best_obj    = trial_obj
@@ -710,7 +713,7 @@ def _light_local_search(
 
         if not improved:
             # ---- Op 3: adjacent intra-position swap ----------------------
-            default_order = _get_order(assignments)
+            default_order = cur_order
             pos_of = {a["id"]: a["position"] for a in assignments}
             for pos in positions:
                 if time.perf_counter() >= deadline:
@@ -735,6 +738,7 @@ def _light_local_search(
                         best_sol    = trial_sol
                         assignments = [{"id": a["id"], "position": a["position"]}
                                        for a in trial_sol["aircraft"]]
+                        cur_order   = custom_order
                         improved    = True
                         break
                 if improved:
@@ -743,7 +747,7 @@ def _light_local_search(
         if not improved and ls_mode == "full":
             # ---- Op 4: intra-position insertion --------------------------
             # Move one aircraft to a different slot index within the same position.
-            default_order = _get_order(assignments)
+            default_order = cur_order
             pos_of = {a["id"]: a["position"] for a in assignments}
             for pos in positions:
                 if time.perf_counter() >= deadline:
@@ -770,6 +774,7 @@ def _light_local_search(
                             best_sol    = trial_sol
                             assignments = [{"id": a["id"], "position": a["position"]}
                                            for a in trial_sol["aircraft"]]
+                            cur_order   = custom_order
                             improved    = True
                             break
                     if improved:
@@ -779,7 +784,7 @@ def _light_local_search(
 
         if not improved and ls_mode == "full":
             # ---- Op 5: non-adjacent intra-position swap ------------------
-            default_order = _get_order(assignments)
+            default_order = cur_order
             pos_of = {a["id"]: a["position"] for a in assignments}
             for pos in positions:
                 if time.perf_counter() >= deadline:
@@ -803,6 +808,7 @@ def _light_local_search(
                             best_sol    = trial_sol
                             assignments = [{"id": a["id"], "position": a["position"]}
                                            for a in trial_sol["aircraft"]]
+                            cur_order   = custom_order
                             improved    = True
                             break
                     if improved:
@@ -814,7 +820,7 @@ def _light_local_search(
             # ---- Op 6: EDD repair per position ---------------------------
             # Try three full reorderings of each position block:
             # EDD (target_finish ASC), slack ASC, delay_ratio DESC.
-            default_order = _get_order(assignments)
+            default_order = cur_order
             pos_of = {a["id"]: a["position"] for a in assignments}
             # Gather per-aircraft delay from current best solution
             delay_of = {a["id"]: a.get("delay", 0.0) for a in best_sol["aircraft"]}
@@ -853,6 +859,7 @@ def _light_local_search(
                         best_sol    = trial_sol
                         assignments = [{"id": a["id"], "position": a["position"]}
                                        for a in trial_sol["aircraft"]]
+                        cur_order   = custom_order
                         improved    = True
                         break
                 if improved:
@@ -869,7 +876,7 @@ def _light_local_search(
                                   key=lambda a: -a.get("delay", 0.0))
             target_ids   = {a["id"] for a in delay_ranked[:k]}
 
-            default_order = _get_order(assignments)
+            default_order = cur_order
             pos_of = {a["id"]: a["position"] for a in assignments}
 
             for aid in [a["id"] for a in delay_ranked[:k]]:
@@ -898,6 +905,7 @@ def _light_local_search(
                         best_sol    = trial_sol
                         assignments = [{"id": a["id"], "position": a["position"]}
                                        for a in trial_sol["aircraft"]]
+                        cur_order   = custom_order
                         improved    = True
                         break
 
@@ -907,7 +915,7 @@ def _light_local_search(
                         trial = [a if a["id"] != aid
                                  else {"id": aid, "position": new_pos}
                                  for a in assignments]
-                        trial_sol = _rebuild(trial, instance, params)
+                        trial_sol = _rebuild(trial, instance, params, order=cur_order)
                         trial_obj = _objective(trial_sol, params)
                         if trial_obj < best_obj - 1e-6:
                             best_obj    = trial_obj
