@@ -45,6 +45,7 @@ the **~19 delay-unit noise floor** described in
 | 12 | sim-boundaries: `_sim_front` aligned to the checker's closed boundaries; Mode-B gap at the nearest job end; `tau` start candidate | `exp/sim-boundaries` (`3bc423c`) / tag `igvnd-v01-sim-boundaries` | cand `…_20260902_214555.log`; base `attempt12_baseline_20260904_*.log` (4 segments) | **KEPT** | two fresh arms: NET −205,368 (chain −162k, hub −24k, two_rows −19k, none 0); R5 tight wDLY and R10 chain/hub wDLY/wMK close most of the gap to the proven optima; zero consistent regressions |
 | 14 | ils-at-scale: exact-filtered local search (pusher tree, order-slot classes, relocate) + two ILS trajectories at R>10, dead rules retired | `exp/ils-at-scale` (`1269c32`) / tag `igvnd-v01-ils-at-scale` | cand `…_20260905_203305.log`; base `…_20260902_214555.log` | **KEPT** | NET −403,270 (chain −259k, hub −97k, two_rows −47k, none 0); R20 −0.9 %, R30 −1.7 % mean, 23 consistent wins vs 5 small consistent losses (≤1.3 %); R5 identical |
 | 15 | v3-seed-alternation: odd restarts start the manoeuvre polish from the construction seed instead of the zero-movement optimum | `exp/v3-seed-alternation` (`a294434`) | `attempt15_ablation_20260907.log` | **DROPPED** | subset NET −48 (7W/38T/9L): loose-R10 targets improve but chain_medium/tight R10 and hub_tight_R10 wDLY regress above the floor; zero-sum re-shuffle, not a gain |
+| 17 | rear-stretch: per-aircraft (delay, stretch) shift in the manoeuvre phase + an "align" move that puts a rear exit/entry on a front boundary | `exp/rear-stretch` | — | **OPEN** | — |
 
 *(Entries 4–6 backfilled from the living-spec Change log; entry 7 onward is
 opened here first, before coding. The 2026-07 campaign that motivates 7–8 is
@@ -902,3 +903,257 @@ The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
   rear-stretch representation ceiling documented in the Attempt-13 probes,
   not a seeding problem; closing it needs the stretch degree of freedom,
   which the simplicity criterion currently rules out.
+
+## Attempt 17 — rear-stretch
+
+- **Date:** 2026-10-30
+- **Context:** Attempt 16 (`exp/rvnd-moves`) is still OPEN and unmeasured on
+  its own branch; this attempt branches off `main` so the two effects are not
+  confounded.  User request (2026-10-30): add the moves the decoder cannot
+  find, using the small instances to see which ones they are.  This
+  overrides the Attempt-15 note that the simplicity criterion rules the
+  stretch degree of freedom out.
+- **Diagnosis (oracle decodes, in-memory, all 439 proven-optimal R5/R10
+  cells; scripts kept in the session scratchpad, numbers here):** feed
+  `_decode_v3` the MILP's own (π, σ) plus, per aircraft, extra inputs read
+  off the MILP schedule:
+
+  | oracle input                                   | reproduces optimum |
+  | ---------------------------------------------- | ------------------ |
+  | none (= expressiveness test)                   | 163 / 439          |
+  | + start delay (start ≥ MILP start)             | 176                |
+  | + stretch (MILP idle gaps as minimum gaps)     | 373                |
+  | + both                                         | **439 / 439**      |
+  | rear aircraft only, delay + ONE stretch gap before the last job | 411 |
+
+  All oracle decodes are checker-compliant.  Minimal-set analysis on the 276
+  failing cells (greedy removal of per-aircraft inputs): 1 aircraft suffices
+  in 131, ≤ 2 in 210; 433 of the ~470 needed inputs are a **stretch of an
+  aircraft on a rear position**, and in ~95 % of them its **exit coincides
+  exactly with a boundary of an aircraft at a blocking front position**
+  (stay start/finish or a job start/end).  The stretch gap sits before the
+  last job in the majority of cases.  This is the Attempt-13 "rear-side
+  alignment" probe, now quantified over every proven-optimal cell.
+- **Reachability check (the piece Probe 3 lacked):** from the MILP's (π, σ)
+  with zero delay/stretch, a first-improvement descent whose ONLY move is
+  "align rear r's exit (by stretch or by delay) or its entry (by delay) with
+  a boundary of a front aircraft in the CURRENT decode" reaches the optimum
+  in **311 / 439** cells (163 without), closes 72 % of the base gap on
+  average over the 276 failing cells, 0 non-compliant, ~70 decodes per
+  descent.  So the move finds the structure once (π, σ) is right; whether
+  the search finds the right (π, σ) is what the arms measure.
+- **Hypothesis:** extend the manoeuvre-phase state with a per-aircraft shift
+  `(delay, stretch)` (zero everywhere by default; stretch = idle inserted
+  before the last job), honoured by `_decode_v3`, and add a fourth local-
+  search move — *align*: for a candidate on a position that has blocking
+  fronts, propose the shift that puts its exit (stretch or delay) or its
+  entry (delay) on a front boundary of the current decode, or resets it.
+  Tried after reassign / relocate / swap, so it only acts where those are
+  exhausted.  IG destruction resets the shift of the removed aircraft.
+  Targets: R5 / R10 wMK / wDLY on chain / hub / two_rows (the cells whose
+  optimum needs the stretch).  Expected neutral on `none` (no fronts), on
+  wMOV R5/R10 (already at the MILP floor), and roughly neutral at R ≥ 20
+  (the v3 descent rarely exhausts the other three moves there).
+- **Simplicity ledger (planned):** +1 state component (shift dict) threaded
+  through the search, +1 move function, +2 small decoder hooks (lower bound
+  shift, one minimum gap); 0 knobs.  Does not retire machinery — accepted
+  on the user's explicit request; to be weighed against the measured gain.
+- **Ref:** branch `exp/rear-stretch` off `main` @ e66078a.
+- **How measured (pre-registered):** (i) expressiveness test unchanged
+  (floors must hold — the zero shift is the old decoder); (ii) ablation
+  subset (18 instances × 3 profiles, seed 1, 60 s), both arms FRESH on the
+  same machine, paired per run; PASS → (iii) full-grid two-arm battery,
+  verdict via the grid script.
+- **Ledger of what was built (2026-10-30 / 31):**
+  1. *Align as a polish, not a move.*  As a fourth LS move it multiplied the
+     cost of a non-improving pass ~5× and starved the IG loop (first ablation
+     worse); it now polishes the manoeuvre-phase incumbents only (after the
+     first LS and on every new best), capped at a quarter of the time left.
+     Escalation per rear: (a) one align, (b) a second align of the same rear,
+     (c) a coordinated pair with a related rear; escalated globally (b only
+     once no rear improves with a, …).  Proposals: adjacent front aircraft's
+     boundaries, the unpushed ("natural") job ends, and the entry/exit of the
+     adjacent rear aircraft.  Reach from the MILP's (π, σ): 311 → 324 (natural
+     ends) → 338 (b) → 377 (c, capped) → 388 (rear boundaries).
+  2. *Compiled kernels* (`igvnd_kernels.py`, numba 0.68.1 pinned in
+     `requirements.txt`, pure-Python fallback): both decoders, the LS scan,
+     the IG reinsertion and the align polish; incremental pricing (prefix k0
+     under v2, affected positions + member-level reuse under v3), a
+     CPython-identical rounding.  Verified byte-identical decodes, identical
+     LS/IG trajectories (222) and identical align results (439).  Per-eval
+     cost: v2 R10 ~180 µs → ~2 µs; v3 R10 ~5 ms → ~20 µs; v3 R30 ~130 ms →
+     ~60 µs.  Stale numba caches can segfault after kernel edits: delete
+     `jobs/__pycache__/*.nbi|*.nbc` after every kernel change.
+  3. *First battery* (scratch runner, 3 workers, 1110 runs, 60 s, checker on
+     every run; journal reference `…_20260905_203305.log`): 643 W / 467 T /
+     **0 L**, mean −4.12 %, proven optima reached 357 → 387 / 439; vs MILP:
+     R10 gap +8.90 % → +0.54 %, R20/R30 the heuristic beats the MILP
+     incumbent by −22.7 % / −34.7 % (from −18.6 % / −28.8 %).
+  4. *Neighbour memo (tried, DROPPED).*  A per-solve transposition table of
+     priced neighbours with a canonical key (exact: 793 734 hits verified).
+     Repeats are ~50 % at R10 but ~20 % at R ≥ 20, where a key costs what a
+     zero-movement decode costs; neutral there, and the extra call layer
+     slowed the disabled path ~2× in the v2 scan.  Removed entirely.
+  5. *Lattice step (d) of the align polish.*  The boundaries an aircraft must
+     reach often exist only after the fronts it couples with have moved (a
+     wave along a chain): `chain_loose_R10_s5` wMK needs R4 at (d=3, g=1),
+     reachable only as an exact lattice point.  Time constraints are
+     differences of instants, so with every datum a multiple of the
+     instance's quantum q (0.5 on every benchmark instance, computed per
+     instance) some optimum lies on the q-lattice: step (d) scans, per
+     aircraft, every lattice delay and every lattice stretch (best
+     improvement), after (a)–(c) fail.  Reach 388 → 390.
+  6. *Dual-start polish.*  The polish also runs from no shift at all (the
+     shifts a state carries were aligned to the schedule it came from) and
+     keeps the better: reach 390 → 395.
+  7. *Gap index of the stretch.*  Shift = (delay, stretch, gap): the idle
+     may follow any job of the chain (-1, canonical, = before the last job).
+     Of the 19 cells the before-last stretch cannot express even with the
+     MILP's own values, 16 become expressible (17 with Mode-B gaps); the
+     lattice step scans the stretch in every gap.  Reach 395 → 396 (the rest
+     need 2–5 coordinated aircraft).
+  8. *Exact pruning.*  An aircraft cannot finish before its unshifted
+     earliest start + delay + work + stretch, so its finish bounds the
+     makespan and its own delay bounds the total delay: states whose bound
+     reaches the best objective are skipped undecoded (lattice axes stop
+     there; align (a)/(b) and the q of a pair — not r of a pair, whose
+     earliest start q may move).  Identical polish on all 439 cells,
+     1.42× faster.
+  Reachability reached **396 / 439** (from 163 at the start of the attempt);
+  0 non-compliant.
+  9. *Items 5–8 REVERTED (2026-10-31, user decision).*  +8 reachable
+     optima did not justify the extra machinery (time quantum, lattice scan,
+     dual start, a third shift component, the pruning bounds); the code is
+     back to the state of the first battery (items 1, 2, 4), reach
+     **388 / 439**.  The second full battery with items 5–8 was stopped at
+     294 / 1110 runs and is not a result.  Item 3 is the battery of record
+     for the code as it stands.
+  10. *Diagnosis of the worst MILP gaps (2026-10-31).*  Chain/Hub R10 loose
+     wDLY (g −16 % / −32 %) come from 6 seeds, all 1–2 delay units on small
+     optima: 2 are search (reached from the MILP's (π, σ); found by the
+     solver at 300 s or with other seeds), 4 need 3–4 aircraft shifted
+     together at values that are not boundaries of the current schedule.
+     Probe from the MILP's (π, σ), 439 proven cells: align alone 388;
+     align + ≤ 50 random *shift kicks* (1–3 rears, each set to one of its
+     own align proposals drawn at random, then align, accept if better)
+     **423 / 427** (two RNG seeds; 429 with random lattice values, not
+     taken: a hand-set step and range).  0 non-compliant.
+  11. *Speed, behaviour-preserving (2026-10-31).*  Profiling: the compiled
+     kernels are ~90 % of a solve (LS scan, align, IG reinsertion).
+     (i) *Bounded decodes:* both decoders fix each aircraft for good once
+     placed, and makespan, total delay and movements only grow as aircraft
+     are added (none finishes before E + T), so a neighbour's decode stops
+     as soon as the aircraft placed so far price it at the objective to beat
+     (first improvement: the current one; reinsertion: the best so far;
+     align: the current one, full decodes where the schedule is kept).
+     (ii) *One kernel call per LS pass* (`scan_moves`): the candidates not
+     memoised are scanned against a single decode of the state; the move
+     memo is keyed once per state.  (iii) LS candidates read from the decode
+     arrays (no per-aircraft dicts); under v3 no decode at all (every
+     aircraft qualifies).  Verified: LS/IG trajectories identical on 222
+     (×1.44), align results identical on 439 (×2.08); expressiveness tests
+     pass.
+  12. *Shift kicks in the polish.*  `_polish` = align descent, then kicks
+     (1–3 random rears, each to a random align proposal of its own, align,
+     keep if better) until as many consecutive fruitless kicks as there are
+     rears (rule fixed before measuring) or the polish budget.  Reach from
+     the MILP's (π, σ): 388 → **413 / 439**, 0 non-compliant, polish
+     0.36 s mean / 5.2 s max.  Ablation subset (both arms fresh, run
+     concurrently, 3 workers each, seed 1, 60 s): 6 W / 41 T / 7 L, mean
+     −0.13 %, 0 non-compliant — within single-seed noise.  Full battery
+     (scratch runner, 3 workers, frozen code) launched 2026-10-31.
+  13. *Full battery of items 11–12 (2026-11-01, 1110 runs, 0 non-compliant).*
+     Against item 3's battery (same runner, seed 1): 209 W / 735 T / 166 L,
+     mean −0.05 %.  R10 20/257/23 (−0.30 %), R30 143/84/43 (−0.25 %),
+     **R20 46/124/100 (+0.37 %)**.  Against the paper's MILP: no cell
+     ≥ 100 % over (8 in the paper's journal battery), Hub R10 loose wDLY
+     g −148.0 → −10.7 %, Chain R10 loose wDLY −111.4 → −13.6 %, Two rows
+     R10 loose wDLY −10.6 → 0.0 %; every R20/R30 cell 2–9 points above the
+     paper.  *R20 diagnosis:* 8 regressed R20 cells re-run instrumented:
+     the polish takes 29–43 s of the 60 s (11–20 calls, one per new best:
+     the IG is still improving at the deadline), the kicks ~70 % of that,
+     and the kicks gain nothing in 6 of 8.  The kicks target a converged
+     search's last valley; fired on every new best of a search that has not
+     converged they only take time from the IG.
+  14. *Kicks on stagnation (rule, fixed before measuring).*  A new best gets
+     the align descent only (as in item 3).  The kick ILS runs on the best
+     when the IG loop would stop for stagnation (`no_improve` reaches
+     `max_no_improve`); if it improves, the IG continues from the kicked
+     state with `no_improve` reset, otherwise the restart ends.  No new
+     parameter.  Plan: reach unchanged (same `_polish` kicks), ablation
+     subset vs item 12, then full battery.  Expressiveness unchanged (163 /
+     439 exact, 0 non-compliant).  Ablation (both arms fresh, concurrent,
+     3 workers each): 13 W / 37 T / 4 L, mean +0.05 %; R20/R30 8 W / 1 T /
+     0 L, R10 5 / 27 / 4, the mean carried by one cell (Two rows R10 s1
+     wDLY 264.5 → 315.5).  That cell and the other worst R10 wDLY cells
+     re-run once more per arm swing by tens of percent run to run (k1 chain
+     s3 371.5 vs 325 in its battery; hub s3 521.5 in k1 vs 380.5 = optimum
+     in k2): timing noise, not a loss of reach.  Full battery launched
+     2026-11-01 (k2, same runner).
+  15. *Full battery of item 14 (2026-11-01, 1110 runs, 0 non-compliant).*
+     Against item 3 (the 388 code): **246 W / 825 T / 39 L, mean −0.21 %**;
+     R10 16/283/1, R20 77/191/2, R30 153/81/36, R5 all tied.  Against item
+     13: R20 124/113/33 (−0.59 %: the regression is gone), R30 85/138/47,
+     R10 26/261/13 (+0.47 %, carried by two cells: Hub R10 loose s5 wDLY
+     78 → 228.5 and Two rows R10 loose s1 wDLY 264.5 → 315.5).  Those two
+     plus Chain R10 medium s2 wMK, 5 solver seeds per arm: hub s5 k1
+     {278.5, 317.5, 230.5, 176.5, 226.5} vs k2 {230.5, 230.5, 317.5,
+     176.5, 230.5}; two rows s1 optimum k1 3/5, k2 5/5 (k2 seed 1 = 264.5
+     on this re-run); chain s2 optimum k1 1/5, k2 3/5 — noise, no loss.
+     Paper metric (g vs the paper's MILP, 10 seeds): Chain R10 loose wDLY
+     −111.4 → −12.1 %, Hub R10 loose wDLY −148.0 → −26.9 % (hub s5 alone:
+     +193 % over its optimum of 78), Two rows R10 loose wDLY −10.6 →
+     −1.9 %, Chain R5 tight wDLY −25.2 → −0.8 %; every R20/R30 cell 2–9
+     points above the paper.  Cells ≥ 100 % over the MILP: 8 → 1.
+  16. *Is the R10-loose wDLY gap a matter of time? (2026-11-01).*  The 20
+     instances of Chain / Hub R10 loose wDLY at 120 s and 240 s (item 14
+     code, seed 1): Chain −12.1 → **−9.0** (120 s) → −8.9 (240 s), Hub
+     −26.9 → **−19.3** → −19.0.  Doubling the time gives all of it (chain
+     s3 326.5 → 277.5, hub s10 224 → 127 = optimum); beyond that nothing
+     moves: chain s3 277.5 (opt 175.5), chain s4 345.5 (247), hub s5 226.5
+     (78) are not time.  *Exact speed-ups* (identical trajectories / align
+     results on replay): `place_front` sorts its rear accesses by insertion
+     (numba's `ndarray.sort` allocates on every call, ~750 ns for 4
+     values); `align_proposals` with 3 allocations instead of ~10 and one
+     stable merge sort instead of two argsorts; nearest-k selection instead
+     of a full argsort in (b)/(c).  ×1.1 on LS/IG (222 trajectories
+     identical), ×1.05 (hub) – ×1.3 (chain) on align.  Tried and dropped:
+     pricing (c) pairs from the first-step schedule (identical, no gain), a
+     per-pass pair memo (5 % fewer evaluations), a k-way merge of the
+     candidate rows in `place_front` (identical, 2× slower), intra-solve
+     `prange` (an OpenMP region costs 200–700 µs, more than a batch of
+     neighbours).  A 2× speed-up is out of reach exactly, and would stop at
+     −9 / −19 anyway.
+  17. *Diagnosis: a deceptive landscape (2026-11-01).*  On the five seeds
+     still off the optimum (chain s3, s4, s7; hub s5, s10) the MILP's own
+     (pi, sigma) reaches the optimum **exactly** after `_polish` — but with
+     the zero shift the search evaluates it with it prices at 833 / 1347.5
+     / 1035 / 4896.5 / 1431.5, 3–20× our incumbents (277.5 / 345.5 / 69.5
+     / 228.5 / 224).  The LS / IG judge each (pi, sigma) with the shifts it
+     inherits (mostly none) and polish only a new best, so the structures
+     the optima use look far worse than they are and are never accepted.
+     *H1 (no new parameter):* align (`_polish(kicks=False)`) every IG
+     candidate before the acceptance test, not only one that is already a
+     new best.  Test: the 20 cells at 60 s vs the item-16 code.
+     Result (seed 1): Hub −26.9 → −9.2 (s5 228.5 → 128.5, s10 → 127 opt;
+     s2 223.5 → 285.5), Chain −12.1 → −18.3 (s3, s4, s7 better; s1, s6, s10
+     worse): the full align on every candidate finds the structures but
+     costs the IG too many iterations.
+     *H1b (no new parameter):* every IG candidate gets the cheap step only
+     — the align descent at level (a), single-rear aligns — and a new best
+     the full align as before.  Seed 1: **Chain −3.8, Hub −6.2** (from
+     −12.1 / −26.9; 2× the time gave −9.0 / −19.3): chain s3 326.5 → 225.5,
+     s4 345.5 → 288.5, s7 → 68.5 opt, hub s5 228.5 → 126.5, s10 → 127 opt;
+     one cell worse, chain s5 66.5 → 67.5.  Solver seed 2: item-16 code
+     Chain −6.5 / Hub −22.6, H1b **−3.2 / −6.2** (chain s3 → 177.5, opt
+     175.5; hub s3 470.5 → 380.5 opt).  Exact speed-up on top: `_align`
+     builds the related-rear sets (a full `_eval` in Python) only for step
+     (c) — identical results and RNG state on 878 align calls, 9 % faster.
+     Ablation subset (both arms fresh, concurrent, 3 workers each, seed 1,
+     60 s): 10 W / 39 T / 5 L, mean −0.31 %, 0 non-compliant; R10 7/28/1,
+     R20 1/0/2, R30 2/2/2 (single-seed noise).  Code to the repo
+     (expressiveness 163 / 439, 0 non-compliant); full battery launched
+     2026-11-01 (frozen copy, same runner).
+- **Verdict:** KEEP (items 1, 2, 4, 11, 12, 14, 16, 17), committed on the
+  user's request 2026-11-01; battery of record: item 15 until the item-17
+  battery (running, 864 / 1110 at commit time) completes.
