@@ -1154,6 +1154,18 @@ The idea-4 normalisation stays as gating infrastructure inside Attempt 7 (decide
      R20 1/0/2, R30 2/2/2 (single-seed noise).  Code to the repo
      (expressiveness 163 / 439, 0 non-compliant); full battery launched
      2026-11-01 (frozen copy, same runner).
+  18. *Full battery of item 17 (2026-11-01, 1110 runs, 0 non-compliant;
+     frozen copy of a05e435, same runner).*  Against item 15: 171 W / 761 T
+     / 178 L, mean −0.15 %; R10 35/258/7 (−0.54 %), R20 77/113/80
+     (−0.08 %), R30 58/121/91 (+0.04 %), R5 1/269/0.  Against item 3 (the
+     388 code): 303 W / 718 T / 89 L, mean −0.36 %.  Proven optima reached
+     387 (item 3) → 392 (item 15) → **404 / 439**.  Paper metric (g vs the
+     paper's MILP, 10 seeds): **Chain R10 loose wDLY −111.4 → −3.8 %**
+     (item 15: −12.1), **Hub R10 loose wDLY −148.0 → −6.2 %** (−26.9),
+     Two rows R10 loose wDLY −10.6 → 0.0 % (−1.9); every R20/R30 cell
+     within ±1 point of item 15, 2–9 points above the paper.  Cells over
+     the MILP: ≥ 100 % 8 (journal) → 0, 50–100 % 5 → 1 (hub s5 wDLY 126.5
+     vs 78), 20–50 % 5 → 2.  The goal (Chain −12 / Hub −27 at 60 s) is met
+     by the algorithm (item 17), not by speed (item 16).
 - **Verdict:** KEEP (items 1, 2, 4, 11, 12, 14, 16, 17), committed on the
-  user's request 2026-11-01; battery of record: item 15 until the item-17
-  battery (running, 864 / 1110 at commit time) completes.
+  user's request 2026-11-01 (a05e435); battery of record: item 18.
