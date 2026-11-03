@@ -1269,7 +1269,11 @@ make that floor visible (its `obj_spread` is the per-instance noise estimate).
 Source: [`iterated_greedy_vnd.py`](iterated_greedy_vnd.py) — class
 `IteratedGreedyVNDJobSolver`, registered under the label
 `iterated_greedy_vnd`. `TheoryAssistedJobSolver` is kept as a
-backwards-compatible alias.
+backwards-compatible alias. Since Attempt 17 the hot paths (decoders,
+local-search scan, IG reinsertion, align) are compiled kernels in
+[`igvnd_kernels.py`](igvnd_kernels.py) (`import igvnd_kernels as K`; numba
+`0.68.1` pinned in `requirements.txt`, pure-Python fallback with identical
+results).
 
 ## Solver contract (`shared/application.py`)
 
@@ -1279,7 +1283,7 @@ backwards-compatible alias.
 | `configure_solver(**kw)` | store config |
 | `solve(instance)` | run the search, return the solution dict |
 | `get_config()` | return stored config |
-| `get_log()` | per-run trace (construction, per-start objective, accept/reject) |
+| `get_log()` | per-run trace (per-start improvements, dense-nest accept, diagnostics, `done` summary) |
 
 The returned dict matches `problems/jobs/checker.py`: `status`, `objective`,
 `metrics.{makespan,total_delay,movements}`, and `aircraft[…]` with
@@ -1301,21 +1305,22 @@ The returned dict matches `problems/jobs/checker.py`: `status`, `objective`,
 
 | Method concept (Part I) | Code |
 | --- | --- |
-| Instance preprocessing (chains, `Tᵣ`, blocking arcs, depths, interruptibility) | `_prepare` |
+| Instance preprocessing (chains, `Tᵣ`, blocking arcs, depths, interruptibility; kernel arrays `_kinst`, `_fronts_mat`; kernel warm-up) | `_prepare` |
 | Two-layer state | `assignment: dict[r→p]` + `order: list[r]` |
-| Zero-movement decoder (§3.1) | `_decode`; admissible-placement bands in `_forbidden` |
-| Manoeuvre-aware decoder (§3.2) | `_decode_v3`; per-front placement `_place_front`; forward simulation with Mode-B/C `_sim_front` (closed-boundary access classification since Attempt 12) |
-| Closed-boundary access classification (Attempt 12) | `_sim_front`'s `used` array seeds accesses at the stay start as already-Mode-A; the Mode-B gap-batch windows in `_sim_front` are closed-at-start / open-at-end (`f_j ≤ τ < f_j + window`, was `f_j < τ ≤ f_j + window`); `_place_front`'s zero-movement candidate set adds `τ` itself alongside `τ ± η` |
+| Zero-movement decoder (§3.1) | `_decode` → compiled `K.decode_v2` (forbidden-band geometry now inside the kernel); returns a `_LazySolution` (per-aircraft dicts built on first access) |
+| Manoeuvre-aware decoder (§3.2) | `_decode_v3` → compiled `K.decode_v3` / `K.place_front` / `K.sim_front` (closed-boundary access classification since Attempt 12); honours a per-aircraft `shift[r] = (delay, stretch)` (Attempt 17; zero shift = the pre-17 decoder) |
+| Closed-boundary access classification (Attempt 12; now in `K.sim_front` / `K.place_front`) | `sim_front`'s `used` array seeds accesses at the stay start as already-Mode-A; the Mode-B gap-batch windows in `_sim_front` are closed-at-start / open-at-end (`f_j ≤ τ < f_j + window`, was `f_j < τ ≤ f_j + window`); `_place_front`'s zero-movement candidate set adds `τ` itself alongside `τ ± η` |
 | Mode-A vacant-front clearance, alternated per restart (Attempt 11) | `self.bandA` — `_forbidden`'s admissible bands and the `_place_front` zero-movement candidates key off `self.bandA` instead of the fixed `self.eta`; the restart loop in `solve` sets `self.bandA = 0.0 if i % 2 == 0 else self.eta` (even restarts search the checker-exact touching-allowed geometry, odd restarts the older conservative-η geometry); `_dense_nest_solution` always pins `self.bandA = 0.0` before building. `_decoder_tag` carries the active band (`v2b` for band 0, `v2` for band η) so the decode cache stays disjoint between the two geometries. |
-| Cached decode (memoised eval) | `_eval` (keyed by decoder tag, order, positions-along-order; reset per solve) |
+| Cached decode (memoised eval) | `_eval` (keyed by decoder tag, order, positions-along-order, shift; reset per solve); `_moves_cache` memoises per-candidate neighbourhood scans |
 | Concentric nest-stretch builder over the blocking DAG (§8; explicit starts, best-of) | `_dense_nest_solution` (called once in `solve` when `Wˢ`-dominant + arcs; Attempt 9 generalised its internals from complete-graph waves to the real arc structure) |
 | Risk diagnostics (Commit 5; observability) | `_diagnostics(best_sol, start_objs)` → `delay_risk` / `nesting_risk` / `search_risk`, attached to the solution + one log line |
 | Slim construction portfolio (§4: NEH + SLACK + biased shuffle) | seed orders inline in `solve`; `_greedy_construct(order)`; `_biased_order(base)` |
-| Local search (§5 — **Attempt 14: exact-filtered, replaces the old exhaustive VND/`_vnd`**) | `_local_search` (first-improvement loop); candidate filter `_critical` (pusher tree under `_decode`, every aircraft under `_decode_v3`); exact per-class order-slot enumeration `_order_slots`; move application `_try_moves` (reassign / relocate / swap, first-improvement, randomised scan order) |
-| IG perturbation (§6) | `_perturb` (now reinserts via the same exact `_order_slots`, not a blind slot scan) |
-| Search driver (decoder-agnostic via `self._decode_fn`) | `_search` (descend with `_local_search`, then IG kick + re-descend; acceptance keeps `cur` on the best plateau — **Attempt 14 retires the dead re-centre rule**, no `cur`-reset code remains) |
+| Local search (§5 — Attempt 14 exact-filtered; Attempt 17 compiled) | `_local_search` (first-improvement loop; carries, does not search, the shift); candidate filter `_critical` (pusher tree read from the decode's `_push` arrays under `_decode`, every aircraft under `_decode_v3`); move scan `_scan_moves` → `K.scan_moves` (reassign / relocate to one representative slot per class via `K.order_slots` / swap), state built by `_kernel_state` |
+| IG perturbation (§6) | `_perturb` (50/50 targeted / uniform removal; reinsertion via `K.best_insert`, exact one-slot-per-class; removed aircraft lose their shift) |
+| Per-rear shift and align polish (Attempt 17, manoeuvre phase only) | `shift: dict[r→(delay, stretch)]` carried through `_search`/`_perturb`/`_eval`; `_align` (first-improvement descent on the shift, three escalating steps via `K.align_one`: single align / second align / coordinated pair; proposals from `K.proposals_of` / `K.align_proposals`); `_polish` (align descent, plus on stagnation an ILS of 1–3-rear shift kicks) |
+| Search driver (decoder-agnostic via `self._decode_fn`) | `_search` (descend, then IG kick + re-descend; better-or-equal acceptance keeps `cur` on the best plateau). Under `_decode_v3` (H1b, Attempt 17): every IG candidate gets `_align(..., max_level=1)` before acceptance, a new best gets the full `_polish(kicks=False)`, and on stagnation (`max_no_improve`) `_polish` with shift kicks gets one go at the best before the restart ends |
 | Two ILS trajectories per Mode-A band at `R > 10` (Attempt 14a, replaces the old 3–4 lottery restarts) | `solve`'s `slice_div = 8 if R <= 10 else 2` (per-start slice `time_limit_s / slice_div`); `self.bandA = 0.0 if i % 2 == 0 else self.eta` still alternates every restart, so at `R > 10` there are effectively two long half-budget trajectories, one per band |
-| Two-regime combination per restart (§8) | `_one_start(a0, o0, …)` (phase 1 = `_decode`, phase 2 = `_decode_v3`) |
+| Two-regime combination per restart (§8) | `_one_start(a0, o0, …)` (phase 1 = `_decode` on half the slice, phase 2 = `_decode_v3` from the phase-1 optimum with an empty shift; v3 taken only if checker-compliant and strictly better) |
 | Multi-start until deadline (§7) | `while` loop in `solve` (per-start slice; optional `n_starts` hard cap) |
 | Time budget enforced in every loop | `_time_up` (`self._deadline`) |
 | Safety net (§8) | `_is_compliant` calls the real `check_solution` |
@@ -1391,6 +1396,28 @@ The returned dict matches `problems/jobs/checker.py`: `status`, `objective`,
   global best" rule is retired along with it (dead code: the acceptance rule
   already keeps `cur` on the best plateau at all times, see `_search`).
 
+- **Compiled kernels (Attempt 17).** `igvnd_kernels.py` holds line-for-line
+  numba ports of the decoders, neighbourhood scan, reinsertion and align;
+  without numba the same functions run as plain Python with byte-identical
+  results (the commit reports trajectories and align results verified
+  identical). Exact speed-ups: insertion sort of a front's accesses,
+  fewer allocations, nearest-k selection, lazy related-rear sets, bounded
+  decodes. `_prepare` warms the kernels so compile time is not charged to
+  the search.
+- **Lazy decode results.** `_decode` / `_decode_v3` return a
+  `_LazySolution`: `objective` and `metrics` are eager, `aircraft` is built
+  on first access; `_finalize` materialises and strips search-only keys
+  (`_pushers`, `_push`) before a schedule leaves the search.
+- **Per-rear shift (Attempt 17).** Rears are placed before their fronts, so
+  a rear cannot react to a front's boundary; `shift[r] = (delay, stretch)`
+  (delay of the earliest start, idle inserted before the last job) makes
+  boundary-aligned exits expressible. It is searched only by `_align` /
+  `_polish`, not by `_local_search`, because as a permanent neighbourhood
+  it multiplied the cost of a non-improving pass ~5x. Per the docstrings,
+  from the MILP's own `(pi, sigma)` over 439 proven-optimal R5/R10 cells,
+  align reaches 388 optima, the shift kicks raise it to 423–427, and the
+  decoder's expressiveness check is 163/439 with zero shift (unchanged).
+
 ## Safety net and validation
 
 The zero-movement result is a guaranteed feasible floor. Every
@@ -1410,7 +1437,7 @@ reports 0 violations.
 
 ```
 py -3 methods/iterated_greedy_vnd_v01/jobs/iterated_greedy_vnd.py \
-    data/instances_202605_02/scn_triangle_tight_P5_R5/scn_triangle_tight_P5_R5_seed1.json 10
+    problems/jobs/instances/scn_triangle_tight_P5_R5/scn_triangle_tight_P5_R5_seed1.json 10
 ```
 Prints the per-run log, the objective/metrics, and the full checker report.
 
@@ -1449,6 +1476,8 @@ the code that produced it. Behaviour-affecting commits (newest last):
 | `7c9090f` / `c5f8f99` | **Merged to `main` — battery of record for Attempt 14.** No further solver-code change (the merge commits close out the campaign); solver behaviour is Attempt 14 as shipped at `1269c32`. A fresh two-arm code-vs-code verdict (candidate `1269c32`, 1110/1110, vs the **reused** Attempt-12 candidate log as baseline, same machine, 3 days earlier, user-approved reuse) closed the campaign: **NET −403,270.5** (chain −258,996, hub −97,318, two_rows −46,957, none 0); 23 consistent wins vs 5 small consistent losses (hub R20 `wMK`/`wMOV` +0.4–0.7 %, `two_rows_loose_R30` `wMOV` +1.29 %) — the "zero consistent regressions" house rule is not strictly met; **kept anyway** (user decision, 2026-09-06: the large MILP-favouring gaps shrank without adding machinery). | Part II refreshed from the candidate battery, log [`outputs/logs/202605_02_main_methods_20260905_203305.log`](../../../outputs/logs/202605_02_main_methods_20260905_203305.log) (self-stamped `1269c32`), paired against the cached MILP: R5 still closed and byte-identical to Attempt 12 (guards exact); R10 essentially unchanged (`hub` byte-identical, `chain`/`two_rows` inside the noise band); R20/R30 tighten further against the unconverged 60 s MILP (mean gaps now +12.5–32.1 % at R20, +14.5–43.5 % at R30). Does not cover `triangle`/`full` (Caveat 3); five small consistent regressions documented in Caveat 5. |
 | `c5f8f99` (doc only) | **Part I aligned with Attempt 14 (user-authorised, 2026-09-06, `IMPROVEMENT_LOG.md` Attempt 14).** §5 rewritten from the retired 3-neighbourhood sequential VND with a reset rule to the exact-filtered first-improvement local search (`_local_search`/`_critical`/`_order_slots`/`_try_moves`: pusher-tree candidate filter under the zero-movement decoder, every aircraft under the manoeuvre decoder; reassign / relocate-to-one-representative-slot-per-class / swap-positions moves); §6 drops the dead "restart the walk from the global best after a streak" acceptance rule (better-or-equal acceptance already keeps `cur` on the best plateau); §7 replaces the stale budget/8·/4·/3-by-size slice description with budget/8 for `R ≤ 10` and budget/2 for `R > 10` (two ILS trajectories, one per Mode-A band); the Iterated-Greedy reconstruction bullet now names the exact one-slot-per-class reinsertion. §9's pseudocode (`Search`/`LocalSearch`/`Critical`/`TryMoves`/`OrderSlots`/`Perturb`) rewritten to match. | no behaviour change (documentation) |
 | `04fb071` (branch `exp/v3-seed-alternation`) → **not merged** | **Attempt 15 (v3-seed-alternation) — attempted & DROPPED.** Diagnosis: `hub`/`chain_loose_R10` `wDLY`/`wMK` cells often end in `phase=zero` (the v3 polish, seeded from the zero-movement local optimum, never leaves that basin). Hypothesis probed: alternate the v3 seed with the existing per-restart Mode-A band parity — even restarts polish the zero-movement optimum (as today), odd restarts start the manoeuvre search from the construction seed instead. 0 new knobs/functions (+1 conditional on the existing alternation). | Pre-registered probe (14 cells) looked promising (6 better/8 same/0 worse), but the ablation subset (`outputs/logs/attempt15_ablation_20260907.log`, 18 instances × 3 profiles, paired against the battery of record `…_20260905_203305.log`) came back **NET −48.0 over 54 runs (7 wins / 38 ties / 9 losses)**: the loose-R10 `wDLY` gains it targets (e.g. `chain_loose_R10` s5 130.5→82.0) are offset by new losses on `chain_medium/tight_R10` and `hub_tight_R10`/`hub_loose_R30` — trading which restart polishes which basin, not closing the residual — net indistinguishable from the ~72-unit R10 noise floor. **Dropped 2026-09-07** (`IMPROVEMENT_LOG.md` Attempt 15); branch retained, not merged, no code change on `main`. |
+
+| `a05e435` (branch `exp/rear-stretch`) | **Attempt 17 (rear-stretch) — code committed; battery pending.** Per-rear shift `(delay, stretch)` honoured by the v3 decoder (zero shift = old decoder); align polish (`_align`, `_polish`) on manoeuvre-phase incumbents with shift kicks only on IG stagnation; compiled numba kernels (`igvnd_kernels.py`, pure-Python fallback) for decoders, LS scan, IG reinsertion and align; H1b — every IG candidate gets align level (a) before acceptance, a new best the full align. Commit message reports `chain`/`hub` R10 loose `wDLY` vs the paper MILP −111.4 / −148.0 → −4.3 / −7.8 (8 of 10 seeds). Part IV synced; Parts I–III and Part II not yet updated. | (measure pending — full battery was still running at commit; see `IMPROVEMENT_LOG.md` Attempt 17) |
 
 **Evaluation shortcut.** The MILP baseline is fixed, so re-running it is
 wasteful. To judge a heuristic change, run `ablation_subset.py` (heuristic

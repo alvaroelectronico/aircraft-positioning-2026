@@ -67,8 +67,48 @@ from __future__ import annotations
 
 import math
 import random
+from bisect import bisect_left, bisect_right
+from itertools import repeat
 import statistics
 import time
+
+import numpy as np
+
+import igvnd_kernels as K
+
+
+class _LazySolution(dict):
+    """A decode result whose per-aircraft part is built on first access.
+
+    The search reads only ``objective`` for the vast majority of the
+    neighbours it prices, so building ``aircraft`` (a dict per aircraft and
+    per job) eagerly would cost more than the compiled decode itself.  Any
+    ``[]`` / ``get`` of a key that is not there yet triggers the build once.
+    """
+    __slots__ = ("_build",)
+
+    def __init__(self, build, data):
+        super().__init__(data)
+        self._build = build
+
+    def __missing__(self, key):
+        if self._build is not None:
+            build, self._build = self._build, None
+            self.update(build())
+            if dict.__contains__(self, key):
+                return dict.__getitem__(self, key)
+        raise KeyError(key)
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def materialize(self) -> "_LazySolution":
+        self.get("aircraft")
+        return self
+
 
 
 class IteratedGreedyVNDJobSolver:
@@ -82,6 +122,7 @@ class IteratedGreedyVNDJobSolver:
         self._deadline: float = float("inf")   # wall-clock cap for search loops
         self._decoder_tag: str = "v2"          # identifies the active decoder
         self._cache: dict = {}                 # decode memoisation (per solve)
+        self._moves_cache: dict = {}           # neighbourhood-scan memoisation (per solve)
         self._cache_max: int = 400_000
         self._cache_hits: int = 0
         self._cache_misses: int = 0
@@ -152,6 +193,7 @@ class IteratedGreedyVNDJobSolver:
 
         # Per-solve decode cache (instance + weights are fixed within a solve).
         self._cache = {}
+        self._moves_cache = {}
         self._cache_hits = self._cache_misses = 0
 
         # Slim construction portfolio (Attempt 7): two deterministic seed
@@ -363,8 +405,8 @@ class IteratedGreedyVNDJobSolver:
         self._decoder_tag = "v2b" if self.bandA == 0.0 else "v2"
         dl1 = min(deadline, time.perf_counter() + (deadline - time.perf_counter()) *
                   (0.5 if self.use_v3 else 1.0))
-        a1, o1 = self._search(dict(a0), list(o0), dl1)
-        best_sol = self._finalize(self._decode(a1, o1))
+        a1, o1, _ = self._search(dict(a0), list(o0), {}, dl1)
+        best_sol = self._finalize(self._decode(a1, o1, with_jobs=True))
         best_obj = best_sol["objective"]
         best_sol["phase"] = "zero"
 
@@ -375,8 +417,8 @@ class IteratedGreedyVNDJobSolver:
         if self.use_v3:
             self._decode_fn = self._decode_v3
             self._decoder_tag = "v3"
-            a3, o3 = self._search(dict(a1), list(o1), deadline)
-            sol_v3 = self._finalize(self._decode_v3(a3, o3))
+            a3, o3, s3 = self._search(dict(a1), list(o1), {}, deadline)
+            sol_v3 = self._finalize(self._decode_v3(a3, o3, s3))
             if (sol_v3["objective"] < best_obj - 1e-9
                     and self._is_compliant(sol_v3, instance_data)):
                 sol_v3["phase"] = "manoeuvre"
@@ -387,7 +429,7 @@ class IteratedGreedyVNDJobSolver:
     # Search driver (shared by both phases via self._decode_fn)
     # ------------------------------------------------------------------
 
-    def _search(self, assignment, order, deadline):
+    def _search(self, assignment, order, shift, deadline):
         """VND + Iterated-Greedy loop using the current ``self._decode_fn``.
 
         Drives one restart's local search.  First the seed is taken to a local
@@ -396,41 +438,67 @@ class IteratedGreedyVNDJobSolver:
         VND, and decides whether to accept it.  Two incumbents are tracked: the
         walk's current state ``cur`` and the global best ``best`` ever seen.
         The loop stops at the deadline or after ``max_no_improve`` fruitless
-        iterations.  Returns the best ``(assignment, order)`` found.
+        iterations.  Returns the best ``(assignment, order, shift)`` found
+        (``shift`` stays empty under the zero-movement decoder).
         """
         self._deadline = deadline
         # Take the seed to a local optimum before the perturbation loop starts.
-        assignment, order = self._local_search(assignment, order)
-        best_assign, best_order = dict(assignment), list(order)
-        best_obj = self._objective(self._eval(best_assign, best_order))
-        cur_assign, cur_order, cur_obj = dict(best_assign), list(best_order), best_obj
+        assignment, order, shift = self._local_search(assignment, order, shift)
+        best_obj = self._objective(self._eval(assignment, order, shift))
+        polish = self._decoder_tag == "v3"     # align only under the manoeuvre decoder
+        if polish:
+            shift, best_obj = self._polish(assignment, order, shift, best_obj, kicks=False)
+        best_assign, best_order, best_shift = dict(assignment), list(order), dict(shift)
+        cur_assign, cur_order, cur_shift, cur_obj = dict(best_assign), list(best_order), dict(best_shift), best_obj
         no_improve = 0
         while time.perf_counter() < deadline and no_improve < self.max_no_improve:
             # Iterated-Greedy kick: destroy k aircraft and greedily rebuild,
             # then re-descend to a local optimum with the local search.
-            a2, o2 = self._perturb(cur_assign, cur_order, self.k_destroy)
-            a2, o2 = self._local_search(a2, o2)
-            obj2 = self._objective(self._eval(a2, o2))
+            a2, o2, s2 = self._perturb(cur_assign, cur_order, cur_shift, self.k_destroy)
+            a2, o2, s2 = self._local_search(a2, o2, s2)
+            obj2 = self._objective(self._eval(a2, o2, s2))
+            if polish:
+                # Judge the candidate with its shifts aligned (single-rear
+                # aligns, the cheap step): with the shifts it inherits, the
+                # structures the optima use look far worse than they are.
+                s2, obj2 = self._align(a2, o2, s2, obj2, self._deadline, max_level=1)
+            if polish and obj2 < best_obj - 1e-9:
+                s2, obj2 = self._polish(a2, o2, s2, obj2, kicks=False)
             # Acceptance: walk to the new state if it does not worsen the
             # current one (a "better-or-equal" random-walk acceptance).  Under
             # this rule cur never leaves the best plateau (cur_obj == best_obj
             # always holds), so no re-centring on the best is ever needed.
             if obj2 <= cur_obj + 1e-9:
-                cur_assign, cur_order, cur_obj = a2, o2, obj2
+                cur_assign, cur_order, cur_shift, cur_obj = a2, o2, s2, obj2
             # Track the global best separately, and reset the stale counter
             # only on a strict global improvement.
             if obj2 < best_obj - 1e-9:
-                best_assign, best_order = dict(a2), list(o2)
+                best_assign, best_order, best_shift = dict(a2), list(o2), dict(s2)
                 best_obj = obj2
                 no_improve = 0
             else:
                 no_improve += 1
-        return best_assign, best_order
+            # On stagnation, the shift kicks get one go at the best: they
+            # target a converged search's last valley (a search still
+            # improving would only lose time to them).  If they improve, the
+            # IG continues from there; otherwise the restart ends.
+            if (polish and no_improve >= self.max_no_improve
+                    and time.perf_counter() < deadline):
+                s3, obj3 = self._polish(best_assign, best_order, best_shift, best_obj)
+                if obj3 < best_obj - 1e-9:
+                    best_shift, best_obj = dict(s3), obj3
+                    cur_assign, cur_order = dict(best_assign), list(best_order)
+                    cur_shift, cur_obj = dict(s3), obj3
+                    no_improve = 0
+        return best_assign, best_order, best_shift
 
     @staticmethod
     def _finalize(sol: dict) -> dict:
+        if isinstance(sol, _LazySolution):
+            sol.materialize()
         sol["status"] = "heuristic_ok"
-        sol.pop("_pushers", None)   # search-only annotation, never serialised
+        sol.pop("_pushers", None)   # search-only annotations, never serialised
+        sol.pop("_push", None)
         return sol
 
     def _time_up(self) -> bool:
@@ -488,8 +556,9 @@ class IteratedGreedyVNDJobSolver:
                 if depth[r] < depth[f] + 1:
                     depth[r] = depth[f] + 1
         self._pos_by_depth_desc = sorted(self.positions, key=lambda p: -depth[p])
-        # rears blocked by each front position
+        # rears blocked by each front position, and fronts blocking each rear
         self._rears_of = {p: [r for (f, r) in directed if f == p] for p in self.positions}
+        self._fronts_of = {p: [f for (f, r) in directed if r == p] for p in self.positions}
 
         self.aircraft_ids: list[str] = [a["id"] for a in inst["aircrafts"]]
         self.E: dict[str, float] = {a["id"]: float(a["earliest_start"]) for a in inst["aircrafts"]}
@@ -526,134 +595,143 @@ class IteratedGreedyVNDJobSolver:
             self.chain[r] = chain
             self.T[r] = sum(d for _, d in chain)
 
+        # Array view of the instance for the compiled decode kernels.
+        ids, P = self.aircraft_ids, self.positions
+        self._idx = {r: i for i, r in enumerate(ids)}
+        self._pidx = {p: i for i, p in enumerate(P)}
+        self._E = np.array([self.E[r] for r in ids])
+        self._L = np.array([self.L[r] for r in ids])
+        self._T = np.array([self.T[r] for r in ids])
+        off = [0]
+        for r in ids:
+            off.append(off[-1] + len(self.chain[r]))
+        self._job_off_l = off
+        self._job_off = np.array(off, np.int64)
+        self._job_dur = np.array([d for r in ids for _, d in self.chain[r]])
+        self._job_int = np.array([self.interruptible[j] for r in ids for j, _ in self.chain[r]],
+                                 np.bool_)
+        # kind[p, p2]: 1 same position, 2 p2 is a front of p, 3 p2 is a rear of p
+        kind = np.zeros((len(P), len(P)), np.int8)
+        for a, p in enumerate(P):
+            for b, p2 in enumerate(P):
+                kind[a, b] = (1 if p2 == p else 2 if (p2, p) in directed
+                              else 3 if (p, p2) in directed else 0)
+        self._kind = kind
+        # name rank: the zero-movement scan breaks band ties by aircraft id
+        by_name = sorted(ids)
+        self._rank = np.array([by_name.index(r) for r in ids], np.int64)
+        self._pos_depth = np.array([self._pidx[p] for p in self._pos_by_depth_desc], np.int64)
+        self._rears_mat = np.zeros((len(P), len(P)), np.int64)
+        self._n_rears = np.zeros(len(P), np.int64)
+        for p in P:
+            for x, q in enumerate(self._rears_of[p]):
+                self._rears_mat[self._pidx[p], x] = self._pidx[q]
+            self._n_rears[self._pidx[p]] = len(self._rears_of[p])
+        # front positions of each position (the align polish's boundaries)
+        self._fronts_mat = np.zeros((len(P), len(P)), np.int64)
+        self._n_fronts = np.zeros(len(P), np.int64)
+        for p in P:
+            for x, q in enumerate(self._fronts_of[p]):
+                self._fronts_mat[self._pidx[p], x] = self._pidx[q]
+            self._n_fronts[self._pidx[p]] = len(self._fronts_of[p])
+        # dep[p, s]: s is a rear of p, transitively — p's manoeuvre-decoder
+        # schedule depends on s's (the incremental pricing's affected set)
+        dep = np.zeros((len(P), len(P)), np.bool_)
+        for p in P:
+            stack = list(self._rears_of[p])
+            while stack:
+                q = stack.pop()
+                if not dep[self._pidx[p], self._pidx[q]]:
+                    dep[self._pidx[p], self._pidx[q]] = True
+                    stack.extend(self._rears_of[q])
+        self._kinst = (self._E, self._L, self._T, self._kind, self._rank, self._job_off,
+                       self._job_dur, self._job_int, self._pos_depth, self._rears_mat,
+                       self._n_rears, dep)
+        # Compile / load the kernels now, outside the solve's timer.
+        self.wM = getattr(self, "wM", 1.0)
+        self.wD = getattr(self, "wD", 1.0)
+        self.wS = getattr(self, "wS", 1.0)
+        warm = {r: P[0] for r in ids}
+        self._decode(warm, list(ids))
+        self._decode_v3(warm, list(ids))
+        apos, o_arr, sh_d, sh_g, prm = self._kernel_state(warm, list(ids), {})
+        for v3 in (False, True):
+            K.scan_moves(v3, o_arr[:1], apos, o_arr, sh_d, sh_g, 0.0, self._kinst, prm, len(P), 0.0)
+            K.best_insert(v3, 0, apos, o_arr[1:], sh_d, sh_g, self._kinst, prm, len(P))
+        K.align_one(0, np.zeros(0, np.int64), o_arr, apos, sh_d, sh_g, 0.0, self._kinst, prm,
+                    self._fronts_mat, self._n_fronts, 0.0, 1, 1, 1, 7)
+        K.proposals_of(0, o_arr, apos, sh_d, sh_g, self._kinst, prm, self._fronts_mat,
+                       self._n_fronts)
+
     def _pos_conflict(self, p: str, q: str) -> bool:
         return (p, q) in self._conflict
-
-    def _forbidden(self, p, dur, p2, s2, f2):
-        """Open intervals where our start ``t`` is infeasible against an
-        already-placed aircraft on position ``p2`` occupying ``[s2, f2]``.
-
-        This is the geometric heart of the zero-movement decoder.  We are
-        about to place an aircraft of stay length ``dur`` on position ``p``;
-        a neighbour already sits at ``p2`` over the time window ``[s2, f2]``.
-        Depending on whether ``p`` and ``p2`` share a position or form a
-        blocking arc, only certain start times ``t`` keep the schedule
-        manoeuvre-free.  We return the *complement* — the open interval(s) of
-        start times that are NOT allowed — so the caller can scan for the
-        earliest ``t`` that lies in none of them.
-
-        Returns 1 or 2 intervals.  Two intervals leave a feasible *hole*
-        between them — the nesting (containment) option — which the
-        earliest-fit scan can land in.  This hole is exactly what lets a long
-        aircraft wrap a shorter blocking-related one instead of serialising
-        the two.
-        """
-        band, eps = self.bandA, self.eps
-        if p2 == p:
-            # Same position: the two stays may not overlap, and must be
-            # separated by the tow time eps.  Our stay [t, t+dur] clashes with
-            # [s2, f2] unless t+dur <= s2-eps (we finish first) or t >= f2+eps
-            # (we start last); the single forbidden band is everything between.
-            return [(s2 - dur - eps, f2 + eps)]
-        if (p2, p) in self._arcs:
-            # We are the REAR aircraft (p2 holds the front).  To keep BOTH our
-            # access instants (entry t, exit t+dur) in Mode A, our stay must be
-            # entirely before the front (t+dur <= s2, touching allowed),
-            # entirely after it (t >= f2), or *enclose* it (t <= s2 and
-            # t+dur >= f2).  The forbidden intervals are open, so boundary
-            # placements land exactly on the checker's vacant-front edge.
-            if dur >= (f2 - s2) + 2 * band - 1e-9:
-                # Long enough to enclose: two forbidden bands, with the gap
-                # between them = the "enclosing" start window (the nesting hole).
-                return [(s2 - band - dur, f2 + band - dur), (s2 - band, f2 + band)]
-            # Too short to enclose: only before/after survive, so one band.
-            return [(s2 - band - dur, f2 + band)]
-        if (p, p2) in self._arcs:
-            # We are the FRONT aircraft (p2 holds the rear).  Symmetric to the
-            # rear case, but now it is the rear's fixed access instants (s2, f2)
-            # that must stay in Mode A relative to OUR stay: the rear is before
-            # us, after us, or its stay encloses ours.
-            if dur <= (f2 - s2) - 2 * band + 1e-9:
-                # The rear is long enough to enclose us: two forbidden bands
-                # with the enclosing window between them.
-                return [(s2 - dur - band, s2 + band), (f2 - dur - band, f2 + band)]
-            return [(s2 - dur - band, f2 + band)]
-        return []  # p and p2 do not block each other: free to overlap freely
 
     # ==================================================================
     # Decoder  (assignment + order  ->  full solution dict)
     # ==================================================================
 
-    def _decode(self, assignment: dict, order: list[str]) -> dict:
-        # Zero-movement decoder.  Aircraft are placed one at a time in the
-        # priority order; each is given the earliest start that is feasible
-        # (manoeuvre-free) against everything already placed.  Because every
-        # placement keeps all access instants in Mode A, the result has
-        # movements = 0 and is feasible by construction — the guaranteed floor.
-        placed: dict[str, tuple[float, float]] = {}  # r -> (start, finish)
-        # pushers[r] = aircraft whose forbidden band moved r's start during the
-        # scan.  r's start depends on nothing else, so an improving move must
-        # touch the pusher tree rooted at the makespan / delayed aircraft — the
-        # exact candidate filter used by the local search (Attempt 14).
-        pushers: dict[str, set] = {}
+    def _decode(self, assignment: dict, order: list[str], with_jobs: bool = False) -> dict:
+        """Zero-movement decoder.  Aircraft are placed one at a time in the
+        priority order; each is given the earliest start that is feasible
+        (manoeuvre-free) against everything already placed — the compiled
+        kernel ``decode_v2`` (``igvnd_kernels``), whose forbidden-band
+        geometry keeps every access instant in Mode A.  So the result has
+        movements = 0 and is feasible by construction — the guaranteed floor.
 
-        for r in order:
-            p = assignment[r]
-            dur = self.T[r]
-            # Collect the forbidden start-time bands induced by every neighbour
-            # already placed (same-position separation and blocking geometry),
-            # each tagged with the aircraft that owns it.
-            forbidden: list[tuple[float, float, str]] = []
-            for r2, (s2, f2) in placed.items():
-                for lo, hi in self._forbidden(p, dur, assignment[r2], s2, f2):
-                    forbidden.append((lo, hi, r2))
-            forbidden.sort()
-            # Earliest-fit scan: start at the earliest start E[r] and, whenever
-            # t falls inside a forbidden band, jump to that band's end.  Repeat
-            # until a full pass moves nothing — t is then the earliest instant
-            # outside every band.  Jumping to `hi` naturally lands t in the
-            # nesting hole left between a pair of bands when enclosing is the
-            # only feasible option.
-            t = self.E[r]
-            pushed_by: set = set()
-            moved = True
-            while moved:
-                moved = False
-                for lo, hi, owner in forbidden:
-                    if lo + 1e-7 < t < hi - 1e-7:
-                        t = hi
-                        pushed_by.add(owner)
-                        moved = True
-            placed[r] = (t, t + dur)
-            pushers[r] = pushed_by
+        ``_pushers[r]`` lists the aircraft whose forbidden band moved r's
+        start.  r's start depends on nothing else, so an improving move must
+        touch the pusher tree rooted at the makespan / delayed aircraft — the
+        exact candidate filter used by the local search (Attempt 14).
 
-        # Build the solution dict (tight job chains, kappa = 0).
-        aircraft_out = []
-        makespan = 0.0
-        total_delay = 0.0
-        for r in self.aircraft_ids:
-            if r not in placed:
-                continue  # partial decode during greedy construction
-            s_r, f_r = placed[r]
-            jobs_out = []
-            tcur = s_r
-            for jid, d in self.chain[r]:
-                jobs_out.append({"id": jid, "start": tcur, "finish": tcur + d})
-                tcur += d
-            delay = max(0.0, f_r - self.L[r])
-            makespan = max(makespan, f_r)
-            total_delay += delay
-            aircraft_out.append({
-                "id": r,
-                "position": assignment[r],
-                "start": s_r,
-                "finish": f_r,
-                "delay": delay,
-                "jobs": jobs_out,
-            })
+        Most decodes are only ever asked for their objective, so ``aircraft``
+        and ``_pushers`` are built on first access (``_LazySolution``), and the
+        per-job entries only for a schedule that leaves the search
+        (``with_jobs``).
+        """
+        idx, ids = self._idx, self.aircraft_ids
+        R = len(ids)
+        pos = list(map(assignment.__getitem__, order))  # snapshot: the search mutates assignment
+        o = np.fromiter(map(idx.__getitem__, order), np.int64, len(order))
+        op = np.fromiter(map(self._pidx.__getitem__, pos), np.int64, len(pos))
+        start = np.zeros(R)
+        push = np.zeros((R, R), np.uint8)
+        K.decode_v2(o, op, self._E, self._T, self._kind, self._rank, self.eps,
+                    self.bandA, start, push)
+        finish = start + self._T
+        placed = np.zeros(R, np.bool_)
+        placed[o] = True
+        makespan, total_delay = K.metrics(self._L, finish, placed)
+
+        def build():
+            where = dict(zip(order, pos))
+            st, fi = start.tolist(), finish.tolist()
+            pushers: dict[str, list] = {r: [] for r in order}
+            for i, j in np.argwhere(push).tolist():
+                pushers[ids[i]].append(ids[j])
+            for v in pushers.values():
+                v.sort()
+            # tight job chains, kappa = 0
+            aircraft_out = []
+            for r in ids:
+                if r not in where:
+                    continue  # partial decode during greedy construction
+                i = idx[r]
+                s_r, f_r = st[i], fi[i]
+                a_out = {"id": r, "position": where[r], "start": s_r, "finish": f_r,
+                         "delay": max(0.0, f_r - self.L[r])}
+                if with_jobs:
+                    jobs_out = []
+                    tcur = s_r
+                    for jid, d in self.chain[r]:
+                        jobs_out.append({"id": jid, "start": tcur, "finish": tcur + d})
+                        tcur += d
+                    a_out["jobs"] = jobs_out
+                aircraft_out.append(a_out)
+            # _pushers is search-only, stripped by _finalize
+            return {"aircraft": aircraft_out, "_pushers": pushers}
 
         obj = self.wM * makespan + self.wD * total_delay  # movements == 0
-        return {
+        return _LazySolution(build, {
             "status": "heuristic_ok",
             "objective": round(obj, 6),
             "metrics": {
@@ -661,9 +739,9 @@ class IteratedGreedyVNDJobSolver:
                 "total_delay": total_delay,
                 "movements": 0,
             },
-            "aircraft": aircraft_out,
-            "_pushers": {r: sorted(v) for r, v in pushers.items()},  # search-only, stripped by _finalize
-        }
+            "_push": (finish, push, placed),    # for _critical, without the build
+        })
+
 
     def _dense_nest_solution(self):
         """Explicit concentric-nesting candidate, generalised to the actual
@@ -798,22 +876,23 @@ class IteratedGreedyVNDJobSolver:
     def _objective(self, sol: dict) -> float:
         return float(sol["objective"])
 
-    def _eval(self, assignment: dict, order: list[str]) -> dict:
-        """Decode ``(assignment, order)`` with the active decoder, memoised.
+    def _eval(self, assignment: dict, order: list[str], shift: dict | None = None) -> dict:
+        """Decode ``(assignment, order, shift)`` with the active decoder, memoised.
 
         The decode depends only on the active decoder and, for the aircraft in
-        ``order``, their positions and sequence — so the key captures exactly
-        that.  Cache is reset per solve (instance + weights are fixed there).
-        Returned dicts must be treated as read-only by callers.
+        ``order``, their positions, sequence and shifts — so the key captures
+        exactly that.  Cache is reset per solve (instance + weights are fixed
+        there).  Returned dicts must be treated as read-only by callers.
         """
         key = (self._decoder_tag, tuple(order),
-               tuple(assignment[r] for r in order))
+               tuple(map(assignment.__getitem__, order)),
+               tuple(sorted(shift.items())) if shift else ())
         cached = self._cache.get(key)
         if cached is not None:
             self._cache_hits += 1
             return cached
         self._cache_misses += 1
-        sol = self._decode_fn(assignment, order)
+        sol = self._decode_fn(assignment, order, shift) if shift else self._decode_fn(assignment, order)
         if len(self._cache) < self._cache_max:
             self._cache[key] = sol
         return sol
@@ -867,7 +946,7 @@ class IteratedGreedyVNDJobSolver:
     # VND  (sequential, B-VND reset over three neighbourhoods)
     # ==================================================================
 
-    def _local_search(self, assignment: dict, order: list[str]) -> tuple[dict, list[str]]:
+    def _local_search(self, assignment: dict, order: list[str], shift: dict) -> tuple[dict, list[str], dict]:
         """Exact-filtered first-improvement local search (Attempt 14).
 
         Candidates are the aircraft whose move can change the objective: under
@@ -879,103 +958,269 @@ class IteratedGreedyVNDJobSolver:
         representative order slot per distinct-decode class, swap positions
         with another aircraft — in a randomised scan; the first improving move
         is applied and the candidate set recomputed.  Stops at a local optimum
-        w.r.t. all three moves or when the budget runs out.
+        w.r.t. all three moves or when the budget runs out.  The shift is
+        carried, not searched, here (see ``_align``).
         """
         assignment = dict(assignment)
         order = list(order)
-        cur = self._objective(self._eval(assignment, order))
+        shift = dict(shift)
+        cur = self._objective(self._eval(assignment, order, shift))
         while not self._time_up():
-            cands = self._critical(self._eval(assignment, order))
+            cands = (list(self.aircraft_ids) if self._decoder_tag == "v3"
+                     else self._critical(self._eval(assignment, order, shift)))
             self.rng.shuffle(cands)
-            improved = False
-            for r in cands:
-                if self._time_up():
-                    break
-                improved, assignment, order, cur = self._try_moves(r, assignment, order, cur)
-                if improved:
-                    break
-            if not improved:
+            found = self._scan_moves(cands, assignment, order, shift, cur)
+            if found is None:
                 break
-        return assignment, order
+            r, move, arg, cur = found
+            if move == 1:                       # reassign
+                assignment[r] = self.positions[arg]
+            elif move == 2:                     # relocate
+                rest = [q for q in order if q != r]
+                order = rest[:arg] + [r] + rest[arg:]
+            else:                               # swap
+                q = self.aircraft_ids[arg]
+                assignment[r], assignment[q] = assignment[q], assignment[r]
+        return assignment, order, shift
 
     def _critical(self, sol: dict) -> list[str]:
         """Aircraft whose move can lower the objective of ``sol``: the makespan
         and delayed aircraft plus everything that pushed them (transitively).
-        Without pusher information (manoeuvre decoder) every aircraft qualifies."""
-        pushers = sol.get("_pushers")
-        if pushers is None:
+        Without pusher information (manoeuvre decoder) every aircraft qualifies.
+        Read from the decode's arrays (``push[r, q]``: q's band moved r), so
+        the per-aircraft dicts are never built for it."""
+        arrays = dict.get(sol, "_push")         # plain get: no lazy build
+        if arrays is None:
             return list(self.aircraft_ids)
-        finish = {a["id"]: a["finish"] for a in sol["aircraft"]}
-        mk = max(finish.values())
-        roots = [a["id"] for a in sol["aircraft"] if a["delay"] > 1e-9 or finish[a["id"]] >= mk - 1e-9]
-        seen, stack = set(roots), list(roots)
-        while stack:
-            for q in pushers.get(stack.pop(), ()):
-                if q not in seen:
-                    seen.add(q)
-                    stack.append(q)
-        return [r for r in self.aircraft_ids if r in seen]
+        finish, push, placed = arrays
+        mk = finish[placed].max()
+        seen = placed & ((np.maximum(0.0, finish - self._L) > 1e-9) | (finish >= mk - 1e-9))
+        frontier = seen
+        while frontier.any():
+            frontier = push[frontier].any(axis=0) & ~seen
+            seen = seen | frontier
+        return [self.aircraft_ids[i] for i in np.flatnonzero(seen)]
 
-    def _order_slots(self, r: str, order: list[str], assignment: dict) -> list[int]:
-        """Insertion slots for ``r`` (absent from ``order``) that yield distinct
-        decodes: one per class delimited by the aircraft ``r`` interacts with
-        (same position, or a blocking arc); the manoeuvre decoder only sequences
-        within a position, so there only same-position aircraft delimit.
-        Exact — two slots in the same class decode identically."""
-        p = assignment[r]
-        v3 = self._decoder_tag == "v3"
-        slots: list[int] = []
-        for i, q in enumerate(order):
-            pq = assignment[q]
-            if (pq == p) if v3 else (pq == p or (p, pq) in self._conflict):
-                if not slots:
-                    slots.append(i)          # before the first delimiter
-                slots.append(i + 1)          # right after this delimiter
-        if not slots:
-            slots.append(len(order))         # r interacts with nobody: any slot
-        return slots
+    def _kernel_state(self, assignment: dict, order: list[str], shift: dict):
+        """Array form of a search state for the neighbourhood kernels:
+        position index per aircraft, order as indices, shift arrays, and the
+        scalar parameters (the Mode-A band changes per restart)."""
+        R = len(self.aircraft_ids)
+        apos = np.fromiter(map(self._pidx.__getitem__,
+                               map(assignment.__getitem__, self.aircraft_ids)), np.int64, R)
+        o = np.fromiter(map(self._idx.__getitem__, order), np.int64, len(order))
+        sh_d, sh_g = np.zeros(R), np.zeros(R)
+        for r, (d, g) in shift.items():
+            sh_d[self._idx[r]] = d
+            sh_g[self._idx[r]] = g
+        prm = np.array([self.eps, self.bandA, self.eta, self.delta, self.mu,
+                        self.wM, self.wD, self.wS])
+        return apos, o, sh_d, sh_g, prm
 
-    def _try_moves(self, r: str, assignment: dict, order: list[str], cur: float):
-        """Apply the first improving move of ``r``: reassign, relocate, swap."""
-        p0 = assignment[r]
-        # (1) reassign r to another position
-        for p in self.positions:
-            if p == p0:
-                continue
-            assignment[r] = p
-            o = self._objective(self._eval(assignment, order))
-            if o < cur - 1e-9:
-                return True, assignment, order, o
-        assignment[r] = p0
-        # (2) relocate r in the order, one slot per distinct-decode class
-        i0 = order.index(r)
-        rest = order[:i0] + order[i0 + 1:]
-        for slot in self._order_slots(r, rest, assignment):
-            if slot == i0:
-                continue
-            trial = rest[:slot] + [r] + rest[slot:]
-            o = self._objective(self._eval(assignment, trial))
-            if o < cur - 1e-9:
-                return True, assignment, trial, o
-        # (3) swap positions with another aircraft
-        for q in self.aircraft_ids:
-            if q == r or assignment[q] == p0:
-                continue
-            assignment[r], assignment[q] = assignment[q], p0
-            o = self._objective(self._eval(assignment, order))
-            if o < cur - 1e-9:
-                return True, assignment, order, o
-            assignment[q], assignment[r] = assignment[r], p0
-        return False, assignment, order, cur
+    def _scan_moves(self, cands: list[str], assignment: dict, order: list[str],
+                    shift: dict, cur: float):
+        """The first improving move of the candidates, in the order given:
+        each candidate r tries (1) reassign r to another position; (2)
+        relocate r in the order, one slot per distinct-decode class (a class
+        is delimited by the aircraft r interacts with — same position, or a
+        blocking arc; the manoeuvre decoder only sequences within a position,
+        so there only same-position aircraft delimit — and two slots in one
+        class decode identically); (3) swap positions with another aircraft.
+        Returns (r, move, arg, obj) as the ``scan_moves`` kernel encodes the
+        move, or None at a local optimum or once the budget runs out.  The
+        candidates not memoised are scanned in one kernel call, against a
+        single decode of the state."""
+        # A candidate's scan is a deterministic function of (decoder, r,
+        # state) — `cur` is the state's own objective — and IG kicks keep
+        # revisiting states, so its outcome is memoised like a decode.
+        state = (self._decoder_tag, tuple(order),
+                 tuple(map(assignment.__getitem__, self.aircraft_ids)),
+                 tuple(sorted(shift.items())) if shift else ())
+        todo, hit = [], None
+        for r in cands:
+            memo = self._moves_cache.get((r, state))
+            if memo is None:
+                todo.append(r)
+            elif memo[0]:
+                hit = (r, *memo)
+                break
+        if todo:
+            apos, o_arr, sh_d, sh_g, prm = self._kernel_state(assignment, order, shift)
+            j, move, arg, o, nev = K.scan_moves(
+                self._decoder_tag == "v3",
+                np.fromiter(map(self._idx.__getitem__, todo), np.int64, len(todo)),
+                apos, o_arr, sh_d, sh_g, cur, self._kinst, prm, len(self.positions),
+                self._deadline)
+            self._cache_misses += nev
+            for r in todo[:j]:
+                if len(self._moves_cache) < self._cache_max:
+                    self._moves_cache[(r, state)] = (0, 0, cur)
+            if move:
+                if len(self._moves_cache) < self._cache_max:
+                    self._moves_cache[(todo[j], state)] = (move, arg, o)
+                return todo[j], move, arg, o
+            if j < len(todo):                   # budget exhausted mid-scan
+                return None
+        if hit is not None and not self._time_up():
+            return hit
+        return None
+
+    def _polish(self, assignment: dict, order: list[str], shift: dict, cur: float,
+                kicks: bool = True):
+        """Polish of a new incumbent of the manoeuvre phase (Attempt 17): the
+        align descent, then an iterated local search on the shift alone —
+        kick 1–3 random rears, each to one of its own align proposals drawn
+        at random (not necessarily improving), align again, and keep the
+        result if it is better.  The align descent only reaches boundaries of
+        the current schedule; the optimum often needs several aircraft moved
+        together to values that become boundaries only once the others have
+        moved, a valley no single improving step crosses.  From the MILP's
+        own (pi, sigma), over the 439 proven-optimal R5/R10 cells, the align
+        descent reaches 388 optima and the kicks raise it to 423–427.  Stops
+        after as many consecutive fruitless kicks as there are rears, or at
+        the polish budget.  ``kicks=False`` runs the align descent only (a
+        new best during the IG; the kicks run on stagnation, see
+        ``_search``).  Returns (shift, obj)."""
+        # A polish may use at most a quarter of the time left in the phase:
+        # proving a hub of R = 30 align-optimal can take seconds, which would
+        # otherwise come out of the search itself.
+        now = time.perf_counter()
+        t_end = min(self._deadline, now + 0.25 * max(0.0, self._deadline - now))
+        shift, cur = self._align(assignment, order, shift, cur, t_end)
+        if not kicks:
+            return shift, cur
+        rears = [r for r in self.aircraft_ids
+                 if self._fronts_of[assignment[r]] or self._rears_of[assignment[r]]]
+        fails = 0
+        while rears and fails < len(rears) and time.perf_counter() < t_end:
+            kick = dict(shift)
+            for r in self.rng.sample(rears, self.rng.randint(1, min(3, len(rears)))):
+                apos, o_arr, sh_d, sh_g, prm = self._kernel_state(assignment, order, kick)
+                D, G = K.proposals_of(self._idx[r], o_arr, apos, sh_d, sh_g, self._kinst, prm,
+                                      self._fronts_mat, self._n_fronts)
+                props = sorted(set(zip(D.tolist(), G.tolist())))
+                if props:
+                    d, g = self.rng.choice(props)
+                    if d == 0 and g == 0:
+                        kick.pop(r, None)
+                    else:
+                        kick[r] = (d, g)
+            kick, obj = self._align(assignment, order, kick,
+                                    self._objective(self._eval(assignment, order, kick)), t_end)
+            if obj < cur - 1e-9:
+                shift, cur, fails = kick, obj, 0
+            else:
+                fails += 1
+        return shift, cur
+
+    def _align(self, assignment: dict, order: list[str], shift: dict, cur: float,
+               t_end: float, max_level: int = 3):
+        """First-improvement descent on the align move alone (Attempt 17):
+        rears with blocking fronts, in random order, until no shift improves
+        or ``t_end`` passes.  Too costly as a permanent neighbourhood (it
+        multiplied the cost of a non-improving pass ~5x and starved the IG
+        loop), so it runs in full only inside ``_polish``; each IG candidate
+        gets step (a) alone (``max_level=1``).  Returns (shift, obj).
+
+        Each rear r escalates through three steps, the next tried only when
+        the previous finds nothing:
+          (a) one align of r;
+          (b) a second align of r from each state of (a) — the front r targets
+              is re-placed by the decoder once r moves, so the boundary r must
+              land on often only exists after the move;
+          (c) a coordinated pair: each state of (a) plus one of the 6 nearest
+              aligns of a related rear q (q at a front of r, behind r, or
+              sharing a front with r) — cascades along a blocking chain and
+              siblings wrapping the same front move together in the optima.
+        (b) and (c) escalate only the 12 first steps nearest to r's current
+        shift, and (b) tries the 6 second steps nearest to each.  From the
+        MILP's own (pi, sigma), over the 439 proven-optimal R5/R10 cells, the
+        optimum is reached in 324 with (a), 338 with (a)+(b), 378 with all
+        three uncapped and 377 capped, at a quarter of the work.  The three
+        steps for one rear are a single call of the compiled ``align_one``.
+        ``max_level`` stops the escalation early: 1 runs the descent on (a)
+        alone, the cheap form every IG candidate gets in ``_search``.
+        """
+        rears = [r for r in self.aircraft_ids
+                 if self._fronts_of[assignment[r]] or self._rears_of[assignment[r]]]
+        apos, o_arr, sh_d, sh_g, prm = self._kernel_state(assignment, order, shift)
+        no_rel = np.empty(0, np.int64)
+
+        # Escalate globally: (a) over every rear first, (b) only once no rear
+        # improves with (a), (c) only once none does with (b); after an
+        # improvement start again from (a).  The end state is the same kind
+        # of local optimum (nothing improves with any step), but the costly
+        # (c) is only paid when the cheap steps are exhausted.
+        level = 0
+        while level < max_level and time.perf_counter() < t_end:
+            improved = False
+            # The front aircraft each rear interacts with in the current
+            # schedule — on each blocking position, those overlapping its stay
+            # plus the last one before and the first one after it (the same
+            # set its align proposals come from).  Two rears are related when
+            # one is such a front of the other or they share one: the aircraft
+            # that move together around one front in the optima (a position
+            # test alone relates every spoke of a hub — hundreds of pairs).
+            # (only step (c) uses them)
+            near = {}
+            stay = ({a["id"]: (a["start"], a["finish"])
+                     for a in self._eval(assignment, order, shift)["aircraft"]}
+                    if level == 2 else {})
+            for r in (rears if level == 2 else ()):
+                s_r, f_r = stay[r]
+                near[r] = set()
+                for fp in self._fronts_of[assignment[r]]:
+                    before = after = None
+                    for a in self.aircraft_ids:
+                        if assignment[a] != fp:
+                            continue
+                        s_a, f_a = stay[a]
+                        if s_a <= f_r and s_r <= f_a:
+                            near[r].add(a)
+                        elif f_a < s_r:
+                            if before is None or f_a > stay[before][1]:
+                                before = a
+                        elif after is None or s_a < stay[after][0]:
+                            after = a
+                    near[r].update(x for x in (before, after) if x is not None)
+            self.rng.shuffle(rears)
+            for r in rears:
+                rel = (np.fromiter(
+                    (self._idx[q] for q in rears if q != r and (
+                        q in near[r] or r in near[q] or near[r] & near[q])), np.int64)
+                       if level == 2 else no_rel)
+                found, dr, gr, qi, dq, gq, o, nev = K.align_one(
+                    self._idx[r], rel, o_arr, apos, sh_d, sh_g, cur, self._kinst, prm,
+                    self._fronts_mat, self._n_fronts, t_end, 6, 12, 12,
+                    1 << level)
+                self._cache_misses += nev
+                if found:
+                    shift = dict(shift)
+                    moved = [(r, dr, gr)]
+                    if qi >= 0:
+                        moved.append((self.aircraft_ids[qi], dq, gq))
+                    for a, d, g in moved:
+                        sh_d[self._idx[a]], sh_g[self._idx[a]] = d, g
+                        if d == 0 and g == 0:
+                            shift.pop(a, None)
+                        else:
+                            shift[a] = (d, g)
+                    cur, improved = o, True
+                    break
+                if time.perf_counter() >= t_end:
+                    break
+            level = 0 if improved else level + 1
+        return shift, cur
 
     # ==================================================================
     # Iterated Greedy perturbation
     # ==================================================================
 
-    def _perturb(self, assignment: dict, order: list[str], k: int):
+    def _perturb(self, assignment: dict, order: list[str], shift: dict, k: int):
         """Destruction–reconstruction: remove the k highest-contribution
         aircraft, then greedily reinsert each at its best position and a
-        good spot in the order."""
+        good spot in the order.  Removed aircraft lose their shift (it was
+        aligned to a context the rebuild changes)."""
         # Half the perturbations remove k aircraft uniformly at random: the
         # targeted (delay-weighted) rule below degenerates under wMK/wMOV
         # (delay ~ 0 -> almost always the same longest k+2), anchoring the
@@ -984,7 +1229,7 @@ class IteratedGreedyVNDJobSolver:
             removed = self.rng.sample(self.aircraft_ids,
                                       min(k, len(self.aircraft_ids)))
         else:
-            sol = self._eval(assignment, order)
+            sol = self._eval(assignment, order, shift)
             contrib = {a["id"]: self.wD * a["delay"] + 1e-3 * self.T[a["id"]]
                        for a in sol["aircraft"]}
             # Remove the k worst contributors, with a little randomisation so
@@ -996,6 +1241,7 @@ class IteratedGreedyVNDJobSolver:
 
         a2 = dict(assignment)
         kept_order = [r for r in order if r not in removed]
+        s2 = {r: v for r, v in shift.items() if r not in removed}
 
         # Reinsert each removed aircraft at the best (position, order-slot).
         for r in removed:
@@ -1006,26 +1252,24 @@ class IteratedGreedyVNDJobSolver:
                 a2[r] = assignment[r]
                 kept_order.append(r)
                 continue
-            best = None  # (obj, position, slot)
-            for p in self.positions:
-                a2[r] = p
-                # Only one slot per distinct-decode class (exact pruning).
-                for slot in self._order_slots(r, kept_order, a2):
-                    trial_order = kept_order[:slot] + [r] + kept_order[slot:]
-                    o = self._objective(self._eval(a2, trial_order))
-                    if best is None or o < best[0]:
-                        best = (o, p, slot)
-            _, bp, bslot = best
-            a2[r] = bp
+            # Best (position, slot) over every position and one slot per
+            # distinct-decode class (exact pruning, as in _scan_moves) — one
+            # call of the compiled best_insert kernel; first one on ties.
+            apos, o_arr, sh_d, sh_g, prm = self._kernel_state(a2, kept_order, s2)
+            bp, bslot, _, nev = K.best_insert(self._decoder_tag == "v3", self._idx[r], apos,
+                                              o_arr, sh_d, sh_g, self._kinst, prm,
+                                              len(self.positions))
+            self._cache_misses += nev
+            a2[r] = self.positions[bp]
             kept_order = kept_order[:bslot] + [r] + kept_order[bslot:]
 
-        return a2, kept_order
+        return a2, kept_order, s2
 
     # ==================================================================
     # v3 decoder — manoeuvre-aware (allows Mode-C overlap)
     # ==================================================================
 
-    def _decode_v3(self, assignment: dict, order: list[str]) -> dict:
+    def _decode_v3(self, assignment: dict, order: list[str], shift: dict | None = None) -> dict:
         """Decode allowing rear aircraft to interrupt front aircraft
         (Mode C), spending manoeuvres to compress the schedule.
 
@@ -1035,257 +1279,62 @@ class IteratedGreedyVNDJobSolver:
         finish + delay + manoeuvre penalty); the rear-before/after/nested
         zero-movement options are always among the candidates, so this
         only ever adds the manoeuvre option, never removes a feasible one.
+        The placement and the Mode-A/B/C simulation are the compiled kernels
+        ``decode_v3`` / ``place_front`` / ``sim_front`` (``igvnd_kernels``);
+        ``aircraft`` is built on first access, as in ``_decode``.
+
+        ``shift[r] = (delay, stretch)`` (Attempt 17) delays r's earliest start
+        and inserts ``stretch`` of idle before its last job.  Placing rears
+        first means a rear can never *react* to its fronts, so an exit that
+        lands exactly on a front boundary — the structure most proven optima
+        use — is only expressible through this search-owned shift.
         """
-        # Aircraft grouped by their assigned position, each list kept in
-        # priority order so same-position aircraft are sequenced consistently.
-        pos_members = {p: [r for r in order if assignment[r] == p] for p in self.positions}
-        placed: dict[str, tuple] = {}  # r -> (start, finish, sched, mov_events)
+        idx, ids = self._idx, self.aircraft_ids
+        R = len(ids)
+        pos = list(map(assignment.__getitem__, order))  # snapshot: the search mutates assignment
+        o = np.fromiter(map(idx.__getitem__, order), np.int64, len(order))
+        op = np.fromiter(map(self._pidx.__getitem__, pos), np.int64, len(pos))
+        sh_d = np.zeros(R)
+        sh_g = np.zeros(R)
+        for r, (d, g) in (shift or {}).items():
+            sh_d[idx[r]] = d
+            sh_g[idx[r]] = g
+        start, finish = np.zeros(R), np.zeros(R)
+        mov_ev = np.zeros(R, np.int64)
+        J = len(self._job_dur)
+        js, jf, jk = np.zeros(J), np.zeros(J), np.zeros(J, np.int64)
+        placed = np.zeros(R, np.bool_)
+        K.decode_v3(o, op, sh_d, sh_g, self._E, self._L, self._T, self._job_off,
+                    self._job_dur, self._job_int, self._pos_depth, self._rears_mat,
+                    self._n_rears, self.eta, self.eps, self.delta, self.mu,
+                    self.wM, self.wD, self.wS, start, finish, mov_ev, js, jf, jk, placed)
+        makespan, total_delay = K.metrics(self._L, finish, placed)
+        movements = 2 * int(mov_ev.sum())
 
-        # Schedule positions DEEPEST-REAR FIRST.  This ordering is what makes
-        # the manoeuvre accounting tractable: by the time we lay out a front
-        # aircraft, every rear it can block has already been placed, so the
-        # rear access instants it must react to are known constants.
-        for p in self._pos_by_depth_desc:
-            prev_f = None  # finish of the previous aircraft sharing position p
-            for r in pos_members[p]:
-                # Earliest this aircraft may start: its own E[r], pushed past
-                # the previous same-position aircraft by the tow time eps.
-                lower = self.E[r]
-                if prev_f is not None:
-                    lower = max(lower, prev_f + self.eps)
-                # Gather the access instants (entry s_a and exit f_a) of every
-                # already-placed rear aircraft that this position blocks — these
-                # are the events the front must classify as Mode A / B / C.
-                rear_acc: list[float] = []
-                for pr in self._rears_of[p]:
-                    for a in pos_members.get(pr, []):
-                        if a in placed:
-                            s_a, f_a = placed[a][0], placed[a][1]
-                            rear_acc.append(s_a)
-                            rear_acc.append(f_a)
-                # Place the front at its minimum-cost feasible start.
-                s_r, f_r, sched, mov_events = self._place_front(r, lower, rear_acc)
-                placed[r] = (s_r, f_r, sched, mov_events)
-                prev_f = f_r
+        def build():
+            where = dict(zip(order, pos))
+            st, fi, pl = start.tolist(), finish.tolist(), placed.tolist()
+            s_j, f_j = js.tolist(), jf.tolist()
+            aircraft_out = []
+            for i, r in enumerate(ids):
+                if not pl[i]:
+                    continue
+                j0 = self._job_off_l[i]
+                jobs_out = [{"id": jid, "start": s_j[j0 + k], "finish": f_j[j0 + k]}
+                            for k, (jid, _) in enumerate(self.chain[r])]
+                s_r, f_r = st[i], fi[i]
+                aircraft_out.append({
+                    "id": r, "position": where[r], "start": s_r, "finish": f_r,
+                    "delay": max(0.0, f_r - self.L[r]), "jobs": jobs_out,
+                })
+            return {"aircraft": aircraft_out}
 
-        aircraft_out = []
-        makespan = 0.0
-        total_delay = 0.0
-        total_events = 0
-        for r in self.aircraft_ids:
-            if r not in placed:
-                continue
-            s_r, f_r, sched, mov_events = placed[r]
-            jobs_out = [{"id": jid, "start": s, "finish": f} for (jid, s, f, k) in sched]
-            total_events += mov_events
-            delay = max(0.0, f_r - self.L[r])
-            makespan = max(makespan, f_r)
-            total_delay += delay
-            aircraft_out.append({
-                "id": r, "position": assignment[r],
-                "start": s_r, "finish": f_r, "delay": delay, "jobs": jobs_out,
-            })
-
-        movements = 2 * total_events
         obj = self.wM * makespan + self.wD * total_delay + self.wS * movements
-        return {
+        return _LazySolution(build, {
             "status": "heuristic_ok",
             "objective": round(obj, 6),
             "metrics": {"makespan": makespan, "total_delay": total_delay, "movements": movements},
-            "aircraft": aircraft_out,
-        }
-
-    def _place_front(self, r, lower, rear_acc):
-        """Choose the minimum-cost feasible start for front aircraft r.
-
-        Returns (start, finish, sched, mov_events).
-        """
-        eta, T = self.eta, self.T[r]
-        chain = self.chain[r]
-        # prefix[j] = work-time offset of job j's start relative to the aircraft
-        # start, ignoring any delta extensions (an approximate seed; the forward
-        # simulation in _sim_front recomputes exact times including extensions).
-        prefix, acc = [], 0.0
-        for (_, D) in chain:
-            prefix.append(acc)
-            acc += D
-
-        # Build a small set of candidate start times.  The strategy is to
-        # propose only starts that are "interesting" with respect to some rear
-        # access tau: starts that keep tau in Mode A, or that deliberately align
-        # a job interior / job end on tau to invite a cheap Mode-C / Mode-B.
-        # `lower` is always included, and the zero-movement options are always
-        # present, so the chosen start can never be worse than a Mode-A schedule.
-        cands = {lower}
-        for tau in rear_acc:
-            # Zero-movement options: place the whole stay before tau (finish
-            # exactly at tau or eta before it), after tau (start exactly at
-            # tau or eta after it), or nested (start at tau-eta-T).  All keep
-            # tau in Mode A; the band-tight candidates tau-T and tau exploit
-            # the vacant-front semantics (touching allowed at both edges).
-            for c in (tau - T, tau - eta - T, tau - eta, tau, tau + eta):
-                if c >= lower - 1e-9:
-                    cands.add(round(c, 4))
-            for (jid, D), pj in zip(chain, prefix):
-                # Mode-C alignment: shift the start so that job j's *interior*
-                # straddles tau (just after its start, just before its end, or
-                # at its midpoint) — only worthwhile if j is interruptible.
-                if self.interruptible[jid]:
-                    for c in (tau - pj - eta, tau - pj - D + eta, tau - pj - D / 2.0):
-                        if c >= lower - 1e-9:
-                            cands.add(round(c, 4))
-                # Mode-B alignment: shift the start so job j *ends* just before
-                # tau, so tau falls into the inter-job gap opened after j and is
-                # routed through it with no delta extension.
-                for c in (tau - pj - D, tau - pj - D - eta):
-                    if c >= lower - 1e-9:
-                        cands.add(round(c, 4))
-        # Guaranteed-feasible fallback: start after every rear access, so the
-        # whole stay is past them (all Mode A), respecting `lower` too.  This
-        # ensures the candidate set always contains at least one feasible start.
-        if rear_acc:
-            cands.add(max(lower, max(rear_acc) + eta))
-
-        # Price every candidate by simulating it, and keep the cheapest feasible
-        # one.  The cost mirrors the objective's local contribution of r:
-        # weighted finish + delay + manoeuvre penalty (2 movements per event).
-        best = None  # (cost, s, f, sched, mov_events)
-        for s in sorted(cands):
-            f_r, sched, mov_events, ok = self._sim_front(r, s, rear_acc)
-            if not ok:
-                continue
-            delay = max(0.0, f_r - self.L[r])
-            cost = self.wM * f_r + self.wD * delay + self.wS * (2 * mov_events)
-            if best is None or cost < best[0] - 1e-9:
-                best = (cost, s, f_r, sched, mov_events)
-        # `lower` with no rears, or the fallback, always yields a feasible
-        # placement, so `best` is never None.
-        _, s, f, sched, mov_events = best
-        return s, f, sched, mov_events
-
-    def _sim_front(self, r, s_start, rear_acc):
-        """Forward-simulate front aircraft r from s_start.
-
-        Each rear access is classified against r's laid-out jobs:
-          * Mode C — strictly inside an interruptible job interior; the job
-            is extended by ``delta`` (kappa fixpoint per job).
-          * Mode B — routed through a deliberately inserted inter-job *gap*
-            (no job extension); the gap is sized ``>= mu * (#accesses in it)``.
-            A gap is opened after job j for the accesses just past its end
-            when that is cheaper than Mode C (within ``delta`` of the end) or
-            when the next job is non-interruptible (so the access cannot be
-            absorbed and must pass through a gap).
-          * Mode A — outside r's stay; free.
-
-        Returns (finish, sched, mov_events, feasible), where ``sched`` is a
-        list of (job_id, start, finish, kappa) and ``mov_events`` is the
-        number of Mode-B + Mode-C access events (movements = 2 * mov_events).
-        Infeasible if an access lands in a non-interruptible job interior, in
-        a job's eta-margin, or cannot be classified.
-
-        Boundaries follow the checker's closed semantics: an access exactly at
-        the stay start or finish is Mode A, an access exactly at a job end is
-        Mode B through the gap that follows it, and a gap is opened at the
-        job end nearest to the access (never at an earlier one).
-        """
-        eta, delta, mu = self.eta, self.delta, self.mu
-        chain = self.chain[r]
-        acc = sorted(rear_acc)        # the rear access instants to classify
-        # An access exactly at the stay start is Mode A (the front is just
-        # entering its slot; checker boundary rule), so it needs no routing.
-        used = [abs(tau - s_start) <= 1e-9 for tau in acc]  # accounted-for accesses
-        sched = []                    # (job_id, start, finish, kappa) per job
-        mov_events = 0                # Mode-B + Mode-C access events so far
-        t = s_start                   # running cursor = start of the next job
-        n = len(chain)
-
-        # Lay the jobs of r one after another from s_start, classifying every
-        # rear access against each job as we go.
-        for j in range(n):
-            jid, D = chain[j]
-            interruptible = self.interruptible[jid]
-
-            # --- Mode-C count via a fixpoint --------------------------------
-            # Each access strictly inside job j's interior is a Mode-C
-            # interruption that lengthens the job by delta.  But lengthening the
-            # job widens its interior, which can pull in further accesses — so
-            # we iterate kappa = (#interior accesses) until it stops growing.
-            kappa = 0
-            while True:                                   # Mode-C kappa fixpoint
-                f_j = t + D + delta * kappa
-                cnt = sum(1 for i, tau in enumerate(acc)
-                          if not used[i] and t + eta - 1e-9 <= tau <= f_j - eta + 1e-9)
-                if cnt == kappa:
-                    break
-                kappa = cnt
-                if kappa > len(acc) + 5:                  # runaway guard
-                    return None, None, None, False
-            f_j = t + D + delta * kappa
-            # A Mode-C interruption is only legal on an interruptible job.
-            if kappa > 0 and not interruptible:
-                return None, None, None, False
-            # Reject accesses that land in the eta-margin at either edge of the
-            # job: they are neither cleanly outside nor cleanly inside, so the
-            # checker would consider them ambiguous/infeasible.
-            for i, tau in enumerate(acc):                 # eta-margin bad zones
-                if used[i]:
-                    continue
-                if t - 1e-9 < tau < t + eta - 1e-9:
-                    return None, None, None, False
-                if f_j - eta + 1e-9 < tau < f_j - 1e-9:
-                    return None, None, None, False
-            # Mark the interior accesses as consumed (handled as Mode C).
-            for i, tau in enumerate(acc):                 # consume Mode-C accesses
-                if not used[i] and t + eta - 1e-9 <= tau <= f_j - eta + 1e-9:
-                    used[i] = True
-            mov_events += kappa
-            sched.append((jid, t, f_j, kappa))
-            t = f_j
-
-            # --- Mode-B gap before the next job -----------------------------
-            # Accesses that fall just after this job's end can instead be routed
-            # through an inter-job gap (no delta extension).  We open a gap when
-            # it is the cheaper option (access within `delta` of the end) or
-            # mandatory (the next job is non-interruptible, so the access cannot
-            # be absorbed as Mode C and MUST pass through a gap).
-            if j < n - 1:
-                next_interruptible = self.interruptible[chain[j + 1][0]]
-                window = chain[j + 1][1] if not next_interruptible else delta
-                # The gap is closed at its start (an access exactly at f_j is
-                # Mode B through this gap), and the window is open at its end:
-                # an access that coincides with the NEXT job's end is not
-                # inside that job, so it is routed at the next boundary with a
-                # minimal gap (or is Mode A if that job is the last one).
-                batch = [i for i in range(len(acc))
-                         if not used[i] and f_j - 1e-9 <= acc[i] < f_j + window - 1e-9]
-                if batch:
-                    # The gap must end past the last routed access AND be wide
-                    # enough to absorb mu per access routed through it.
-                    s_next = max(max(acc[i] for i in batch), f_j + mu * len(batch))
-                    # Reconcile: widening the gap may now enclose further unused
-                    # accesses, which are then also "in the gap" (Mode B) and
-                    # counted — which can widen it again.  Iterate to a fixpoint.
-                    while True:
-                        extra = [i for i in range(len(acc))
-                                 if not used[i] and i not in batch
-                                 and f_j - 1e-9 <= acc[i] <= s_next + 1e-9]
-                        if not extra:
-                            break
-                        batch += extra
-                        s_next = max(s_next, max(acc[i] for i in batch), f_j + mu * len(batch))
-                    for i in batch:
-                        used[i] = True
-                    mov_events += len(batch)
-                    t = s_next                            # next job starts after the gap
-
-        f_r = t
-        # Final check: any access still unclassified that lies strictly inside
-        # the aircraft's stay is an unrepresentable boundary/zero-gap case —
-        # reject it (the real checker would reject it too).
-        for i, tau in enumerate(acc):
-            if not used[i] and s_start + eta - 1e-9 <= tau <= f_r - eta + 1e-9:
-                return None, None, None, False
-        return f_r, sched, mov_events, True
+        })
 
 
 # Backwards-compatible alias: the Application contract only needs the
