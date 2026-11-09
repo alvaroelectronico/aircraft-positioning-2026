@@ -10,9 +10,11 @@ proving optimality becomes intractable well before the fleet sizes of
 operational interest (\S\ref{sec:experiments}).  We therefore develop a
 metaheuristic, \textsc{IGVND}, that couples an Iterated-Greedy outer loop
 with a first-improvement local search over three neighbourhoods around a
-problem-specific decoder.  The design draws on the NEH constructive
-heuristic, Iterated Greedy, and Variable Neighbourhood
-Search~\citep{Nawaz1983,Ruiz2007,Hansen2001,Mladenovic1997}.
+problem-specific decoder, and complements it with an \emph{alignment
+polish} on a small per-aircraft timing shift that lets a rear aircraft's
+access land exactly on a boundary of the front it blocks.  The design
+draws on the NEH constructive heuristic, Iterated Greedy, and Variable
+Neighbourhood Search~\citep{Nawaz1983,Ruiz2007,Hansen2001,Mladenovic1997}.
 
 % ------------------------------------------------------------------------------
 \subsection{Overview}
@@ -29,10 +31,15 @@ deterministic \emph{decoder} maps a state $(\pi, \sigma)$ to concrete job
 start and finish times, classifies every blocking access into its mode
 (\S\ref{sec:problem}), and returns the objective value~\eqref{eq:milpobj};
 we write $z(\pi,\sigma)$ for that value.  The decoder is the oracle that
-prices a combinatorial state, and the search never manipulates timing
-variables directly.
+prices a combinatorial state.  The only timing quantity the search ever
+touches is a \emph{shift} $\theta_r = (d_r, g_r)$ per aircraft --- a delay
+$d_r \ge 0$ of its earliest start and an idle $g_r \ge 0$ inserted before
+its last job --- which is zero everywhere by default, is honoured only by
+the manoeuvre-aware decoder, and is searched only by a dedicated polish
+(\S\ref{sec:igvnd_align}); we write $z_1(\pi,\sigma,\theta)$ when the
+shift matters and $z_1(\pi,\sigma)$ for the zero shift.
 
-The method is built from five blocks, each detailed in a subsection below:
+The method is built from six blocks, each detailed in a subsection below:
 \begin{enumerate}[leftmargin=2.2em, itemsep=1pt]
   \item a \textbf{decoder} (\S\ref{sec:igvnd_decoder}) in two regimes ---
         a zero-movement regime that is feasible by construction, and a
@@ -45,7 +52,10 @@ The method is built from five blocks, each detailed in a subsection below:
   \item an exact-filtered \textbf{local-search descent}
         (\S\ref{sec:igvnd_vnd}) that refines a state to a local optimum;
   \item an \textbf{Iterated-Greedy} loop (\S\ref{sec:igvnd_ig}) that
-        perturbs and re-optimises around the incumbent; and
+        perturbs and re-optimises around the incumbent;
+  \item an \textbf{alignment polish} (\S\ref{sec:igvnd_align}) that
+        searches the per-aircraft shift so that rear accesses land on
+        front boundaries, the structure the certified optima use; and
   \item a \textbf{multi-start} driver with a feasibility safety net
         (\S\ref{sec:igvnd_safety}).
 \end{enumerate}
@@ -55,9 +65,10 @@ drawn \emph{until the time budget is exhausted}: each restart takes a seed
 order (deterministic for the first two, biased-randomised afterwards),
 optimises it first in the zero-movement regime to obtain a
 guaranteed-feasible \emph{floor}, and then polishes it in the
-manoeuvre-aware regime, with the two phases splitting the restart's time
-slice evenly; the polished schedule is retained only if an independent
-feasibility check certifies it and it improves the floor.  A
+manoeuvre-aware regime --- where the state additionally carries the shift
+$\theta$, started from zero --- with the two phases splitting the
+restart's time slice evenly; the polished schedule is retained only if an
+independent feasibility check certifies it and it improves the floor.  A
 single nest-stretch candidate is added when the weights reward it.  The
 best certified schedule over all restarts is returned.  Because every
 restart ends early once its own search stalls, small instances perform
@@ -87,10 +98,10 @@ $z^\star \leftarrow +\infty$;\quad $i \leftarrow 1$\;
   $(\pi, \sigma) \leftarrow \textsc{Search}(\pi, \sigma, \textsc{Decode}_0)$;
      \quad $z_{\mathrm{floor}} \leftarrow z_0(\pi, \sigma)$
      \tcp*{local-search descent + IG destroy/rebuild (Alg.~\ref{alg:search}); the zero-movement floor}
-  $(\pi', \sigma') \leftarrow \textsc{Search}(\pi, \sigma, \textsc{Decode}_1)$
-     \tcp*{the same search re-run under $\textsc{Decode}_1$; the manoeuvre-aware polish}
-  \eIf{$z_1(\pi', \sigma') < z_{\mathrm{floor}}$ \textbf{\emph{and}}
-        $\textsc{Decode}_1(\pi', \sigma')$ passes the feasibility check}{
+  $(\pi', \sigma', \theta') \leftarrow \textsc{Search}(\pi, \sigma, \textsc{Decode}_1)$
+     \tcp*{the same search re-run under $\textsc{Decode}_1$ from the zero shift; the manoeuvre-aware polish, now also aligning $\theta$ (Alg.~\ref{alg:polish})}
+  \eIf{$z_1(\pi', \sigma', \theta') < z_{\mathrm{floor}}$ \textbf{\emph{and}}
+        $\textsc{Decode}_1(\pi', \sigma', \theta')$ passes the feasibility check}{
     $(\sigma^\circ, z^\circ) \leftarrow$ the polished schedule and its value\;
   }{
     $(\sigma^\circ, z^\circ) \leftarrow$ the floor schedule and $z_{\mathrm{floor}}$\;
@@ -187,6 +198,22 @@ non-interruptible job, are rejected.  Because the zero-movement
 placements remain candidates, this regime can only ever \emph{add} the
 manoeuvre option --- it never discards a feasible no-movement schedule.
 
+Processing rears before fronts has one blind spot: a rear aircraft is laid
+at its earliest feasible start and can never \emph{react} to where its
+front ends up.  The certified optima of \S\ref{sec:experiments}, however,
+frequently delay a rear aircraft, or stretch its stay with idle before its
+last job, precisely so that its exit (or entry) coincides with a boundary
+of the front it blocks --- the front's stay start or finish, or a job end
+--- where the access is Mode~A or a cheap Mode~B instead of a Mode~C
+interruption.  The decoder therefore honours the per-aircraft shift
+$\theta_r = (d_r, g_r)$ introduced in \S\ref{sec:igvnd_principle}: the
+lower bound on $r$'s start becomes $E_r + d_r$, and an idle of $g_r$ is
+inserted before its last job, so that the finish $f_r$ moves by $g_r$
+while the earlier jobs stay where they were.  With $\theta = 0$ the
+decoder is exactly the one just described, so the floor and the
+guarantees around it are untouched; how $\theta$ is searched is the
+subject of \S\ref{sec:igvnd_align}.
+
 The cost of one manoeuvre-aware decode is polynomial.  Let
 $A \le 2(|\calR| - 1)$ bound the exposed access instants a front aircraft
 faces and $N_{\max}$ the longest job chain: each front prices
@@ -203,12 +230,13 @@ so the effective cost is far below this bound.
 \SetKwInput{KwResult}{Output}
 \SetKwProg{Fn}{Procedure}{}{}
 \SetKwFunction{FPlace}{PlaceFront}
-\KwData{state $(\pi, \sigma)$.}
+\KwData{state $(\pi, \sigma)$; shift $\theta = (d_r, g_r)_{r \in \calR}$, zero by default.}
 \KwResult{a feasible schedule, possibly with manoeuvres, and its value $z_1$.}
 \ForEach{position $p \in \calP$ \emph{in order of decreasing blocking depth}}{
   $\phi \leftarrow -\infty$ \tcp*{finish of the previous aircraft at $p$}
   \ForEach{$r$ \emph{assigned to} $p$, \emph{in the order} $\sigma$}{
-    $\ell \leftarrow \max\{E_r,\ \phi + \varepsilon\}$\;
+    $\ell \leftarrow \max\{E_r + d_r,\ \phi + \varepsilon\}$
+       \tcp*{the shift delays the earliest start}
     $A \leftarrow$ the access instants of every already-placed rear of $r$\;
     $(s_r, f_r) \leftarrow \FPlace{$r, \ell, A$}$;\quad $\phi \leftarrow f_r$\;
   }
@@ -227,7 +255,8 @@ so the effective cost is far below this bound.
      \tcp*{invite Mode B}
   $c^\star \leftarrow +\infty$\;
   \ForEach{$s \in \mathcal{S}$ \emph{with} $s \ge \ell$}{
-    sweep the jobs of $r$ from $s$, classifying each $\tau \in A$ as
+    sweep the jobs of $r$ from $s$, with an idle of $g_r$ before the last
+       job, classifying each $\tau \in A$ as
        Mode~A ($\tau$ outside the stay or exactly on its edges), Mode~B
        (open a gap of width $\ge \mu$ after the job whose end is nearest
        to $\tau$; $\tau$ may sit exactly on that end) or Mode~C (extend
@@ -329,7 +358,13 @@ blocking arc; same position only under $\textsc{Decode}_1$, which
 sequences within positions) changes, so $N_2$ visits one representative
 slot per such class instead of every slot.  Candidates are scanned in a
 random order; the first strictly improving move is applied and the
-candidate set is recomputed, until no move improves.
+candidate set is recomputed, until no move improves.  Under
+$\textsc{Decode}_1$ the state also carries the shift $\theta$: the descent
+prices every move with the shifts the aircraft inherit and never changes
+them --- the shift is searched only by the polish of
+\S\ref{sec:igvnd_align}, because as a permanent fourth neighbourhood it
+multiplied the cost of a non-improving pass about fivefold and starved
+the outer loop.
 
 \begin{algorithm}[htbp]
 \DontPrintSemicolon
@@ -364,11 +399,21 @@ contribution score (lightly randomised), the two together keeping the walk
 from anchoring on the same removals --- and \emph{reconstructs} the state by
 reinserting each removed aircraft at the position and order-slot that
 minimises the decoded objective (again one slot per distinct-decode
-class).  The perturbed state is re-optimised by the local search and
-accepted as the new current state when it does not worsen the walk; the
-best state is tracked separately.  The procedure is decoder-agnostic: the master
-procedure calls it once with $\textsc{Decode}_0$ for the floor and once
-with $\textsc{Decode}_1$ for the polish.
+class); a removed aircraft loses its shift, which was aligned to a context
+the rebuild changes.  The perturbed state is re-optimised by the local
+search and accepted as the new current state when it does not worsen the
+walk; the best state is tracked separately.  The procedure is
+decoder-agnostic: the master procedure calls it once with
+$\textsc{Decode}_0$ for the floor and once with $\textsc{Decode}_1$ for
+the polish.  Under $\textsc{Decode}_1$ the loop additionally calls the
+alignment polish of \S\ref{sec:igvnd_align} at three points
+(Algorithm~\ref{alg:search}): every candidate receives the cheap
+single-aircraft alignment step before it is judged, a new best receives
+the full alignment descent, and the shift kicks run once, on the best
+state, when the walk has stalled.  The first of these hooks matters most:
+judged with the shifts it inherits --- mostly none --- a candidate that
+carries the assignment and order of an optimum can price several times
+worse than it is, and was never accepted before the hook existed.
 
 \begin{algorithm}[htbp]
 \DontPrintSemicolon
@@ -378,26 +423,41 @@ with $\textsc{Decode}_1$ for the polish.
 \SetKwFunction{FPert}{Perturb}
 \KwData{seed $(\pi, \sigma)$; decoder $\textsc{Decode}_d$; deadline.}
 \KwResult{the best state found.}
-$(\pi, \sigma) \leftarrow \textsc{LocalSearch}(\pi, \sigma, \textsc{Decode}_d)$\;
-\emph{best} $\leftarrow$ \emph{cur} $\leftarrow (\pi, \sigma)$;\quad
+$(\pi, \sigma) \leftarrow \textsc{LocalSearch}(\pi, \sigma, \textsc{Decode}_d)$;\quad
+   $\theta \leftarrow 0$\;
+\lIf{$d = 1$}{$\theta \leftarrow \textsc{Align}(\pi, \sigma, \theta;\ 3)$
+   \tcp*[f]{full alignment descent, Alg.~\ref{alg:polish}}}
+\emph{best} $\leftarrow$ \emph{cur} $\leftarrow (\pi, \sigma, \theta)$;\quad
    $t \leftarrow 0$ \tcp*{$t$ = non-improving streak}
 \Repeat{the deadline is reached \emph{or} $t \ge t_{\max}$}{
   \emph{cand} $\leftarrow \textsc{LocalSearch}\big(\FPert{\emph{cur}},
-     \textsc{Decode}_d\big)$\;
+     \textsc{Decode}_d\big)$
+     \tcp*{\FPert{} clears the shift of the aircraft it removes}
+  \lIf{$d = 1$}{align \emph{cand} with the single-aircraft step only,
+     $\textsc{Align}(\cdot;\ 1)$ \tcp*[f]{judge it with its shifts aligned}}
+  \lIf{$d = 1$ \textbf{\emph{and}} $z_d(\emph{cand}) < z_d(\emph{best})$}{align
+     \emph{cand} fully, $\textsc{Align}(\cdot;\ 3)$}
   \lIf{$z_d(\emph{cand}) \le z_d(\emph{cur})$}{\emph{cur} $\leftarrow$ \emph{cand}}
   \eIf{$z_d(\emph{cand}) < z_d(\emph{best})$}{
     \emph{best} $\leftarrow$ \emph{cand};\quad $t \leftarrow 0$\;
   }{
         $t \leftarrow t + 1$\;
   }
+  \If{$d = 1$ \textbf{\emph{and}} $t \ge t_{\max}$ \textbf{\emph{and}} time remains}{
+    \emph{best}$' \leftarrow \textsc{Polish}(\emph{best})$
+       \tcp*{shift kicks, only once the walk has stalled}
+    \lIf{$z_1(\emph{best}') < z_1(\emph{best})$}{\emph{best} $\leftarrow$
+       \emph{cur} $\leftarrow$ \emph{best}$'$;\quad $t \leftarrow 0$}
+  }
 }
 \Return \emph{best}\;
 \BlankLine
-\Fn{\FPert{$(\pi, \sigma)$}}{
+\Fn{\FPert{$(\pi, \sigma, \theta)$}}{
   with probability $\tfrac12$: remove $k$ aircraft uniformly at random;\;
   otherwise: remove the $k$ aircraft of largest score
      $W^D v^D_r + \omega\, T_r$ (lightly randomised)\;
   \ForEach{removed aircraft $r$}{
+        $\theta_r \leftarrow (0, 0)$;\;
         reinsert $r$ at the $(\text{position}, \text{slot in } \sigma)$
        minimising the decoded objective, one slot per distinct-decode class\;
   }
@@ -405,6 +465,119 @@ $(\pi, \sigma) \leftarrow \textsc{LocalSearch}(\pi, \sigma, \textsc{Decode}_d)$\
 }
 \caption{\textsc{Search} --- Iterated-Greedy loop around the local search.}
 \label{alg:search}
+\end{algorithm}
+
+% ------------------------------------------------------------------------------
+\subsection{Aligning rear aircraft on front boundaries}
+\label{sec:igvnd_align}
+% ------------------------------------------------------------------------------
+
+The shift $\theta$ gives the manoeuvre-aware decoder the structure the
+certified optima use (\S\ref{sec:igvnd_decoder}); this subsection
+describes how it is searched.  The search is deliberately narrow.  A
+shift is only ever proposed to put an access of an aircraft \emph{exactly
+on a boundary} of an aircraft it interacts with in the current decoded
+schedule, so the candidate set is small and every candidate has a
+reason; and it runs as a polish of selected states rather than as a
+neighbourhood of the descent.
+
+\paragraph{Proposals.}
+For an aircraft $r$ on a blocking position, consider the front aircraft
+it interacts with in the current schedule: on every position that blocks
+$\pi(r)$, those whose stay overlaps $r$'s, plus the last one finishing
+before $r$ and the first one starting after it.  Their \emph{boundaries}
+are their stay start and finish, their job starts and ends, and the job
+ends they would have if their jobs ran tight from their start --- the
+natural ends, which only materialise once a rear exit stops pushing the
+front.  The proposals of $r$ are the shifts that place $r$'s exit (by the
+stretch $g_r$ or by the delay $d_r$) or $r$'s entry (by $d_r$) exactly on
+one of these boundaries, plus the reset $(0,0)$.  Symmetrically, when $r$
+is itself a front, the entry and exit of the rear aircraft on the
+positions it blocks are added: a front that stays until its rear leaves,
+with the two boundaries coinciding, is how the optima wrap a wave of
+aircraft along a chain without a single manoeuvre.
+
+\paragraph{Alignment descent.}
+$\textsc{Align}$ (Algorithm~\ref{alg:polish}) is a first-improvement
+descent over the aircraft on blocking positions, in random order, using
+proposals only.  Each aircraft escalates through three steps, the next
+tried only when the previous finds nothing: (a) a single aligned shift of
+$r$; (b) a second alignment of $r$ from each state reached by (a) ---
+once $r$ moves the decoder re-places its fronts, so the boundary $r$ must
+land on often exists only after a first move; and (c) a first step of $r$
+combined with one of the six nearest alignments of a \emph{related}
+aircraft $q$ (a front $r$ interacts with, a rear behind $r$, or a sibling
+sharing a front with $r$) --- along a chain the shifts cascade, and
+siblings wrapping the same front move together in the optima.  Steps (b)
+and (c) are capped to the twelve first steps nearest to $r$'s current
+shift, and (b) to the six second steps nearest to each.  Escalation is
+global: (b) is tried only once no aircraft improves under (a), (c) only
+once none improves under (b), and after any improvement the descent
+returns to (a).  The end state is a local optimum for all three steps,
+but the costly (c) is paid only when the cheap steps are exhausted.  A
+level argument stops the escalation early: $\textsc{Align}(\cdot;\ 1)$
+runs (a) alone, the cheap form every Iterated-Greedy candidate receives.
+
+\paragraph{Shift kicks.}
+The descent only reaches boundaries of the \emph{current} schedule, while
+the optimum often needs several aircraft moved together to instants that
+become boundaries only once the others have moved --- a valley no single
+improving step crosses.  $\textsc{Polish}$ therefore follows the descent
+with an iterated local search on the shift alone: it kicks one to three
+random aircraft, each to one of its own proposals drawn at random (not
+necessarily improving), re-runs the alignment descent, and keeps the
+result if it is better; it stops after as many consecutive fruitless
+kicks as there are candidate aircraft, or when its budget is spent.  A
+polish may use at most a quarter of the time left in the phase, so that
+proving a large hub alignment-optimal does not come out of the search
+itself.  Within Algorithm~\ref{alg:search} the kicks run only when the
+walk has stalled: fired on every new best of a search that is still
+improving they only take time from the outer loop.  The whole mechanism
+adds one state component and no tunable parameter.
+
+\begin{algorithm}[htbp]
+\DontPrintSemicolon
+\SetKwInput{KwData}{Input}
+\SetKwInput{KwResult}{Output}
+\SetKwProg{Fn}{Procedure}{}{}
+\SetKwFunction{FAlign}{Align}
+\SetKwFunction{FPolish}{Polish}
+\KwData{state $(\pi, \sigma, \theta)$ under $\textsc{Decode}_1$; deepest
+   step $L \in \{1, 3\}$; polish budget.}
+\KwResult{an aligned shift $\theta$.}
+\Fn{\FAlign{$(\pi, \sigma, \theta)$; $L$}}{
+  $\mathit{level} \leftarrow$ (a)\;
+  \While{$\mathit{level} \le L$ \textbf{\emph{and}} time remains}{
+    $\mathit{found} \leftarrow$ false\;
+    \ForEach{aircraft $r$ on a blocking position, in random order}{
+      try the proposals of $r$ at $\mathit{level}$: (a) one alignment of
+         $r$; (b) a second alignment of $r$ after a first; (c) a first
+         alignment of $r$ plus one of a related aircraft $q$\;
+      \lIf{one strictly lowers $z_1(\pi, \sigma, \theta)$}{apply it;
+         $\mathit{found} \leftarrow$ true; \textbf{break}}
+    }
+    $\mathit{level} \leftarrow$ (a) if $\mathit{found}$, else the next level\;
+  }
+  \Return $\theta$\;
+}
+\BlankLine
+\Fn{\FPolish{$(\pi, \sigma, \theta)$}}{
+  $\theta \leftarrow \FAlign{$(\pi, \sigma, \theta)$; $3$}$;\quad
+     $\mathit{fails} \leftarrow 0$\;
+  \While{$\mathit{fails} <$ number of candidate aircraft \textbf{\emph{and}}
+         budget remains}{
+    $\theta' \leftarrow \theta$ with one to three random aircraft each set
+       to one of its own proposals, drawn at random\;
+    $\theta' \leftarrow \FAlign{$(\pi, \sigma, \theta')$; $3$}$\;
+    \lIf{$z_1(\pi, \sigma, \theta') < z_1(\pi, \sigma, \theta)$}{$\theta
+       \leftarrow \theta'$;\quad $\mathit{fails} \leftarrow 0$}
+    \lElse{$\mathit{fails} \leftarrow \mathit{fails} + 1$}
+  }
+  \Return $\theta$\;
+}
+\caption{\textsc{Align} and \textsc{Polish} --- the alignment polish on
+   the per-aircraft shift.}
+\label{alg:polish}
 \end{algorithm}
 
 % ------------------------------------------------------------------------------

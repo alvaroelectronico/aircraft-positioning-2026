@@ -1,15 +1,14 @@
 """Generate the LaTeX result tables for the job-level extension paper.
 
-Built on the **2026-07-30 battery of record** (heuristic IGVND v01 at the
-merged Attempt 11 / tag `igvnd-v01-mode-a-band` vs the cached relaxed MILP),
-on the definitive no-Triangle benchmark (**Full and Triangle excluded**).
-Data sources (kept consistent with the experimentation, NOT a blanket
-results.csv read):
+Built on the **Attempt-17 battery of record** (heuristic IGVND v01 at commit
+`a05e435` vs the cached relaxed MILP), on the definitive no-Triangle
+benchmark (**Full and Triangle excluded**).  Data sources (kept consistent
+with the experimentation, NOT a blanket results.csv read):
 
   * heuristic, ALL 37 configs : parsed from the single battery log
-    `202605_02_main_methods_20260730_103730.log` (1110 runs / 0 failures;
-    results.csv 'latest' igvnd rows are not a reliable paper source — they
-    get overwritten by ablation reruns);
+    `202605_02_attempt17_item18_igvnd_20261101_115916.log` (1110 runs /
+    0 failures; results.csv 'latest' igvnd rows are not a reliable paper
+    source — they get overwritten by ablation reruns);
   * MILP, all configs         : latest milp_job_* per (instance,label) in
     results.csv (relaxed model: old configs from the 2026-07-23/24 battery,
     the extended chain/hub grid from the 2026-07-28 battery, same machine),
@@ -25,7 +24,11 @@ Emits, into ``papers/jobs_extension/tables/``:
   * res_components.tex    -- per-component mean delta (heuristic - MILP).
   * res_milp_conv.tex     -- mean Gurobi optimality gap, with OOM flagged.
 
-Run:  py -3 papers/jobs_extension/make_tables.py
+Run:  py -3 papers/jobs_extension/make_tables.py [battery_log]
+
+The optional argument overrides BATTERY_LOG (the heuristic battery of
+record the tables are built from); the MILP side is always the cached
+ledger.
 """
 from __future__ import annotations
 
@@ -33,17 +36,20 @@ import csv
 import glob
 import json
 import re
+import sys
 from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CSV = ROOT / "outputs" / "solutions" / "results.csv"
-# Attempt-14 (exact-filtered local search + two ILS trajectories) battery of record,
-# 2026-09-05/06, 1110/1110.  Previous records: Attempt 12 …_20260902_214555.log,
-# The 2026-07-30 battery of record (pre-Attempt-12 code) is
-# 202605_02_main_methods_20260730_103730.log; the branch verdict is pending
-# the fresh baseline arm.
-BATTERY_LOG = ROOT / "outputs" / "logs" / "202605_02_main_methods_20260905_203305.log"
+# Attempt-17 battery of record (IMPROVEMENT_LOG Attempt 17, item 18):
+# 2026-11-01, frozen copy of a05e435, 1110/1110, 0 non-compliant; converted
+# from the scratch runner's JSONL (outputs/solutions/attempt17_batteries/).
+# Previous records: Attempt 14 …_20260905_203305.log, Attempt 12
+# …_20260902_214555.log, Attempt 11 …_20260730_103730.log.
+BATTERY_LOG = ROOT / "outputs" / "logs" / "202605_02_attempt17_item18_igvnd_20261101_115916.log"
+if len(sys.argv) > 1:
+    BATTERY_LOG = Path(sys.argv[1]).resolve()
 OUT = Path(__file__).resolve().parent / "tables"
 
 # (profile key, MILP label, heuristic label, display header)
