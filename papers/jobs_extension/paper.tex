@@ -29,6 +29,11 @@
 \usepackage{rotating}
 \usepackage{pdflscape}
 \usepackage{placeins}
+% Let tall tables share a page with text instead of being pushed to float pages.
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.9}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.8}
 \usepackage[ruled,linesnumbered]{algorithm2e}
 % OR-journal pseudocode style: comments as italic "> ..." (not C-style,
 % monospaced "// ...").
@@ -75,8 +80,22 @@ Approach}
 \author*[1]{\fnm{\'Alvaro} \sur{Garc\'ia}}
 \email{alvaro.garcia@upm.es}
 
-\affil*[1]{\orgname{Universidad Polit\'ecnica de Madrid},
+\author[2]{\fnm{Antoni} \sur{Guerrero Portol\'es}}
+
+\author[1]{\fnm{Carlos} \sur{Garc\'ia-Gerbol\'es}}
+
+\author[3]{\fnm{Tamara} \sur{Borreguero Sanchidri\'an}}
+
+\affil*[1]{\orgdiv{Departamento de Ingenier\'ia de Organizaci\'on,
+           Administraci\'on de Empresas y Estad\'istica, ETSI Industriales},
+           \orgname{Universidad Polit\'ecnica de Madrid},
            \orgaddress{\city{Madrid}, \country{Spain}}}
+
+\affil[2]{\orgname{baobab soluciones},
+          \orgaddress{\city{Madrid}, \country{Spain}}}
+
+\affil[3]{\orgname{Airbus Defence and Space},
+          \orgaddress{\city{Getafe}, \country{Spain}}}
 
 \abstract{Scheduled maintenance keeps an airline's fleet airworthy, and
 much of it is carried out in hangars whose parking capacity is limited and
@@ -85,21 +104,21 @@ blocking resources: an aircraft at a front position obstructs the access
 path of the aircraft behind it, and clearing that path may require towing
 the front aircraft out and back, an expensive manoeuvre.  Whether a rear
 aircraft can be accessed while a front aircraft is being serviced depends
-on which of the front aircraft's jobs is running: an inter-job gap admits a
-cheap manoeuvre, an interruptible job admits one at the cost of a bounded
-extension, and a non-interruptible job admits none.  We contribute (i) an
-exact mixed-integer linear programming formulation whose partition
-constraint classifies every access into one of four admissible states and
-renders the impossible ones infeasible, and (ii) IGVND, an Iterated-Greedy
-metaheuristic with a neighbourhood-descent local search that separates the
-combinatorial assignment-and-ordering decision from the timing decision and
-prices it with a fast two-regime decoder under a checker-validated safety
-net.  On a controlled 370-instance benchmark spanning four blocking
-topologies, four fleet sizes and three slack levels, the MILP is effective
-on the small instances --- where the heuristic matches it, exactly on the
-easiest cases and within a few objective units elsewhere --- while on the
-larger instances, which the MILP can no longer close, the
-heuristic returns substantially better feasible solutions.}
+on which of the front aircraft's jobs is running: an access during an
+inter-job gap requires sufficient idle time but does not extend any job,
+an access during an interruptible job adds a bounded amount of processing
+time, and an access during a non-interruptible job is not admissible.  We
+contribute (i) an exact mixed-integer linear programming formulation whose
+partition constraint classifies every access into one of four admissible
+states and excludes inadmissible accesses, and (ii) IGVND, an Iterated-Greedy
+metaheuristic with a neighbourhood-descent local search that separates
+assignment and sequencing from schedule generation through a two-regime
+decoder.  On a controlled 370-instance benchmark spanning four blocking
+topologies, four fleet sizes and three slack levels, the MILP proves
+optimality on the small instances and IGVND matches the certified
+optimal objective value in 404 of 439 cases; on the larger instances, which the MILP cannot close
+within the 60\,s budget, IGVND finds better feasible solutions than the
+MILP solver in every run with 20 or 30 aircraft.}
 
 \keywords{Aircraft hangar scheduling,
           Mixed-integer linear programming,
@@ -121,6 +140,9 @@ heuristic returns substantially better feasible solutions.}
 % ============================================================================
 %% Bibliography style is set automatically by sn-jnl via the documentclass
 %% option [pdflatex,sn-mathphys-ay]; do not set \bibliographystyle explicitly.
+% Pass the @settings entry of references.bib to BibTeX (it carries the
+% sn-mathphys-ay options) without a \nocite, so natbib raises no warning.
+\makeatletter\immediate\write\@auxout{\string\citation{settings}}\makeatother
 \bibliography{references}
 
 \end{document}

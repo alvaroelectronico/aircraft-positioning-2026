@@ -5,64 +5,24 @@
 
 We have studied an aircraft hangar positioning problem in which blocking
 interactions depend on the per-job timing of the front aircraft rather than
-on a single block of occupancy.  We contributed an
-exact MILP formulation whose partition constraint classifies every access
-into one of four admissible states and correctly forbids accesses that
-would fall inside a non-interruptible job, and a metaheuristic, IGVND, that
-separates the combinatorial assignment-and-ordering decision from the
-timing decision and prices the former with a two-regime decoder under an
-Iterated-Greedy search with neighbourhood descent, an alignment polish on
-a per-aircraft timing shift, and a checker-validated safety net.
+on a single block of occupancy.  We contributed an exact MILP formulation
+whose partition constraint classifies every access into one of four
+admissible states and excludes accesses inside non-interruptible jobs,
+and a metaheuristic, IGVND, that searches over position assignments and
+priority orders, generates schedules with a two-regime decoder, and
+adjusts per-aircraft timing so that rear accesses coincide with
+boundaries of the front aircraft that block them.
 
-The experimental comparison on 370 instances delivers a clear and honest
-picture.  On the tractable end of the benchmark --- small fleets,
-no or loose blocking --- the MILP proves optimality and IGVND matches it,
-exactly on the no-blocking baseline and on the large majority of
-five-aircraft seeds (all 90 of them under movement-priority), conceding
-only a few objective units elsewhere; the large relative gaps in that
-regime are
-small-denominator artefacts that vanish in the per-component view.  Two
-structural gaps identified against the certified optima were closed by
-reading the optima themselves: the zero-movement optimum stretches stays
-with inter-job idle to nest tighter, a shape folded into the heuristic as
-an explicit, checker-validated candidate over the blocking digraph; and
-the manoeuvre-aware optimum delays or stretches a rear aircraft so that
-its access lands exactly on a boundary of the front it blocks, a shape
-the earliest-start decoder cannot produce and that the per-aircraft shift
-with its alignment polish now recovers: IGVND reproduces 404 of the 439
-certified optima exactly, and the remaining concessions are a fraction
-of a makespan unit on average on the \emph{Chain} topology at $R{=}10$
-and single delay units on a handful of scattered seeds.  On the
-intractable end --- larger fleets and the profiles that
-activate the manoeuvre machinery --- the MILP no longer converges within the
-budget, and IGVND returns markedly better feasible solutions in the same
-60\,s on every configuration, profile and seed, by up to $+53\%$ and
-hundreds to thousands of objective units in absolute terms.  The
-two methods are therefore complementary: the MILP certifies quality where it
-can, and the heuristic extends usable solution quality to the operational
-scale where exact optimisation times out.
+On the benchmark, the MILP certifies optimality on small fleets and
+loosely constrained cases, where IGVND attains the certified optimum in
+the large majority of cases, and the heuristic returns the better
+feasible solution within the same time budget on every larger instance.
+The per-aircraft timing adjustment is the component that lets the
+decoder reproduce the optima in which a rear aircraft is delayed, or its
+stay stretched, so that its access coincides with a boundary of the
+front aircraft that blocks it.
 
-Several directions remain open.  The MILP could be tightened with
-valid inequalities, pair-dependent big-$M$ constants derived from the
-projected time windows of each aircraft pair, or a branch-and-cut
-treatment of the partition constraint, to push the tractability frontier
-outward.  On the heuristic
-side, the certified cells still missed are those whose optimum needs
-several aircraft shifted jointly to instants that are boundaries of no
-intermediate schedule, a valley the one-aircraft alignment steps and the
-random kicks cross only by chance; a coordinated multi-aircraft timing
-move, or an exact timing subproblem solved over a fixed assignment and
-order, is the natural next step, now that the compiled decoders have
-taken search throughput off the critical path.  Finally,
-the present study
-fixes a single 60\,s budget, three corner weight profiles and a handful of
-a-priori search parameters (such as the shuffle bias $\beta$); an anytime
-profile of solution quality versus time, a sweep over intermediate
-weight combinations, and a sensitivity analysis of those parameters would
-further characterise the operating envelope of each method.  Learning-based
-dispatching policies are an increasingly popular alternative for real-time
-scheduling~\citep{Bengio2021}; in the setting studied here, where a single
-misclassified access renders a schedule infeasible, we expect model-based
-search around an exact feasibility oracle to remain the safer backbone,
-with learned guidance --- for instance, steering the destruction step or
-the insertion order --- as a natural hybridisation to explore.
+Future work includes solving an exact timing subproblem over a fixed
+assignment and order to reach the optima that need several aircraft
+shifted jointly, and characterising the heuristic over the time budget
+and over intermediate weight combinations.

@@ -186,12 +186,11 @@ def _desc_cells(topo, slack, R, prev):
 def gap_table(byinst, rows) -> str:
     out = [r"\begin{table}[htbp]", r"  \centering",
            r"  \caption{Relative objective gap of IGVND against the MILP "
-           r"baseline, $g = (z_{\mathrm{MILP}} - z_{\mathrm{IGVND}})/"
+           r"reference, $g = (z_{\mathrm{MILP}} - z_{\mathrm{IGVND}})/"
            r"z_{\mathrm{MILP}}$ (mean over 10 seeds, in \%). $g>0$ means IGVND "
-           r"attains the \emph{lower} objective. All runs share a 60\,s budget. "
-           r"Table~\ref{tab:milp_conv} reports the MILP's optimality gap per "
-           r"configuration; where it is large the MILP reference is a timed-out "
-           r"incumbent, not a proven optimum.}",
+           r"attains the \emph{lower} objective. All runs share a 60\,s budget; "
+           r"Table~\ref{tab:milp_conv} states where the reference is a proven "
+           r"optimum.}",
            r"  \label{tab:gap_profile}",
            r"  \begin{tabular}{lll rrr r}", r"    \toprule",
            r"    Type & $R$ & Slack & $w^{\mathrm{MK}}$ & $w^{\mathrm{DLY}}$"
@@ -253,45 +252,68 @@ def comp_table(byinst, rows) -> str:
 
 
 def milp_gap_table(byinst, rows, gaps) -> str:
-    body = []
+    """Pivoted layout: one row per (Type, R); columns = slack x weight profile."""
+    slacks = ["loose", "medium", "tight"]
     any_oom = False
-    prev = (None, None)
-    for stem, topo, slack, R in rows:
+
+    def cell(stem):
+        nonlocal any_oom
         insts = [i for i in byinst if itype(i) == stem]
-        cells = list(_desc_cells(topo, slack, R, prev))
-        prev = (TYPE_LABEL.get(topo, topo), R)
+        out = []
         for pk, ml, hl, _ in PROFILES:
-            # seeds the heuristic ran (expected MILP coverage) vs MILP solved
             expected = [i for i in insts if hl in byinst[i]]
             solved = [gaps[(i, ml)] for i in expected if (i, ml) in gaps]
             n_oom = len(expected) - len(solved)
             if n_oom:
                 any_oom = True
             if not solved:
-                cells.append(r"\textsc{oom}" if n_oom else "--")
+                out.append(r"\textsc{oom}" if n_oom else "--")
             else:
                 txt = f"{100 * sum(solved) / len(solved):.1f}"
                 if n_oom:
                     txt += rf"$^{{({n_oom})}}$"
-                cells.append(txt)
+                out.append(txt)
+        return out
+
+    groups = {}   # (topo, R) -> {slack: stem}
+    order = []
+    for stem, topo, slack, R in rows:
+        key = (topo, R)
+        if key not in groups:
+            groups[key] = {}
+            order.append(key)
+        groups[key][slack] = stem
+    body = []
+    prev_t = None
+    for topo, R in order:
+        t = TYPE_LABEL.get(topo, topo)
+        cells = ["" if t == prev_t else t, str(R)]
+        prev_t = t
+        for sl in slacks:
+            stem = groups[(topo, R)].get(sl)
+            cells += cell(stem) if stem else ["--"] * len(PROFILES)
         body.append("    " + " & ".join(cells) + r" \\")
-    caption = (r"Mean optimality gap reported by Gurobi within the 60\,s "
-               r"budget, per configuration and weight profile (in \%, over 10 "
-               r"seeds). $0.0$ means a proven optimum on every seed; a larger "
-               r"value means Gurobi returns a feasible incumbent without "
-               r"closing the bound.")
+    caption = (r"Optimality gap of the MILP reference at the end of the 60\,s "
+               r"budget, per configuration and weight profile (mean over 10 "
+               r"seeds, in \%). $0.0$ marks a proven optimum on every seed.")
     if any_oom:
         caption += (r" A superscript $(k)$ marks the $k$ seeds on which Gurobi "
                     r"\emph{ran out of memory and returned no solution at all} "
                     r"-- the MILP could not solve the instance; the reported "
                     r"value averages the remaining seeds. \textsc{oom} marks a "
                     r"configuration the MILP could not solve on any seed.")
-    out = [r"\begin{table}[htbp]", r"  \centering",
+    prof_hdr = " & ".join([r"$w^{\mathrm{MK}}$", r"$w^{\mathrm{DLY}}$",
+                           r"$w^{\mathrm{MOV}}$"] * len(slacks))
+    out = [r"\begin{table}[htbp]", r"  \centering", r"  \small",
+           r"  \setlength{\tabcolsep}{4pt}",
            rf"  \caption{{{caption}}}",
            r"  \label{tab:milp_conv}",
-           r"  \begin{tabular}{lll rrr}", r"    \toprule",
-           r"    Type & $R$ & Slack & $w^{\mathrm{MK}}$ & $w^{\mathrm{DLY}}$"
-           r" & $w^{\mathrm{MOV}}$ \\", r"    \midrule"]
+           r"  \begin{tabular}{ll " + " ".join(["rrr"] * len(slacks)) + "}",
+           r"    \toprule",
+           r"    Type & $R$ & \multicolumn{3}{c}{Slack: loose} "
+           r"& \multicolumn{3}{c}{Slack: medium} & \multicolumn{3}{c}{Slack: tight} \\",
+           r"    \cmidrule(lr){3-5} \cmidrule(lr){6-8} \cmidrule(lr){9-11}",
+           r"     &  & " + prof_hdr + r" \\", r"    \midrule"]
     out += body
     out += [r"    \bottomrule", r"  \end{tabular}", r"\end{table}"]
     return "\n".join(out) + "\n"

@@ -1,5 +1,5 @@
 % ==============================================================================
-\section{MILP Formulation}
+\section{MILP formulation}
 \label{sec:milp}
 % ==============================================================================
 
@@ -12,67 +12,22 @@ problem of \S\ref{sec:problem}.
 % Greek letters are reserved for fixed scalar constants ($\varepsilon$,
 % $\mu$, $\delta$, the time-granularity $\eta$ and the big-$M$
 % relaxation~$M$). 
-The key feature of the formulation is that every
-access of a blocked aircraft is explicitly \emph{classified}, by means
-of a partition constraint, into one of the four mutually exclusive
-states allowed by the problem: before the front aircraft's stay,
-after it, in an inter-job gap (Mode~B), or strictly inside an
-interruptible job (Mode~C).  An access that cannot be classified into
-any of these four states corresponds to an attempt to enter or leave a
-position whose blocker is in the middle of a non-interruptible job,
-and is correctly rendered infeasible by the model.
+Its central element is a partition constraint that classifies every
+access of a blocked aircraft into one of the four mutually exclusive
+states allowed by the problem: before the front aircraft's stay, after
+it, in an inter-job gap (Mode~B), or strictly inside an interruptible
+job (Mode~C); the constraint is discussed with
+equation~\eqref{eq:partition}.
 
-\subsection*{Sets}
-
-\begin{tabular}{@{}l@{\quad}p{0.78\textwidth}@{}}
-  $\calP$
-    & maintenance positions \\
-  $\calR$
-    & aircraft \\
-  $\calJ_r,\ r \in \calR$
-    & ordered job chain of aircraft $r$;
-      $\calJ_r = (j^r_1, \ldots, j^r_{N_r})$ \\
-  $\calJ = \bigcup_{r \in \calR} \calJ_r$
-    & global job set \\
-  $\calA \subseteq \calP \times \calP$
-    & blocking arcs $(p, p')$: position $p$ blocks position $p'$ \\
-\end{tabular}
-
-\subsection*{Parameters}
-
-\begin{tabular}{@{}l@{\quad}p{0.78\textwidth}@{}}
-  $D_j$
-    & nominal duration of job $j \in \calJ$ \\
-  $I_j \in \{0, 1\}$
-    & interruptibility flag of job $j$; $I_j = 1$ iff $j$ can be paused \\
-  $E_r, L_r$
-    & earliest start and target finish of aircraft $r$ \\
-  $\varepsilon$
-    & tow-in / tow-out time; minimum separation between consecutive
-      aircraft serviced at the same position \\
-  $\mu$
-    & operational time absorbed by a single Mode~B manoeuvre inside
-      an inter-job gap (per-access, cumulative across all manoeuvres
-      that share the same gap) \\
-  $\delta$
-    & additional working time added to an interruptible job each time
-      it is paused to allow a Mode~C manoeuvre \\
-  $\eta$
-    & time-granularity used to enforce strict inequalities on the
-      Mode~C job interior; equals the smallest time difference
-      meaningful in the instance (e.g.\ one day) \\
-  $K^{\max}_j$
-    & valid upper bound on the number of times job $j$ may be paused;
-      we take $K^{\max}_j = 2 (|\calR| - 1)$ \\
-  $H^{UB}$
-    & technical upper bound on every job start and finish time,
-      large enough to accommodate the worst-case sequential schedule
-      with all possible interruptions \\
-  $M$
-    & big-$M$ constant; we take $M = H^{UB} + \max(\varepsilon, \mu, \delta, \eta)$ \\
-  $W^M, W^D, W^S$
-    & weights for makespan, total delay, and movements \\
-\end{tabular}
+The formulation retains the sets and parameters of \S\ref{sec:problem}
+and introduces four constants: the time granularity $\eta$, the smallest
+time difference meaningful in the instance (one day on the benchmark of
+\S\ref{sec:experiments}), used to enforce strict inequalities on the
+interior of Mode~C jobs; a valid bound $K^{\max}_j = 2(|\calR| - 1)$ on
+the number of times job $j$ may be paused; a technical upper bound
+$H^{UB}$ on every job start and finish time, large enough to accommodate
+the worst-case sequential schedule with all possible interruptions; and
+the big-$M$ constant $M = H^{UB} + \max(\varepsilon, \mu, \delta, \eta)$.
 
 \subsection*{Variables}
 
@@ -136,7 +91,7 @@ classification indicators:
     & positive delay of aircraft $r$ past its target finish $L_r$;
       $\forall r \in \calR$ \\
   $n \in \NZ$
-    & total number of manoeuvres (movement count) \\
+    & total number of towing movements (two per access manoeuvre) \\
 \end{tabular}
 
 \subsection*{Constraints}
@@ -166,21 +121,15 @@ $\forall r \ne r' \in \calR,\ p \in \calP$ by $(\ddagger)$.
   q_{rr'p} &\le x_{rp},\quad q_{rr'p} \le x_{r'p}
     && (\ddagger),\ \forall p \in \calP \label{eq:ordTight}
 \end{align}
-Constraint~\eqref{eq:assign} assigns each aircraft to exactly one
-position.  Equation~\eqref{eq:jobdur} fixes each job's finish as its
-start plus its nominal duration plus the extension $\delta\kappa_j$
-accrued by its interruptions.  Constraint~\eqref{eq:chain} enforces the
-job-chain precedence inside an aircraft, which, together with the
-shortcuts $s_r = s_{j^r_1}$ and $f_r = f_{j^r_{N_r}}$, chains its jobs
-end-to-end.  Constraint~\eqref{eq:earlystart} forbids any aircraft from
-starting before its earliest start $E_r$.  The big-$M$
-disjunction~\eqref{eq:sep} imposes the $\varepsilon$ separation between
-two aircraft that share a position when $r$ precedes $r'$ there, and is
-vacuous otherwise.  Constraints~\eqref{eq:ordLB}
-and~\eqref{eq:ordUB} make the ordering binaries consistent --- at least
-one direction is chosen whenever both aircraft share the position, and
-at most one is --- while \eqref{eq:ordTight} ties each $q_{rr'p}$ to the
-two assignments it presupposes.
+Constraint~\eqref{eq:assign} assigns each aircraft to one position;
+\eqref{eq:jobdur} fixes each job's finish as its start plus its nominal
+duration plus the extension $\delta\kappa_j$ accrued by its
+interruptions; \eqref{eq:chain} and~\eqref{eq:earlystart} enforce the
+job chain, with $s_r = s_{j^r_1}$ and $f_r = f_{j^r_{N_r}}$, and the
+earliest start; and \eqref{eq:sep}--\eqref{eq:ordTight} sequence the
+aircraft that share a position with the $\varepsilon$ separation, the
+ordering binaries $q_{rr'p}$ selecting exactly one direction whenever
+both aircraft are assigned to $p$.
 
 \fmlgroup{Placement compatibility}
 For every $r \ne r' \in \calR$ and every $(p, p') \in \calA$:
@@ -190,17 +139,13 @@ For every $r \ne r' \in \calR$ and every $(p, p') \in \calA$:
   y_{rr'pp'} \ge x_{rp} + x_{r'p'} - 1
     \label{eq:y_link}
 \end{align}
-Inequalities~\eqref{eq:y_link} make $y_{rr'pp'}$ the logical conjunction
-of $x_{rp}$ and $x_{r'p'}$: the first two force $y_{rr'pp'} = 0$ unless
-both placements hold, and the third forces $y_{rr'pp'} = 1$ when they
-do, so $y_{rr'pp'} = 1$ exactly when the blocking interaction of the
-arc $(p, p')$ is materialised by the assignment.
+Constraints~\eqref{eq:y_link} activate the blocking interaction of the
+arc $(p, p')$, $y_{rr'pp'} = 1$, exactly when both aircraft are assigned
+to the corresponding positions.
 
 \fmlgroup{Exhaustive classification of every access}
-For every $(\dagger)$, an access $\tau^a_{r'}$ that is exposed to the
-front aircraft $r$ must be classified into exactly one of the four
-allowed states; conversely, if $y_{rr'pp'} = 0$ the access is not
-exposed and no indicator may fire:
+For every $(\dagger)$, the access-state indicators satisfy the following
+partition constraint:
 \begin{align}
   z^{-,a}_{rr'pp'} + z^{+,a}_{rr'pp'}
    + \!\!\sum_{k=1}^{N_r-1}\! b^{Ba}_{rr'pp'k}
@@ -208,15 +153,13 @@ exposed and no indicator may fire:
    &= y_{rr'pp'}
     && \label{eq:partition}
 \end{align}
-The partition constraint~\eqref{eq:partition} is the structural core of
-the model.  When the blocking interaction is materialised
-($y_{rr'pp'} = 1$) it forces the access $\tau^a_{r'}$ into exactly one
-of the four admissible states; when it is not ($y_{rr'pp'} = 0$) it
-forbids every indicator from firing.  An access that cannot satisfy any
-of the four state definitions below --- because its blocker is mid-way
-through a non-interruptible job --- leaves~\eqref{eq:partition}
-unsatisfiable, so the only feasible response is to revise the timing or
-the assignment; this is what makes the model exact.
+Constraint~\eqref{eq:partition} requires each active blocking
+interaction ($y_{rr'pp'} = 1$) to select exactly one admissible access
+state for $\tau^a_{r'}$, and sets all indicators to zero when the
+interaction is not active ($y_{rr'pp'} = 0$).  An access that satisfies none of the four state
+definitions below, because the front aircraft is mid-way through a
+non-interruptible job, leaves~\eqref{eq:partition} unsatisfiable, so
+the model must revise the timing or the assignment.
 
 \fmlgroup{Before / after the front stay}
 For every $(\dagger)$:
@@ -231,15 +174,10 @@ $z^{-,a}_{rr'pp'} = 1$, where it places the access no later than the
 front aircraft's start; symmetrically, \eqref{eq:zplus} places the
 access no earlier than the front's finish when $z^{+,a}_{rr'pp'} = 1$.
 In both cases the front position is vacant at the access instant
-(Mode~A, no manoeuvre), and the big-$M$ term deactivates the bound for
-the state that is not selected.  The bounds are deliberately
-\emph{closed}: Mode~A only requires the front position to be vacant at
-the access instant, so any access at or outside the stay endpoints
-$[s_r, f_r]$ --- including one exactly $\varepsilon$ away from a front
-stay, a placement the $\varepsilon = 0.5$ grid makes natural --- is
-admissible, exactly matching the access semantics of
-\S\ref{sec:problem} and the independent compliance checker used in
-\S\ref{sec:experiments}.
+(Mode~A, no manoeuvre).  The bounds are \emph{closed}: Mode~A only
+requires the front position to be vacant at the access instant, so an
+access that coincides with an endpoint of the stay $[s_r, f_r]$ is
+admissible, as in \S\ref{subsec:access}.
 
 \fmlgroup{Mode B --- inter-job gap}
 For every $(\dagger)$ and every $k = 1, \ldots, N_r-1$:
@@ -278,31 +216,21 @@ For every $(\dagger)$ and every $j \in \calJ_r$:
 \end{align}
 The lower bound~\eqref{eq:bc_lb} is active when
 $b^{Ca}_{rr'pp'j} = 1$ and forces the access strictly inside job $j$,
-at least $\eta$ after its start.  The upper bound~\eqref{eq:bc_ub} pins
-$\tau^a_{r'}$ below the job's \emph{active} finish, excluding the
-extension that this specific access would itself generate, and so
-prevents the ``self-justifying interruption'' phenomenon in which an
-access could otherwise become feasible only because the very
-interruption it triggers extends the job past it.  This correction
-deserves emphasis: the processing times of this model are
-\emph{endogenous} --- through $\kappa_j$ they depend on the very
-classification decisions the constraints govern --- and a bound written
-against the full extended finish would let an access bootstrap its own
-feasibility.  Excluding the access's own contribution from the bound is
-the guard that any formulation with decision-dependent durations needs
-at this point.
+at least $\eta$ after its start.  The upper bound~\eqref{eq:bc_ub}
+places the access at least $\eta$ before the job's finish, computed
+\emph{without} the extension caused by the access being classified.
+This exclusion is necessary because job durations depend, through
+$\kappa_j$, on the classification decisions themselves: a bound written
+against the full extended finish would let the extension caused by an
+access make that access appear to fall within the job, and thereby
+justify the interruption that generated it.
 Constraint~\eqref{eq:bc_interr} forbids Mode~C on non-interruptible
 jobs ($I_j = 0$).
 
-A remark on $\eta$ is in order: it is an instance datum, not a solver
-tolerance.  On the benchmark of \S\ref{sec:experiments} it equals one full
-day --- the grid on which all durations and time windows are drawn --- so
-the strict-inequality margins it enforces on the job interior sit many
-orders of magnitude above the solver's feasibility and integrality
-tolerances, and we observed no numerical sensitivity to it.  On instances
-with a finer time grid, $\eta$ should scale with that grid rather than be
-set to an arbitrarily small constant, which would indeed risk
-tolerance-level artefacts.
+Parameter $\eta$ represents the temporal resolution of the instance
+rather than a solver tolerance; on instances with a finer time grid than
+the integer days of the benchmark, it should scale with that grid rather
+than be set to an arbitrarily small constant.
 
 \fmlgroup{Counters, delay and makespan}
 \begin{align}
@@ -324,35 +252,24 @@ tolerance-level artefacts.
     && \forall r \in \calR \label{eq:makespan}
 \end{align}
 Equation~\eqref{eq:kappa} aggregates the Mode~C indicators of job $j$
-into its interruption counter $\kappa_j$, closing the loop with the
-duration constraint~\eqref{eq:jobdur}.  Equation~\eqref{eq:movements}
-totals the manoeuvre count over all Mode~B and Mode~C events, each
-taken with the factor of two for the tow-out and tow-back displacement.
-Constraint~\eqref{eq:delay} linearises the positive delay
-$v^D_r = \max(0,\, f_r - L_r)$ --- the lower bound combined with the
-$v^D_r \ge 0$ domain and the minimisation direction --- and
-\eqref{eq:makespan} sets the makespan $m$ to the latest aircraft
-finish.
+into its interruption counter $\kappa_j$, which feeds the duration
+constraint~\eqref{eq:jobdur}; \eqref{eq:movements} counts two movements
+(tow-out and tow-back) per Mode~B or Mode~C event; and
+\eqref{eq:delay} and~\eqref{eq:makespan} linearise the positive delay
+$v^D_r = \max(0,\, f_r - L_r)$ and the makespan under the minimisation
+direction.
 
-All disjunctions share the single constant
-$M = H^{UB} + \max(\varepsilon, \mu, \delta, \eta)$.  This uniform choice
-is valid but not the tightest possible: pair-dependent constants
-$M_{rr'pp'}$, derived from the projected time windows of the two aircraft
-involved (their earliest starts, chain lengths and interruption bounds),
-would strengthen the linear relaxation at no modelling cost.  We retain
-the uniform constant for readability and have not explored this
-tightening; it is a natural refinement alongside the valid inequalities
-discussed in \S\ref{sec:conclusions}.
+All disjunctions share the single constant $M$.  Pair-dependent
+constants derived from the projected time windows of each aircraft pair
+would strengthen the linear relaxation at no modelling cost; we retain
+the uniform constant and leave this tightening to future work
+(\S\ref{sec:conclusions}).
 
 \subsection*{Objective}
+The objective introduced in \S\ref{sec:problem} is
 \begin{equation}
   \min \quad W^M\, m
          \;+\; W^D \sum_{r \in \calR} v^D_r
          \;+\; W^S\, n.
   \label{eq:milpobj}
 \end{equation}
-The objective~\eqref{eq:milpobj} minimises the weighted sum of the
-makespan, the total positive delay past the target finishes, and the
-movement count, under non-negative user weights $W^M$, $W^D$, $W^S$;
-the weight profiles used in the experiments are discussed in
-\S\ref{sec:exp_setup}.
