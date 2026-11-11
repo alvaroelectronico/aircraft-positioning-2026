@@ -1,0 +1,176 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (3 experiments)
+  Code state (git): 8f888c9
+  Instance order  : by seed, then config (seed1 of all types first)
+==================================================================
+  Shared parameters:
+    time_limit_s=60               NoRelHeurTime=0
+    MIPGap=0.0                    seed=1
+
+  Per-experiment parameters:
+  Label       Solver                      weight_makespan  weight_delay  weight_movements
+  ---------------------------------------------------------------------------------------
+  igvnd_wMK   IteratedGreedyVNDJobSolver  100              1             1               
+  igvnd_wDLY  IteratedGreedyVNDJobSolver  1                100           1               
+  igvnd_wMOV  IteratedGreedyVNDJobSolver  1                1             100             
+==================================================================
+
+
+==================================================================
+  HEURISTIC vs MILP  —  relative gap per instance type
+  gap = (MILP_obj - heuristic_obj) / MILP_obj
+  gap > 0  =>  heuristic BETTER (lower objective);  < 0  => worse
+  heuristic: igvnd_wMK / igvnd_wDLY / igvnd_wMOV   (MILP rows from cache)
+==================================================================
+  -- Relative objective gap, by weight profile --
+  [wMK  (100/1/1  makespan-priority)]
+    Type                          N      Mean       Min       Max
+    -----------------------------------------------------------
+    scn_triangle_loose_P5_R10    10    -0.97%    -1.68%    +0.00%
+    scn_triangle_medium_P5_R10   10    -0.92%    -4.98%    +0.00%
+    scn_triangle_tight_P5_R10    10    -1.31%    -4.20%    +0.03%
+
+  [wDLY  (1/100/1  delay-priority)]
+    Type                          N      Mean       Min       Max
+    -----------------------------------------------------------
+    scn_triangle_loose_P5_R10    10   -24.94%   -60.43%    +0.00%
+    scn_triangle_medium_P5_R10   10    +1.03%    -7.85%    +8.98%
+    scn_triangle_tight_P5_R10    10    +8.72%    +0.00%   +20.41%
+
+  [wMOV  (1/1/100  movement-priority)]
+    Type                          N      Mean       Min       Max
+    -----------------------------------------------------------
+    scn_triangle_loose_P5_R10    10    -0.08%    -0.77%    +0.00%
+    scn_triangle_medium_P5_R10   10    +0.16%    -0.83%    +1.48%
+    scn_triangle_tight_P5_R10    10    +0.72%    -1.16%    +6.11%
+
+  -- Relative objective gap, aggregated over all profiles --
+  [ALL profiles]
+    Type                          N      Mean       Min       Max
+    -----------------------------------------------------------
+    scn_triangle_loose_P5_R10    30    -8.66%   -60.43%    +0.00%
+    scn_triangle_medium_P5_R10   30    +0.09%    -7.85%    +8.98%
+    scn_triangle_tight_P5_R10    30    +2.71%    -4.20%   +20.41%
+
+  -- Per-component mean Δ (heuristic − MILP); negative = heuristic better --
+  -- (relative gap is distorted when the optimum delay ≈ 0; read these too)
+  [wMK  (100/1/1  makespan-priority)]
+    Type                          N   Δmakespan      Δdelay      Δmov
+    ---------------------------------------------------------------
+    scn_triangle_loose_P5_R10    10       +0.70       -5.45     -3.60
+    scn_triangle_medium_P5_R10   10       +0.65       -3.60     -3.20
+    scn_triangle_tight_P5_R10    10       +0.90       -0.95     -3.80
+
+  [wDLY  (1/100/1  delay-priority)]
+    Type                          N   Δmakespan      Δdelay      Δmov
+    ---------------------------------------------------------------
+    scn_triangle_loose_P5_R10    10       +0.10       +0.30     -4.20
+    scn_triangle_medium_P5_R10   10       -2.10       -0.80     -2.00
+    scn_triangle_tight_P5_R10    10       -5.35      -10.30     -6.00
+
+  [wMOV  (1/1/100  movement-priority)]
+    Type                          N   Δmakespan      Δdelay      Δmov
+    ---------------------------------------------------------------
+    scn_triangle_loose_P5_R10    10       +0.30       -0.25     +0.00
+    scn_triangle_medium_P5_R10   10       +0.10       -0.30     +0.00
+    scn_triangle_tight_P5_R10    10       +0.30       -1.60     +0.00
+
+==================================================================
+
+
+==================================================================
+  SUMMARY  —  90 ok  /  0 failed  /  90 total
+==================================================================
+  Instance                           Experiment  Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  ---------------------------------------------------------------------------------------------------------------------
+  scn_triangle_loose_P5_R10_seed1    igvnd_wMK   heuristic_     5855.00      58.50       5.00     0         -      60.0
+  scn_triangle_loose_P5_R10_seed1    igvnd_wDLY  heuristic_      410.50      60.50       3.50     0         -      60.0
+  scn_triangle_loose_P5_R10_seed1    igvnd_wMOV  heuristic_       63.50      58.50       5.00     0         -      60.0
+  scn_triangle_medium_P5_R10_seed1   igvnd_wMK   heuristic_     5905.50      58.50      55.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed1   igvnd_wDLY  heuristic_     5608.50      58.50      55.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed1   igvnd_wMOV  heuristic_      114.00      58.50      55.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed1    igvnd_wMK   heuristic_     5946.50      58.50      96.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed1    igvnd_wDLY  heuristic_     9708.50      58.50      96.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed1    igvnd_wMOV  heuristic_      155.00      58.50      96.50     0         -      60.0
+  scn_triangle_loose_P5_R10_seed2    igvnd_wMK   heuristic_     6854.00      68.50       4.00     0         -      60.1
+  scn_triangle_loose_P5_R10_seed2    igvnd_wDLY  heuristic_       71.50      71.50       0.00     0         -      60.3
+  scn_triangle_loose_P5_R10_seed2    igvnd_wMOV  heuristic_       71.50      71.50       0.00     0         -      60.1
+  scn_triangle_medium_P5_R10_seed2   igvnd_wMK   heuristic_     6916.50      68.50      66.50     0         -      60.3
+  scn_triangle_medium_P5_R10_seed2   igvnd_wDLY  heuristic_     6221.50      71.50      61.50     0         -      60.1
+  scn_triangle_medium_P5_R10_seed2   igvnd_wMOV  heuristic_      133.00      71.50      61.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed2    igvnd_wMK   heuristic_     7166.50      70.50     116.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed2    igvnd_wDLY  heuristic_    11421.50      71.50     113.50     0         -      60.4
+  scn_triangle_tight_P5_R10_seed2    igvnd_wMOV  heuristic_      185.00      71.50     113.50     0         -      60.1
+  scn_triangle_loose_P5_R10_seed3    igvnd_wMK   heuristic_     6257.50      62.50       7.50     0         -      60.1
+  scn_triangle_loose_P5_R10_seed3    igvnd_wDLY  heuristic_      114.50      64.50       0.50     0         -      60.1
+  scn_triangle_loose_P5_R10_seed3    igvnd_wMOV  heuristic_       65.00      64.50       0.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed3   igvnd_wMK   heuristic_     6317.50      62.50      67.50     0         -      60.1
+  scn_triangle_medium_P5_R10_seed3   igvnd_wDLY  heuristic_     5614.50      64.50      55.50     0         -      60.1
+  scn_triangle_medium_P5_R10_seed3   igvnd_wMOV  heuristic_      121.00      65.50      55.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed3    igvnd_wMK   heuristic_     6368.50      62.50     118.50     0         -      61.3
+  scn_triangle_tight_P5_R10_seed3    igvnd_wDLY  heuristic_    10826.50      68.50     107.50     8         -      60.1
+  scn_triangle_tight_P5_R10_seed3    igvnd_wMOV  heuristic_      169.00      65.50     103.50     0         -      60.5
+  scn_triangle_loose_P5_R10_seed4    igvnd_wMK   heuristic_     6780.50      67.50      30.50     0         -      60.2
+  scn_triangle_loose_P5_R10_seed4    igvnd_wDLY  heuristic_      131.50      81.50       0.50     0         -      60.0
+  scn_triangle_loose_P5_R10_seed4    igvnd_wMOV  heuristic_       78.00      76.50       1.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed4   igvnd_wMK   heuristic_     6842.50      67.50      92.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed4   igvnd_wDLY  heuristic_     6926.50      76.50      68.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed4   igvnd_wMOV  heuristic_      142.00      72.50      69.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed4    igvnd_wMK   heuristic_     6885.50      67.50     135.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed4    igvnd_wDLY  heuristic_    12026.50      76.50     119.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed4    igvnd_wMOV  heuristic_      193.00      72.50     120.50     0         -      60.0
+  scn_triangle_loose_P5_R10_seed5    igvnd_wMK   heuristic_     5662.50      56.50      12.50     0         -      62.2
+  scn_triangle_loose_P5_R10_seed5    igvnd_wDLY  heuristic_       59.50      59.50       0.00     0         -      60.6
+  scn_triangle_loose_P5_R10_seed5    igvnd_wMOV  heuristic_       59.50      59.50       0.00     0         -      60.0
+  scn_triangle_medium_P5_R10_seed5   igvnd_wMK   heuristic_     5702.50      56.50      52.50     0         -      60.2
+  scn_triangle_medium_P5_R10_seed5   igvnd_wDLY  heuristic_     4507.50      57.50      44.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed5   igvnd_wMOV  heuristic_      102.00      57.50      44.50     0         -      60.1
+  scn_triangle_tight_P5_R10_seed5    igvnd_wMK   heuristic_     5747.50      56.50      97.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed5    igvnd_wDLY  heuristic_     8907.50      57.50      88.50     0         -      60.1
+  scn_triangle_tight_P5_R10_seed5    igvnd_wMOV  heuristic_      146.00      57.50      88.50     0         -      60.1
+  scn_triangle_loose_P5_R10_seed6    igvnd_wMK   heuristic_     6453.00      64.50       3.00     0         -      60.0
+  scn_triangle_loose_P5_R10_seed6    igvnd_wDLY  heuristic_      117.50      67.50       0.50     0         -      60.0
+  scn_triangle_loose_P5_R10_seed6    igvnd_wMOV  heuristic_       67.50      64.50       3.00     0         -      60.1
+  scn_triangle_medium_P5_R10_seed6   igvnd_wMK   heuristic_     6511.50      64.50      61.50     0         -      60.7
+  scn_triangle_medium_P5_R10_seed6   igvnd_wDLY  heuristic_     6214.50      64.50      61.50     0         -      60.1
+  scn_triangle_medium_P5_R10_seed6   igvnd_wMOV  heuristic_      126.00      64.50      61.50     0         -      60.2
+  scn_triangle_tight_P5_R10_seed6    igvnd_wMK   heuristic_     6557.50      64.50     107.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed6    igvnd_wDLY  heuristic_    10814.50      64.50     107.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed6    igvnd_wMOV  heuristic_      172.00      64.50     107.50     0         -      60.0
+  scn_triangle_loose_P5_R10_seed7    igvnd_wMK   heuristic_     6250.00      62.50       0.00     0         -      60.1
+  scn_triangle_loose_P5_R10_seed7    igvnd_wDLY  heuristic_       62.50      62.50       0.00     0         -      60.0
+  scn_triangle_loose_P5_R10_seed7    igvnd_wMOV  heuristic_       62.50      62.50       0.00     0         -      60.1
+  scn_triangle_medium_P5_R10_seed7   igvnd_wMK   heuristic_     6290.50      62.50      40.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed7   igvnd_wDLY  heuristic_     4112.50      62.50      40.50     0         -      60.2
+  scn_triangle_medium_P5_R10_seed7   igvnd_wMOV  heuristic_      103.00      62.50      40.50     0         -      60.1
+  scn_triangle_tight_P5_R10_seed7    igvnd_wMK   heuristic_     6342.50      62.50      92.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed7    igvnd_wDLY  heuristic_     9112.50      62.50      90.50     0         -      61.7
+  scn_triangle_tight_P5_R10_seed7    igvnd_wMOV  heuristic_      153.00      62.50      90.50     0         -      60.3
+  scn_triangle_loose_P5_R10_seed8    igvnd_wMK   heuristic_     6056.00      60.50       6.00     0         -      60.1
+  scn_triangle_loose_P5_R10_seed8    igvnd_wDLY  heuristic_      111.50      61.50       0.50     0         -      60.0
+  scn_triangle_loose_P5_R10_seed8    igvnd_wMOV  heuristic_       62.00      61.50       0.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed8   igvnd_wMK   heuristic_     6116.50      60.50      66.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed8   igvnd_wDLY  heuristic_     6011.50      61.50      59.50     0         -      60.1
+  scn_triangle_medium_P5_R10_seed8   igvnd_wMOV  heuristic_      121.00      61.50      59.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed8    igvnd_wMK   heuristic_     6253.50      61.50     103.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed8    igvnd_wDLY  heuristic_    10411.50      61.50     103.50     0         -      60.2
+  scn_triangle_tight_P5_R10_seed8    igvnd_wMOV  heuristic_      165.00      61.50     103.50     0         -      60.2
+  scn_triangle_loose_P5_R10_seed9    igvnd_wMK   heuristic_     6962.00      69.50       8.00     4         -      60.1
+  scn_triangle_loose_P5_R10_seed9    igvnd_wDLY  heuristic_       76.50      76.50       0.00     0         -      60.1
+  scn_triangle_loose_P5_R10_seed9    igvnd_wMOV  heuristic_       74.00      71.50       2.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed9   igvnd_wMK   heuristic_     6902.50      68.50      52.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed9   igvnd_wDLY  heuristic_     5318.50      68.50      52.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed9   igvnd_wMOV  heuristic_      121.00      68.50      52.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed9    igvnd_wMK   heuristic_     7089.50      69.50     129.50    10         -      60.0
+  scn_triangle_tight_P5_R10_seed9    igvnd_wDLY  heuristic_    10079.50      71.50     100.00     8         -      60.2
+  scn_triangle_tight_P5_R10_seed9    igvnd_wMOV  heuristic_      175.00      71.50     103.50     0         -      60.2
+  scn_triangle_loose_P5_R10_seed10   igvnd_wMK   heuristic_     6263.50      62.50      13.50     0         -      60.0
+  scn_triangle_loose_P5_R10_seed10   igvnd_wDLY  heuristic_       65.50      65.50       0.00     0         -      60.0
+  scn_triangle_loose_P5_R10_seed10   igvnd_wMOV  heuristic_       65.50      65.50       0.00     0         -      60.0
+  scn_triangle_medium_P5_R10_seed10  igvnd_wMK   heuristic_     6510.50      64.50      60.50     0         -      60.0
+  scn_triangle_medium_P5_R10_seed10  igvnd_wDLY  heuristic_     5112.50      62.50      50.50     0         -      60.9
+  scn_triangle_medium_P5_R10_seed10  igvnd_wMOV  heuristic_      113.00      61.50      51.50     0         -      60.0
+  scn_triangle_tight_P5_R10_seed10   igvnd_wMK   heuristic_     6245.50      61.50      95.50     0         -      60.1
+  scn_triangle_tight_P5_R10_seed10   igvnd_wDLY  heuristic_     9712.50      62.50      96.50     0         -      60.1
+  scn_triangle_tight_P5_R10_seed10   igvnd_wMOV  heuristic_      157.00      61.50      95.50     0         -      60.1
+==================================================================

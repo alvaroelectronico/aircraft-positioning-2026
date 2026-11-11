@@ -1,0 +1,41 @@
+==================================================================
+  EXPERIMENT CONFIGURATIONS  (2 experiments)
+  Code state (git): 1850f0a
+  Instance order  : by seed, then config (seed1 of all types first)
+==================================================================
+  Shared parameters:
+    weight_movements=1            NoRelHeurTime=0
+    time_limit_s=60               seed=1
+    MIPGap=0.0                    
+
+  Per-experiment parameters:
+  Label       Solver                      weight_makespan  weight_delay
+  ---------------------------------------------------------------------
+  igvnd_wMK   IteratedGreedyVNDJobSolver  100              1           
+  igvnd_wDLY  IteratedGreedyVNDJobSolver  1                100         
+==================================================================
+
+
+  (gap summary unavailable: 'wMOV')
+
+
+==================================================================
+  SUMMARY  —  14 ok  /  0 failed  /  14 total
+==================================================================
+  Instance                       Experiment  Status             Obj   Makespan      Delay   Mov       Gap   Time(s)
+  -----------------------------------------------------------------------------------------------------------------
+  scn_chain_tight_P5_R10_seed4   igvnd_wMK   heuristic_     7337.50      71.50     167.50    20         -      60.0
+  scn_chain_tight_P5_R10_seed4   igvnd_wDLY  heuristic_    13549.50      83.50     134.50    16         -      60.0
+  scn_chain_tight_P5_R10_seed5   igvnd_wMK   heuristic_     6084.50      59.50     124.50    10         -      60.0
+  scn_chain_tight_P5_R10_seed5   igvnd_wDLY  heuristic_    10533.50      69.50     104.50    14         -      60.0
+  scn_chain_tight_P5_R10_seed6   igvnd_wMK   heuristic_     6882.00      67.50     120.00    12         -      60.0
+  scn_chain_tight_P5_R10_seed6   igvnd_wDLY  heuristic_    12282.00      70.00     122.00    12         -      60.0
+  scn_chain_tight_P5_R10_seed7   igvnd_wMK   heuristic_     6788.50      66.50     122.50    16         -      60.0
+  scn_chain_tight_P5_R10_seed7   igvnd_wDLY  heuristic_    10779.50      67.50     107.00    12         -      60.0
+  scn_chain_tight_P5_R10_seed8   igvnd_wMK   heuristic_     6573.50      64.50     123.50     0         -      60.1
+  scn_chain_tight_P5_R10_seed8   igvnd_wDLY  heuristic_    11413.50      63.50     113.50     0         -      60.0
+  scn_chain_tight_P5_R10_seed9   igvnd_wMK   heuristic_     7084.00      69.50     118.00    16         -      60.0
+  scn_chain_tight_P5_R10_seed9   igvnd_wDLY  heuristic_    10838.50      76.50     107.50    12         -      60.0
+  scn_chain_tight_P5_R10_seed10  igvnd_wMK   heuristic_     6900.00      67.50     138.00    12         -      60.2
+  scn_chain_tight_P5_R10_seed10  igvnd_wDLY  heuristic_    12037.00      75.00     119.50    12         -      60.0
+==================================================================
