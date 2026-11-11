@@ -3,11 +3,11 @@
 \label{sec:heuristic}
 % ==============================================================================
 
-The MILP of \S\ref{sec:milp} is exact but its size grows quickly: the
+The MILP of Section~\ref{sec:milp} is exact but its size grows quickly: the
 partition variables $z^-,\,z^+,\,b^B,\,b^C$ contribute
 $O\!\left(|\calR|^2 \cdot |\calA| \cdot (N_{\max}+1)\right)$ binaries,
 which limits the instance sizes that can be solved to optimality within
-the experimental time budget (\S\ref{sec:experiments}).  We therefore
+the experimental time budget (Section~\ref{sec:experiments}).  We therefore
 develop a metaheuristic, \textsc{IGVND}, that couples an Iterated-Greedy
 outer loop with a first-improvement local search over three
 neighbourhoods around a problem-specific decoder, and complements it with
@@ -29,24 +29,24 @@ draws on.  A solution is represented by a \emph{combinatorial state}
 $(\pi, \sigma)$, where $\pi : \calR \to \calP$ is the position assignment
 and $\sigma$ is a global priority order over the aircraft.  The
 \emph{decoder} maps a state to job start and finish times, classifies
-every blocking access into its mode (\S\ref{sec:problem}), and returns
+every blocking access into its mode (Section~\ref{sec:problem}), and returns
 the objective value~\eqref{eq:milpobj}, written $z(\pi,\sigma)$.  The
 manoeuvre-aware decoder also accepts a per-aircraft timing adjustment,
 the \emph{shift} $\theta_r = (d_r, g_r)$, comprising a delay $d_r \ge 0$
 of the earliest start and an idle time $g_r \ge 0$ before the last job;
 the shift is zero by default and is searched only by the alignment
-refinement of \S\ref{sec:igvnd_align}.  We write $z_1(\pi,\sigma,\theta)$
+refinement of Section~\ref{sec:igvnd_align}.  We write $z_1(\pi,\sigma,\theta)$
 when the shift matters and $z_1(\pi,\sigma)$ for the zero shift.
 
 Algorithm~\ref{alg:igvnd} applies multiple restarts until the time
 budget is exhausted.  Each restart first optimises a zero-movement
 schedule and then searches for an improving manoeuvre-aware schedule,
-using the decoder of \S\ref{sec:igvnd_decoder}, the construction of
-\S\ref{sec:igvnd_construction}, the local search of
-\S\ref{sec:igvnd_vnd}, the Iterated Greedy loop of
-\S\ref{sec:igvnd_ig} and the alignment refinement of
-\S\ref{sec:igvnd_align}; a further zero-movement candidate is built
-once at the end (\S\ref{sec:igvnd_safety}).  A restart builds a seed
+using the decoder of Section~\ref{sec:igvnd_decoder}, the construction of
+Section~\ref{sec:igvnd_construction}, the local search of
+Section~\ref{sec:igvnd_vnd}, the Iterated Greedy loop of
+Section~\ref{sec:igvnd_ig} and the alignment refinement of
+Section~\ref{sec:igvnd_align}; a further zero-movement candidate is built
+once at the end (Section~\ref{sec:igvnd_safety}).  A restart builds a seed
 order (deterministic for the first two, biased-randomised afterwards),
 optimises it in the zero-movement regime to obtain a feasible
 \emph{zero-movement baseline}, and then re-optimises it in the
@@ -54,7 +54,7 @@ manoeuvre-aware regime, where the state also carries the shift $\theta$
 started from zero; the two phases split the restart's time slice evenly,
 and the manoeuvre-aware schedule replaces the baseline only if it passes
 an independent feasibility check and improves it.  A nest-stretch candidate
-is added when the weights reward it (\S\ref{sec:igvnd_safety}), and the
+is added when the weights reward it (Section~\ref{sec:igvnd_safety}), and the
 best schedule over all restarts is returned.  Because a restart ends
 once its own search stalls, small instances perform many independent
 restarts within the budget, while larger ones run two long trajectories,
@@ -67,7 +67,7 @@ one per clearance geometry of the zero-movement decoder.
 \KwData{instance $I$; weights $(W^M, W^D, W^S)$; time budget $T$.}
 \KwResult{a feasible schedule.}
 preprocess $I$; let $\rho_{\mathrm{NEH}}, \rho_{\mathrm{SLACK}}$ be the two
-   deterministic priority rules (\S\ref{sec:igvnd_construction})\;
+   deterministic priority rules (Section~\ref{sec:igvnd_construction})\;
 set the per-restart time cap $\tau = T/8$ if $R \le 10$, $\;T/2$
    otherwise\;
 $z^\star \leftarrow +\infty$;\quad $i \leftarrow 1$\;
@@ -93,7 +93,7 @@ $z^\star \leftarrow +\infty$;\quad $i \leftarrow 1$\;
   $i \leftarrow i + 1$\;
 }
 \If{$W^S$ dominates the weights \textbf{\emph{and}} $\calA \ne \emptyset$}{
-  build the nest-stretch candidate (\S\ref{sec:igvnd_safety})\;
+  build the nest-stretch candidate (Section~\ref{sec:igvnd_safety})\;
   adopt it if it is feasible and improves $z^\star$\;
 }
 \Return the recorded schedule attaining $z^\star$\;
@@ -117,7 +117,7 @@ an aircraft with a longer maintenance stay to enclose the stay of
 another, so that two blocking-related aircraft overlap in time instead
 of being serialised.  The clearance between an access and the front stay
 alternates with the parity of the restart: even restarts allow an access
-to coincide with a stay endpoint, as in \S\ref{subsec:access}, and odd
+to coincide with a stay endpoint, as in Section~\ref{subsec:access}, and odd
 restarts keep a margin of $\eta$.  Aircraft sharing a position are
 separated by $\varepsilon$; aircraft on non-conflicting positions run in
 parallel.  Processing the aircraft in the priority order $\sigma$, the
@@ -178,18 +178,18 @@ manoeuvre option --- it never discards a feasible no-movement schedule.
 
 Processing rears before fronts has a limitation: a rear aircraft is laid
 at its earliest feasible start and cannot react to where its front ends
-up.  The certified optima of \S\ref{sec:experiments}, however,
+up.  The certified optima of Section~\ref{sec:experiments}, however,
 frequently delay a rear aircraft, or stretch its stay with idle before its
 last job, precisely so that its exit (or entry) coincides with a boundary
 of the front aircraft that blocks its access --- the front's stay start or finish, or a job end
 --- where the access is Mode~A or Mode~B instead of a Mode~C
 interruption.  The decoder therefore honours the per-aircraft shift
-$\theta_r = (d_r, g_r)$ introduced in \S\ref{sec:igvnd_principle}: the
+$\theta_r = (d_r, g_r)$ introduced in Section~\ref{sec:igvnd_principle}: the
 lower bound on $r$'s start becomes $E_r + d_r$, and an idle of $g_r$ is
 inserted before its last job, so that the finish $f_r$ moves by $g_r$
 while the earlier jobs stay where they were.  With $\theta = 0$ the
 decoder is exactly the one just described, so the baseline is unaffected;
-how $\theta$ is searched is the subject of \S\ref{sec:igvnd_align}.
+how $\theta$ is searched is the subject of Section~\ref{sec:igvnd_align}.
 
 The cost of one manoeuvre-aware decode is polynomial.  Let
 $A \le 2(|\calR| - 1)$ bound the exposed access instants a front aircraft
@@ -323,7 +323,7 @@ those that leave the aircraft's order relative to the aircraft it
 interacts with unchanged.  Under $\textsc{Decode}_1$ the state also
 carries the shift $\theta$, which the descent evaluates but never
 changes; the shift is searched only by the alignment refinement of
-\S\ref{sec:igvnd_align}, because in preliminary experiments searching it
+Section~\ref{sec:igvnd_align}, because in preliminary experiments searching it
 as a fourth neighbourhood multiplied the cost of a non-improving pass
 about fivefold and left too little time for the outer loop.
 
@@ -343,7 +343,7 @@ tracked separately.  A removed aircraft loses its shift, which was
 aligned to a context the rebuild changes.  The same procedure runs with
 $\textsc{Decode}_0$ for the baseline and with $\textsc{Decode}_1$ for
 the manoeuvre-aware phase; under $\textsc{Decode}_1$ it calls the
-alignment refinement of \S\ref{sec:igvnd_align} at the three points
+alignment refinement of Section~\ref{sec:igvnd_align} at the three points
 marked in Algorithm~\ref{alg:search}, the first of them before the
 acceptance test because a candidate evaluated with inherited shifts may
 overestimate its objective value and be rejected although its assignment

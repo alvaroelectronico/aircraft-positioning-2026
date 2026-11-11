@@ -4,7 +4,7 @@
 % ==============================================================================
 
 We present a mixed-integer linear programming formulation of the
-problem of \S\ref{sec:problem}. 
+problem of Section~\ref{sec:problem}.
 % Where possible the notation follows
 % the conventions used elsewhere in the literature for aircraft
 % positioning problems with blocking arcs: parameters use upper-case
@@ -19,10 +19,10 @@ it, in an inter-job gap (Mode~B), or strictly inside an interruptible
 job (Mode~C); the constraint is discussed with
 equation~\eqref{eq:partition}.
 
-The formulation retains the sets and parameters of \S\ref{sec:problem}
+The formulation retains the sets and parameters of Section~\ref{sec:problem}
 and introduces four constants: the time granularity $\eta$, the smallest
 time difference meaningful in the instance (one day on the benchmark of
-\S\ref{sec:experiments}), used to enforce strict inequalities on the
+Section~\ref{sec:experiments}), used to enforce strict inequalities on the
 interior of Mode~C jobs; a valid bound $K^{\max}_j = 2(|\calR| - 1)$ on
 the number of times job $j$ may be paused; a technical upper bound
 $H^{UB}$ on every job start and finish time, large enough to accommodate
@@ -177,7 +177,7 @@ In both cases the front position is vacant at the access instant
 (Mode~A, no manoeuvre).  The bounds are \emph{closed}: Mode~A only
 requires the front position to be vacant at the access instant, so an
 access that coincides with an endpoint of the stay $[s_r, f_r]$ is
-admissible, as in \S\ref{subsec:access}.
+admissible, as in Section~\ref{subsec:access}.
 
 \fmlgroup{Mode B --- inter-job gap}
 For every $(\dagger)$ and every $k = 1, \ldots, N_r-1$:
@@ -263,10 +263,10 @@ All disjunctions share the single constant $M$.  Pair-dependent
 constants derived from the projected time windows of each aircraft pair
 would strengthen the linear relaxation at no modelling cost; we retain
 the uniform constant and leave this tightening to future work
-(\S\ref{sec:conclusions}).
+(Section~\ref{sec:conclusions}).
 
 \subsection*{Objective}
-The objective introduced in \S\ref{sec:problem} is
+The objective introduced in Section~\ref{sec:problem} is
 \begin{equation}
   \min \quad W^M\, m
          \;+\; W^D \sum_{r \in \calR} v^D_r

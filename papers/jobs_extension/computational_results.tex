@@ -4,7 +4,7 @@
 % ==============================================================================
 
 This section evaluates IGVND on a controlled benchmark.  The reference
-is the MILP of \S\ref{sec:milp} solved with Gurobi under the same time
+is the MILP of Section~\ref{sec:milp} solved with Gurobi under the same time
 limit: a proven optimum where the solver converges, and its best
 incumbent otherwise.
 
@@ -125,7 +125,7 @@ above the reference.  Most of the optima that a zero-shift decoding
 misses delay a rear aircraft, or stretch its stay, so that its access
 coincides with a boundary of a blocking front aircraft; given the
 reference assignment and order, the alignment refinement of
-\S\ref{sec:igvnd_align} recovers 413 of the 439 optima from the zero
+Section~\ref{sec:igvnd_align} recovers 413 of the 439 optima from the zero
 shift, and without it the two $R{=}10$-loose delay-priority cells had
 mean gaps of $-111\%$ and $-148\%$ instead of $-3.8\%$ and $-6.2\%$.
 
@@ -144,7 +144,7 @@ comparison reduces to how tightly each packs it: IGVND matches the
 optimal value on every certified cell, is within $0.5\%$ of the
 reference on the remaining $R{=}10$ cells, and improves on it by $+19\%$
 to $+45\%$ at $R{=}20$ and $R{=}30$, where the nest-stretch candidate of
-\S\ref{sec:igvnd_safety} supplies the extended rear-aircraft stays
+Section~\ref{sec:igvnd_safety} supplies the extended rear-aircraft stays
 observed in the certified optima.
 
 \FloatBarrier
